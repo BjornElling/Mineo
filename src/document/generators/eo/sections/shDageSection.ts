@@ -19,8 +19,8 @@ type SHDageSectionContext = Readonly<{
   harSfggReferenceperiodeMedShFradrag?: boolean;
   /**
    * Beregningsgrundlaget opgøres i arbejdsdage og trækker derfor beregningsperiodens SH-dage fra («I perioden
-   * var der 261 hverdage - 10 SH-dage …»). Bilaget skal da dokumentere netop de SH-dage (BB-280) – før kom
-   * afsnittet kun med, når sygeferiegodtgørelsen også regnede i arbejdsdage.
+   * var der 261 hverdage - 10 SH-dage …»). Bilaget skal da dokumentere netop de SH-dage – også når
+   * sygeferiegodtgørelsen ikke regner i arbejdsdage.
    */
   beregningsgrundlagFradragerShDage?: boolean;
   startEoBilagPage: (titleText: string) => void;

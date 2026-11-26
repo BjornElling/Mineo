@@ -38,9 +38,8 @@ const fingerprintSaveTarget = async (handle: FileSystemFileHandle): Promise<stri
 /**
  * Typet gem-port: HVOR det verificerede `.eo`-artefakt skal skrives hen.
  *
- * `saveToFile` havde tidligere en stor forgrenet blok, der blandede to concerns: (1) hvilket mål der
- * skal skrives til (genbrug persisteret handle, åbn picker, eller fallback-download) og (2) selve
- * skrivning + verifikation. Denne port ejer KUN målresolutionen og returnerer en diskrimineret værdi
+ * Gem rummer to concerns: (1) hvilket mål der skal skrives til (genbrug persisteret handle, åbn
+ * picker, eller fallback-download) og (2) selve skrivning + verifikation. Denne port ejer KUN målresolutionen og returnerer en diskrimineret værdi
  * – `fileHandle` (read-back-sink), `download` (in-memory-verificér-før-sink) eller `cancelled`
  * (brugeren lukkede pickeren / afviste tilladelses-prompten). Skrivning + verifikation ejes fortsat af
  * `saveToFile`, som blot forgrener på `target.kind`.

@@ -381,9 +381,9 @@ const buildWindowSamples = (
       // Der tilføjes KUN en kolonne, hvor en serie starter (0→beløb) eller ophører
       // (beløb→0) – dét er de skarpe lodrette kanter, der skal bevares. Et rent
       // niveauskift (begge sider > 0) må IKKE give en kolonne på grænsedatoen: en
-      // sådan grænse-kolonne har samme værdi som månedens midtpunkt og skabte et
+      // sådan grænse-kolonne har samme værdi som månedens midtpunkt og skaber et
       // fladt "plateau" pr. måned med kun afrundede skuldre. I stedet bæres
-      // niveauskiftet nu af én blød bue mellem to måneds-midtpunkter.
+      // niveauskiftet af én blød bue mellem to måneds-midtpunkter.
       const edgeBySeries = afterValues.map(
         (after, index) => (beforeValues[index] === 0) !== (after === 0)
       );
@@ -402,8 +402,8 @@ const buildWindowSamples = (
     }
 
     // Et niveau mellem to positive niveauer får ingen kantkolonne, og månedens ene midtpunkt kan ligge uden for det.
-    // Så forsvandt fx dagpenge på 10.000 kr. 1.-3. juli mellem 3.700 og 7.900 kr. helt af grafen, selv om tallene
-    // regnede med dem (BB-460). Hvert stykke med uændrede beløb, som hverken rummer et månedsmidtpunkt eller starter
+    // Så ville fx dagpenge på 10.000 kr. 1.-3. juli mellem 3.700 og 7.900 kr. forsvinde helt af grafen, selv om
+    // tallene regner med dem. Hvert stykke med uændrede beløb, som hverken rummer et månedsmidtpunkt eller starter
     // med en kantkolonne, får derfor én kolonne på sit eget midtpunkt. Kurvens bløde form er uændret.
     const monthMidpoints = months.map(midpointIso);
     sortedTransitionDates.forEach((fra, index) => {

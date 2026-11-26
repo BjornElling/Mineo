@@ -226,7 +226,7 @@ export const addLoebendeUdvidetSpecifikationPage = (
 
   // Årsløn
   writer.writeBoldSubheader('Årsløn');
-  // Udviklerafgørelse 2026-11-20: årslønnens beregningsprincipper (afrunding, maksimum) gengives ikke.
+  // Årslønnens beregningsprincipper (afrunding, maksimum) gengives bevidst ikke.
   // Årslønnen er fastsat i arbejdsskademyndighedernes afgørelse, hvor principperne fremgår. Etiketten
   // er skærmens («ASL-årsløn»).
   writer.writeLeftRightText('ASL-årsløn', formatKr(toKroner(computation.benyttetAarsloenOre)), rowOpts);

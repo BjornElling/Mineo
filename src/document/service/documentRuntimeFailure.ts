@@ -165,10 +165,9 @@ export const ensureDevServerAvailableForDocumentDownload = async (
  * `reportFailure`-porten for hovedappens miljø. Kun UVENTEDE runtimefejl rapporteres som systemfejl;
  * forventelige afvisninger (gate, stale, settle) og dev-server-nedetid når aldrig hertil (§A5).
  *
- * DEV-heuristikken for dynamic-import-fejl bevares, men den kan ikke længere ændre det udfald,
- * brugeren ser – den beriger kun diagnostikken. Tidligere kunne den omklassificere en runtimefejl til
- * "dev-server nede" EFTER at fejlteksten var valgt, hvilket gav to forskellige beskeder for samme
- * tilstand afhængigt af timing.
+ * DEV-heuristikken for dynamic-import-fejl kan ikke ændre det udfald, brugeren ser – den beriger kun
+ * diagnostikken. Måtte den omklassificere en runtimefejl til "dev-server nede" EFTER at fejlteksten var
+ * valgt, ville samme tilstand give to forskellige beskeder afhængigt af timing.
  */
 export const reportDocumentRuntimeFailure = (
   failure: DocumentFailure,

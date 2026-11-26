@@ -3,32 +3,23 @@ import { getDirectoryDisplayInfo } from '../fileHandleStorage';
 /**
  * Standardplaceringen for gemte filer, som ÉN resolveret værdi.
  *
- * **Hvorfor dette modul findes.** Begrebet «hvor gemmes filer, og hvad hedder den mappe» blev
- * tidligere besvaret tre steder, af tre forskellige kilder, uden at noget bandt dem sammen:
+ * **Hvorfor dette modul findes.** Begrebet «hvor gemmes filer, og hvad hedder den mappe» har
+ * tre berøringsflader – gem/hent (`resolveDefaultDirectoryHandle`), visningen i `Indstillinger.tsx`
+ * og skrivningen (`saveDefaultDirectoryHandle`) – og de skal give samme svar og samme navn.
  *
- * | Sted | Kilde | Navn ved standard |
- * |---|---|---|
- * | `resolveDefaultDirectoryHandle` (gem/hent) | `default_directory_handle` + permission | `'Skrivebord'` |
- * | `Indstillinger.tsx` (visning) | `default_directory_meta` (cache) | `'Skrivebord (standard)'` |
- * | `saveDefaultDirectoryHandle` (skrivning) | `directoryHandle.name` | – |
- *
- * Samme brugersynlige begreb, to forskellige strenge – og `ResolvedDirectory.displayName` blev
- * i praksis aldrig læst af nogen (kun `handle`/`wellKnown`/`isFallback` havde forbrugere), så
- * fil-lagets navn var en anden mening, ingen hørte.
- *
- * **Den reelle defekt, adskillelsen skjulte.** Indstillingssiden udledte NAVNET af metadata i
- * IndexedDB, men om der overhovedet ER valgt en mappe (kursivering + «Nulstil»-linket) af
+ * **Defekten, en adskillelse ville skjule.** NAVNET kommer af metadata i IndexedDB, men om der
+ * overhovedet ER valgt en mappe (kursivering + «Nulstil»-linket) af
  * `settings.defaultDirectoryHandleId` i localStorage. De to ligger i hver sit lager, og et
- * browser-lager kan ryddes uden det andet. Overlever id'et sin metadata, viste siden
- * «Skrivebord (standard)» stylet som et brugervalg, med et Nulstil-link – altså en påstand om en
- * valgt mappe og navnet på standarden, i samme linje. Gem-vejen faldt samtidig tavst tilbage.
+ * browser-lager kan ryddes uden det andet. Overlever id'et sin metadata, ville en visning, der
+ * læste de to hver for sig, vise «Skrivebord (standard)» stylet som et brugervalg med et
+ * Nulstil-link – en påstand om en valgt mappe og navnet på standarden i samme linje – mens
+ * gem-vejen tavst faldt tilbage.
  *
  * Derfor er staten her ÉN diskrimineret union udledt af begge kilder samtidig, ikke to felter der
- * kan modsige hinanden. `'utilgaengelig'` er netop den tilstand, den gamle form ikke kunne
- * udtrykke.
+ * kan modsige hinanden. `'utilgaengelig'` er netop den tilstand.
  */
 
-/** Navnet på standardplaceringen. Ét sted – det var før stavet på to måder i to filer. */
+/** Navnet på standardplaceringen. Ét sted, så det ikke kan staves forskelligt. */
 export const DEFAULT_DIRECTORY_FALLBACK_NAME = 'Skrivebord';
 
 /** Visningsnavnet når ingen mappe er valgt: standarden, markeret som netop standard. */

@@ -88,7 +88,7 @@ describe('actionGate: knappens samlede tilstand', () => {
   });
 
   it('parrer aldrig `disabled` med en tom årsag', () => {
-    // Værnet mod den tavse grå knap – præcis den tilstand, fundet beskrev.
+    // Værnet mod den tavse grå knap uden nogen forklaring.
     for (const reasons of [
       [{ kind: 'missing-input' } as const],
       [{ kind: 'invalid-input' } as const],

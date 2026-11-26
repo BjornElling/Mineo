@@ -75,13 +75,12 @@ export type BlockedProjection = Readonly<{ status: 'blocked'; reasons: DocumentG
  * den; har projektionen undtagelsesvist en konkret, brugerrettet besked, er det
  * `blockedProjectionWithSpecificReason`.
  *
- * Helperen findes, fordi de ni definitionsfiler før byggede `{status:'blocked', reasons:[{code,message}]}`
- * i hånden – en parallel vej, der omgik gate-konstruktørerne og derfor kunne glemme klassifikationen.
+ * Helperen findes, så definitionsfilerne ikke bygger `{status:'blocked', reasons:[{code,message}]}` i
+ * hånden – en parallel vej, der omgår gate-konstruktørerne og derfor kan glemme klassifikationen.
  *
- * Der fandtes tidligere en `blockedProjectionForInvalidInput`-tvilling, som hardkodede `invalid-input`.
- * Ingen definitionsfil kaldte den – den var en åben, uafprøvet vej til præcis den fejlklasse, brugerfundet
- * 2026-08-15 afdækkede to andre steder (en hardkodet klasse over en betingelse, der dækker begge klasser).
- * Den er derfor slettet frem for bevaret, og `document/gate-class-hardcoded-invalid-input` holder den ude.
+ * En `blockedProjectionForInvalidInput`-tvilling, som hardkoder `invalid-input`, må ikke genindføres: den er
+ * en åben vej til en hardkodet klasse over en betingelse, der dækker begge klasser.
+ * `document/gate-class-hardcoded-invalid-input` holder den ude.
  */
 export const blockedProjection = (
   code: string,
@@ -96,7 +95,7 @@ export const blockedProjectionWithSpecificReason = (
 
 /**
  * Blokering fra en fejl i stamdata, som ikke nødvendigvis er synlig på den aktuelle flade.
- * Den generiske «Fejl i indtastning» sendte brugeren ud for at lede på den forkerte side; denne
+ * Den generiske «Fejl i indtastning» ville sende brugeren ud for at lede på den forkerte side; denne
  * fælles projektion peger i stedet direkte på Stamdata. Bruges kun, når brevhovedet faktisk er
  * slået til, og stamdata derfor er en reel dokumentafhængighed.
  */
@@ -106,13 +105,12 @@ export const blockedProjectionForStamdata = (code: string): BlockedProjection =>
 /**
  * Blokering ud fra en projektions ISSUE-liste, hvor klassen UDLEDES af issuene (§3.1).
  *
- * Erstatter den tidligere `blockedFromIssues`, som citerede `issues[0].message` ordret, hvis der blot FANDTES
- * et issue. Den havde to fejl på samme tid:
+ * At citere `issues[0].message` ordret, blot fordi der FINDES et issue, giver to fejl på samme tid:
  *
- *  1. En `missing`-consumerfejl blev citeret ("Feltet Skadedato er ikke udfyldt") frem for at give den
+ *  1. En `missing`-consumerfejl citeres ("Feltet Skadedato er ikke udfyldt") frem for at give den
  *     universelle "Indtastning mangler", som issuets egen klasse foreskriver.
- *  2. Et vilkårligt FØRSTE issue blev fremhævet, også når projektionen bar flere – så brugeren kunne tro,
- *     den citerede fejl var den eneste (lempelsen §2).
+ *  2. Et vilkårligt FØRSTE issue fremhæves, også når projektionen bærer flere – så brugeren kan tro,
+ *     den citerede fejl er den eneste.
  *
  * `fallbackMessage` bruges kun, når listen er tom (eller kun rummer aggregat-årsager uden besked).
  */

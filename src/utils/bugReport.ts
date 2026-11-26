@@ -546,7 +546,7 @@ export async function downloadBugReport(
     (isPreparedBugReport(arg) ? arg.download.filename : arg?.filename) ??
     `Mineo-fejlrapport-v${getVersion()}-${getTodayCopenhagenISO()}.txt`;
 
-  // Den kanoniske download-vej. Her lå tidligere en egen kopi, der frigav object-URL'en
-  // synkront lige efter `click()` – en race, hvor browseren kan nå at miste filen tavst.
+  // Den kanoniske download-vej. En egen kopi, der frigiver object-URL'en synkront lige efter
+  // `click()`, ville give en race, hvor browseren kan nå at miste filen tavst.
   downloadBlob(new Blob([report], { type: 'text/plain;charset=utf-8' }), filename);
 }

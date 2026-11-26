@@ -15,8 +15,8 @@ import type { DocumentDownloadFormat } from '../documentFormat';
 
 /**
  * Hårdt mellemrum mellem tal og enhed, så en PDF-/Word-linjeombrydning aldrig river
- * «1.234 kr.» over to linjer. Eksporteret, fordi EO-generatoren tidligere holdt sin egen
- * kopi – en divergens der ville være usynlig indtil ombrydningen.
+ * «1.234 kr.» over to linjer. Eksporteret, så ingen generator holder sin egen kopi – en
+ * divergens der ville være usynlig indtil ombrydningen.
  */
 export const NBSP = '\u00A0';
 
@@ -95,7 +95,7 @@ export const formatCurrencyPerUnit = (
  *
  * `decimals` overstyres til 4 for opreguleringsfaktoren i "TAF opreguleret til
  * beregningsåret", hvor faktoren bevidst vises (og beregnes) med fire decimaler. Decimalerne vises
- * altid fuldt ud («+ 11,40 %»), så procenten står som i bilagets «Beregnet regulering» (BB-318).
+ * altid fuldt ud («+ 11,40 %»), så procenten står som i bilagets «Beregnet regulering».
  */
 export const formatReguleringFactorText = (deltaPct: number, decimals: number = 2): string => {
   if (!Number.isFinite(deltaPct)) return '';

@@ -11,7 +11,7 @@
  * Den kører med vilje IKKE denne load-tolerante/migrerende afkodning (som netop transformerer på
  * tværs af versioner). De to concerns deler ikke grænse.
  *
- * `decodeEoFile` blev tidligere håndrullet identisk i både `loadFromFile` og `loadFromFileHandle`
+ * `decodeEoFile` deles af `loadFromFile` og `loadFromFileHandle`
  * (decrypt-try/catch + `normalizeDecryptedContainer`). Samme rå bytes skal altid afkodes ens,
  * uanset om kilden er en manuel picker eller en persisteret PWA-handle – derfor er afkodningen
  * samlet her. Selve per-sektions-parsingen + preflight ejes stadig af load-use-casen (`fileLoad.ts`),
@@ -100,7 +100,7 @@ const validateDecryptedContainer = (decrypted: unknown): EoFileContainerLoad => 
 /**
  * Dekrypterer og validerer en `.eo`-fil-streng til den load-tolerante container.
  *
- * Fejl-semantik (bevaret fra de tidligere håndrullede load-stier):
+ * Fejl-semantik:
  * - `EncryptionError` (forkert nøgle/korrupt payload) mappes til `CalculationError('FILE_LOAD_FAILED')`,
  *   som load-use-casen kender og viser som en forventet, brugervenlig fejl.
  * - Andre dekrypteringsfejl logges og genkastes med en dansk besked.

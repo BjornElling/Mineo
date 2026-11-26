@@ -8,34 +8,33 @@ import {
 /**
  * Download-gatens resultat og dens BRUGERRETTEDE årsagsklassifikation.
  *
- * **Hvorfor en `kind` og ikke kun en besked.** Gaten havde oprindeligt kun `{code, message}`, hvor
- * beskeden var både den interne forklaring OG den tekst, brugeren læste i tooltippet. Det gav to problemer på
- * samme tid:
+ * **Hvorfor en `kind` og ikke kun en besked.** Var beskeden både den interne forklaring OG den tekst,
+ * brugeren læste i tooltippet, ville det give to problemer:
  *
- *  1. Beskederne var lange og gate-interne ("Der er ikke beregnet en PDF-klar EAL- eller ASL-del.",
+ *  1. Gatebeskederne er lange og gate-interne ("Der er ikke beregnet en PDF-klar EAL- eller ASL-del.",
  *     "Ingen gyldige rækker i tabel", "Fatale beregningsfejl"). De beskriver gatens egen tilstandsmaskine,
  *     ikke hvad brugeren skal GØRE.
- *  2. Der var ingen måde at skelne "brugeren mangler at indtaste noget" fra "der findes en konkret, specifik
- *     fejl, som er værd at citere" – fx EO-rækkemotorens "Feriegodtgørelse er ikke udfyldt". Uden den
- *     skelnen kunne en forenkling af teksten kun laves med strengmatch pr. gate, som ville drifte.
+ *  2. Der ville ikke være nogen måde at skelne "brugeren mangler at indtaste noget" fra "der findes en
+ *     konkret, specifik fejl, som er værd at citere" – fx EO-rækkemotorens "Feriegodtgørelse er ikke
+ *     udfyldt". Uden den skelnen kunne teksten kun forenkles med strengmatch pr. gate, som ville drifte.
  *
  * Klassifikationen er derfor DATA på årsagen:
  *
  *  - `page-errors` – blokeringen skyldes fejl, siden ALLEREDE viser i sin egen fejl-/advarselsboks.
  *    Tooltippet henviser til boksen ({@link DOWNLOAD_BLOCKED_BY_PAGE_ERRORS_MESSAGE}) frem for at gentage
- *    eller citere en enkelt af fejlene. Udviklerbeslutning 2026-08-13: forudsigelighed over
+ *    eller citere en enkelt af fejlene. Bevidst valg: forudsigelighed over
  *    handlingsanvisning – viser boksen en fejl, siger knappen ALTID det samme, også når fejlen kunne
  *    navngives. Klassen har derfor den HØJESTE prioritet.
  *  - `invalid-input` – der ER indtastet noget, men det er ugyldigt (en rød feltfejl blokerer projektionen).
  *    Tooltippet viser den universelle {@link DOWNLOAD_BLOCKED_INVALID_INPUT_MESSAGE}. Adskilt fra
- *    `missing-input` efter brugerkravet 2026-07-30: "der mangler noget" og "noget er forkert" sender brugeren
- *    to forskellige steder hen, og gaterne kendte i forvejen forskellen internt (`field-error` vs
- *    `missing-fields`) – kun brugerteksten kollapsede dem til én.
+ *    `missing-input`, fordi "der mangler noget" og "noget er forkert" sender brugeren to forskellige steder
+ *    hen; gaterne kender forskellen internt (`field-error` vs `missing-fields`), og brugerteksten må ikke
+ *    kollapse dem til én.
  *  - `missing-input` – brugeren mangler at indtaste noget, eller en afledt beregning kan ikke dannes af den
  *    grund. Tooltippet viser ÉN universel tekst ({@link DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE}), så alle
  *    flader svarer ens. `message` bevares som den interne/diagnostiske forklaring (tests, fejlkoder, logs).
  *  - `specific` – årsagen ER den tekst, brugeren skal læse: præcis ÉN felt-/rækkenavngiven fejl, som
- *    fortæller hvad der skal rettes. Den citeres ordret. Efter lempelsen 2026-08-13 er klassen en SNÆVER
+ *    fortæller hvad der skal rettes. Den citeres ordret. Klassen er en SNÆVER
  *    allowlist (se {@link classifyBlockingCauses}) og har LAVEST prioritet: den bruges kun, hvor ingen af
  *    de tre andre klasser gælder.
  *
@@ -44,29 +43,26 @@ import {
 
 /**
  * Den universelle brugerrettede tekst for enhver blokering, der i praksis betyder "du mangler at indtaste
- * noget". Én tekst på alle flader – brugerens krav ved brugertesten 2026-07-29.
+ * noget". Én tekst på alle flader.
  */
 export const DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE = 'Indtastning mangler';
 
 /**
- * Den universelle brugerrettede tekst for en blokering, hvor der ER indtastet noget ugyldigt (brugerkrav
- * 2026-07-30).
+ * Den universelle brugerrettede tekst for en blokering, hvor der ER indtastet noget ugyldigt.
  *
  * Den ER feltets eget generiske tooltip ({@link FIELD_ISSUE_GENERIC_TOOLTIP}) – ikke blot samme ordlyd.
- * Indtil 2026-08-15 var det to identiske strengliteraler med en kommentar imellem, der PÅSTOD, at de skulle
- * følges ad. Knappen og det felt, brugeren skal rette, skal sige det samme, og to literaler med samme
- * betydning kan drifte uden at nogen test bliver rød. Aliaset gør påstanden til en kendsgerning.
+ * Knappen og det felt, brugeren skal rette, skal sige det samme, og to literaler med samme betydning kan
+ * drifte uden at nogen test bliver rød. Aliaset gør kravet til en kendsgerning.
  */
 export const DOWNLOAD_BLOCKED_INVALID_INPUT_MESSAGE = FIELD_ISSUE_GENERIC_TOOLTIP;
 
 /**
- * Teksten for en blokering, hvis årsager siden allerede viser i sin fejl-/advarselsboks. Ordlyden er
- * uændret fra EO's tidligere page-lokale konstant, så brugeren ser samme tekst som før – den er blot
- * flyttet fra en hardkodet ternary i `EOberegningTab` ind i gaten, hvor beslutningen hører.
+ * Teksten for en blokering, hvis årsager siden allerede viser i sin fejl-/advarselsboks. Den bor i gaten,
+ * hvor beslutningen hører, ikke i en ternary på siden.
  *
- * Teksten nævner det dokument, knappen henter. Klassen bruges KUN af Erstatningsopgørelse (§4 i planen), fordi
- * det er den eneste flade med en fejlboks, der blokerer download – men fladen har fire knapper, og de tre
- * TAF-dokumenter sagde «Opgørelse kan ikke hentes …» om sig selv (BB-370). Uden navn er det opgørelsen.
+ * Teksten nævner det dokument, knappen henter. Klassen bruges KUN af Erstatningsopgørelse, fordi det er den
+ * eneste flade med en fejlboks, der blokerer download – men fladen har fire knapper, og uden navnet ville de
+ * tre TAF-dokumenter sige «Opgørelse kan ikke hentes …» om sig selv. Uden navn er det opgørelsen.
  */
 export const buildDownloadBlockedByPageErrorsMessage = (documentName = 'Opgørelse'): string =>
   `${documentName} kan ikke hentes, når der er fejl ovenfor`;
@@ -99,8 +95,8 @@ export type DocumentDownloadGateReason = Readonly<{
 /**
  * Hvad en blokering kan henføres til – producentens EKSPLICITTE angivelse, ikke en slutning.
  *
- * **Hvorfor scope er data og ikke udledt.** Et tidligere udkast ville klassificere ud fra issue-listens
- * længde ("præcis ét issue ⇒ citér det"). Det er beviseligt usikkert:
+ * **Hvorfor scope er data og ikke udledt.** At klassificere ud fra issue-listens længde ("præcis ét issue
+ * ⇒ citér det") er beviseligt usikkert:
  *
  *  1. `runProjection` dedupper på `${kind}:${code}` (`inputCore/projection.ts`), så to tabelrækker med
  *     samme descriptor-id kan kollapse til ÉN post – en multi-fejl ville da se ud som en enkeltfejl.
@@ -123,19 +119,17 @@ export type DocumentBlockingCause =
    *
    * `kind` er PÅKRÆVET, fordi et aggregat er den ENESTE cause-form, hvis klasse ikke kan udledes af
    * formen selv: "tabellen har fejl" siger intet om, hvorvidt cellerne er udfyldt forkert eller slet
-   * ikke udfyldt. Feltet er tilføjet efter et konkret brugerfund (2026-08-15): Årslønssidens
-   * dokumentgate svarede «Fejl i indtastning» på en lønrække med komplet periode og INTET beløb –
-   * altså en ren mangel. Gaten kollapsede alle tabelfejl til én hardkodet klasse, selv om
-   * `TableError.issue` allerede skelnede `invalid` fra `partial_period`/`missing_amount`.
+   * ikke udfyldt. En hardkodet klasse for alle tabelfejl ville fx svare «Fejl i indtastning» på en
+   * lønrække med komplet periode og INTET beløb – en ren mangel – selv om `TableError.issue` skelner
+   * `invalid` fra `partial_period`/`missing_amount`.
    *
-   * Uden feltet faldt ethvert aggregat gennem til `missing-input`, og en producent kunne ikke
-   * udtrykke det modsatte uden at gå uden om klassifikationen. Nu er klassen et VALG, producenten
-   * skal træffe pr. årsag – og et valg, en læser kan efterprøve mod den fejl, årsagen kom af.
+   * Klassen er derfor et VALG, producenten skal træffe pr. årsag – og et valg, en læser kan
+   * efterprøve mod den fejl, årsagen kom af.
    */
   | Readonly<{ scope: 'aggregate'; kind: DocumentBlockingCauseClass; message: string }>
   /** Et tomt påkrævet felt (`missing`-consumerfejl). */
   | Readonly<{ scope: 'missing'; issue: ConsumerIssue }>
-  /** Input er komplet og gyldigt, men beregningen kunne ikke dannes. Se §1.1 i planen. */
+  /** Input er komplet og gyldigt, men beregningen kunne ikke dannes. */
   | Readonly<{ scope: 'unavailable-calculation'; message: string }>;
 
 /**
@@ -150,7 +144,7 @@ export type DocumentBlockingCauseClass = Extract<
 /**
  * Den ENE oversættelse fra en årsags FORM til brugerens to klasser.
  *
- * Skelnen er brugerens, formuleret 2026-08-15: «Fejl i indtastning» bruges, når der ER indtastet
+ * Skelnen: «Fejl i indtastning» bruges, når der ER indtastet
  * noget, men indtastningen er forkert (feltet får rød ring – uanset om det er format eller en
  * grænse); «Indtastning mangler» bruges, når der mangler en indtastning. Det er hele programmets
  * princip, ikke en regel for downloadknapper alene.
@@ -183,7 +177,7 @@ const causeMessage = (cause: DocumentBlockingCause): string =>
 /**
  * Oversætter en producents årsagsliste til ÉN klassificeret gate-årsag.
  *
- * Rækkefølgen er brugerens hierarki (b før c) med `specific` som snæver undtagelse:
+ * Rækkefølgen er et fast hierarki med `specific` som snæver undtagelse:
  *
  *  1. Præcis ÉN `field`/`row`-cause med en konkret tekst → `specific` (ordret citat).
  *  2. Mindst én årsag, der klassificeres som `invalid-input` → `invalid-input`
@@ -191,16 +185,14 @@ const causeMessage = (cause: DocumentBlockingCause): string =>
  *  3. Mindst én årsag, der klassificeres som `missing-input` → `missing-input`.
  *  4. Tom liste → `missing-input` med `fallbackMessage`.
  *
- * Trin 2–3 spørger `classifyBlockingCause` frem for at matche på `scope`. Den tidligere form kiggede kun
- * efter `scope: 'field'` og derefter `scope: 'missing'`, og havde derfor et hul, ingen test ramte: en
- * `row`-cause – som er lige så rød som en feltfejl – matchede ingen af de to grene og faldt hele vejen ned
- * i `missing-input`. To samtidige out-of-range-procenter på Årsløn svarede altså «Indtastning mangler» på
- * felter, der var udfyldt. Én udtømmende klassifikation lukker begge retninger på én gang.
+ * Trin 2–3 spørger `classifyBlockingCause` frem for at matche på `scope`. Et match på kun
+ * `scope: 'field'` og `scope: 'missing'` ville lade en `row`-cause – som er lige så rød som en feltfejl –
+ * falde hele vejen ned i `missing-input`, så to samtidige out-of-range-procenter på Årsløn svarede
+ * «Indtastning mangler» på udfyldte felter. Én udtømmende klassifikation lukker begge retninger på én gang.
  *
  * Trin 1 genbruger `resolveFieldIssueTooltip` frem for at gentage allowlisten `bounds|rule`. Den funktion
  * ejer allerede afgørelsen "har dette issue en konkret tekst værd at vise" – inklusive et `format`-issue med
- * en codec-leveret `detail.tooltip`, som en håndskrevet reason-test taber. Efter omlægningen bor sondringen
- * ÉT sted, delt af feltets eget tooltip og knappens, hvilket er den paritet `error-contract.md` §4 kræver.
+ * en codec-leveret `detail.tooltip`, som en håndskrevet reason-test taber. Sondringen bor dermed ÉT sted, delt af feltets eget tooltip og knappens, hvilket er den paritet `error-contract.md` §4 kræver.
  */
 export const classifyBlockingCauses = (
   code: string,
@@ -259,9 +251,8 @@ export const blockDocumentDownloadFromCauses = (
  *
  * `ConsumerIssue` med `reason: 'rule'` bliver `aggregate` med klassen `invalid-input`, IKKE `missing`: en
  * consumerplaceret domæneregel er ikke samme tilstand som et tomt felt (`error-contract.md` §1.1) – felterne
- * ER udfyldt, og det er sammensætningen af dem, der er forkert. Klassen stod tidligere kun i denne kommentar:
- * `aggregate` havde ingen klasse og faldt igennem til `missing-input`, så en udfyldt, regelstridig
- * sammensætning fik "Indtastning mangler" alligevel. Nu siger årsagen det, kommentaren altid har påstået.
+ * ER udfyldt, og det er sammensætningen af dem, der er forkert. Klassen står på årsagen, så en udfyldt,
+ * regelstridig sammensætning ikke falder igennem til "Indtastning mangler".
  */
 export const toBlockingCauses = (
   issues: readonly (FieldIssue | ConsumerIssue)[]
@@ -310,15 +301,14 @@ export const resolveDocumentGateTooltip = (reason: DocumentDownloadGateReason): 
  * tilfældigvis pusher sine årsager i.
  *
  * **`page-errors` vinder alt.** Er fejlen allerede synlig i sidens fejlboks, er den henvisning det, brugeren
- * skal læse – uanset om en af de underliggende fejl kunne navngives (udviklerbeslutning 2026-08-13:
+ * skal læse – uanset om en af de underliggende fejl kunne navngives (bevidst valg:
  * forudsigelighed over handlingsanvisning).
  *
  * `invalid-input` slår `missing-input`, fordi noget FORKERT er mere akut end noget uudfyldt: det uudfyldte
  * felt bliver ofte udfyldt i samme arbejdsgang, mens en afvist værdi kræver, at brugeren finder og retter
  * den. Det er samme forrang, de enkelte gates i forvejen bruger internt (rød feltfejl før manglende felt).
  *
- * `specific` er SIDST, ikke først. Det er omvendt af den oprindelige model, hvor et ordret citat vandt alt.
- * Efter lempelsen 2026-08-13 er et citat kun tilladt for præcis én felt-/rækkefejl (§2), og i enhver
+ * `specific` er SIDST, ikke først. Et citat er kun tilladt for præcis én felt-/rækkefejl, og i enhver
  * blokering, hvor en af de tre andre klasser også gælder, er deres tekst den rigtige: en side med en
  * fejlboks skal henvise til boksen, og en blokering med flere røde felter skal ikke fremhæve ét af dem.
  */
@@ -375,7 +365,7 @@ export const blockDocumentDownload = (
  * ⚠️ Klassen er HARDKODET her – funktionen ser ingen data og kan derfor ikke tage fejl af, hvad den får at
  * vide. Den må kun bruges, når gatens gren er BEVISELIGT ét-klasset, altså når betingelsen ikke kan være
  * sand for en manglende indtastning. Dækker grenen både «udfyldt forkert» og «ikke udfyldt», er den
- * halvdelen af tiden forkert – netop den fejl brugerfundet 2026-08-15 afdækkede to steder. Kan årsagerne
+ * halvdelen af tiden forkert. Kan årsagerne
  * opregnes, er {@link blockDocumentDownloadFromCauses} den rigtige, og et nyt kaldssted skal føjes til
  * allowlisten i arkitekturreglen `document/gate-class-hardcoded-invalid-input`.
  */
@@ -403,8 +393,8 @@ export const blockDocumentDownloadForPageErrors = (
  * for beregningsåret, en tabel uden en eneste komplet række eller nul SH-dage i de indtastede perioder.
  *
  * Klassen er `missing-input`, fordi brugerens praktiske handling ER at udfylde mere. Men den har sin egen
- * konstruktør, så valget er BEVIDST: før lå disse blokeringer i den samme `blockDocumentDownload`-default
- * som ægte tomme felter, og en fremtidig gate kunne derfor falde i den uden at have taget stilling.
+ * konstruktør, så valget er BEVIDST: lå disse blokeringer i den samme `blockDocumentDownload`-default
+ * som ægte tomme felter, kunne en ny gate falde i den uden at have taget stilling.
  */
 export const blockDocumentDownloadForUnavailableCalculation = (
   reason: Readonly<{ code: string; message: string }>
@@ -414,12 +404,11 @@ export const blockDocumentDownloadForUnavailableCalculation = (
 });
 
 /**
- * Blokering fra ÉT rødt feltissue. Klassifikationen deles nu med {@link classifyBlockingCauses}, så
- * "hvornår er en feltfejl værd at citere" kun er besvaret ét sted.
- *
- * Tidligere gentog denne funktion allowlisten inline som `reason === 'bounds' || reason === 'rule'`. Det
- * havde et hul: et `format`-issue med en codec-leveret `detail.tooltip` (fx en konkret datogrænse) faldt i
- * den generiske gren, selv om feltets eget tooltip viste den konkrete tekst.
+ * Blokering fra ÉT rødt feltissue. Klassifikationen deles med {@link classifyBlockingCauses}, så
+ * "hvornår er en feltfejl værd at citere" kun er besvaret ét sted. En inline allowlist
+ * (`reason === 'bounds' || reason === 'rule'`) ville lade et `format`-issue med en codec-leveret
+ * `detail.tooltip` (fx en konkret datogrænse) falde i den generiske gren, selv om feltets eget tooltip
+ * viser den konkrete tekst.
  */
 export const blockDocumentDownloadForFieldIssue = (
   issue: FieldIssue,
@@ -430,7 +419,7 @@ export const blockDocumentDownloadForFieldIssue = (
 /**
  * Blokering med en konkret, brugerrettet årsag, der citeres ordret.
  *
- * **Snæver allowlist (lempelse 2026-08-13).** Brug den KUN, når blokeringen kan henføres til præcis ÉT felt
+ * **Snæver allowlist.** Brug den KUN, når blokeringen kan henføres til præcis ÉT felt
  * eller ÉN navngiven række, og teksten fortæller brugeren hvad der skal rettes. Er årsagen et aggregat over
  * flere rækker, en tabelvalidering eller en flerfeltsregel, ville et citat af én af fejlene give brugeren
  * indtryk af, at det er den eneste – brug da {@link blockDocumentDownload} eller

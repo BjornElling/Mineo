@@ -36,7 +36,7 @@ export const MINEO_DOCUMENT_OUTPUT_IDS = [
 
 /**
  * Standalone MinProcesrente. Kontraktens §A2a kræver udtrykkeligt, at også standalone er
- * katalogiseret – den har historisk stået helt uden gate.
+ * katalogiseret, så den ikke står uden gate.
  */
 export const STANDALONE_DOCUMENT_OUTPUT_IDS = [
   'standalone-rente',

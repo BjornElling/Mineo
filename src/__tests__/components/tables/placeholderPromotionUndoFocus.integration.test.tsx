@@ -36,7 +36,7 @@ import type { TillaegstidEnhed } from '../../../schemas/formSchemas/enumSchemas'
  * match isoleret på en celle, der stadig findes. Fejlen levede netop i mellemrummet: originen var korrekt, men
  * tabellen havde gjort dens fokusmål umuligt at finde, fordi den kun huskede det SENESTE placeholder-id.
  *
- * Testene her kører gennem den ÆGTE `useCollectionTable`, de ægte greenfield-celler og den ægte runtime, og
+ * Testene her kører gennem den ÆGTE `useCollectionTable`, de ægte Grid-celler og den ægte runtime, og
  * måler det, brugeren oplever: efter et undo af promoveringen skal den demoterede placeholder-celle kunne
  * findes af fokusrestoren og faktisk have fokus.
  */
@@ -82,7 +82,7 @@ const createRowId = (): string => {
 
 /**
  * En ÆGTE dynamisk tabel: rigtig `useCollectionTable` (placeholder-livscyklus + cellebinding), rigtig
- * grid-controller, rigtige greenfield-celler.
+ * grid-controller, rigtige Grid-celler.
  */
 const TableHarness: React.FC<Readonly<{
   committedRows: readonly RentekravRow[];
@@ -258,10 +258,10 @@ describe('placeholder-promotion → undo → fokus', () => {
   /**
    * Brugerens forløb: to promoveringer, undo af ALT, redo af ALT, og derefter ét undo.
    *
-   * Fejlen var permanent for resten af sessionen: undo'et helt tilbage skubbede det senere placeholder-slot
-   * bag puljens markør, hvor det blev trimmet væk, og redo'et møntede et NYT id til pladsen. Den oprindelige
-   * promotions history-origin pegede derefter på et id, tabellen aldrig ville vise igen, og fokus forsvandt
-   * lydløst ud af tabellen. De øvrige tests i filen kører kun undo og kunne derfor ikke se det.
+   * Fejlen, dette værner mod, er permanent for resten af sessionen: skubber undo'et helt tilbage det senere
+   * placeholder-slot bag puljens markør, trimmes det væk, og redo'et mønter et NYT id til pladsen. Den
+   * oprindelige promotions history-origin peger derefter på et id, tabellen aldrig vil vise igen, og fokus
+   * forsvinder lydløst ud af tabellen. De øvrige tests i filen kører kun undo og kan derfor ikke se det.
    */
   it('bevarer fokusmålet gennem undo af ALT, redo af ALT og et efterfølgende undo', async () => {
     const user = userEvent.setup();

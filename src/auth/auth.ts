@@ -32,11 +32,10 @@ const hashPassword = async (password: string): Promise<string> => {
   // lowercased plaintext uden foran- og bagvedstående blanktegn.
   //
   // Trimmet hører PRÆCIS her, hvor case-neutraliseringen allerede bor, fordi det er det ene sted, der
-  // afgør hvad adgangskoden ER. Login-siden trimmede i forvejen i sit «har du skrevet noget»-tjek, men
-  // ikke i verifikationen; de to led var altså uenige om samme beslutning. Konsekvensen var, at en
-  // adgangskode kopieret fra mailen – hvor markeringen næsten altid tager det afsluttende mellemrum
-  // eller linjeskift med – blev afvist som «Forkert adgangskode», mens feltet viste prikker, så der var
-  // intet at se. Brugeren kom slet ikke ind, og beskeden pegede ham i den forkerte retning.
+  // afgør hvad adgangskoden ER. Login-siden trimmer også i sit «har du skrevet noget»-tjek; trimmede
+  // verifikationen ikke, ville de to led være uenige, og en adgangskode kopieret fra mailen – hvor
+  // markeringen næsten altid tager det afsluttende mellemrum eller linjeskift med – ville blive afvist
+  // som «Forkert adgangskode», mens feltet kun viser prikker, så der er intet at se.
   //
   // Der gives intet væk: en adgangskode kan ikke meningsfuldt begynde eller slutte med blanktegn, og
   // ingen af de aktive hashes i `authConfig.ts` er beregnet på en plaintext med sådanne ender.

@@ -20,12 +20,11 @@ type SatserDocumentOptions = DocumentCommonOptions;
 /**
  * Om der FINDES en sats for året – ikke om den er større end nul.
  *
- * Prøven var før `value > 0`, og det var en anden prøve end sidens (`DataRow` skjuler rækken, når
- * værdien mangler). De to var enige om alt undtagen et lovligt nul: `reguleringsprocentErhvervsevnetabFra2024`
- * er `0.0` i 2024, så skærmen viste «Reguleringsprocent for erhvervsevnetab (fra 2024): 0 %», mens
- * dokumentet udelod rækken helt. Brugerfund BB-030, rettet efter udviklerbeslutning 2026-08-18: **0 er en
- * oplysning, ikke et fravær** – den siger, at der ikke er reguleret siden 2024-grundlaget, og fraværet af
- * rækken kunne lige så godt læses som «satsen er ukendt».
+ * Prøven er den samme som sidens (`DataRow` skjuler rækken, når værdien mangler). En prøve som
+ * `value > 0` ville være uenig om et lovligt nul: `reguleringsprocentErhvervsevnetabFra2024` er `0.0` i
+ * 2024, så skærmen viser «Reguleringsprocent for erhvervsevnetab (fra 2024): 0 %», mens dokumentet ville
+ * udelade rækken helt. **0 er en oplysning, ikke et fravær** – den siger, at der ikke er reguleret siden
+ * 2024-grundlaget, og fraværet af rækken kunne lige så godt læses som «satsen er ukendt».
  *
  * `getSatserForYear` er fail-open og giver `null` for et år uden sats (se `lovbestemteRates.ts`); det er
  * netop den `null`, denne prøve skal fange. `Number.isFinite` beholdes, så en beskadiget datapost
@@ -67,7 +66,7 @@ const generateSatser = defineDocument<SatserDocumentInput>({
     visBrevhoved ? buildStamdataBrevhovedData(stamdata) : null,
   body: (writer, { year, satser }) => {
 
-  // Samme dækningsbesked som siden (BB-392): en udeladt kategori må ikke forsvinde tavst på papiret.
+  // Samme dækningsbesked som siden:en udeladt kategori må ikke forsvinde tavst på papiret.
   const missingCoverageNote = describeMissingSatserCoverage(year, satser);
   if (missingCoverageNote !== null) {
     writer.writeWrappedText(missingCoverageNote);
@@ -246,11 +245,11 @@ const addDiverseSection = (
 
   // Beløbsgrænse for fri proces.
   //
-  // Linjerne vurderes HVER FOR SIG, ligesom på siden (`MultiLineDataRow` filtrerer pr. linje). Kravet
-  // var før, at alle tre beløb skulle findes, ellers udgik hele rækken. Det er samme klasse af fejl som
-  // BB-030: to steder afgør «er der noget at vise» på hver sin måde. Uenigheden er ikke udløst af de
-  // nuværende data – alle tre beløb findes for hvert dækket år – men et fremtidigt år med kun to af de
-  // tre ville have vist to linjer på skærmen og ingen række i dokumentet.
+  // Linjerne vurderes HVER FOR SIG, ligesom på siden (`MultiLineDataRow` filtrerer pr. linje). Et krav
+  // om, at alle tre beløb skal findes, ville lade to steder afgøre «er der noget at vise» på hver sin
+  // måde (samme klasse af fejl som `hasRateValue` ovenfor). Alle tre beløb findes for hvert dækket år,
+  // men et fremtidigt år med kun to af de tre ville ellers vise to linjer på skærmen og ingen række i
+  // dokumentet.
   const enlig = diverse.friProcesEnlig;
   const samlevende = diverse.friProcesSamlevende;
   const barn = diverse.friProcesBarn;

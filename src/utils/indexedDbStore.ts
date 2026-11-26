@@ -17,14 +17,13 @@ import { asError } from './typeGuards';
  * `autoIncrement`-keyPath og to indexes, der læses med cursors. At presse dem ind i samme
  * store ville blande to forskellige datamodeller for at spare en DB-definition.
  *
- * Egenskaber, som den tidligere hånd-wrapping ikke havde ensartet:
- * - **Én tilgængelighedsguard.** `typeof indexedDB`-tjekket var gentaget 9 steder med
- *   INKONSISTENTE returværdier (`false`/`null`/`true`), og manglede helt i én funktion.
- *   Her er utilgængelighed én eksplicit `unavailable`-tilstand, som kalderen oversætter til
- *   sin egen fail-safe værdi.
+ * Egenskaber, som hånd-wrapping pr. kaldested ikke giver ensartet:
+ * - **Én tilgængelighedsguard.** Utilgængelighed er én eksplicit `unavailable`-tilstand, som
+ *   kalderen oversætter til sin egen fail-safe værdi – ikke et `typeof indexedDB`-tjek pr.
+ *   funktion med hver sin returværdi.
  * - **Transaction som enhed.** Flere writes i samme transaction ventes af
- *   `transaction.oncomplete`, ikke af manuelt koordinerede `done`-flag pr. request (som
- *   `saveDefaultDirectoryHandle` gjorde). Enten lander hele transactionen, eller ingen af den.
+ *   `transaction.oncomplete`, ikke af manuelt koordinerede `done`-flag pr. request. Enten lander
+ *   hele transactionen, eller ingen af den.
  * - **Forbindelsen lukkes altid** – også når transactionen fejler eller afbrydes.
  */
 
@@ -93,7 +92,7 @@ const openDatabase = (schema: IndexedDbSchema): Promise<IDBDatabase> =>
  *
  * Resultatet returneres først, når transactionen er **committet** (`oncomplete`) – ikke når
  * den sidste request lykkedes. Det er forskellen på "requesten svarede" og "dataene er
- * gemt", og den skelnen var tidligere kun implicit.
+ * gemt", og den skelnen er her eksplicit.
  *
  * `work` må ikke `await` noget uden for transactionen: IndexedDB auto-committer en
  * transaction, så snart microtask-køen tømmes uden aktive requests.
@@ -172,8 +171,7 @@ export const runTransaction = async <T>(
     return { status: 'error', error: wrapped };
   } finally {
     // Forbindelsen lukkes ALTID – også når transactionen fejlede eller blev afbrudt.
-    // Den tidligere hånd-wrapping lukkede kun i `transaction.oncomplete`, så en fejlende
-    // transaction efterlod forbindelsen åben (og `logStorage.ts` lukkede aldrig).
+    // Lukkes der kun i `transaction.oncomplete`, efterlader en fejlende transaction forbindelsen åben.
     try { db?.close(); } catch { /* forbindelsen var allerede lukket */ }
   }
 };

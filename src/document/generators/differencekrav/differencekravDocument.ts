@@ -87,7 +87,7 @@ const addProformaKapitaliseringSection = (
 
   // Bilagenes fælles struktur (se `addMerErstatningEvent`): sidetitel + sektionsoverskrift i fuld linje.
   // Dato og procent er sagens forudsætninger og står under «Specifikation» før første
-  // underoverskrift (udviklerafgørelse 2026-11-20).
+  // underoverskrift.
   writer.writeTitle('Proformakapitalisering af rest-EET (ASL)');
   writer.writeSectionHeader('Specifikation');
   writer.writeLeftRightText('Kapitaliseringsdato', formatISOToDanish(pk.kapitaliseringsdato), rowOpts);
@@ -218,7 +218,7 @@ const addProformaKapitaliseringSection = (
   );
 
   // Forklaringen af den nedsatte særfaktor hører til bilaget, hvor faktoren opgøres – ikke til
-  // differencekravssiden (udviklerafgørelse 2026-11-13).
+  // differencekravssiden.
   const nedsatSaerfaktorForklaring = resolveNedsatSaerfaktorForklaring(pk);
   if (nedsatSaerfaktorForklaring !== null) {
     writer.writeBoldSubheaderWithWrappedText('Note', nedsatSaerfaktorForklaring);
@@ -283,8 +283,7 @@ const addMerErstatningEvent = (
   if (event.aarsydelseReguleringsPctRounded4 !== null) {
     // Parentesen bærer SATSÅRET og ikke en dato: forhøjelsen sker altid lige før et årsskifte, og
     // afgørelserne om den træffes i løbet af det følgende kalenderår, som satsen derfor slås op i
-    // (`satsAar` = året 1 måned efter forhøjelsesdatoen). Formen er efterprøvet og fastholdt af
-    // udvikleren 2026-09-09 (BB-198).
+    // (`satsAar` = året 1 måned efter forhøjelsesdatoen). Formen er efterprøvet og bevidst.
     writer.writeLeftRightText(
       `Reguleringsprocent (${event.satsAar})`,
       `${formatAsAmountTrimmed(event.aarsydelseReguleringsPctRounded4, 4)} %`,
@@ -305,7 +304,7 @@ const addMerErstatningEvent = (
     );
   }
 
-  // Faktoropslagets forudsætninger navngives som i proformaboksen (BB-194): alderen på
+  // Faktoropslagets forudsætninger navngives som i proformaboksen: alderen på
   // forhøjelsesdatoen er den ENESTE nøgle ind i de to faktortabeller, og uden den kan hverken
   // brugeren eller modparten slå de to faktorer op og kontrollere fradraget.
   writer.writeBoldSubheader('Kapitaliseringsfaktorer');
@@ -358,7 +357,7 @@ const addMerErstatningPensionsalderSection = (
   });
 
   // Summen er det beløb, der faktisk fratrækkes differencekravet, og den skal derfor stå de samme
-  // tre steder: i boksen på skærmen, i specifikationen og her i bilaget (BB-201). Betingelsen er
+  // tre steder: i boksen på skærmen, i specifikationen og her i bilaget. Betingelsen er
   // boksens: ved én forhøjelse ER linjen ovenfor summen.
   if (computation.events.length > 1) {
     writer.writeLeftRightText(
@@ -381,7 +380,7 @@ const renderDifferencekravPage = (
 
   writer.writeSectionHeader('Beregning');
 
-  // Kort form `dd-mm-åååå` som skærmens øvrige etiketterede datorækker og som feltet selv (BB-199).
+  // Kort form `dd-mm-åååå` som skærmens øvrige etiketterede datorækker og som feltet selv.
   writer.writeLeftRightText(
     'Beregningsdato',
     formatISOToDanish(computation.beregningsdato),
@@ -407,7 +406,7 @@ const renderDifferencekravPage = (
   // Løbende ASL-ydelser
   writer.writeBoldSubheader('Løbende ASL-ydelser');
 
-  // Samme flag og samme tekst som skærmen – dokumentet sammenlignede før selv datoen med en literal.
+  // Samme flag og samme tekst som skærmen – dokumentet sammenligner ikke selv datoen med en literal.
   for (const linje of buildDifferencekravFradragLinjer(computation)) {
     writer.writeWrappedText(linje);
   }
@@ -499,8 +498,8 @@ const renderDifferencekravPage = (
       const rest = computation.resterendeLoebendeYdelser;
       writer.writeWrappedText('De tilbageværende løbende ydelser frem til folkepensionsalderen fratrækkes.');
       writer.writeLeftRightText(
-        // Månedsbrøken med samme fem decimaler som Løbende ydelser (BB-162); med fire kunne linjen ikke
-        // efterregnes til det viste fradrag (BB-424).
+        // Månedsbrøken med samme fem decimaler som Løbende ydelser; med fire kan linjen ikke
+        // efterregnes til det viste fradrag.
         `${formatDocumentMaanederTrimmed(rest.tilbageraevendeMaaneder)} mdr. x ${formatKr(toKroner(rest.maanedligYdelseOre))}/md. =`,
         formatDeductionKr(toKroner(rest.fradragBeloebOre)),
         rowOpts
@@ -521,13 +520,13 @@ const renderDifferencekravPage = (
   //
   // `writeBoldSubheader` og ikke `writeSectionHeader`: afsnittet er det femte fradragsafsnit under
   // «Specifikation» på linje med de fire søskende, og på skærmen ER alle fem `row--subheading` inde i
-  // samme boks. Med en sektionsoverskrift her blev sagens bundlinje, «Differencekrav», i stedet et
+  // samme boks. Med en sektionsoverskrift her ville sagens bundlinje, «Differencekrav», i stedet blive et
   // UNDERAFSNIT af pensionsalderen – og overskriftsniveauet er den eneste anvisning på, hvad der
-  // hører til hvad, i et papir uden indholdsfortegnelse (BB-192).
+  // hører til hvad, i et papir uden indholdsfortegnelse.
   if (computation.merErstatningPensionsalder) {
     writer.writeBoldSubheader(FORHOEJET_PENSIONSALDER_LABEL);
-    // Udviklerafgørelse 2026-11-20: på forsiden nævnes kun forhøjelsen, ikke den kapitalisering, den
-    // regulerer (BB-193's skelnen står i bilaget «Forhøjet pensionsalder»).
+    // På forsiden nævnes kun forhøjelsen, ikke den kapitalisering, den regulerer (skelnen står i
+    // bilaget «Forhøjet pensionsalder»).
     for (const event of computation.merErstatningPensionsalder.events) {
       writer.writeLeftRightText(
         `${buildMerErstatningForhoejelseTitel({
@@ -536,7 +535,7 @@ const renderDifferencekravPage = (
           nyAlderLabel: event.nyAlderLabel,
         })}:`,
         // Linjen formaterer selv (trimmet valuta med NBSP); vagten måler derfor mod DEN streng, så
-        // dokumentet og skærmen ikke kan blive uenige om formen ved nul (BB-130).
+        // dokumentet og skærmen ikke kan blive uenige om formen ved nul.
         formatDeduction(toKroner(event.merErstatningOre), formatMoneyOreWithKrTrimmed(event.merErstatningOre)),
         rowOpts
       );

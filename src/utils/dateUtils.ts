@@ -162,8 +162,7 @@ export const getInclusivePeriodEndByMonths = (startDate: Date, months: number): 
  * parses (fail-closed for kilde-opslag – kalderen returnerer da et udefineret interval).
  *
  * Ét sted for parse → +N mdr − 1 dag → format, så alle reguleringsdato-intervaller deler
- * nøjagtig samme aritmetik: KRL-satstabellen, KL-lønaftalerne og offentlig løn med `months = 6`
- * (tidligere tre identiske inline-kopier via `getInclusivePeriodEndByMonths(…, 6)`), og de
+ * nøjagtig samme aritmetik: KRL-satstabellen, KL-lønaftalerne og offentlig løn med `months = 6`, og de
  * statistiske ILON/SBLON-kvartalsserier samt privat overenskomst med `months = 12`.
  */
 export const getInclusivePeriodEndDanishDate = (

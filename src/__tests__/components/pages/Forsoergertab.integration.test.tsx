@@ -2,8 +2,8 @@
 import { hydrateSlimInputStoreForTest } from '../../../test/actSafeInputStore';
 //
 // Forsørgertab-siden (§2.4 formularrækkefølge): hele siden kører på den ENE
-// greenfield input-runtime (ingen legacy FormPersistence/invalidDrafts/props). Denne integrationstest kører gennem
-// den RIGTIGE migrerede side + den ægte produktions-runtime og beviser stien felt → settle → reader-projektion →
+// input-runtime. Denne integrationstest kører gennem
+// den RIGTIGE side + den ægte produktions-runtime og beviser stien felt → settle → reader-projektion →
 // download-gate (§1.5/§1.6/§3.9): et fuldt gyldigt input aktiverer download og når dokumentservicen med et frisk
 // stamdata-snapshot; en canonical tilkendt-periode uden for 1..10 blokerer med en synlig rød feltfejl; en byttet
 // stamdata-datoorden blokerer.

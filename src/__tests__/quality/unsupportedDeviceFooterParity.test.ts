@@ -11,13 +11,9 @@ import { fileURLToPath } from 'node:url';
  * dele kode: `shell/unsupported-device-page-bundle-isolation` forbyder – af gode grunde –
  * hard-stop-siden at importere den MUI-byggede footer, så stylingen ER duplikeret, inline.
  *
- * Dubletten blev oprindeligt afleveret med prosaen «målt til at være geometrisk identisk». Den
- * påstand holdt ikke: tre af footerens mobile højdeerklæringer var aldrig kommet med over
- * (`.site-footer__link`s `minHeight: 28px` + `padding: 2px 0`, `.site-footer__mail`s
- * `minHeight: 39px`) og boksens nedre `margin` var halveret. Boksen blev 26 px lavere end
- * footerens, og linkrækkerne sad synligt tættere – netop det, brugeren så og påtalte.
- *
- * Lærestykket er, at en måling foretaget ÉN gang ikke er et værn. Denne test er værnet: den
+ * En måling foretaget ÉN gang er ikke et værn: glemmer dubletten fx en af footerens mobile
+ * højdeerklæringer (`minHeight`, `padding`, nedre `margin`), bliver boksen synligt lavere, og
+ * linkrækkerne sidder tættere. Denne test er værnet: den
  * læser de tal, der bærer geometrien, ud af BEGGE kilder og kræver, at de er de samme. En
  * ændring i footerens mobilvisning, der ikke følges op i dubletten, bliver rød her – i stedet
  * for at blive opdaget af en bruger, der kigger på to skærme.

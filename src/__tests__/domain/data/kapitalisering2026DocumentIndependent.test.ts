@@ -100,7 +100,7 @@ const project = (): KapitaliseringDocumentInput => {
   );
 
   if (result.status !== 'ready') {
-    throw new Error('Kapitaliseringsdefinitionen blev blokeret i TD-020-facittet');
+    throw new Error('Kapitaliseringsdefinitionen blev blokeret i facittet');
   }
   return result.input;
 };

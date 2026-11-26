@@ -52,7 +52,7 @@ export const resolveDocumentFileName = (
 /**
  * Filnavnsreglen for alt, der hentes til en sag: `{journalnr} - {titel}.{endelse}`, eller `{titel}.{endelse}` uden
  * journalnr. Dokumenterne bruger den gennem {@link resolveDocumentFileName}; kontroltabellens CSV-fil bruger den
- * direkte, så filen kan genfindes på sagen (BB-382) – før hed den altid «kontroltabel.csv».
+ * direkte, så filen kan genfindes på sagen.
  */
 export const resolveSagsFilnavn = (titel: string, extension: string, journalnr?: string): string => {
   const safeJournalnr = typeof journalnr === 'string' ? sanitizeFilenamePart(journalnr.trim()) : '';

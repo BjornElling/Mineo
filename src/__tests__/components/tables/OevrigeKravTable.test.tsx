@@ -24,8 +24,8 @@ import {
 import { toISODateString } from '../../../types/branded';
 import type { ErstatningsopgoerelseValues, OevrigeKravRow, StamdataValues } from '../../../schemas/formSchemas';
 
-// Greenfield Øvrige krav-tabel (§2.5 trin 9): render-røgtest gennem den ægte produktions-runtime + en ren
-// validator-test af den nye descriptor-dato-bounds (§1.6, byte-identisk med legacy `OevrigeKravSection`s minDate/max).
+// Øvrige krav-tabel (§2.5 trin 9): render-røgtest gennem den ægte produktions-runtime + en ren
+// validator-test af descriptorens dato-bounds (§1.6).
 
 const catalog = getProductionInputCatalog();
 const asAmount = (value: number) => ({ kind: 'number' as const, value });

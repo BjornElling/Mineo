@@ -1,17 +1,17 @@
 // @vitest-environment jsdom
 //
-// Løntrin-finderen bruger ÉN hook for begge flader (`shared/useLoentrinFinder`). Før konsolideringen havde
-// Lønindkomst og EO-oplysninger hver sin ~95 % ordret identiske hook, og forskellen kostede en reel fejl:
+// Løntrin-finderen bruger ÉN hook for begge flader (`shared/useLoentrinFinder`), Lønindkomst og
+// EO-oplysninger. Fejlen, flerheden kan give:
 //
-//   Alle ansættelsesforhold-kort bandt den SAMME trigger-ref, så React efterlod den på det sidst monterede
-//   kort. Åbnede brugeren finderen fra et andet kort end det nederste, vendte fokus ved lukning tilbage til
+//   Binder alle ansættelsesforhold-kort den SAMME trigger-ref, efterlader React den på det sidst monterede
+//   kort. Åbner brugeren finderen fra et andet kort end det nederste, vender fokus ved lukning tilbage til
 //   det NEDERSTE korts «Find løntrin»-knap – et brud på `keyboard-navigation.md` §Popup-fokus-restore, der
 //   kræver fokus tilbage til «den kontrol, brugeren åbnede den med».
 //
-// Fejlen var usynlig for den eksisterende dækning, fordi `loentrinFinderTrigger.keyboard.test.tsx` kun kører
-// EO-fladen, som har ÉN trigger. Testene her dækker derfor flerhed: to kort, to knapper, og en restore der
-// skal ramme netop den, der åbnede. Desuden hævdes den per-kort-persistens, som er den ene reelle forskel
-// mellem de to flader, så konsolideringen ikke stiltiende kan tabe den.
+// `loentrinFinderTrigger.keyboard.test.tsx` kører kun EO-fladen, som har ÉN trigger, og kan ikke se fejlen.
+// Testene her dækker derfor flerhed: to kort, to knapper, og en restore der skal ramme netop den, der åbnede.
+// Desuden hævdes den per-kort-persistens, som er den ene reelle forskel mellem de to flader, så den delte
+// hook ikke stiltiende kan tabe den.
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';

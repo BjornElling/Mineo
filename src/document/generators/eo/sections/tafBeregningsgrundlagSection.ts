@@ -45,9 +45,9 @@ import { resolveLoenSkadedatoText } from '../../../../domain/erstatningsopgoerel
 
 /**
  * «- baseret på»-feltets tekst som sætningsled i «På baggrund af … lægges en månedsløn til grund». Feltets
- * etiket lægger op til at skrive «baseret på lønsedler», og papiret skrev da «På baggrund af baseret på
- * lønsedler» (BB-272). Et indledende «baseret på» fjernes derfor. Brugerens store og små bogstaver bevares
- * bevidst: programmet kan ikke skelne et egennavn fra et almindeligt ord (udviklerafgørelse 2026-10-02).
+ * etiket lægger op til at skrive «baseret på lønsedler», og papiret ville da skrive «På baggrund af baseret
+ * på lønsedler». Et indledende «baseret på» fjernes derfor. Brugerens store og små bogstaver bevares
+ * bevidst: programmet kan ikke skelne et egennavn fra et almindeligt ord.
  */
 const toBaseretPaaSaetningsled = (tekst: string | null | undefined): string => {
   const trimmed = tekst?.trim() ?? '';
@@ -62,7 +62,7 @@ export type TafBeregningsgrundlagDeps = Readonly<{
   // Beregningsgrundlag-lønnens uberegnelige udfald håndteres FORSKELLIGT af de to kaldere,
   // og forskellen er bevidst: EO-dokumentet viser «Fejl (…)», mens TAF-opreguleret-dokumentet
   // kaster, fordi lønnen dér er gated fail-closed i projektionen og aldrig kan være uberegnelig.
-  // Den lå før skjult i, at hver kalder sendte sin egen renderMoneyWithKrOrError ind.
+  // Derfor sender hver kalder sin egen renderMoneyWithKrOrError ind.
   renderMoneyWithKrOrError: (value: Calculable<MoneyOre>) => string;
   renderSubheader: (text: string, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
   safeAddWrappedText: (text: string) => void;
@@ -103,7 +103,7 @@ export const renderTafBeregningsgrundlag = (deps: TafBeregningsgrundlagDeps): vo
   if (model.tabtArbejdsfortjeneste.skalKomprimereIndkomstBeregning && indkomst) {
     const erArbejdsdage = model.tabtArbejdsfortjeneste.tafBeregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE;
     // Ved beregningsperiode er beløbet hele indkomsten inkl. offentlige ydelser – samme tal og navn som
-    // linjen «Månedsindkomst:»/«Dagsindkomst:» nedenfor. Ved angivet løn er det brugerens løn (BB-309).
+    // linjen «Månedsindkomst:»/«Dagsindkomst:» nedenfor. Ved angivet løn er det brugerens løn.
     const erIndkomst = indkomst.beregnesUdFra === 'Beregningsperiode';
     const loenLabel = erArbejdsdage
       ? (erIndkomst ? 'Dagsindkomst' : 'Løn per arbejdsdag')
@@ -158,8 +158,7 @@ export const renderTafBeregningsgrundlag = (deps: TafBeregningsgrundlagDeps): vo
           amountOre: arbejdssted.breakdown.pensionOre,
         },
         {
-          // Kolonnens eget navn, så linjen kan genkendes i bilagets tabel og på skærmen (BB-299). Før hed samme
-          // beløb «Arbejdsgivers ATP-bidrag og anden indkomst uden tillæg» her.
+          // Kolonnens eget navn, så linjen kan genkendes i bilagets tabel og på skærmen.
           label: resolveStandardLoenColumnLabel('col5'),
           amountOre: arbejdssted.breakdown.atpOre,
         },

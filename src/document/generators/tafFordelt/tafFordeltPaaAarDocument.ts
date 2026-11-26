@@ -27,7 +27,7 @@ import { addMoneyOre, subtractMoneyOre, zeroMoneyOre } from '../../../domain/mon
 import type { DocumentGenerationSession } from '../../documentGenerationSession';
 
 const NBSP = '\u00A0';
-// Knap, titel og fil bærer samme navn, så brugeren genfinder filen under det navn, der stod ved knappen (BB-376).
+// Knap, titel og fil bærer samme navn, så brugeren genfinder filen under det navn, der stod ved knappen.
 const FILE_BASE_NAME = 'TAF fordelt på kalenderår';
 const TAF_RIGHT_COLUMN_WIDTH = PDF_AMOUNT_RIGHT_COLUMN_WIDTH_MM;
 
@@ -176,7 +176,7 @@ export const generateTafFordeltPaaAarDocument = (
 
     // Fradrag (med minus-prefix)
     for (const deduction of yearEntry.deductions) {
-      // Et negativt fradrag (en kilde, der er negativ i netop dette år, fund B 2026-11-25) lægges til: «+ 1.000,00
+      // Et negativt fradrag (en kilde, der er negativ i netop dette år) lægges til: «+ 1.000,00
       // kr.», aldrig det dobbeltnegerede «- -1.000,00 kr.».
       const rightText = deduction.amountOre === 0
         ? ensureNonBreakingKr(formatMoneyOreWithKr(deduction.amountOre))

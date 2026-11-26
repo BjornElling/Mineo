@@ -62,7 +62,7 @@ const FORBIDDEN_DATE_TERMS: ReadonlyArray<Readonly<{ name: string; pattern: RegE
   { name: 'skadens udsagnsord', pattern: word('skade (?:før|fra|efter)') },
 ];
 
-/** Bøjede former, der ER prosa, selv når de står alene uden mellemrum (fx en tidligere `?? 'skadedatoen'`). */
+/** Bøjede former, der ER prosa, selv når de står alene uden mellemrum (fx `?? 'skadedatoen'`). */
 const STANDALONE_PROSE_FORM = /^(?:skades?datoen|anmeldelsesdatoen|skades?tidspunkt(?:et)?|anmeldelsestidspunkt(?:et)?|anmeldt|indtrådt)$/iu;
 
 /** Et internt navn: én ASCII-token med lille begyndelsesbogstav eller tegnsætning (`'skadedato'`, `':skadedato'`). */

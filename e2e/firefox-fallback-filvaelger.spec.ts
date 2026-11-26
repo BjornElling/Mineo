@@ -72,7 +72,7 @@ const expectFallbackBranch = async (page: Page): Promise<void> => {
   const hasFsAccess = await page.evaluate(() => 'showSaveFilePicker' in window);
   expect(
     hasFsAccess,
-    'Forudsætningen for OBS-005/OBS-028 er en browser UDEN File System Access API'
+    'Fallback-grenen forudsætter en browser UDEN File System Access API'
   ).toBe(false);
 };
 

@@ -3,7 +3,7 @@
  *
  * Genererer PDF-dokument med én samlet tabel over alle fire KRL satstabeller
  * (KTO kommuner, SHK kommuner, KTO regioner, SHK regioner). Den satstabel, sagen anvender, er
- * fremhævet: «(anvendt)» i overskriften og fed skrift i kolonnen (BB-317).
+ * fremhævet: «(anvendt)» i overskriften og fed skrift i kolonnen.
  */
 
 import { PDF_CONTENT_WIDTH_MM } from '../../layout/pdfConfig';
@@ -40,7 +40,7 @@ const buildCombinedRows = (): { dates: DanishDateString[]; rows: string[][] } =>
     }
   }
 
-  // Sortér datoer ældste først, som de øvrige satsdokumenter og bilagene (BB-317). ISO-strenge
+  // Sortér datoer ældste først, som de øvrige satsdokumenter og bilagene. ISO-strenge
   // (YYYY-MM-DD) sorterer kronologisk ved ren strengsammenligning, så vi konverterer via den kanoniske
   // danishToISO i stedet for ad hoc-parsing. Uparselige datoer ('') sorteres først.
   const dates = Array.from(dateSet).sort((a, b) => {

@@ -87,7 +87,7 @@ describe('forsoergertabIssueFields', () => {
     for (const id of new Set(beregningsafvisende)) {
       expect(
         FORSOERGERTAB_FIELD_BOUND_ISSUE_IDS,
-        `Issuet '${id}' afviser beregningen uden en feltadresse – det ville forsvinde tavst (BB-117). `
+        `Issuet '${id}' afviser beregningen uden en feltadresse – det ville forsvinde tavst. `
         + 'Tilføj en post i ISSUE_FIELDS, eller marker det som et rent manglende-input-issue.'
       ).toContain(id);
       expect(buildForsoergertabFieldIssues([errorIssue(id)], labelOf)).toHaveLength(1);

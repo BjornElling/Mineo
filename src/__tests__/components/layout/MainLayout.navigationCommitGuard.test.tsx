@@ -14,7 +14,7 @@ import { getProductionInputCatalog } from '../../../inputCore/catalog/production
 import MainLayout from '../../../components/layout/MainLayout';
 import { OpenEditor } from './editorTestUtils';
 
-// Greenfield-navigation (§1.4): sideskift er en settle-handling. Coordinatorens `prepare("navigate")` settler
+// Navigation (§1.4): sideskift er en settle-handling. Coordinatorens `prepare("navigate")` settler
 // den åbne editor; et fail-closed `blocked` (uventet settle-fejl) stopper navigationen og fokuserer feltet.
 
 const catalog = getProductionInputCatalog();

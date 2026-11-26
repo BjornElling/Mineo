@@ -35,7 +35,7 @@ type OffentligeYdelserSectionContext = Readonly<{
   }>) => boolean;
   eoBilagIndkomstYdelserMode: EoBilagLoenindkomstOgOffentligeYdelserIndgaar;
   eoBilagIndkomstYdelserRanges: readonly IsoRange[];
-  /** Perioderne, en delvist medregnet ydelse forklares for under tabellen (BB-293). */
+  /** Perioderne, en delvist medregnet ydelse forklares for under tabellen. */
   delvisePerioder?: readonly EoBilagDelvisPeriode[];
   writer: Pick<
     DocumentComposer,
@@ -46,7 +46,7 @@ type OffentligeYdelserSectionContext = Readonly<{
 type RenderOffentligeYdelserRowsPageContext = Readonly<{
   rows: readonly OffentligeYdelserRow[];
   visYdelsestypeSubheader?: boolean;
-  /** Korte linjer under en ydelsestypes tabel – fx om delvist medregnede ydelser (BB-293). */
+  /** Korte linjer under en ydelsestypes tabel – fx om delvist medregnede ydelser. */
   buildLinjerUnderTabel?: (rows: readonly OffentligeYdelserRow[]) => readonly string[];
   writer: Pick<DocumentComposer, 'addSectionSpacer' | 'addTable' | 'writeUnderlinedSubheader' | 'writeWrappedText'>;
 }>;
@@ -95,8 +95,7 @@ export const renderOffentligeYdelserRowsPage = (ctx: RenderOffentligeYdelserRows
 
   const grouped = new Map<string, OffentligeYdelserRow[]>();
   const groupOrder: string[] = [];
-  // Bilaget trykker altid rækkerne kronologisk, uafhængigt af skærmens sortering (udviklerafgørelse 2026-10-19,
-  // BB-294). Sorteringen er stabil, og rækker uden fra-dato står sidst.
+  // Bilaget trykker altid rækkerne kronologisk, uafhængigt af skærmens sortering. Sorteringen er stabil, og rækker uden fra-dato står sidst.
   const kronologisk = rows
     .map((row, index) => ({ row, index }))
     .sort((left, right) => {
@@ -134,7 +133,7 @@ type OffentligeYdelserBilagGroupsInput = Pick<
 
 /**
  * Bilagets rækker pr. periodegruppe – grupper uden rækker udelades. Den ENE afgørelse af, om bilaget «Offentlige
- * ydelser» har noget at trykke; kommentarens placering læser samme svar (BB-363).
+ * ydelser» har noget at trykke; kommentarens placering læser samme svar.
  */
 export const buildOffentligeYdelserBilagGroups = (
   input: OffentligeYdelserBilagGroupsInput
@@ -165,8 +164,8 @@ export const buildOffentligeYdelserBilagGroups = (
  * Kommentaren til de offentlige ydelser, når den IKKE står i bilaget – ellers `undefined`.
  *
  * Kommentaren trykkes altid: i bilaget «Offentlige ydelser», når det trykkes, og ellers under «Indtægter i
- * erstatningsperioden». Før stod den kun nederst i bilaget og forsvandt tavst, når bilaget var fravalgt – eller når
- * tabellen var tom, som er netop dér, feltet naturligt bruges til at forklare hvorfor (BB-363).
+ * erstatningsperioden». Ellers forsvinder den tavst, når bilaget er fravalgt – eller når tabellen er tom, som er
+ * netop dér, feltet naturligt bruges til at forklare hvorfor.
  */
 export const resolveOffentligeYdelserKommentarUdenBilag = (
   input: OffentligeYdelserBilagGroupsInput & Readonly<{ bilagetTrykkes: boolean }>
@@ -211,7 +210,7 @@ export const renderOffentligeYdelserSection = (ctx: OffentligeYdelserSectionCont
       startEoBilagPage('Offentlige ydelser');
       writer.addSectionSpacer();
     }
-    // Hver periodegruppe forklarer kun sin egen periodes overskæringer; uden grupper («Alle») gælder begge (BB-293).
+    // Hver periodegruppe forklarer kun sin egen periodes overskæringer; uden grupper («Alle») gælder begge.
     const gruppensPerioder = delvisePerioder.filter((periode) =>
       entry.group.label === null
       || (entry.group.label === 'Beregningsperiode' && periode.navn === 'beregningsperioden')
@@ -230,7 +229,7 @@ export const renderOffentligeYdelserSection = (ctx: OffentligeYdelserSectionCont
 
   // Kommentarer (hvis udfyldt) renderes under en underoverskrift nederst på bilaget,
   // i samme stil som procesrente-PDF'ens kommentarafsnit. Trykkes bilaget ikke, står kommentaren i stedet under
-  // «Indtægter i erstatningsperioden» (`resolveOffentligeYdelserKommentarUdenBilag`, BB-363).
+  // «Indtægter i erstatningsperioden» (`resolveOffentligeYdelserKommentarUdenBilag`).
   const kommentarer = eoValues.offentligeYdelserKommentarer?.trim() ?? '';
   if (kommentarer !== '') {
     writer.addSectionSpacer();
@@ -238,7 +237,7 @@ export const renderOffentligeYdelserSection = (ctx: OffentligeYdelserSectionCont
   }
 };
 
-/** Samme navn som ydelsestypen, togglen og fradragslinjen (BB-367). */
+/** Samme navn som ydelsestypen, togglen og fradragslinjen. */
 export const MIDLERTIDIGT_EET_BILAG_TITLE = 'Midlertidigt EET';
 
 type MidlertidigtEetSectionContext = Readonly<{
@@ -253,7 +252,7 @@ export const renderMidlertidigtEetSection = (ctx: MidlertidigtEetSectionContext)
   const { groups, startEoBilagPage, renderSubheader, tafRanges, writer } = ctx;
 
   // Fra/Til o.m. centreres, alle øvrige kolonner højrejusteres. Auto-bredde (ingen
-  // kolonne-styles), som den oprindelige kaldeform.
+  // kolonne-styles).
   const columns: readonly ColumnSpec[] = [
     { width: { kind: 'auto' }, align: 'center' },
     { width: { kind: 'auto' }, align: 'center' },
@@ -280,7 +279,7 @@ export const renderMidlertidigtEetSection = (ctx: MidlertidigtEetSectionContext)
     .filter((group) => group.perioder.length > 0);
   // Bilagets sum ER fradragslinjen «Midlertidigt EET» (rækkerne er den kanoniske kilde til fradraget). Med mere end
   // én række slutter bilaget derfor med «I alt», så læseren ikke selv skal lægge sammen – heller ikke på tværs af
-  // flere afgørelser (BB-367).
+  // flere afgørelser.
   const alleRaekker = clampedGroups.flatMap((group) => group.perioder);
   const totalRow = alleRaekker.length > 1
     ? buildSummedTotalRowSpec(
@@ -306,10 +305,10 @@ export const renderMidlertidigtEetSection = (ctx: MidlertidigtEetSectionContext)
 
     const datoText = formatAfgoerelsesdato(group.afgoerelsesdato) ?? group.afgoerelsesdato;
     const pctText = Number.isFinite(group.eetPct) ? ` (${formatPercentRounded4(group.eetPct)})` : '';
-    // Samme dato og procent skilles ved virkningsdatoen (BB-411).
+    // Samme dato og procent skilles ved virkningsdatoen.
     const virkningsTillaeg = formatAfgoerelseVirkningsTillaeg(group, clampedGroups);
     renderSubheader(`Afgørelse ${datoText}${pctText}${virkningsTillaeg}`, { addTopSpacing: groupIndex > 0 });
-    // En tilbageholdt forgænger kan forsvinde helt fra bilaget; noten siger hvorfor (BB-409).
+    // En tilbageholdt forgænger kan forsvinde helt fra bilaget; noten siger hvorfor.
     const tilbageholdelsesNote = resolveLoebendeTilbageholdelsesNote(group);
     if (tilbageholdelsesNote !== null) writer.writeWrappedText(tilbageholdelsesNote);
 

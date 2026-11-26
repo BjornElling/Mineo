@@ -44,7 +44,7 @@ const importXmlFragmentChild = (xml: string): ParagraphChild => {
 // renderes pænt og ufordrejet i Word (og bredt kompatibelt i LibreOffice):
 //   - fillcolor="silver" + <v:fill opacity=".5"/> (samme halvgennemsigtige grå som Word)
 //   - størrelses-forhold ~2,5:1 (bredde:højde) som Words standard – et for bredt forhold
-//     (tidligere 4,5:1) strakte teksten tynd og forvrænget
+//     (fx 4,5:1) strækker teksten tynd og forvrænget
 //   - o:allowincell="f", rotation 315° og margin-centrering, præcis som Words native shape
 const WATERMARK_FILL_COLOR = 'silver';
 const WATERMARK_FILL_OPACITY = '.5';

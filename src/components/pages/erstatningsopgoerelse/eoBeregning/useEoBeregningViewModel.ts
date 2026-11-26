@@ -420,7 +420,7 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
   const tafOpreguleretDownload = useMineoDocumentOutputWithContext(tafOpreguleretPaaAarDocumentDefinition, undefined, documentContext);
   const tafKravGrafDownload = useMineoDocumentOutputWithContext(tafKravGrafDocumentDefinition, undefined, documentContext);
 
-  // Knaptilstand og tooltip kommer fra PRÆCIS den definition, klikket aktiverer (§10 acceptkriterie 27).
+  // Knaptilstand og tooltip kommer fra PRÆCIS den definition, klikket aktiverer (`input-architecture.md` §5, acceptkriterie 27).
   const eoPdfDisabledReason = eoDownload.disabledReason ?? null;
   const tafPdfDisabledReason = tafFordeltDownload.disabledReason ?? null;
   const tafOpreguleretPdfDisabledReason = tafOpreguleretDownload.disabledReason ?? null;

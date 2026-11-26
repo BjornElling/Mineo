@@ -100,7 +100,7 @@ describe('»Find løntrin« indgår i tastatur-sekvensen', () => {
   /**
    * Fokuserer ikonet SOM en tastaturbruger – via Tab fra feltet før – og ikke med et direkte
    * `focus()`-kald. Forskellen er hele pointen: `tabIndex={-1}` blokerer ikke et programmatisk
-   * `focus()`, så en test der kaldte `focus()` selv ville bestå på den gamle, utilgængelige knap.
+   * `focus()`, så en test der kaldte `focus()` selv ville bestå på en utilgængelig knap.
    */
   const tabTilFinder = async (
     user: ReturnType<typeof userEvent.setup>

@@ -30,8 +30,8 @@ const addStamdataSection = (
     { label: 'Fødselsdato', value: formatIsoDateLong(fodselsdato) },
     { label: datoReference.label, value: formatIsoDateLong(skadedato) },
     {
-      // Tidspunktsformen kommer fra referencen (BB-121). Den blev før udledt ved at STRENGSAMMENLIGNE
-      // på labelen – en afledning, der ville tie, hvis labelens ordlyd nogensinde ændrede sig.
+      // Tidspunktsformen kommer fra referencen, ikke fra en STRENGSAMMENLIGNING på labelen – en
+      // afledning, der ville tie, hvis labelens ordlyd nogensinde ændrede sig.
       label: `Alder på ${datoReference.tidspunkt}`,
       value: `${alderVedSkade} år`,
     },
@@ -79,7 +79,7 @@ const addResultatSection = (
       value: formatKr(beregningsResultat.grundbeloebUdenReduktion),
     },
     {
-      // Samme delte fortegnsregel som skærmen (BB-129/130); de to stod før som hver sin ternary.
+      // Samme delte fortegnsregel som skærmen, ikke en egen ternary.
       label: `Aldersreduktion, ${beregningsResultat.alderVedSkade} år = ${formatDeductionPercent(
         beregningsResultat.aldersreduktionPct,
         `${beregningsResultat.aldersreduktionPct} %`

@@ -79,18 +79,16 @@ nær linje 349; `aarsloen-contract.md` §2a (tre standardværdier fra Indstillin
       `src/__tests__/domain/`, størstedelen af resten af `src/__tests__/`, `e2e/`, `scripts/`, `.github/`, `.husky/`,
       config-filer.
 
-### Arbejdsstykke 2 – Rest af kommentaroprydningen (lille)
-- [ ] Find resterende træf: `git grep -nE "BB-[0-9]|BF-[0-9]|NY-[0-9]|\bM-[0-9]{2}\b|TD-?[0-9]{3}|R[0-9]-F[0-9]|afklaringslog|[Bb]rugerfund|[Bb]rugerblik|greenfield #|docs/(review|testing)|brugerfund-der|[Uu]dvikler(afgørelse|beslutning)" -- src e2e scripts ":!src/contracts"`.
-      Ved commit af del 1 stod der ca. 90 træf i `src/document/**` (især `generators/`) og enkelte i `e2e/` og
-      `src/__tests__/`. Mange i e2e/tests er testdata (journalnumre o.l.) og skal blive.
-- [ ] Gennemlæs desuden `src/styles/`, `src/types/`, `src/utils/`, `src/hooks/`, `src/apps/`, `src/auth/`,
-      `src/contexts/`, `src/pdf/`, `src/docx/`, `src/test/`, `src/__tests__/{utils,quality,components}` for
-      dato-proveniens og «tidligere …»-fortællinger (mønsteret ovenfor fanger ikke dem).
-- [ ] Kendt: `e2e/firefox-fallback-filvaelger.spec.ts` har en assertion-tekst med `OBS-005/OBS-028`, og
-      `src/__tests__/domain/forsoergertab/forsoergertabIssueFields.test.ts:90` en fejlbesked med `(BB-117)`;
-      begge må renses (assertion-beskeder er ikke testdata). `skjulteFelterRelevans12i.test.ts` bærer «12i» i
-      navnet – omdøb.
-- [ ] `npm run check:mojibake`, `typecheck`, `typecheck:test`, `typecheck:e2e`, `lint`; commit.
+### Afsluttet (commit «Oprydning til 1.0, del 2»)
+- [x] Resten af kommentaroprydningen: `src/document/**`, `src/{styles,types,utils,hooks,apps,auth,contexts,pdf,docx,test}`,
+      `src/__tests__/{utils,quality,components}`, assertion-beskeder i e2e/tests; `skjulteFelterRelevans12i.test.ts`
+      → `loenindkomstSkjulteFelter.test.ts`. Tilbageværende ID-træf er testdata (journalnumre) eller værnenes
+      egne mønstre/undtagelser. «§10 acceptkriterie 27» rettet til `input-architecture.md` §5.
+- [x] `check:mojibake`, alle typechecks, `lint` og `src/__tests__/quality` grønne.
+- Overført til arbejdsstykke 6: 13 kodekommentarer i `src/__tests__/quality/**`, `slimInputStore.ts` og
+  `documentGatePreflightParity.test.ts` henviser til Claude-memory med `[[project_…]]`/`[[feedback_…]]`
+  (`git grep -n "\[\[project_\|\[\[feedback_"`). Memory er ikke en del af repoet: skriv begrundelsen ind eller
+  henvis til et bevaret dokument, før memoryen ryddes.
 
 ### Arbejdsstykke 3 – Kontrakter, gruppe G1–G2 (stort)
 Instruks: `kontrakt-regler.md`. Én agent pr. gruppe, højst to ad gangen.

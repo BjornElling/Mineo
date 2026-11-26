@@ -245,7 +245,7 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
   {
     contractPath: 'src/contracts/undo-redo-contract.md',
     requiredTestPaths: [
-      // Greenfield-cutover: den legacy runner/`useUndoRedo` er slettet. Undo/redo-commanden dækkes af
+      // Den legacy runner/`useUndoRedo` er slettet. Undo/redo-commanden dækkes af
       // `dispatchInput` + history-kernen; det stille no-op ved åben editor af coordinatoren; shellens genvej
       // + lokationsbaseret fokusrestore af `MainLayout.undoRedoEditorGuard` og `historyRestoreTarget`.
       'src/__tests__/inputCore/runtime/dispatchInput.test.ts',

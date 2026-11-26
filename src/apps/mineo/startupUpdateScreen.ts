@@ -1,7 +1,7 @@
 import { roundByMethod } from '../../utils/rounding.ts';
 
 /**
- * Kører fra HTML før appens modultræ hentes. En tidligere versionscache og fravær af den nye
+ * Kører fra HTML før appens modultræ hentes. En ældre versions cache og fravær af den nye
  * builds precache viser, at dette er en opdatering, ikke et førstegangsbesøg eller en normal opstart.
  * Cache Storage aflæses kun; workerens cache- og filforløb ændres ikke.
  */

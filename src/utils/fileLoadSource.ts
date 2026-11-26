@@ -54,8 +54,8 @@ export class FileSelectionError extends Error {
 }
 
 /**
- * Delt endelse- + størrelses-validering for en valgt fil. Tidligere verbatim-dupleret i alle tre
- * indlæsnings-grene; nu ét sted, så en `.eo`-fil valideres ens uanset hvordan den blev valgt.
+ * Delt endelse- + størrelses-validering for en valgt fil, fælles for alle tre indlæsnings-grene,
+ * så en `.eo`-fil valideres ens uanset hvordan den blev valgt.
  */
 export const assertLoadableEoFile = (file: File): void => {
   if (!file.name.toLowerCase().endsWith('.eo')) {

@@ -201,7 +201,7 @@ describe('en lovlig indtastning må aldrig nå en intern undtagelse', () => {
   it.each([
     ['Månedslønnen udgør', 'Angivet månedsløn' as const, eoMaanedsloenenUdgoerField, { maanedsloenenUdgoer: amount(0) }, 'Månedslønnen skal være større end 0 kr.'],
     ['Dagslønnen udgør', 'Angivet dagsløn' as const, eoDagsloenenUdgoerField, { dagsloenenUdgoer: amount(0) }, 'Dagslønnen skal være større end 0 kr.'],
-  ])('%s 0 kr. får rød ring (udviklerafgørelse a)', (_label, beregnesUdFra, field, patch, message) => {
+  ])('%s 0 kr. får rød ring', (_label, beregnesUdFra, field, patch, message) => {
     const result = project(sag({ beregnesUdFra, ...patch }));
 
     expect(issueOf(result, field.bind())?.message).toBe(message);

@@ -556,7 +556,7 @@ export const reguleringCanonicalForloebBoundary = forbidImports({
     if (fromRelativePath === 'src/domain/erstatningsopgoerelse/engines/reguleringsPresentation.ts' && !ref.typeOnly) {
       if (/\/(?:offentligLoenLookup|overenskomstReguleringShared|aslAarsloensmaksimum|reguleringFormRegistry)$/.test(ref.moduleSpecifier)) return true;
       // Satsenheden læses fra reguleringsbevisets `wageUnit`; præsentationen må ikke selv slå overenskomstens
-      // enhed op (fund C5), så `overenskomstRates` har ingen tilladte bindinger her længere.
+      // enhed op, så `overenskomstRates` har ingen tilladte bindinger her.
       const formatOnlyBindings = new Set([
         'buildFormulaText', 'formatPercentCellFromRaw', 'wrapIndexFormulaAfterSlashWhenLong',
         'FormulaComponents', 'FormulaVisibility',

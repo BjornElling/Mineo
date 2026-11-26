@@ -2,18 +2,16 @@
  * Fælles opsætning for dokument-generatorer
  *
  * Alle generatorer indleder ens: opret writer, sæt display-mode og dokument-metadata.
- * Tidligere gentog hver generator denne preamble ordret (~18 steder), inkl. de samme
- * metadata-konstanter. Det samles her, så et metadata-felt kun har ét sandt sted.
+ * Det samles her, så et metadata-felt kun har ét sandt sted.
  * App-varianter kan give et eksplicit override, når dokumentets afsender/emne reelt
  * er anderledes end Mineo-standarderne.
  *
- * `creator` slås altid op via `getDocumentCreatorBrand()`. Tidligere hardkodede de
- * fleste generatorer literalen `'mineo.dk'`, mens kun rente-dokumenterne brugte
- * brandet – det var en latent drift: et brand-override (standalone MinProcesrente
- * via `setDocumentBrand`) ville have slået igennem på rente-PDF'erne, men efterladt
- * et forældet brand på alle øvrige. Nu er feltet ensartet.
+ * `creator` slås altid op via `getDocumentCreatorBrand()` og hardkodes aldrig som
+ * `'mineo.dk'`: ellers ville et brand-override (standalone MinProcesrente via
+ * `setDocumentBrand`) kun slå igennem på nogle dokumenter og efterlade et forældet
+ * brand på de øvrige.
  *
- * `defineDocument` ejer nu også den fælles lifecycle omkring indholdet. TAF/EO giver
+ * `defineDocument` ejer også den fælles lifecycle omkring indholdet. TAF/EO giver
  * deres særlige vandmærke- og brevhoveddata deklarativt, mens øvrige generatorer bruger
  * stamdata med dags dato (`buildStamdataBrevhovedData`).
  */

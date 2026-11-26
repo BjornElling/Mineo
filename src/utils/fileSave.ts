@@ -141,12 +141,11 @@ export const saveToFile = async (
     //
     // Her er BEVIDST ingen "er sagen tom?"-gate. Spørgsmålet kan ikke besvares her: dette lag ser kun det
     // schema-parsede snapshot og kender ikke ny-sags-baselinen, så det kan ikke skelne "intet indtastet" fra
-    // "standardværdierne er bevidst valgt". Et tidligere `hasRealData()`-tjek forsøgte det ved at tælle
-    // udfyldte felter og regnede hver `false` og hvert standardtal som brugerdata – derfor gemte en helt tom
-    // standardsag som et tilsyneladende rigtigt sagsartefakt. Gaten ejes nu af `hasAnyData()` i save-shellen,
-    // som måler mod netop den baseline.
+    // "standardværdierne er bevidst valgt". Et tjek, der tæller udfyldte felter, regner hver `false` og hvert
+    // standardtal som brugerdata og ville gemme en helt tom standardsag som et tilsyneladende rigtigt
+    // sagsartefakt. Gaten ejes af `hasAnyData()` i save-shellen, som måler mod netop den baseline.
     //
-    // `fieldCount === 0` er derfor ikke længere en fejl her: en sag KAN gyldigt bestå af udelukkende
+    // `fieldCount === 0` er derfor ikke en fejl her: en sag KAN gyldigt bestå af udelukkende
     // standardværdier, når brugeren har ændret noget andet. Tallet er kun preflight-rapportering.
     const fieldCount = countFilledFields(canonicalData);
 

@@ -1,12 +1,10 @@
 /**
- * Ren kolonnebredde-fordeling for dokument-tabeller (#15 TableSpec-udredning).
+ * Ren kolonnebredde-fordeling for dokument-tabeller.
  *
- * Udtrukket fra PDF-rendereren som en ren, unit-testbar funktion uden
- * jsPDF-runtime-afhængighed: tekstmåling injiceres som `ColumnTextMeasurer` (PDF-kanalen
- * wrapper jsPDF's `getTextWidth`; en degraderet jsPDF sender `null` → statisk fordeling).
- * Semantikken er bevaret 1:1 fra den tidligere `resolveAdaptiveDistributedColumnStyles`
- * + `resolveGrowColumnStyles` + omfordelings-hjælperen – bevist byte-identisk af
- * `pdfTableRenderer.layout.test.ts` og tabel-kanal-paritet-golden-nettet.
+ * En ren, unit-testbar funktion uden jsPDF-runtime-afhængighed: tekstmåling injiceres som
+ * `ColumnTextMeasurer` (PDF-kanalen wrapper jsPDF's `getTextWidth`; en degraderet jsPDF sender
+ * `null` → statisk fordeling). Layoutet fastholdes af `pdfTableRenderer.layout.test.ts` og
+ * tabel-kanal-paritet-golden-nettet.
  *
  * Kolonne-intentionen (fixed/flex/grow) bæres af `PDF_COLUMN_LAYOUT_META`, som
  * kolonnestil-builderne i `pdfDocumentTableRenderer.ts` hæfter på styles-objektet.

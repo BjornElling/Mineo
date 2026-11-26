@@ -26,8 +26,8 @@ const DEV_SERVER_MESSAGE = 'Udviklingsserveren svarer ikke længere. Genstart `n
  *  - `gate-blocked`: en deaktiveret download-knap svarer IKKE med tekst. Årsagen har ÉN kanal –
  *    knappens tooltip ved hover. Det gælder også, når blokeringen først opdages under aktiveringen:
  *    et klik på en knap, brugeren kan se er inaktiv, skal ikke fremkalde en besked hverken under
- *    knappen eller i rækken (udviklerbeslutning 2026-07-31). Årsagerne bevares på udfaldet som
- *    auditdata, men de er ikke længere en visningskilde.
+ *    knappen eller i rækken (bevidst valg). Årsagerne bevares på udfaldet som auditdata, men de
+ *    er ikke en visningskilde.
  *  - `settle-failed`: det blokerende felt bærer selv sin røde markering, og preflighten har
  *    fokuseret det. En ekstra besked ville duplikere signalet.
  *  - `runtime` i en app, der router systemfejl centralt (§A5) – se `showRuntimeFailureLocally`.

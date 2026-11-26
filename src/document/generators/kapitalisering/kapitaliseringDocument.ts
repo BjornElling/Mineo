@@ -21,11 +21,10 @@ import type { DocumentCommonOptions } from '../../layout/documentOptions';
 import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
 
 /**
- * Etiketten er nu den DELTE konstant.
+ * Etiketten er den DELTE konstant.
  *
- * Dokumentet skrev tidligere "< 2 år" som en bevidst «læsbar forenkling», mens linjen umiddelbart
- * under – særfaktor-etiketten – skrev "≤ 2 år" om samme regel. To operatorer i træk læses som to
- * forskellige grænser, og operatoren ER reglens indhold (BB-172). Genindfør ikke en lokal variant.
+ * En lokal «læsbar forenkling» ("< 2 år") lige over særfaktor-etiketten ("≤ 2 år") ville læses som to
+ * forskellige grænser, og operatoren ER reglens indhold. Genindfør ikke en lokal variant.
  */
 export const PDF_UNDER_TO_AAR_TIL_FOLKEPENSION_LABEL = SAERFAKTOR_ANVENDES_LABEL;
 

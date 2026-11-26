@@ -6,9 +6,8 @@
  * `src/components/layout/containerNavigation/`, og `Container.tsx` er kun scroll-vært +
  * `<main>`-landmark.
  *
- * Reglen findes, fordi den gamle form voksede organisk til det modsatte: ~440 af 584
- * linjer var fokus-logik i en fil, der hed «Container». Intet forhindrede den vækst, og
- * intet ville forhindre den igen – en enkelt `querySelectorAll(CONTAINER_FOCUSABLE_SELECTOR)`
+ * Reglen findes, fordi fokus-logik ellers vokser organisk ind i layout-komponenter, der ikke
+ * ejer den – en enkelt `querySelectorAll(CONTAINER_FOCUSABLE_SELECTOR)`
  * i en layout-komponent er nok til at starte forfra med en andenudgave af traverseringen
  * ved siden af den kanoniske.
  *

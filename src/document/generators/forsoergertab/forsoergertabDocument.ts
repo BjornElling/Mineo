@@ -49,14 +49,13 @@ type GrundlaeggendeData = Readonly<{
   beregningsdato: ISODateString | undefined;
   skadelidteFodselsdato: ISODateString | undefined;
   /**
-   * Sagens egen dato (BB-122). Dokumentet trykte den ikke, selv om skærmen viser den som anden række, og
-   * selv om den styrer fire af beregningens opslag: ASL-årslønnens maksimum, opreguleringens kildeår,
-   * kapitaliseringsbekendtgørelsen og tabelvalget. En modpart kunne derfor ikke efterregne
-   * specifikationen, og papiret kunne ikke henføres til sagen. Varige méns dokument gjorde det rigtige på
-   * nøjagtig samme sagsgrundlag; dette er en konvergens mod det, ikke et nyt design.
+   * Sagens egen dato. Den trykkes, fordi skærmen viser den som anden række, og fordi den styrer fire af
+   * beregningens opslag: ASL-årslønnens maksimum, opreguleringens kildeår, kapitaliseringsbekendtgørelsen
+   * og tabelvalget. Uden den kan en modpart ikke efterregne specifikationen, og papiret kan ikke
+   * henføres til sagen. Samme form som Varige méns dokument på samme sagsgrundlag.
    */
   skadedato: ISODateString | undefined;
-  /** Skadestypen afgør datoens navn i hele dokumentet (BB-121). */
+  /** Skadestypen afgør datoens navn i hele dokumentet. */
   skadestype: Skadestype | undefined;
   efterladteFodselsdato: ISODateString | undefined;
   koen: string | undefined;
@@ -88,7 +87,7 @@ const addGrundlaeggendeSection = (
     });
   }
 
-  // Sagens dato med det skadestype-afledte navn – samme række som skærmens anden (BB-122).
+  // Sagens dato med det skadestype-afledte navn – samme række som skærmens anden.
   if (data.skadedato) {
     writer.writeLeftRightText(datoReference.label, isoToDanish(data.skadedato) ?? '', {
       rightFontStyle: 'normal',
@@ -104,7 +103,7 @@ const addGrundlaeggendeSection = (
     );
   }
 
-  // Fladen har to personer i sig; rækken navngiver sin person som de øvrige (BB-134).
+  // Fladen har to personer i sig; rækken navngiver sin person som de øvrige.
   if (data.visKoenValg && data.koen) {
     writer.writeLeftRightText(FORSOERGERTAB_SKADELIDTES_KOEN_LABEL, data.koen, { rightFontStyle: 'normal' });
   }
@@ -122,7 +121,7 @@ const addGrundlaeggendeSection = (
       });
     }
     if (data.virkningsdato) {
-      // Feltets ene navn (BB-120) – samme ord som skærmen og feltets grænsebesked.
+      // Feltets ene navn – samme ord som skærmen og feltets grænsebesked.
       writer.writeLeftRightText('Virkningsdato', isoToDanish(data.virkningsdato) ?? '', {
         rightFontStyle: 'normal',
       });
@@ -280,7 +279,7 @@ const addAslSection = (writer: DocumentComposer, asl: ForsoergertabAslComputatio
   );
 
   if (asl.lobendeYdelser.length > 0) {
-    // Faste kolonnebredder (inline-litteral tidligere): to venstre dato-kolonner,
+    // Faste kolonnebredder: to venstre dato-kolonner,
     // tre højrejusterede tal-kolonner. Justering defineret på kolonnerne.
     const columns: readonly ColumnSpec[] = [
       { width: { kind: 'fixed', mm: 30 }, align: 'left' },
@@ -330,8 +329,8 @@ const addAslSection = (writer: DocumentComposer, asl: ForsoergertabAslComputatio
     writer.writeLeftRightText('Kapitalbeløb', '0 kr.', { rightFontStyle: 'bold' });
   } else {
     writer.writeLeftRightText(
-      // Ét gangetegn i hele linjen (BB-132): den brugte før BÅDE `x` og `×` i samme sætning, som om de
-      // to betød noget forskelligt. `x` er programmets tegn.
+      // Ét gangetegn i hele linjen: `x` og `×` i samme sætning ville se ud, som om de betød noget
+      // forskelligt. `x` er programmets tegn.
       `Årlig ydelse i ${asl.beregningsaar}-værdi: 30 % x ${formatKr(asl.benyttetAarsloen)} x (${formatAsAmountTrimmed(asl.aarsloenMaxBeregningsaar, 0)} / ${formatAsAmountTrimmed(asl.aarsloenMaxSkadesaar, 0)}) =`,
       formatKr(asl.opreguleretAarligYdelse, 2),
       { rightFontStyle: 'normal' }
@@ -376,7 +375,7 @@ const addAslSection = (writer: DocumentComposer, asl: ForsoergertabAslComputatio
           { rightFontStyle: 'normal' }
         );
         writer.writeLeftRightText(
-          // Afsluttende `=` som alle andre formellinjer med et resultat i højre kolonne (BB-132).
+          // Afsluttende `=` som alle andre formellinjer med et resultat i højre kolonne.
           `Beregnet kapitalbeløb (${formatKr(asl.opreguleretAarligYdelse, 2)} x ${formatAsAmountTrimmed(asl.kapitalfaktor, 3)}) (oprundet) =`,
           formatKr(asl.kapitalbelob),
           { rightFontStyle: 'bold' }
@@ -420,7 +419,7 @@ export const generateForsoergertabDocument = defineDocument<GenerateForsoergerta
     foersoergertabForhoejtetTilMin,
   } = params;
 
-  // Ét navnevalg for hele dokumentet, udledt af skadestypen (BB-121). Sektionerne må ikke udlede hver sit.
+  // Ét navnevalg for hele dokumentet, udledt af skadestypen. Sektionerne må ikke udlede hver sit.
   //
   // Skadestypen kommer fra `grundlaeggende` og IKKE fra brevhovedets stamdata: brevhovedet projiceres kun,
   // når brugeren har slået det til, og navnet på sagens dato må ikke afhænge af den indstilling.

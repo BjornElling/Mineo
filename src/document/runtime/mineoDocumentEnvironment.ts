@@ -59,7 +59,7 @@ const createSession = async (format: DocumentDownloadFormat): Promise<DocumentGe
  * være fanget ved React-render, mens `captureEvaluationSource()` læser friskt efter settle – og et nyere
  * settingsrevision-token kunne dermed parres med et ældre format-, brevhoved- eller EO-regelobjekt.
  * Tokenet ville se aktuelt ud, så intet friskhedscheck kunne fange det. Signaturen udelukker fejlen: der
- * findes ikke længere en værdi at holde fast på. Opdelingen i to halvdele ændrer det ikke: begge
+ * findes ingen værdi at holde fast på. Opdelingen i to halvdele ændrer det ikke: begge
  * projiceres fra ÉT `readSourceSettings()`-kald nedenfor, så de ikke kan stamme fra to tidspunkter.
  */
 export const createMineoDocumentEnvironment = (

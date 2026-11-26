@@ -290,7 +290,7 @@ export const createDocumentComposer = (): Readonly<{
 };
 
 /**
- * Keep-with-previous for sumlinjer (NY-12c-3): en sumlinje er en label/værdi-linje med
+ * Keep-with-previous for sumlinjer: en sumlinje er en label/værdi-linje med
  * summeringsstreg over værdien («I alt», «Samlet …»). Den må aldrig stå alene øverst på en
  * side, adskilt fra de poster, den summerer. Modelrendereren ser hele blokfølgen og beder
  * writeren holde den forudgående posts SIDSTE linje sammen med de mellemliggende

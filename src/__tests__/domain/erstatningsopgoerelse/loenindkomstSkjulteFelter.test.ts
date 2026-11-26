@@ -212,12 +212,12 @@ describe('skjulte felter på Lønindkomst-fanen', () => {
         sfggReferenceperiodeFra: iso('2023-12-01'),
         sfggReferenceperiodeTil: iso('2023-12-31'),
         sfggReferenceperiodeFravaersdageUdenLoen: 3,
-        // Dagssatsen hører til «Manuelt angivet» og er nu skjult.
+        // Dagssatsen hører til «Manuelt angivet» og er skjult.
         sfggManuelDagssats: undefined,
       });
 
       const roed = project(sag({ sfggAnsaettelsesforhold: [sfggRow({ sfggReferenceperiodeFravaersdageUdenLoen: 400 })] }));
-      // Loftet bor nu på feltet: rød ring med validatorens ordlyd, og linjen står kun én gang.
+      // Loftet bor på feltet: rød ring med validatorens ordlyd, og linjen står kun én gang.
       expect(roed.issueAt(eoSfggReferenceperiodeFravaersdageUdenLoenField.bind(AF))?.message)
         .toBe('Antal dage skal være mellem 0 og 366');
       expect(linjerMed(roed, 'Antal dage skal være mellem 0 og 366')).toHaveLength(1);
@@ -305,7 +305,7 @@ describe('skjulte felter på Lønindkomst-fanen', () => {
   });
 
   describe('dublerede og usande linjer om SFGG-referenceperioden', () => {
-    it('melder ikke «… mangler» om en omvendt referenceperiode, hvis datoer står i felterne (V7)', () => {
+    it('melder ikke «… mangler» om en omvendt referenceperiode, hvis datoer står i felterne', () => {
       const result = project(sag({
         sfggAnsaettelsesforhold: [sfggRow({ sfggReferenceperiodeFra: iso('2023-12-31'), sfggReferenceperiodeTil: iso('2023-12-01') })],
       }));
@@ -334,7 +334,7 @@ describe('skjulte felter på Lønindkomst-fanen', () => {
       expect(linjerMed(result, 'Referenceperiode fra-dato mangler')).toEqual([]);
     });
 
-    it('melder en referenceperiode før reguleringsgrundlagets første sats én gang, på feltet (V6)', () => {
+    it('melder en referenceperiode før reguleringsgrundlagets første sats én gang, på feltet', () => {
       // SBLON2 har satser fra 1-1-2016; referenceperioden ligger før.
       const initial = createErstatningsopgoerelseInitialValues();
       const regulering = {
@@ -352,14 +352,14 @@ describe('skjulte felter på Lønindkomst-fanen', () => {
       expect(result.projection.eoErrors.all
         .filter((issue) => serializeFieldAddress(issue.field.address) === tilAdresse)
         .map((issue) => issue.message)).toEqual([expect.stringMatching(/^Referenceperioden slutter før/)]);
-      // Validatoren melder den ikke længere selv (den gav samme linje en gang til).
+      // Validatoren melder den ikke selv; ellers stod linjen to gange.
       expect(result.projection.snapshot.invariants
         .filter((invariant) => invariant.id.startsWith('validation:') && invariant.message.startsWith('Referenceperioden slutter før')))
         .toEqual([]);
       expect(linjerMed(result, 'Referenceperioden slutter før')).toHaveLength(1);
     });
 
-    it('melder en samlet negativ løn i referenceperioden én gang i «Fejl og advarsler» (V11)', () => {
+    it('melder en samlet negativ løn i referenceperioden én gang i «Fejl og advarsler»', () => {
       const negativ = employment({
         indtaegtsoplysningerTableData: [{
           ...employment().indtaegtsoplysningerTableData[0]!,

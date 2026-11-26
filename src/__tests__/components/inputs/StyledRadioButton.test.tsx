@@ -7,13 +7,11 @@ import StyledRadioButton from '../../../components/inputs/StyledRadioButton';
 
 // VÆRN: en radiogruppe har et navn, og et valg committer.
 //
-// Fundet: `label` var valgfri, og INTET kaldssted brugte den. Samtlige otte radiogrupper i programmet
-// stod derfor som en navnløs `role="radiogroup"`; den synlige tekst lå som en søskende-`<Typography>`
-// uden binding. Står tre Ja/Nej/Skjul-grupper på samme side, hører en skærmlæserbruger «Ja radioknap»
-// tre gange uden at kunne skelne dem. Navnet er nu en strukturel forudsætning – samme løsning som for
-// toggles (`accessibleName.ts`) – og `RadioField` henter det automatisk fra feltets egen label.
-//
-// Komponenten havde ingen egen testfil overhovedet før dette værn.
+// Uden et bundet navn står en radiogruppe som en navnløs `role="radiogroup"`, og en synlig tekst som
+// søskende-`<Typography>` hjælper ikke. Står tre Ja/Nej/Skjul-grupper på samme side, hører en
+// skærmlæserbruger «Ja radioknap» tre gange uden at kunne skelne dem. Navnet er derfor en strukturel
+// forudsætning – samme løsning som for toggles (`accessibleName.ts`) – og `RadioField` henter det
+// automatisk fra feltets egen label.
 
 type Svar = 'ja' | 'nej';
 

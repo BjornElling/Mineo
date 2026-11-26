@@ -43,7 +43,7 @@ export type DocumentOutput<TRequest, TGateSettings, TRenderSettings> = Readonly<
   id: DocumentOutputId;
   /**
    * Den reaktive knap-gate. Kalder PRÆCIS samme `project` med samme `request` som
-   * click-preflighten, så de to ikke kan drifte (§10 acceptkriterie 27).
+   * click-preflighten, så de to ikke kan drifte (`input-architecture.md` §5, acceptkriterie 27).
    */
   evaluateGate: (context: DocumentSourceContext<TGateSettings>, request: TRequest) => DocumentGateSnapshot;
   download: (request: TRequest) => Promise<DocumentOutcome>;
@@ -52,8 +52,8 @@ export type DocumentOutput<TRequest, TGateSettings, TRenderSettings> = Readonly<
    *
    * Ligger på katalogposten frem for hos konsumenten, fordi beskeden kræver BÅDE definitionens
    * `labels` og miljøets formatpolitik – to ting, en side hverken bør kende eller kunne komme til at
-   * kombinere forkert. Tidligere skrev hver side sin egen "Kunne ikke generere …"-tekst, og
-   * servicelaget omskrev den bagefter med en global `/PDF/g`-substitution.
+   * kombinere forkert. Ellers skriver hver side sin egen "Kunne ikke generere …"-tekst, og
+   * formatet må rettes bagefter med en global strengsubstitution.
    *
    * `settings` er kaldertidens RENDER-settings (render-tidens kontekst). Formatet i beskeden er
    * altså det, brugeren ville få NU – hvilket er det rigtige, fordi beskeden vises efter aktiveringen

@@ -8,7 +8,7 @@ import { focusElementWithoutScroll } from '../utils/focusUtils';
  * Hver popup har præcis én åbnende kontrol, så målet er entydigt og behøver ingen heuristik.
  *
  * Hvorfor hooken findes frem for et `element.focus()` pr. popup: den naive form virker ikke.
- * Tre konkrete forhold gjorde tidligere hver sin popup til sin egen løsning – eller til ingen:
+ * Fire konkrete forhold ville ellers gøre hver popup til sin egen løsning – eller til ingen:
  *
  * 1. **WebKit fokuserer ikke `<button>` ved klik.** Der er derfor intet `document.activeElement`
  *    at huske ved åbning, og en restore baseret alene på «hvad var aktivt» lander på sidens

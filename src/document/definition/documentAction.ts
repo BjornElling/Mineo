@@ -18,13 +18,12 @@ const documentActionBrand = Symbol('DocumentAction');
 /**
  * Den indkapslede renderer efter en godkendt projektion.
  *
- * **Ingen settings-parameter.** Den løftede renderer tog før `settings: TSettings` ved
- * siden af `visBrevhoved`, men parameteren blev ikke brugt af sin ENESTE producent
- * (`resolveDocumentDefinition` nedenfor lukker `input` ind og videresender kun brevhoved-beslutningen),
- * og `DocumentRenderer<TInput>` har den slet ikke. Den var altså en åben vej for en generator til at
- * læse hovedappens format og brevhoved-flags rå. Den capability må ikke findes på renderer-siden;
- * den godkendte brevhoved-beslutning er den eneste vej ind.
- * Generatoren modtager stadig præcis det, §A1.4 giver den: den godkendte, tokenbundne `TInput` og den
+ * **Ingen settings-parameter.** `resolveDocumentDefinition` nedenfor lukker `input` ind og
+ * videresender kun brevhoved-beslutningen, og `DocumentRenderer<TInput>` har ingen settings. En
+ * `settings`-parameter ville være en åben vej for en generator til at læse hovedappens format og
+ * brevhoved-flags rå. Den capability må ikke findes på renderer-siden; den godkendte
+ * brevhoved-beslutning er den eneste vej ind.
+ * Generatoren modtager præcis det, §A1.4 giver den: den godkendte, tokenbundne `TInput` og den
  * afgjorte `visBrevhoved`.
  */
 export type ResolvedDocumentAction<TBrevhovedKey extends string> = Readonly<{

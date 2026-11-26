@@ -7,8 +7,7 @@ import { queryHandlePermission } from './handlePermissionQuery';
  * Permission-verifikation af File System Access-handles.
  *
  * Adskilt fra kv-storet (`fileHandleKvStore.ts`), fordi det er et andet concern: intet her
- * rører IndexedDB. Det lå tidligere som ~130 linjer midt i `fileHandleStorage.ts` mellem de
- * ti IndexedDB-funktioner, hvilket gjorde filen til to urelaterede ansvar i én.
+ * rører IndexedDB.
  *
  * Fælles regel for begge funktioner: et handle kan blive ugyldigt uden varsel (filen slettet,
  * mappen flyttet, tilladelse tilbagekaldt), så verifikationen er altid fail-safe og returnerer

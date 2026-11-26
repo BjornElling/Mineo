@@ -7,10 +7,8 @@ import type { ISODateString } from '../types/branded';
  * dag. Det er den semantik hele domænet bruger (TAF-perioder, ferie, fravær, beregningsperioder), og derfor
  * er uligheden `a.fra <= b.til && b.fra <= a.til` og ikke en halvåben variant.
  *
- * Primitivet lå tidligere i fire udgaver: én eksporteret i `beregningsperiodeTafOverlap`, to lokale kopier i
- * TAF-motoren og dagsæt-modulet, og én inlinet ulighed på et callsite. Alle fire var enige – men en enkelt
- * fremtidig rettelse ét sted (fx en halvåben grænse) ville have gjort dem uenige uden at noget blev rødt.
- * Ét sted, alle bruger, gør uenigheden umulig.
+ * Primitivet findes kun her: med lokale kopier ville en enkelt rettelse ét sted (fx en halvåben grænse)
+ * gøre dem uenige, uden at noget blev rødt. Ét sted, alle bruger, gør uenigheden umulig.
  *
  * Modulet ligger i `utils/` og ikke i et domæne, fordi intervalalgebra ikke er EO-specifik.
  */

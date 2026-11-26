@@ -125,7 +125,7 @@ describe('EO-lønindkomst – nested løntabel under et ansættelsesforhold', ()
 
   it('renderer kortet med en TOM løntabel uden at kaste', async () => {
     // Præcis brugerens handling: et nyt ansættelsesforhold har ingen lønrækker, så alle synlige celler er
-    // placeholder-celler. Under den gamle enkelt-id-binding kastede den første celle allerede under render.
+    // placeholder-celler. En enkelt-id-binding ville kaste allerede ved den første celle under render.
     hydrate([]);
     renderLoenindkomst();
 

@@ -24,9 +24,9 @@ import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstat
 // De to specialtoggles er persisterede felter gennem feltfamilien.
 //
 // DEN MANGLENDE EVIDENS. `useOmregningToggle.test.tsx` er en mock-baseret unittest af gate-politikken; den kan
-// pr. konstruktion ikke se, om kontrollen bærer sin feltidentitet i DOM. Netop det var fundet: begge toggles
-// committede korrekt, men undo/redo kunne ikke REFOKUSERE dem, fordi callsitet forbandt et rå
-// `StyledToggleSwitch` manuelt og aldrig førte `restoreTargetAttributes` videre.
+// pr. konstruktion ikke se, om kontrollen bærer sin feltidentitet i DOM. Netop det er risikoen: en toggle kan
+// committe korrekt, men undo/redo kan ikke REFOKUSERE den, hvis callsitet forbinder et rå
+// `StyledToggleSwitch` manuelt og aldrig fører `restoreTargetAttributes` videre.
 //
 // Testen kører derfor gennem de ÆGTE sider og den ÆGTE produktions-runtime og hævder de to ting, en type ikke
 // kan: at et faktisk klik skaber en history-origin med feltets adresse OG editorlokation, og at

@@ -3,7 +3,7 @@ import path from 'node:path';
 
 /**
  * Wiring-assertioner for grænsen mellem den AUTORITATIVE EO-række-evaluerings-motor og
- * inspektions-/kontrollaget (arkitektur-kandidat B9).
+ * inspektions-/kontrollaget.
  *
  * De GENERELLE import-forbud – "ingen domæne-fil uden for de to sanktionerede broer må
  * importere `src/domain/eoInspektion`" (dækker også `eoRowEvaluation`, `eoCanonicalOutput`

@@ -71,7 +71,7 @@ import { OpenEditor } from './editorTestUtils';
 //  - "authoritative replace / load baseline" → en `replaceCase`-command (hæver replacementGeneration →
 //    guardens baseline nulstilles).
 //  - "uncommittable field/celle" (blokerer save) → et REJECTED format-råinput (settle "abc" på satsåret).
-//  - "åben editor kan ikke committes" → en åben greenfield-editor, hvis settle KASTER (§1.4).
+//  - "åben editor kan ikke committes" → en åben editor, hvis settle KASTER (§1.4).
 //
 // §1.4-semantik-ændring: load settler ALDRIG og blokeres ALDRIG af en åben editor (replace-policy). De to
 // legacy "blocks (manual|PWA) load when open locked grid editor cannot be committed"-tests er derfor rebaset
@@ -309,8 +309,8 @@ describe('MainLayout (unsaved beforeunload)', () => {
   });
 
   it('completes manual load without settle even with an open editor (§1.4 replace-policy)', async () => {
-    // Rebaset §1.4: load settler ALDRIG og blokeres ALDRIG af en åben editor – draften kasseres først ved
-    // succes. (Legacy hævdede at load blokeres; det er nu FORKERT mod §1.4.)
+    // §1.4: load settler ALDRIG og blokeres ALDRIG af en åben editor – draften kasseres først ved
+    // succes.
     const loadFromFileMock = vi.mocked(loadFromFile);
     loadFromFileMock.mockResolvedValue({
       status: 'loaded',

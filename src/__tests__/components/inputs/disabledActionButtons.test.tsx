@@ -14,8 +14,8 @@ import { resolveActionGate } from '../../../components/inputs/actionGate';
 //   2. årsagen har ÉN visningskanal: tooltippet, og kun ved hover,
 //   3. et klik er TAVST – ingen besked, ingen tekstknude.
 //
-// Fundet, dette dækker: en grå knap uden nogen forklaring overhovedet, som samtidig kunne Tab'es til
-// og Enter-aktiveres, uden at der skete noget.
+// Det, dette værner mod: en grå knap uden nogen forklaring overhovedet, som samtidig kan Tab'es til
+// og Enter-aktiveres, uden at der sker noget.
 
 describe('InlineActionButton: deaktiveret', () => {
   it('kalder ikke onClick ved museklik', async () => {
@@ -32,8 +32,8 @@ describe('InlineActionButton: deaktiveret', () => {
   });
 
   it('kalder ikke onClick ved Enter – tastaturvejen er lukket på samme måde som musen', async () => {
-    // Præcis hullet i fundet: knappen kunne Tab'es til og Enter-aktiveres, og «der sker bare
-    // ingenting, uden forklaring».
+    // En deaktiveret knap, der kan Tab'es til og Enter-aktiveres, giver «der sker bare ingenting,
+    // uden forklaring».
     const user = userEvent.setup();
     const onClick = vi.fn();
     render(
@@ -115,8 +115,8 @@ describe('InlineActionButton: deaktiveret', () => {
 
 describe('FloatingActionButton: deaktiveret ved en maksimumgrænse', () => {
   it('er reelt slået fra – ikke blot visuelt dæmpet', async () => {
-    // Fundet: knappen ryster og fremstod stadig som en AKTIV knap. En skærmlæser oplyste den som
-    // almindelig og brugbar. Nu er den ægte `disabled`.
+    // En knap, der kun ryster, fremstår stadig som AKTIV, og en skærmlæser oplyser den som
+    // almindelig og brugbar. Den skal være ægte `disabled`.
     const user = userEvent.setup();
     const onClick = vi.fn();
     render(

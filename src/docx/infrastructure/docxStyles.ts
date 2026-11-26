@@ -117,7 +117,7 @@ const rawXmlElement = (
   children: readonly XmlComponent[] = []
 ): XmlComponent => new RawXmlElement(name, attributes, children);
 
-// Dokumentets standard-formatering (docDefaults). Matcher den tidligere
+// Dokumentets standard-formatering (docDefaults). Svarer til docx-bibliotekets
 // `default.document`, men bygges som rå OOXML, så vi IKKE udløser Words
 // fabriks-typografisæt (DefaultStylesFactory), der ellers ville fylde
 // hurtigtypografi-galleriet med uønskede indbyggede typografier.

@@ -2,9 +2,8 @@
  * Hovedappens ene vej fra en side til et dokumentoutput.
  *
  * En side kalder `useMineoDocumentOutput(definition, request)` og får både den reaktive knap-gate og
- * click-preflighten tilbage. Tidligere skrev hver side selv den sekvens: settle → frisk capture →
- * token-lighed → projektion → gate → servicekald, og ni sider havde hver sin kopi. Fem af kopierne
- * manglede mindst ét trin.
+ * click-preflighten tilbage. Sekvensen settle → frisk capture → token-lighed → projektion → gate →
+ * servicekald må ikke skrives pr. side: kopier af den mister let et trin.
  *
  * Hooken samler tre ting, der ellers skulle gentages på hver side:
  *

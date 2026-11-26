@@ -28,7 +28,7 @@ import { renderTafBeregningsgrundlag, resolveTafForventetIndkomstIntroText } fro
  *
  * Konstanten er ikke en bekvemmelighed: begge veje til en udtømt ramme – brugerens afkrydsning
  * «Tidligere beregnet S/S til max.» og programmets beregning ud fra et indtastet beløb – skal sige
- * ordret det samme, fordi de er samme tilstand (BB-219/BB-221). To strenge kunne drive fra hinanden.
+ * ordret det samme, fordi de er samme tilstand. To strenge kunne drive fra hinanden.
  */
 const SVIE_SMERTE_MAKSIMUM_OPBRUGT_TEKST =
   'Maksimum for svie- og smertegodtgørelse er nået i tidligere erstatningsopgørelse.';
@@ -41,7 +41,7 @@ type OpgorelseSectionContext = Readonly<{
   doubleLineHeight: number;
   afsluttesMed: 'Bekræftet godkendt' | 'Underskrift-linje' | 'Ingen';
   rightColumnWidth: number;
-  /** Kommentaren til de offentlige ydelser, når bilaget ikke trykker den (BB-363). */
+  /** Kommentaren til de offentlige ydelser, når bilaget ikke trykker den. */
   offentligeYdelserKommentar?: string | undefined;
   // Beløbslinjen har en kalder-bestemt minimumsbredde på højre kolonne, som
   // composeren ikke selv kender. Derfor er dette den ene render-hjælper der
@@ -120,8 +120,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     writer,
   } = ctx;
 
-  // Composerens metoder bruges under sektionens egne, kortere navne. Aliaserne fandtes
-  // før som felter på ctx, sat af generatoren til præcis de samme metoder.
+  // Composerens metoder bruges under sektionens egne, kortere navne.
   const renderSectionHeader = writer.writeSectionHeader;
   const renderSubheader = writer.writeBoldSubheader;
   const renderSubheaderIfContent = writer.writeBoldSubheaderIfContent;
@@ -192,9 +191,9 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     'svieSmerte.harPerioder matcher ikke svieSmerte.periodeLinjer.'
   );
   if (!model.svieSmerte.beregnes) {
-    // «Ingen» dækkede før både «der rejses ikke krav» og «kravet findes, men er udtømt». De to er
-    // forskellige juridiske udsagn over for modparten, og den, der senere åbner sagen, kunne ikke
-    // se hvorfor der ikke stod et beløb (BB-221).
+    // «Ingen» må ikke dække både «der rejses ikke krav» og «kravet findes, men er udtømt». De to er
+    // forskellige juridiske udsagn over for modparten, og den, der senere åbner sagen, skal kunne
+    // se hvorfor der ikke står et beløb.
     safeAddWrappedText(
       model.svieSmerte.ingenBeloebAarsag === 'maksimumOpbrugt'
         ? SVIE_SMERTE_MAKSIMUM_OPBRUGT_TEKST
@@ -202,7 +201,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     );
   } else if (model.svieSmerte.ingenBeloebAarsag === 'maksimumOpbrugt') {
     // Maksimum var opbrugt af tidligere opgørelser, så der er intet krav tilbage. Samme tilstand
-    // som togglen – og derfor ordret samme sætning (BB-219).
+    // som togglen – og derfor ordret samme sætning.
     safeAddWrappedText(SVIE_SMERTE_MAKSIMUM_OPBRUGT_TEKST);
   } else {
     renderSubheaderIfContent({
@@ -278,9 +277,9 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       }
 
       if (visForligMedFuldeSatser && takstLedFoerForlig.length > 0) {
-        // Før stod kun de ureducerede tal («50 % af (230 kr. pr. sygedag, dog højst 88.500 kr.)»),
-        // så læseren selv skulle gange loftet med forligsgraden for at nå det tal, beregningen
-        // faktisk bruger. Nu trykkes begge dele: graden OG de tal, den giver (BB-219).
+        // Både graden OG de tal, den giver: med kun de ureducerede tal («50 % af (230 kr. pr. sygedag,
+        // dog højst 88.500 kr.)») skulle læseren selv gange loftet med forligsgraden for at nå det tal,
+        // beregningen faktisk bruger.
         safeAddWrappedText(
           `Taksten udgør ${forligSatsLabel} af (${takstLedFoerForlig.join(' og ')}, dog højst ${maxDisplayWithKrFoerForlig}), svarende til ${takstLed.join(' og ')}, dog højst ${maxDisplayWithKr}`
         );
@@ -639,8 +638,8 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     const tafTotal = model.tabtArbejdsfortjeneste.tafIndtaegter?.total ?? null;
     const tidligereModtagetTaf = model.tabtArbejdsfortjeneste.tidligereModtagetTaf;
     if (tidligereModtagetTaf.status === 'ok') {
-      // Feltets eget emne: «Tidligere betalt erstatning» var bredere end TAF og kunne læses som tidligere
-      // opgørelser (BB-255).
+      // Feltets eget emne: «Tidligere betalt erstatning» er bredere end TAF og kan læses som tidligere
+      // opgørelser.
       renderSubheader('Allerede modtaget tabt arbejdsfortjeneste');
       safeAddLeftRightText(
         'Der er allerede betalt tabt arbejdsfortjeneste for perioden med',
@@ -700,8 +699,8 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     }
     }
 
-    // Forbeholdene står sidst i TAF-beregningen, hvert på sin egen linje (BB-233, udviklerafgørelse
-    // 2026-09-23). De stod før under «Øvrige krav» og forsvandt dér, når øvrige krav stod på «Skjul».
+    // Forbeholdene står sidst i TAF-beregningen, hvert på sin egen linje – ikke under «Øvrige krav»,
+    // hvor de ville forsvinde, når øvrige krav står på «Skjul».
     renderSubheaderIfContent({
       text: 'Forbehold',
       hasContent: model.tabtArbejdsfortjeneste.forbeholdLinjer.length > 0,

@@ -425,8 +425,8 @@ describe('Årsløn – placeholders viser kun værdiens FORM', () => {
   });
 
   it('ugetabellen viser den rene uge-/år-form uden formatvejledning i grænsen', () => {
-    // Ugecellerne mistede `uu/åååå` ved greenfield-cutoveren: `GridWeekCell` fik ingen semantisk default,
-    // og tabellen udfyldte kun måned og år lokalt. Formen kommer nu fra familien.
+    // Ugecellernes `uu/åååå` kommer fra familiens semantiske default i `GridWeekCell`, ikke fra tabellen,
+    // der kun udfylder måned og år lokalt.
     hydrateAarsloen({ loenperiode: 'uge', tableData: [] });
     renderAarsloen();
 

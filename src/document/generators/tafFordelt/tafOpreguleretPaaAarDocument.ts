@@ -50,7 +50,7 @@ import {
 import type { TafPerYearOpreguleretDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearOpreguleretDocument';
 
 const NBSP = '\u00A0';
-// Knap, titel og fil bærer samme navn (BB-376).
+// Knap, titel og fil bærer samme navn.
 const FILE_BASE_NAME = 'TAF opreguleret til beregningsåret';
 const TAF_RIGHT_COLUMN_WIDTH = PDF_AMOUNT_RIGHT_COLUMN_WIDTH_MM;
 
@@ -303,8 +303,8 @@ export const generateTafOpreguleretPaaAarDocument = (
       ? `${positiveLed} - ${formatCurrencyFromOre(yearEntry.yearDeductionsOre)}${NBSP}kr.`
       : `${positiveLed}${NBSP}kr.`;
     // "Allerede betalt TAF" trækkes fra UDEN FOR forlig-faktoren (som i hovedopgørelsen), så
-    // ligningen giver netop yearTafOre. Tidligere lå beløbet fejlagtigt blandt de forlig-skalerede
-    // fradrag, hvilket gjorde ligningen aritmetisk falsk ved forlig + allerede betalt TAF.
+    // ligningen giver netop yearTafOre. Blandt de forlig-skalerede fradrag ville ligningen være
+    // aritmetisk falsk ved forlig + allerede betalt TAF.
     const tidligereSuffix = yearEntry.yearTidligereModtagetTafOre > 0
       ? ` - ${formatMoneyOreWithKr(yearEntry.yearTidligereModtagetTafOre)}`
       : '';

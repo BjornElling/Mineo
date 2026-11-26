@@ -50,8 +50,7 @@ const formatDanishAmount = (amount: AmountValue | number | null | undefined): st
  *
  * Bruges til at afgøre, om en TABELRÆKKE kommer med i dokumentet. En lønrække med 0 kr. er en oplysning –
  * den siger, at der i perioden ikke var lønindkomst – og brugeren indtaster den netop for at tydeliggøre
- * det frem for at udelade perioden, som da kunne se glemt ud. Rækken skal derfor med i bilaget
- * (udviklerbeslutning 2026-08-26).
+ * det frem for at udelade perioden, som da kunne se glemt ud. Rækken skal derfor med i bilaget.
  */
 const erCelleTom = (value: unknown): boolean => {
   if (value === null || value === undefined || value === '') return true;
@@ -69,7 +68,7 @@ const erCelleTom = (value: unknown): boolean => {
  * Bruges kun om Satser-afsnittets procentsatser, og her er nul-reglen den modsatte af tabellens. At
  * indtaste 0 i en tillægssats er for brugeren det samme som at sige, at satsen ikke findes i
  * ansættelsesforholdet – brugere skriver fra tid til anden 0, fordi de tror, det er sådan, man angiver et
- * fravær. Dokumentet retter den misforståelse ved at udelade satsen (udviklerens afgørelse). Et beløb på
+ * fravær. Dokumentet retter den misforståelse ved at udelade satsen (bevidst valg). Et beløb på
  * 0 kr. i tabellen er derimod en bevidst indtastning og bevares (`erCelleTom`); slå aldrig de to prædikater
  * sammen, ellers forsvinder en lønrække med 0 kr. fra bilaget.
  */
@@ -96,7 +95,7 @@ const formatPdfPercent = (pct: string | number | undefined): string => {
  * Tilføj satser-sektion som almindelige tekstlinjer
  * VIGTIGT: Filtrerer tomme/nul satser - skip hele sektionen hvis ingen satser er udfyldt
  */
-/** Overenskomst og satsdato, når satserne er overenskomstens (BB-355). */
+/** Overenskomst og satsdato, når satserne er overenskomstens. */
 type AarsloenDocumentSatsKilde = Readonly<{ overenskomst: string; dato: string }>;
 
 const addSatserSection = (
@@ -155,8 +154,8 @@ const addIndtaegtsoplysningerTable = (
   writer.writeBoldSubheader('Indtægtsoplysninger');
 
   // Filtrer rækker - behold kun rækker hvor MINDST én input-celle er udfyldt. Dokumentet trykker altid rækkerne
-  // kronologisk, uafhængigt af den sortering, brugeren har valgt på skærmen (udviklerafgørelse 2026-10-19, BB-294 –
-  // samme regel som erstatningsopgørelsens bilag).
+  // kronologisk, uafhængigt af den sortering, brugeren har valgt på skærmen (samme
+  // regel som erstatningsopgørelsens bilag).
   const filteredData = sortStandardLoenRowsChronologically(tableData, loenperiode).filter(row => {
     // Tjek periode-kolonner baseret på loenperiode
     let harPeriode = false;

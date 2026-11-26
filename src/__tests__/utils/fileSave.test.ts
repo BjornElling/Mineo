@@ -766,8 +766,8 @@ describe('fileSave', () => {
       //
       // Testen her pinner grænsen: et snapshot, som kun bærer standardværdier, går igennem dette lag
       // uden at blive afvist som "ingen data". Det er shellens beslutning, ikke dette lags.
-      // Kun et standard-satsår: ingen brugerindtastning. Præcis den slags standardtal, den gamle
-      // feltoptælling regnede som brugerdata, og som derfor lod en tom sag gemme.
+      // Kun et standard-satsår: ingen brugerindtastning. Præcis den slags standardtal, en feltoptælling
+      // ville regne som brugerdata.
       const defaultOnlySnapshot = {
         stamdata: undefined,
         satser: { aargang: 2026 },

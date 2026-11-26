@@ -7,10 +7,9 @@
  * forskelligt. Normativ beskrivelse: `src/contracts/app-shell-contract.md` §2.11.
  *
  * **Én skala for hele fladen.** Sidemenu, gutter, indrykning og indholdsboks skaleres alle med
- * `--mineo-content-scale`. Tidligere zoomede kun arbejdsfladen, mens sidemenuen fulgte sin egen
- * højdestyrede skala; det gav to forskellige tekststørrelser i samme billede (menulabels i 14 px
- * ved siden af brødtekst i 10,5 px) og et pladsregnskab, der reserverede fuld menubredde til en
- * menu, der reelt var smallere. Menuens højdestyrede skala findes stadig, men kun som et LOFT:
+ * `--mineo-content-scale`. Fulgte sidemenuen sin egen højdestyrede skala, ville der stå to
+ * forskellige tekststørrelser i samme billede, og pladsregnskabet ville reservere fuld menubredde
+ * til en menu, der reelt er smallere. Menuens højdestyrede skala findes, men kun som et LOFT:
  * den kan gøre menuen mindre end arbejdsfladen, aldrig større.
  */
 export const CONTENT_SCALE_CSS_VARIABLE = '--mineo-content-scale' as const;

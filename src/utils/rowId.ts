@@ -1,4 +1,4 @@
-/** En rækkes id. Kanonisk her sammen med rækkens id-konstruktører (tidligere `rowDrafts/types`). */
+/** En rækkes id. Kanonisk her sammen med rækkens id-konstruktører. */
 export type RowId = string;
 
 /** En række identificeret ved sit id. Tabelmodellerne bygger deres rækketyper oven på denne. */

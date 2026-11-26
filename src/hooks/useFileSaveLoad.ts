@@ -63,8 +63,8 @@ export type PendingLoadApply = {
 };
 
 /**
- * Load-flowets tilstandsmaskine. Preflight- og overwrite-bekræftelse var tidligere to uafhængige
- * nullable states, hvis kombination (begge sat) er en umulig UI-tilstand. Én diskrimineret kilde
+ * Load-flowets tilstandsmaskine. Som to uafhængige nullable states ville preflight- og
+ * overwrite-bekræftelse kunne kombineres (begge sat), hvilket er en umulig UI-tilstand. Én diskrimineret kilde
  * gør den ugyldige kombination urepræsenterbar: flowet er altid præcis én af `idle | preflight |
  * overwrite`. De to dialoger afledes read-only herfra (se `pendingLoadResult`/`pendingOverwriteApply`).
  */
@@ -361,8 +361,8 @@ export const useFileSaveLoad = ({
       //
       // Gaten ligger HER og ikke i `fileSave.ts`, fordi kun runtimen kender ny-sags-baselinen. `fileSave.ts`
       // ser udelukkende det schema-parsede snapshot og kan derfor ikke skelne "brugeren har intet indtastet"
-      // fra "brugeren har bevidst valgt netop standardværdierne". Dens tidligere `hasRealData()`-tjek
-      // regnede hver `false` og hvert standardtal som brugerdata og sagde derfor ja til en tom standardsag.
+      // fra "brugeren har bevidst valgt netop standardværdierne"; et felttællende tjek dér ville regne hver
+      // `false` og hvert standardtal som brugerdata og derfor sige ja til en tom standardsag.
       if (!ops.file.hasAnyData()) {
         showOverlay({ message: 'Ingen data fundet at gemme', type: 'warning' });
         return;

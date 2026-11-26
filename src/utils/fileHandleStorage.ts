@@ -73,18 +73,13 @@ export const prepareFileOperationStorageSession = (): Promise<FileOperationClien
 /**
  * De navngivne fil-handle-operationer, som resten af appen bruger.
  *
- * Filen var tidligere 735 linjer med 10 funktioner, der hver åbnede IndexedDB, startede en
- * transaction og hånd-wrappede ét `get`/`put`/`delete` i `new Promise` med gentagne
- * `onsuccess`/`onerror`/`oncomplete`/`close`-handlere. Plumbingen bor nu i
- * `indexedDbStore.ts`, nøglerne og deres typer i `file/fileHandleKvStore.ts`, og
- * permission-verifikationen (som slet ikke rørte IndexedDB) i
- * `file/fileHandleVerification.ts`. Tilbage står kun de domænenavngivne operationer og
+ * IndexedDB-plumbingen bor i `indexedDbStore.ts`, nøglerne og deres typer i
+ * `file/fileHandleKvStore.ts`, og permission-verifikationen (som ikke rører IndexedDB) i
+ * `file/fileHandleVerification.ts`. Her står kun de domænenavngivne operationer og
  * deres fail-safe-værdier.
  *
- * `typeof indexedDB`-guarden var tidligere gentaget 9 steder med INKONSISTENTE
- * returværdier (`false`/`null`/`true`) og manglede helt i `getDirectoryDisplayInfo`.
- * Utilgængelighed håndteres nu ét sted i primitivet; hver funktion nedenfor vælger
- * eksplicit sin egen fail-safe værdi og begrunder den, hvor den ikke er oplagt.
+ * Utilgængelighed (`typeof indexedDB`) håndteres ét sted i primitivet; hver funktion nedenfor
+ * vælger eksplicit sin egen fail-safe værdi og begrunder den, hvor den ikke er oplagt.
  */
 
 export type { DirectoryHandleMeta };

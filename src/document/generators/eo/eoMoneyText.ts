@@ -5,11 +5,8 @@ import { formatCurrencyFromOre, formatCurrencyFromOreTrimmed, NBSP } from '../..
 // Beløbstekst for EO-dokumentet, hvor værdierne er `Calculable` – de kan være
 // uberegnelige, og dokumentet skal så vise en tankestreg (eller en eksplicit fejl)
 // frem for et tal. De rene `MoneyOre`-formattere bor i documentFormatUtils; dette er
-// det Calculable-bevidste lag ovenpå.
-//
-// Modulet findes, fordi funktionerne før blev sendt ned i sektionerne som felter på et
-// ctx-objekt. De er rene og har ingen kalder-specifik tilstand, så sektionerne
-// importerer dem nu direkte.
+// det Calculable-bevidste lag ovenpå. Funktionerne er rene og har ingen kalder-specifik
+// tilstand, så sektionerne importerer dem direkte.
 
 const renderMoney = (value: Calculable<MoneyOre>): string =>
   value.status === 'ok' ? formatCurrencyFromOre(value.value) : '—';

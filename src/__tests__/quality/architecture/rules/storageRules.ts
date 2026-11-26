@@ -169,8 +169,7 @@ export const sessionStorageManifestKey = forbidCalls({
 /**
  * Reset-transaktionen ejes af `CaseResetOperations`.
  *
- * Fundet var netop, at oprydningen lå som løse kald i shell-use-casen, hvis boolean-resultater ingen
- * læste. Reglen forbyder derfor, at nogen ANDEN end porten enumererer reset-policyen: en ny kalder af
+ * Løse oprydningskald i shell-use-casen ville give boolean-resultater, som ingen læser. Reglen forbyder derfor, at nogen ANDEN end porten enumererer reset-policyen: en ny kalder af
  * `getCaseScopedSessionStorageKeys` er en ny, parallel reset-vej, som pr. konstruktion ikke bærer
  * `ClearAllResult`s rest-rapportering.
  *
@@ -251,11 +250,8 @@ const DEFAULT_DIRECTORY_LOCATION_MODULE = 'src/utils/file/defaultDirectoryLocati
 /**
  * Navnet på standardplaceringen må kun staves i sit kanoniske modul.
  *
- * Fundet var netop, at det stod to steder i to filer med to FORSKELLIGE strenge: `'Skrivebord'` i
- * `fileHelpers.ts` (fil-lagets `ResolvedDirectory.displayName`, som ingen læste) og
- * `'Skrivebord (standard)'` fire steder i `Indstillinger.tsx`. Samme brugersynlige begreb, to
- * sandheder – og fordi den ene ikke havde nogen forbruger, kunne de drive fra hinanden uden at
- * noget nogensinde ville vise forskellen.
+ * Staves navnet flere steder, bliver samme brugersynlige begreb til flere sandheder, og de kan
+ * drive fra hinanden, uden at noget viser forskellen – især hvis den ene stavemåde ingen forbruger har.
  *
  * Reglen ser på STRING-LITERALER i AST'en, ikke på filteksten. Repoet har en kendt fejlklasse, hvor
  * dansk prosa i en kommentar udløser et tekstværn; her ville hver eneste kommentar, der forklarer

@@ -3,11 +3,7 @@
  *
  * Indeholder hele bilags-sekvensen (lønindkomst, offentlige ydelser, midlertidigt
  * EET, regulering, regulering af offentlige ydelser, SH-dage og sygeferiegodtgørelse),
- * udtrukket fra `erstatningsopgoerelsePdf.ts` så den kan genbruges uændret af både
- * den almindelige EO-PDF og "TAF opreguleret til beregningsåret"-PDF'en.
- *
- * Gating på `selectedElements` og datagrundlag er identisk med den oprindelige
- * inline-implementering – outputtet skal være bit-for-bit det samme.
+ * delt uændret af både den almindelige EO-PDF og "TAF opreguleret til beregningsåret"-PDF'en.
  */
 
 import type { DocumentComposer, DocumentLabelValueOptions } from '../../../model/documentModel';
@@ -102,7 +98,7 @@ export type RenderEoBilagSectionsContext = Readonly<{
 
 /**
  * Kommentaren til de offentlige ydelser, som opgørelsen selv skal trykke under «Indtægter i erstatningsperioden»,
- * fordi bilaget «Offentlige ydelser» ikke trykkes (fravalgt eller uden rækker) – ellers `undefined` (BB-363). Samme
+ * fordi bilaget «Offentlige ydelser» ikke trykkes (fravalgt eller uden rækker) – ellers `undefined`. Samme
  * gate som bilaget nedenfor, så kommentaren altid står præcis ét sted.
  */
 export const resolveOffentligeYdelserKommentarTilOpgoerelse = (
@@ -124,8 +120,7 @@ export const resolveOffentligeYdelserKommentarTilOpgoerelse = (
 /**
  * Renderer hele bilags-sekvensen for et erstatningsopgørelses-dokument.
  *
- * Hver enkelt bilag-side gates på `selectedElements` og sit eget datagrundlag,
- * fuldstændig som i den oprindelige inline-implementering i `erstatningsopgoerelsePdf.ts`.
+ * Hver enkelt bilag-side gates på `selectedElements` og sit eget datagrundlag.
  */
 export const renderEoBilagSections = (ctx: RenderEoBilagSectionsContext): void => {
   const { writer, model, eoValues, stamdataValues, selectedElements } = ctx;
@@ -134,7 +129,7 @@ export const renderEoBilagSections = (ctx: RenderEoBilagSectionsContext): void =
   const eoBilagIndkomstYdelserMode: EoBilagLoenindkomstOgOffentligeYdelserIndgaar =
     eoValues.eoBilagLoenindkomstOgOffentligeYdelserIndgaar ?? 'Perioden';
   const eoBilagIndkomstYdelserRanges = buildEoBilagIndkomstYdelserRanges(eoValues, eoBilagIndkomstYdelserMode);
-  // Perioderne, en delvist medregnet lønseddel eller ydelse forklares for under bilagets tabel (BB-293).
+  // Perioderne, en delvist medregnet lønseddel eller ydelse forklares for under bilagets tabel.
   const delvisePerioder = resolveEoBilagDelvisePerioder({
     eoValues,
     tafRanges: model.tafRanges,
@@ -206,7 +201,7 @@ export const renderEoBilagSections = (ctx: RenderEoBilagSectionsContext): void =
       return;
     }
 
-    // Referenceperioden er fri (BB-321); teksten påstår derfor ingen længde eller placering – linjerne lige under
+    // Referenceperioden er fri; teksten påstår derfor ingen længde eller placering – linjerne lige under
     // viser den faktiske periode og antallet af dage.
     safeAddWrappedText(SFGG_REFERENCEPERIODE_INTRO_TEXT);
     if (entry.sfggLovbestemtFeriepengeNote) {
@@ -263,7 +258,7 @@ export const renderEoBilagSections = (ctx: RenderEoBilagSectionsContext): void =
     writer.writeUnderlinedSubheader(SFGG_FERIEPENGE_HVIS_IKKE_SKADE_LABEL);
     safeAddWrappedText(
       hasRegulatedSfggRate
-        // Manuelle former regulerer fra reguleringsdatoen, når referenceperioden ligger før den (BB-453).
+        // Manuelle former regulerer fra reguleringsdatoen, når referenceperioden ligger før den.
         ? `Kravet beregnes per ${dayUnit} med ${rateLabel} reguleret efter lønudviklingen fra ${
           entry.sfggReguleringsdatoForReference === null
             ? 'referenceperiodens slutdato'
@@ -291,10 +286,10 @@ export const renderEoBilagSections = (ctx: RenderEoBilagSectionsContext): void =
     }
 
     const antalDageHeader = divisorLabel === 'kalenderdage' ? 'Antal kalenderdage' : 'Antal arbejdsdage';
-    // Procenter med to decimaler og beløb med øre og «kr.», som resten af opgørelsen. Før stod samme beløb som
-    // «56.430» i tabellen og «56.430,00» længere nede (BB-328).
+    // Procenter med to decimaler og beløb med øre og «kr.», som resten af opgørelsen, så samme beløb ikke
+    // står som «56.430» i tabellen og «56.430,00» længere nede.
     // Fem centrerede kolonner + en højrejusteret feriepengekrav-kolonne. Auto-bredde
-    // (ingen kolonne-styles), som den oprindelige kaldeform.
+    // (ingen kolonne-styles).
     const sfggColumns: readonly ColumnSpec[] = [
       { width: { kind: 'auto' }, align: 'center' },
       { width: { kind: 'auto' }, align: 'center' },
@@ -346,8 +341,8 @@ export const renderEoBilagSections = (ctx: RenderEoBilagSectionsContext): void =
       rows: specRows,
     });
 
-    // Kun når satsen faktisk ændres – samme prøve som sætningen «… reguleret efter lønudviklingen» ovenfor. Før
-    // trykkes afsnittet, så snart et segment havde et reguleringsgrundlag, også «133,93 x 1 / 1» (BB-327).
+    // Kun når satsen faktisk ændres – samme prøve som sætningen «… reguleret efter lønudviklingen» ovenfor. Ellers
+    // trykkes afsnittet, så snart et segment har et reguleringsgrundlag, også som «133,93 x 1 / 1».
     if (entry.sfggReferencesats.status === 'ok' && hasRegulatedSfggRate) {
       writer.writeUnderlinedSubheader('Regulering af referencesatsen');
       buildSfggReguleretSatsLines(entry.sfggReferencesats.value, rows).forEach((line) => safeAddWrappedText(line));
@@ -493,7 +488,7 @@ export const renderEoBilagSections = (ctx: RenderEoBilagSectionsContext): void =
     if (tableData && tableData.rows.length > 0) {
       // Første kolonne (dato) centreres; alle talkolonner (≥ 1) højrejusteres med et fast
       // visuelt højre-inset (udelades i Word, hvor cellernes egen højrejustering gælder).
-      // Auto-bredde, som den oprindelige kaldeform.
+      // Auto-bredde.
       const reguleringColumns: readonly ColumnSpec[] = tableData.columns.map((_, index) =>
         index === 0
           ? { width: { kind: 'auto' }, align: 'center' }

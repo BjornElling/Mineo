@@ -1,16 +1,13 @@
 // Delt commit-parse-kerne for ÅRSTALS-inputs – brugt af BÅDE formularfeltet (`YearField`) og
-// tabel-cellen (`yearAdapter`), samt af uge-kernen (`weekDraftCore`) til at fortolke årsdelen. Tidligere
-// var den identiske 2-/4-cifret-fortolkning og interval-besked kopieret i fire familier med divergerende
-// ordlyd ("Ugyldigt format" vs "Ugyldigt årstal"; "År skal være …" vs "Årstallet skal være …"). A2 samler
-// det her med ÉN ensartet ordlyd.
+// tabel-cellen (`yearAdapter`), samt af uge-kernen (`weekDraftCore`) til at fortolke årsdelen. 2-/4-cifret-
+// fortolkningen og interval-beskeden bor her med ÉN ensartet ordlyd, så familierne ikke kan divergere.
 
 import { interpretYear } from './dateInputValidation';
 
 /**
  * Et årstals maksimale antal cifre under indtastning.
  *
- * Tallet stod tidligere hardkodet i `YearField` (4) og i `GridYearCell`, hvor det ved en fejl var
- * DATO-konstanten (16). Formen er en egenskab ved familien, ikke ved kaldsstedet, så den erklæres ét
+ * Formen er en egenskab ved familien, ikke ved kaldsstedet, så den erklæres ét
  * sted og læses af både codec og begge flader (`charLengthPolicy.ts`).
  */
 export const MAX_YEAR_DIGITS = 4;

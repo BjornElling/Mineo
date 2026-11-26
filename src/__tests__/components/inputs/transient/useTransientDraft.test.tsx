@@ -11,8 +11,7 @@ import type { ISODateString } from '../../../../types/branded';
 // De har hverken feltadresse, issue-snapshot, rejectedInputs, history eller persistens, men de skal bevare den
 // Mineo-velkendte blur-/Enter-commit-mekanik, så de føles som rigtige felter.
 //
-// Dækningen her genetablerer de UX-invarianter, som de slettede Styled*Field-tests dækkede på den gamle vej:
-// blur-commit, Enter-commit, Escape-fortryd UDEN et efterfølgende blur-commit, afvist draft, ekstern resync
+// Dækningen her pinner de UX-invarianter: blur-commit, Enter-commit, Escape-fortryd UDEN et efterfølgende blur-commit, afvist draft, ekstern resync
 // og beløbsparsing gennem den delte kerne.
 
 /** Controlled wrapper: holder den committede værdi, som en dialog/overlay ville gøre. */

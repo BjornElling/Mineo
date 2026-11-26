@@ -45,7 +45,7 @@ type LoenSectionContext = Readonly<{
   }>) => boolean;
   eoBilagIndkomstYdelserMode: EoBilagLoenindkomstOgOffentligeYdelserIndgaar;
   eoBilagIndkomstYdelserRanges: readonly IsoRange[];
-  /** Perioderne, en delvist medregnet lønseddel forklares for under tabellen (BB-293). */
+  /** Perioderne, en delvist medregnet lønseddel forklares for under tabellen. */
   delvisePerioder?: readonly EoBilagDelvisPeriode[];
   writer: Pick<DocumentComposer, 'addSectionSpacer' | 'addTable'>;
 }>;
@@ -88,8 +88,8 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
     errorRowIds: ReadonlySet<string>,
     ranges: readonly IsoRange[]
   ) => {
-    // Bilaget trykker altid rækkerne kronologisk, uafhængigt af den sortering, brugeren har valgt på skærmen
-    // (udviklerafgørelse 2026-10-19, BB-294): skærmens rækkefølge er en visningsdetalje, papiret er et bilag.
+    // Bilaget trykker altid rækkerne kronologisk, uafhængigt af den sortering, brugeren har valgt på skærmen:
+    // skærmens rækkefølge er en visningsdetalje, papiret er et bilag.
     const rows = sortStandardLoenRowsChronologically(
       (ansaettelsesforhold.indtaegtsoplysningerTableData ?? []).filter((row) => {
         return shouldIncludeLoenRowInEoBilag({
@@ -163,8 +163,8 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
     writer.addTable({ columns, hasHeaderRow: true, rows: specRows });
 
     // Tabellen står som lønsedlerne; en kort sætning under den forklarer de rækker, beregningen kun medregner en
-    // del af, fordi perioden skærer igennem dem (BB-293). Ingen linjer inde i tabellen – den skal kun indeholde
-    // sine værdier (udviklerafgørelse 2026-10-19).
+    // del af, fordi perioden skærer igennem dem. Ingen linjer inde i tabellen – den skal kun indeholde
+    // sine værdier.
     const delvisePerioderLinjer = buildLoenindkomstDelvisePerioderLinjer({
       eoValues,
       ansaettelsesforholdIndex: (eoValues.loenindkomstAnsaettelsesforhold ?? []).indexOf(ansaettelsesforhold),
@@ -242,10 +242,9 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
         const synligeSatsLinjer = satsLinjer.filter(([, value]) => !isZeroPct(value));
         if (synligeSatsLinjer.length > 0) {
           // Satslinjerne er satserne på reguleringsdatoen – dem, beregningsgrundlaget regner med – mens tabellens
-          // rækker viser lønsedlens tillæg med månedens satser. Uden datoen stod «SH/SO-sats: 3,4 %» over rækker
-          // regnet med 2,7 % (BB-276; rækkerne følger bevidst lønsedlen, udviklerafgørelse 2026-10-06). Den
-          // forklarende linje om månedens satser er fjernet efter udviklerens ønske (BB-299, 2026-10-19): brugeren
-          // forventer adfærden, og datoen i overskriften er nok til at skelne satserne.
+          // rækker viser lønsedlens tillæg med månedens satser. Uden datoen ville «SH/SO-sats: 3,4 %» stå over rækker
+          // regnet med 2,7 % (rækkerne følger bevidst lønsedlen). Der er bevidst ingen forklarende linje om
+          // månedens satser: brugeren forventer adfærden, og datoen i overskriften er nok til at skelne satserne.
           safeAddWrappedText(`${resolveSatserHeadingForAnsaettelsesforhold({
             values: eoValues,
             ansaettelsesforhold,
@@ -257,7 +256,7 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
       }
       if (ansaettelsesforhold.ansatPaaSkadestidspunktet && ansaettelsesforhold.ansaettelsesforholdOphoert) {
         const sidsteDag = formatDateLong(ansaettelsesforhold.sidsteArbejdsdag);
-        // Feltets egen betegnelse (BB-283): «sidste arbejdsdag» og feltets navn er samme dato.
+        // Feltets egen betegnelse:«sidste arbejdsdag» og feltets navn er samme dato.
         const opsigelsesLinje = sidsteDag
           ? `Skadelidte er opsagt fra stillingen med sidste dag i ansættelsesforholdet ${sidsteDag}.`
           : 'Skadelidte er opsagt fra stillingen.';

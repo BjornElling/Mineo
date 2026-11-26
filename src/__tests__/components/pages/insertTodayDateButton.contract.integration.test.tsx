@@ -2,12 +2,12 @@
 //
 // ÉN fælles kontrakttest for »Indsæt dags dato« på ALLE fem flader.
 //
-// Fejlen var, at hver af de fem knapper kaldte `commitImmediate(today)`. Den command er `setImmediateField`,
-// som reduceren kun tillader for choice/toggle – alle datofelter er text-controls, så et klik kastede
+// Knappen må ikke kalde `commitImmediate(today)`. Den command er `setImmediateField`, som reduceren kun
+// tillader for choice/toggle – alle datofelter er text-controls, så et klik ville kaste
 // `InputReducer: setImmediateField er kun tilladt for choice/toggle` som en uncaught systemfejl.
 //
-// Testen er BEVIDST tabeldrevet over de fem sider frem for fem næsten identiske tests: fejlen var netop, at
-// den samme forkerte kommando var kopieret fem steder, og en per-side-test ville lade en sjette flade opstå
+// Testen er BEVIDST tabeldrevet over de fem sider frem for fem næsten identiske tests: en forkert kommando
+// kopieret fem steder er netop risikoen, og en per-side-test ville lade en sjette flade opstå
 // udækket. Hver side renderes med den ÆGTE produktions-runtime, og klikket måles på det autoritative
 // afsluttede input – ikke på et hook-kald.
 import { render, screen, waitFor } from '@testing-library/react';

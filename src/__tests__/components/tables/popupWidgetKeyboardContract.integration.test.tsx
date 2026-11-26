@@ -219,10 +219,10 @@ describe('popup-kontrakt: LUKKET dropdown ejer selv sin aktiveringstast', () => 
     // Popup-grenen returnerer FØR grid'ets printbare gren, så tasten når dropdownens egen typeahead.
     // Målt på UDFALDET ('u' → "Uger" committes) frem for kun på at ingen editor åbnede.
     //
-    // ÆRLIG AFGRÆNSNING: dette ben skelner IKKE den nye klassifikation fra den gamle. Dropdownens
+    // ÆRLIG AFGRÆNSNING: dette ben skelner IKKE popup-klassifikationen fra en uden den. Dropdownens
     // `prepareEditFromKey` returnerer også false, så grid'ets printbare gren ville alligevel frigive
     // tasten uden `preventDefault`. Popup-grenen er dermed defense-in-depth her – testen pinner
-    // invarianten (typeahead virker i en celle), ikke rettelsens mekanisme.
+    // invarianten (typeahead virker i en celle), ikke popup-grenens mekanisme.
     renderGrid();
     const combobox = comboboxFor('r1');
     await focusElement(combobox);

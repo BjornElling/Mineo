@@ -161,9 +161,8 @@ describe('isDateLikeDraftAllowed', () => {
   });
 
   it('vilkårligt ikke-alfanumerisk tegn er en gyldig separator', () => {
-    // Værnet mod gentagne separatorer må IKKE snævre separatorsættet ind til den gamle regex'
-    // `[.,/\- ]`. `1,1@28` blev tilføjet som testcase, da den gamle regex blev udskiftet, og skal
-    // fortsat kunne tastes.
+    // Værnet mod gentagne separatorer må IKKE snævre separatorsættet ind til en fast liste som
+    // `[.,/\- ]`. `1,1@28` skal kunne tastes.
     expect(isDateLikeDraftAllowed('1,1@28', segments)).toBe(true);
   });
 });

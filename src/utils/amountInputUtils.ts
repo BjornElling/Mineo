@@ -24,9 +24,8 @@ export const MAX_AMOUNT_RAW_LENGTH = 512;
  * (§1.2, `amount-contract.md` §3). Brug derfor ALDRIG denne konstant på et beregnet beløb, i et
  * schema eller på load-vejen – dertil hører {@link MAX_AMOUNT_REPRESENTABLE_INTEGER_DIGITS}.
  *
- * Erstatter den tidligere fælles grænse på 20 cifre, som blev brugt af BÅDE indtastning og schema.
- * Delingen er selve pointen: så længe de to veje delte ét tal, kunne en stramning af inputgrænsen
- * ikke undgå at stramme load-vejen med.
+ * Adskillelsen fra schemagrænsen er selve pointen: deler de to veje ét tal, kan en stramning af
+ * inputgrænsen ikke undgå at stramme load-vejen med.
  */
 export const MAX_AMOUNT_INPUT_INTEGER_DIGITS = 7;
 

@@ -202,8 +202,8 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
   ): string | null => {
     if (ansaettelsesforhold.loenudviklingBeregningsgrundlag !== 'Overenskomst') return null;
     if (!ansaettelsesforhold.harAnciennitetstillaegEfterSkadedatoen) return null;
-    // Samme aktiv-prædikat som resten af filen (§ét sandt sted). Den tidligere håndstavede udgave
-    // manglede `.trim()` og var dermed uenig med sin egen nabo om et blankt overenskomst-id.
+    // Samme aktiv-prædikat som resten af filen (§ét sandt sted); en håndstavet udgave kan let blive
+    // uenig med sin nabo om et blankt overenskomst-id.
     const aktivOverenskomst = resolveAktivOverenskomst(ansaettelsesforhold);
     if (!aktivOverenskomst.aktiv) return null;
 
@@ -398,9 +398,9 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
       renderSubheader(underoverskrift, { addTopSpacing: visibleIndex > 0 });
     }
 
-    // Overenskomst-sporet havde tidligere sin EGEN navn-kun-visning her, så samme overenskomst hed
-    // `Industriens overenskomst` i dokumentet og `Industriens overenskomst (3F / DI)` i EO-inspektionen.
-    // `resolveValgtReguleringDisplay` bærer nu begge steder – navn OG parter (udviklerbeslutning 2026-07-31).
+    // `resolveValgtReguleringDisplay` bærer både dokumentet og EO-inspektionen – navn OG parter. En egen
+    // navn-kun-visning her ville kalde samme overenskomst `Industriens overenskomst` i dokumentet og
+    // `Industriens overenskomst (3F / DI)` i EO-inspektionen.
     const valgtRegulering = resolveValgtReguleringDisplay(ansaettelsesforhold);
     const anvendtReguleringsdato = resolveAnvendtReguleringsdato(stamdataValues, eoValues, ansaettelsesforhold);
     const skadedatoIso = parseOptionalIsoDate(stamdataValues.skadedato);
@@ -423,7 +423,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
     });
 
     // Samme regel som forsidens sætning: uden regulering «Opgøres på baggrund af», og nedregulering før
-    // reguleringsdatoen kaldes ikke «efterfølgende lønstigninger» (BB-314).
+    // reguleringsdatoen kaldes ikke «efterfølgende lønstigninger».
     const loenReguleringsforloeb = resolveLoenReguleringsforloeb(perAnsaettelseSegments, anvendtReguleringsdato);
     writeLabelValueLine(
       loenReguleringsforloeb === 'ingen' ? 'Opgøres på baggrund af' : 'Beregnes som',
@@ -445,7 +445,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
         const ekstraGrundloen = amountValueToNumber(ansaettelsesforhold.offentligLoenEkstraGrundloen);
         // Beløbet vises i den enhed, det er angivet i, og – når den afviger fra «Ansættelse» – med den
         // omregning til løntrinssatsens enhed, som motoren regner med (samme afrundede værdi). Samme form
-        // som anciennitetslinjen lige under: beløb med øre og uden fortegn (BB-318).
+        // som anciennitetslinjen lige under: beløb med øre og uden fortegn.
         ekstraGrundloenDisplay =
           typeof ekstraGrundloen === 'number' && Number.isFinite(ekstraGrundloen) && ekstraGrundloen > 0
             ? formatAnciennitetConversion(

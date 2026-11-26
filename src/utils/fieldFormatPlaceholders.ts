@@ -4,16 +4,16 @@
  * Reglen er normativ: en placeholder beskriver **udelukkende værdiens
  * form** – `mm`, `åååå`, `uu/åååå`, `dd-mm-åååå`, `0,00`. Den må ALDRIG bære
  *
- * - en valideringsgrænse (`åååå (≤2026)` – den konkrete regression fundet lukkede),
+ * - en valideringsgrænse (fx `åååå (≤2026)`),
  * - en status- eller manglende-værdi-besked, eller
  * - noget andet, der ændrer sig med tilstand eller kalender.
  *
- * Grænser og fejl hører i feltissues og tooltips (§1.6/§1.8). To konkurrerende beskrivelser af samme felt er
- * netop det, der lod en årstalsafhængig tekst leve i visningslaget uden at nogen kontrakt fejlede.
+ * Grænser og fejl hører i feltissues og tooltips (§1.6/§1.8). To konkurrerende beskrivelser af samme felt
+ * lader en årstalsafhængig tekst leve i visningslaget, uden at nogen kontrakt fejler.
  *
  * Konstanterne aftages af feltFAMILIEN som default (`YearField`/`GridYearCell` osv.) – ikke af tabellerne.
- * Det er bevidst: `GridYearCell`/`GridWeekCell` havde INGEN default, så hver tabel udfyldte formen selv (og én
- * af dem forkert). Familien kender sin egen form; en tabel gør ikke. En tabel må kun override, når feltets
+ * Det er bevidst: uden en default i familien må hver tabel udfylde formen selv, og så kan én af dem tage
+ * fejl. Familien kender sin egen form; en tabel gør ikke. En tabel må kun override, når feltets
  * domæne har en reelt anden FORMATREPRÆSENTATION (fx månedens `mm` i en periodekolonne) – aldrig for at vise
  * bounds, validering eller status.
  *

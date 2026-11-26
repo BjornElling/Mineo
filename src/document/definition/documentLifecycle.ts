@@ -40,11 +40,10 @@ import { createDocumentSourceContext } from './documentSourceContext';
 /**
  * Brandet er en RIGTIG modul-lokal `symbol`, ikke en `declare const`.
  *
- * Den oprindelige form var `declare const preparedBrand: unique symbol` – en ren typeerklæring, som
- * ikke emitterer noget. Den fik typesiden til at se korrekt nominal ud, men enhver kørsel af
- * `prepareDocument` kastede `ReferenceError: preparedBrand is not defined`, fordi objektliteralen
- * refererede et symbol, der ikke fandtes ved runtime. Fejlen kunne ikke ses af typecheckeren og blev
- * først synlig, da det første callsite faktisk aktiverede en download.
+ * `declare const preparedBrand: unique symbol` er en ren typeerklæring, som ikke emitterer noget. Den
+ * får typesiden til at se korrekt nominal ud, men enhver kørsel af `prepareDocument` ville kaste
+ * `ReferenceError: preparedBrand is not defined`, fordi objektliteralen refererer et symbol, der ikke
+ * findes ved runtime. Typecheckeren kan ikke se fejlen; den viser sig først, når en download aktiveres.
  */
 const preparedBrand = Symbol('PreparedDocument');
 
@@ -53,13 +52,13 @@ const preparedBrand = Symbol('PreparedDocument');
  *
  * En manglende lazy chunk er ikke en programfejl, og den må derfor ikke nå systemfejl-sinken: koden
  * er korrekt, men generator- eller writer-modulets asset ligger ikke længere på origin. Uden denne
- * skelnen blev en deploy-betinget, brugerrettelig tilstand til «Teknisk fejl registreret» med en
- * fejltekst, ingen bruger kan handle på – mens den genindlæsning, der faktisk ville løse det, stod
+ * skelnen bliver en deploy-betinget, brugerrettelig tilstand til «Teknisk fejl registreret» med en
+ * fejltekst, ingen bruger kan handle på – mens den genindlæsning, der faktisk ville løse det, står
  * som en let overset linje øverst på siden.
  *
  * Skelnen sker på identitet gennem `lazyChunkFailure`, ikke på fejltekst; se det modul for hvorfor.
  * Gør et miljø ikke brug af Vites recovery-hook (DEV, tests, standalone-preview), er registret tomt,
- * og alt klassificeres som før.
+ * og intet klassificeres som manglende chunk.
  */
 const classifyThrownFailure = (error: unknown, phase: DocumentLifecyclePhase): DocumentOutcome =>
   isLazyChunkFailure(error)
@@ -83,8 +82,8 @@ type PreparedDocument<TRenderSettings, TBrevhovedKey extends string> = Readonly<
 
 /**
  * Verificerer, at kilden stadig er den, gaten godkendte. Kaldes ved hver async-grænse.
- * Samlet i én funktion, så en ny `await`-fase ikke kræver håndkopieret fejllogik – det var netop
- * sådan post-render-checket blev glemt.
+ * Samlet i én funktion, så en ny `await`-fase ikke kræver håndkopieret fejllogik, hvor et
+ * post-render-check let glemmes.
  */
 const requireCurrentSource = <TGateSettings, TRenderSettings, TBrevhovedKey extends string>(
   environment: DocumentExecutionEnvironment<TGateSettings, TRenderSettings, TBrevhovedKey>,
@@ -198,7 +197,7 @@ const prepareDocument = async <TRequest, TGateSettings, TRenderSettings, TBrevho
  * `executeDocumentDownload`, og dens `PreparedDocument`-parameter kan kun produceres af
  * `prepareDocument` ovenfor.
  *
- * Formatvalget sker bevidst EFTER gaten (planens arbejdstrin 8).
+ * Formatvalget sker bevidst EFTER gaten, så gaten ikke kan afhænge af outputformatet.
  */
 const runPreparedDocument = async <TGateSettings, TRenderSettings, TBrevhovedKey extends string>(
   prepared: PreparedDocument<TRenderSettings, TBrevhovedKey>,

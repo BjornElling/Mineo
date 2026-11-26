@@ -10,9 +10,7 @@
  * - Kun errors/warnings gemmes (ikke debug/info)
  *
  * Forbindelse, transaction-livscyklus og promisificering ejes af den fælles
- * `indexedDbStore`-primitiv. Filen havde tidligere sin EGEN `openDatabase`-kopi side om side
- * med den i `fileHandleStorage.ts` – to parallelle IndexedDB-wrappers for samme plumbing.
- * Den kopi lukkede desuden aldrig sine forbindelser.
+ * `indexedDbStore`-primitiv, så der ikke findes en parallel IndexedDB-wrapper for samme plumbing.
  *
  * Databasen er bevidst adskilt fra fil-handle-storet: dette er et append-only log-store med
  * `autoIncrement`-keyPath og to indexes, der læses med cursors – en anden datamodel end et
@@ -190,8 +188,7 @@ async function cleanupOldEntries(): Promise<void> {
  * Sletter rækker gennem en cursor, valgfrit begrænset til `limit` rækker.
  *
  * Cursor-løkken afventes eksplicit, så transactionen ikke auto-committer midt i sletningen –
- * den tidligere form satte kun `onsuccess`-handlere og stolede på, at de var færdige før
- * `oncomplete`.
+ * blotte `onsuccess`-handlere giver ingen garanti for, at de er færdige før `oncomplete`.
  */
 const deleteViaCursor = (
   request: IDBRequest<IDBCursorWithValue | null>,

@@ -127,7 +127,7 @@ const resolveOffentligLoenEkstraGrundloenTekst = (params: Readonly<{
 
 /**
  * Satsdokumenterne («Regulering», «KRL Satstabeller», «KL-lønaftaler») skrives alle ældste først, som
- * bilagene i øvrigt (BB-317). Sorteres eksplicit, fordi kilderne ikke er enige om rækkefølgen.
+ * bilagene i øvrigt. Sorteres eksplicit, fordi kilderne ikke er enige om rækkefølgen.
  */
 const sortChronologically = <T>(items: ReadonlyArray<T>, dato: (item: T) => DanishDateString): T[] =>
   [...items].sort((a, b) => danishDateToComparableNumber(dato(a)) - danishDateToComparableNumber(dato(b)));

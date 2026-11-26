@@ -10,10 +10,7 @@ import { z } from 'zod';
 /**
  * Det device-lokale kv-store bag fil-handles, standardmappe og afventende PWA-åbning.
  *
- * Nøglerne var tidligere fire løse strengkonstanter spredt over ~300 linjer i
- * `fileHandleStorage.ts` (`DEFAULT_DIRECTORY_META_KEY` blev deklareret 300 linjer efter de
- * tre andre), uden nogen typebinding mellem nøgle og værditype. Her er de ét sted, og
- * `FileHandleStoreValue` binder hver nøgle til sin type, så `read('default_directory_meta')`
+ * Nøglerne er samlet her, og `FileHandleStoreValue` binder hver nøgle til sin type, så `read('default_directory_meta')`
  * ikke kan forveksles med et handle.
  *
  * Alt i storet er **device-lokal cache** og aldrig sagsdata: det må derfor gerne mangle,
@@ -49,8 +46,7 @@ export const directoryHandleMetaSchema = z.object({
 export type DirectoryHandleMeta = z.infer<typeof directoryHandleMetaSchema>;
 
 /**
- * De tre statiske concerns i storet, som typede nøgler. Delte tidligere ét store med ad hoc-nøgler
- * og uden nogen kobling mellem nøgle og værditype.
+ * De statiske concerns i storet, som typede nøgler, så hver nøgle er koblet til sin værditype.
  */
 export type FileHandleStoreValue = {
   current_file_handle: FileSystemFileHandle;

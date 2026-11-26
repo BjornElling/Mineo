@@ -8,13 +8,12 @@
  *     `InputEvaluation`, så knappen er både visuelt og funktionelt disabled ved blokering.
  *   - `download(request)` – click-preflighten, som settler editoren og evaluerer et FRISKT snapshot.
  *
- * Fordi begge kalder samme definition med samme `request`, kan de ikke drifte fra hinanden (§10
- * acceptkriterie 27). Tidligere var dette to selvstændige udtryk pr. side – og for
- * regulering/KRL/KL-lønaftaler endda to forskellige formler i to komponenter.
+ * Fordi begge kalder samme definition med samme `request`, kan de ikke drifte fra hinanden
+ * (`input-architecture.md` §5, acceptkriterie 27).
  *
- * **Miljøet injiceres.** Hook'en hardkodede oprindeligt hovedappens kildeoptagelse og krævede
- * `AppSettingsProvider`, hvilket gjorde den ubrugelig for standalone MinProcesrente (fast PDF, intet
- * brevhoved, isoleret fejl-sink, ingen AppSettings). Nu kommer runtimepolitikken fra appens
+ * **Miljøet injiceres.** Hardkodede hook'en hovedappens kildeoptagelse og krævede den
+ * `AppSettingsProvider`, ville den være ubrugelig for standalone MinProcesrente (fast PDF, intet
+ * brevhoved, isoleret fejl-sink, ingen AppSettings). Runtimepolitikken kommer derfor fra appens
  * composition root, så samme hook-implementering betjener begge apps.
  */
 import React from 'react';

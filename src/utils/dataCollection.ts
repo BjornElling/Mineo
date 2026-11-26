@@ -127,7 +127,7 @@ export const countFilledFields = (data: unknown): number => {
 // Den måler mod NY-SAGS-baseline, ikke mod tomhed, og er derfor den eneste, der kan skelne brugerens
 // input fra programmets egne standardværdier.
 //
-// Den tidligere `hasRealData()` (= `countFilledFields(data) > 0`) var et konkurrerende svar: den regnede
-// hver `false` og hvert standardtal som brugerdata og lod derfor en helt tom standardsag gemme som et
+// En `hasRealData()` (= `countFilledFields(data) > 0`) ville være et konkurrerende svar: den regner
+// hver `false` og hvert standardtal som brugerdata og lader derfor en helt tom standardsag gemme som et
 // tilsyneladende rigtigt sagsartefakt. Genindfør den ikke – funktionerne nedenfor/ovenfor tæller felter til
 // PREFLIGHT-RAPPORTERING, og et feltantal er ikke et svar på, om brugeren har indtastet noget.

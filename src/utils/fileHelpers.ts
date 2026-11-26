@@ -120,7 +120,7 @@ export const generateFilename = (data: FilenameSource | null | undefined): strin
 /**
  * Programmets ENE måde at aflevere en fil til browseren på.
  *
- * Rækkefølgen er ikke frit valgt, og et par af de tidligere kopier havde den forkert:
+ * Rækkefølgen er ikke frit valgt:
  * ankeret skal ligge i dokumentet, når `click()` kaldes, og object-URL'en må først frigives
  * EFTER at browseren har nået at starte overførslen. Frigiver man synkront lige efter
  * `click()`, når visse browsere ikke at læse URL'en, før den er ugyldig, og filen tabes
@@ -282,9 +282,8 @@ export interface ResolvedDirectory {
  * svarer på hvert sit spørgsmål: denne må requestere permissions og skal derfor kun kaldes fra
  * en brugerhandling, mens visningen kaldes ved mount og re-render og skal være passiv.
  *
- * Typen bar tidligere også et `displayName` – «til UI» ifølge sin egen kommentar, men uden en
- * eneste læser i produktionskoden. Det gjorde fil-laget til en anden, tavs mening om et
- * brugersynligt navn, som fladen samtidig stavede anderledes. Navnet bor nu ét sted.
+ * Typen bærer bevidst intet `displayName`: et navn her ville være fil-lagets anden, tavse mening
+ * om et brugersynligt navn. Navnet bor ét sted.
  *
  * Logik (rækkefølgen er afgørende):
  * 1. Hvis settings.defaultDirectoryHandleId findes:

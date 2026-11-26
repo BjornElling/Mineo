@@ -56,7 +56,7 @@ import { clickMainLayoutAction, dispatchPwaFileOpen, flushMainLayoutAsyncAction 
 
 // "Der findes allerede data" læses fra runtime (`ops.file.hasAnyData()`),
 // ikke fra legacy per-sektions-sessionStorage. Vi hydrerer derfor den ægte runtime med data i stedet for at
-// seede `mineo_*`-nøgler, og læser den anvendte tilstand fra den ene greenfield current-envelope.
+// seede `mineo_*`-nøgler, og læser den anvendte tilstand fra den ene current-envelope.
 
 const catalog = getProductionInputCatalog();
 bootstrapProductionInputRuntime();
@@ -184,7 +184,7 @@ describe('MainLayout (overwrite gating)', () => {
 
     expect(storedInput().sections.stamdata?.skadelidte).toBe('Y');
     expect(storedInput().sections.satser?.aargang).toBe(2021);
-    // Applyet skrev den ene greenfield current-envelope (§3.6).
+    // Applyet skrev den ene current-envelope (§3.6).
     expect(persistedEnvelopeInput().sections.stamdata?.skadelidte).toBe('Y');
     expect(screen.getByTestId('pathname')).toHaveTextContent('/stamdata');
   });

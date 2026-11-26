@@ -22,14 +22,14 @@ import { createMineoDocumentEnvironment } from '../mineoDocumentEnvironment';
 /**
  * Settings læses IKKE fra `useAppSettings` her.
  *
- * Hooken bandt tidligere miljøet til et `projectSourceSettings(settings)`-memo fra sin egen render. Det gjorde
- * settingshalvdelen af kildesnapshottet render-fanget, mens inputhalvdelen blev optaget friskt efter settle:
- * et click-preflight kunne dermed parre et NYT settingsrevision-token med det settingsobjekt, der gjaldt ved
- * sidste render. Miljøet binder sig nu til `readPublishedSourceSettings`, som returnerer den værdi, der
- * publiceres i samme layout-fase som settingsrevisionen hæves – altså den ENE kilde, tokenet faktisk beskriver.
+ * Et `projectSourceSettings(settings)`-memo fra hookens egen render ville gøre settingshalvdelen af
+ * kildesnapshottet render-fanget, mens inputhalvdelen optages friskt efter settle: et click-preflight kunne
+ * dermed parre et NYT settingsrevision-token med det settingsobjekt, der gjaldt ved sidste render. Miljøet
+ * binder sig derfor til `readPublishedSourceSettings`, som returnerer den værdi, der publiceres i samme
+ * layout-fase som settingsrevisionen hæves – altså den ENE kilde, tokenet faktisk beskriver.
  *
- * Fordelen er også referencestabilitet: miljøet afhænger nu kun af runtime-bindingen, så et settingsskift ikke
- * længere invaliderer hele gate-memoiseringen nedstrøms.
+ * Fordelen er også referencestabilitet: miljøet afhænger kun af runtime-bindingen, så et settingsskift ikke
+ * invaliderer hele gate-memoiseringen nedstrøms.
  */
 export const useMineoDocumentEnvironment = (): DocumentExecutionEnvironment<
   MineoDocumentGateSettings,

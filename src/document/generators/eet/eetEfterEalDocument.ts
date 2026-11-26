@@ -57,7 +57,7 @@ export const renderEfterEalBody = (
   const { includeBeregningsdatoHeader = true, forligIndregnesIDifferencekravet = false } = options;
   const rowOpts = { rightFontStyle: 'normal' as const };
 
-  // Datoens navn følger skadestypen i alle afledte tekster (BB-121). Referencen udledes af beregningen –
+  // Datoens navn følger skadestypen i alle afledte tekster. Referencen udledes af beregningen –
   // IKKE af dokumentets `stamdata`, som kun projiceres, når brevhovedet er slået til og ellers er tom.
   // Begge kaldere (eget dokument og differencekrav-bilaget) får derfor samme navn med brevhovedet fra.
   const datoReference = resolveStamdataDatoReference(computation.skadestype);
@@ -76,17 +76,17 @@ export const renderEfterEalBody = (
 
   writer.writeSectionHeader('Specifikation');
 
-  // Sagens egen dato står i Specifikationen og ikke i den betingede «Beregning»-sektion (BB-182),
+  // Sagens egen dato står i Specifikationen og ikke i den betingede «Beregning»-sektion,
   // fordi differencekravet trykker netop denne krop som bilag med `includeBeregningsdatoHeader` =
   // false – lå datoen i headeren, ville bilaget mangle den forudsætning, både årslønnens
-  // opregulering og aldersreduktionen hviler på. Navnet følger skadestypen (BB-121).
+  // opregulering og aldersreduktionen hviler på. Navnet følger skadestypen.
   //
   // Kort form `dd-mm-åååå` som Fødselsdato-rækken nedenfor: de to datoer er specifikationens eneste
   // to, de bærer tilsammen aldersreduktionen, og en modpart skal kunne lægge dem op mod hinanden
-  // uden at oversætte mellem to formater (BB-146's formregel). «Beregningsdato» i headeren står i
+  // uden at oversætte mellem to formater. «Beregningsdato» i headeren står i
   // lang form, fordi den er sagens overskrift og ikke et led i et regnestykke.
   //
-  // Datoen står direkte under «Specifikation» og før «Årsløn» (udviklerafgørelse 2026-11-20): den er
+  // Datoen står direkte under «Specifikation» og før «Årsløn»: den er
   // en forudsætning for hele specifikationen, ikke kun for årslønnen.
   writer.writeLeftRightText(
     datoReference.label,

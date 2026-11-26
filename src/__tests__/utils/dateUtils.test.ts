@@ -21,7 +21,7 @@ import {
 
 describe('dateUtils', () => {
   describe('getInclusivePeriodEndDanishDate (kanonisk reguleringsinterval-tilDato)', () => {
-    it('matcher den tidligere inline-aritmetik for de tre +6-mdr-kilder (tal-identitet)', () => {
+    it('svarer til getInclusivePeriodEndByMonths(…, 6) for de tre +6-mdr-kilder', () => {
       // Nyeste sats-datoer for KRL (01-04-2026), KL-lønaftaler (01-10-2026) og et RLTN-eksempel.
       const nyesteDatoer = ['01-04-2026', '01-10-2026', '01-10-2025', '01-01-2012'];
       for (const raw of nyesteDatoer) {
@@ -48,8 +48,8 @@ describe('dateUtils', () => {
 
     // +12-mdr-varianten driver de statistiske ILON/SBLON-kvartalsserier og privat overenskomst
     // (samt manuel reguleringsintervals øvre grænse i ISO-domænet via getInclusivePeriodEndByMonths).
-    // Efter konsolideringen (regulering-review U10) deler alle disse den samme aritmetik her.
-    it('matcher den tidligere inline-aritmetik for +12-mdr-kilderne (tal-identitet)', () => {
+    // Alle disse deler den samme aritmetik her.
+    it('svarer til getInclusivePeriodEndByMonths(…, 12) for +12-mdr-kilderne', () => {
       const nyesteDatoer = ['01-01-2005', '01-10-2025', '01-04-2026', '15-06-2020'];
       for (const raw of nyesteDatoer) {
         const dato = toDanishDateString(raw);

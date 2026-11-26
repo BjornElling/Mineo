@@ -1,5 +1,5 @@
 /**
- * B9 – empirisk katalog + golden-master baseline.
+ * Række-evalueringsgaten – empirisk katalog + golden-master baseline.
  *
  * Formål: låse PRÆCIST hvad række-evalueringsmotoren gater UNIKT (cases hvor snapshot-
  * projektionen er `ok`, men `collectAllEoRows` – kørt uden felt-fejl og med
@@ -182,7 +182,7 @@ const CASES: Case[] = [
   },
 ];
 
-describe('B9: katalog over række-evalueringens unikke gate-bidrag (golden master)', () => {
+describe('katalog over række-evalueringens unikke gate-bidrag (golden master)', () => {
   it('alle korpus-sager: projektion-kind + EO-række-fejl', () => {
     const catalog = Object.fromEntries(
       CASES.map((c) => {

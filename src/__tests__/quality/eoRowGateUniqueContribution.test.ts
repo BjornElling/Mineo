@@ -1,5 +1,5 @@
 /**
- * AFKLARINGS-TEST (B9 – række-evaluerings-gate).
+ * AFKLARINGS-TEST (række-evaluerings-gate).
  *
  * Spørgsmål: Bidrager række-evalueringsmotoren noget UNIKT til produktions-PDF-gaten, eller er
  * `hasBlockingEoRowErrors` redundant med (snapshot-projektionen ∪ felt-fejl)?
@@ -19,7 +19,7 @@
  * KONKLUSION (jf. eoRowSvieSmerteRows.ts:100-103, som eksplicit dokumenterer at
  * felt-fejl "typisk er tom for disse felter" og at række-evalueringen derfor re-deriverer
  * datogrænserne): row-motoren bærer genuin produktions-validering der ikke findes i
- * snapshot-valideringen alene. B9's løsning er derfor, at row-motoren selv er flyttet til
+ * snapshot-valideringen alene. Derfor ligger row-motoren i
  * et autoritativt, kontrol-frit domænelag (`src/domain/eoRowEvaluation/`) og driver gaten direkte.
  */
 import { collectAllEoRows } from '../../domain/eoRowEvaluation/eoRowAggregator';
@@ -99,7 +99,7 @@ const eoRowErrorIds = (eoValues: PersistedSectionMap['erstatningsopgoerelse']): 
     .sort((a, b) => a.localeCompare(b));
 };
 
-describe('B9 afklaring: række-evalueringens unikke bidrag til PDF-gaten', () => {
+describe('afklaring: række-evalueringens unikke bidrag til PDF-gaten', () => {
   it('kontrol: gyldig svie/smerte-sag → projektion=ok OG ingen EO-række-errors (probe er ikke vacuous)', () => {
     const values = buildValidSvieSmerteOnlyValues();
     expect(project(values)).toBe('ok');
@@ -134,7 +134,7 @@ describe('B9 afklaring: række-evalueringens unikke bidrag til PDF-gaten', () =>
     expect(eoRowErrorIds(values)).toContain('erstatningsopgoerelse.helbredsstatus');
   });
 
-  it('SAMMENFATNING: mindst én row-gate findes i en sag hvor projektionen er ok (B9 ≠ ren strukturel refaktor)', () => {
+  it('SAMMENFATNING: mindst én row-gate findes i en sag hvor projektionen er ok (gaten er ikke redundant)', () => {
     // Sag der er autoritativt gyldig (projektion=ok) men bærer flere EO-række-fejl.
     const values = buildValidSvieSmerteOnlyValues();
     values.svieSmerteHelbredsstatus = undefined;

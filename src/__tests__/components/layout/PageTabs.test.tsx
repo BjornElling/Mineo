@@ -106,8 +106,8 @@ describe('PageTabs', () => {
   });
 
   it('settler den ÅBNE editor FØR faneskiftet – ikke som en bivirkning af museklikket', async () => {
-    // Kernen i fundet: skiftet byggede på, at musen forlod feltet først, så blur'en committede det
-    // indtastede. Skiftet gjorde intet selv.
+    // Kernen: skiftet må ikke bygge på, at musen forlader feltet først, så blur'en committer det
+    // indtastede. Skiftet skal selv settle.
     //
     // Testen registrerer en RIGTIG editor i det registry, coordinatoren bruger – ikke en mock af
     // coordinatoren. Den måler dermed den faktiske settle-vej og ikke, at komponenten kaldte en

@@ -6,10 +6,9 @@
  * filnavnsdele – dvs. steder hvor resultatet skal bestå af `[a-z0-9]` plus en
  * separator, uanset hvilke danske tegn kilden indeholder.
  *
- * Hvorfor ikke bare `NFKD` + `[^a-z0-9]`? Det var den tidligere form på tre
- * forskellige callsites, og den er forkert for dansk: `NFKD` dekomponerer `Å`→`a`
- * og `Ä`→`a`, men `ø` har INGEN dekomposition og blev derfor spist som separator.
- * `Årsløn` blev `arsl-n` og `Ærø` blev `a-r-` – begge tabte betydningsbærende tegn
+ * Hvorfor ikke bare `NFKD` + `[^a-z0-9]`? Den form er forkert for dansk: `NFKD`
+ * dekomponerer `Å`→`a` og `Ä`→`a`, men `ø` har INGEN dekomposition og ville derfor blive
+ * spist som separator. `Årsløn` ville blive `arsl-n` og `Ærø` `a-r-` – begge taber betydningsbærende tegn
  * og kunne kollidere med en anden etiket. Derfor translittereres de danske
  * særtegn eksplicit (`ø`→`oe`, `æ`→`ae`, `å`→`aa`) FØR `NFKD` rydder resten af
  * de diakritiske tegn.

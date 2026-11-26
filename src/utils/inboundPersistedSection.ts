@@ -42,10 +42,8 @@ export type InboundPersistedSectionResult<K extends PersistedSectionKey> = Reado
  * kunne samme rå sektionsdata blive behandlet forskelligt afhængigt af, om den kom fra en fil eller fra
  * sessionStorage. Den deles derfor her.
  *
- * Der findes INTET outbound-modstykke: sektionsvis persistering er ikke længere en skrivegrænse, så
- * save-vejen parser den canonical sektion og stringify'er hele aggregatet i én container/envelope. Den
- * tidligere `buildPersistedSection`-helper, som teksten her henviste til, havde nul produktionscallsites og
- * er slettet.
+ * Der findes INTET outbound-modstykke: sektionsvis persistering er ikke en skrivegrænse, så
+ * save-vejen parser den canonical sektion og stringify'er hele aggregatet i én container/envelope.
  *
  * `sourceVersion` skal komme fra den konkrete envelope/container og må aldrig udledes af sektionsværdien.
  */

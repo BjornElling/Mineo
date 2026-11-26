@@ -245,11 +245,10 @@ export const rawSectionAccessBoundary = defineRule({
     ],
   },
   allow: [],
-  // En regel, der KUN måler `collectElementAccess`, ser kun bracket-formen `input.sections["satser"]`. En
-  // syntetisk kørsel viste, at `input.sections.satser` gav NUL fund, og at en reference til hele
-  // `input.sections` (fx et spread) heller ikke blev set. Grænsen handler om ADGANG TIL VÆRDIEN, ikke om
-  // hvilken syntaks der bruges, så alle fire former måles nu:
-  //   1. `x.sections[k]`         – element access (den oprindelige)
+  // En regel, der KUN måler `collectElementAccess`, ser kun bracket-formen `input.sections["satser"]`;
+  // `input.sections.satser` og en reference til hele `input.sections` (fx et spread) ville gå fri. Grænsen
+  // handler om ADGANG TIL VÆRDIEN, ikke om hvilken syntaks der bruges, så alle fire former måles:
+  //   1. `x.sections[k]`         – element access
   //   2. `x.sections.satser`     – property access
   //   3. `x.sections` / `{...x.sections}` – bar reference og spread (samme member access-node)
   //   4. `const { sections } = x` – destrukturering (en binding-pattern, ikke et adgangsudtryk)
@@ -285,7 +284,7 @@ export const rawSectionAccessBoundary = defineRule({
       code: 'const s = runtime.getSettled().input.sections[pageKey];',
     },
     { relativePath: 'src/domain/x/y.ts', code: 'const v = snapshot.input.sections["satser"];' },
-    // De tre former, den oprindelige regel var blind for.
+    // De tre former, en ren element access-regel er blind for.
     { relativePath: 'src/domain/x/y.ts', code: 'const v = snapshot.input.sections.satser;' },
     { relativePath: 'src/domain/x/y.ts', code: 'const next = { ...empty.sections, satser: v };' },
     { relativePath: 'src/domain/x/y.ts', code: 'const { sections } = snapshot.input;' },
@@ -505,9 +504,9 @@ export const internalRuntimeCapabilityBoundary = defineRule({
 
 /**
  * `src/components/inputs/transient/` er den ENESTE bevidste ikke-sagsdata-flade: tre overlay-/dialog-
- * felter, hvis værdier aldrig persisteres ([[project_transient_input_family]]). Det var indtil nu kun
- * en aftale – intet hindrede en af dem i at importere skrivevejen og dermed genskabe præcis den
- * parallelle inputvej, cutoveren slettede ("genindfør ALDRIG en Styled*Field-familie").
+ * felter, hvis værdier aldrig persisteres ([[project_transient_input_family]]). Uden reglen ville intet
+ * hindre en af dem i at importere skrivevejen og dermed genskabe en parallel inputvej
+ * ("genindfør ALDRIG en Styled*Field-familie").
  *
  * Reglen forbyder dem enhver sagsinput-skrivevej: dispatch, storen, feltredigeringen og
  * descriptor-katalogerne (uden en descriptor findes der ingen feltadresse at skrive til).
@@ -1348,9 +1347,9 @@ const SIGN_POLICY_OWNER = 'src/inputCore/react/fields/signPolicy.ts';
 /**
  * Modulerne der EJER tegn-/længdeværnet. Her ER `allowNegative` en parameter og ikke en beslutning.
  *
- * `draftAdmission.ts` kom til, da værnet blev flyttet fra keydown til draft-prædikatet: et keydown-filter
- * forudsætter en tast og var derfor helt fraværende på mobile skærmtastaturer, som skriver direkte i
- * `<input>`. Prædikaterne er nu den primære erklæring, og `inputKeyFilters.ts` afleder filtrene af dem.
+ * `draftAdmission.ts` bærer værnet som draft-prædikat: et keydown-filter forudsætter en tast og er
+ * derfor helt fraværende på mobile skærmtastaturer, som skriver direkte i `<input>`. Prædikaterne er
+ * den primære erklæring, og `inputKeyFilters.ts` afleder filtrene af dem.
  */
 const KEY_FILTER_OWNERS: readonly string[] = [
   'src/components/inputs/inputKeyFilters.ts',

@@ -33,7 +33,7 @@ describe('PageNotFound', () => {
     expect(screen.getByText('Siden findes ikke')).toBeInTheDocument();
     expect(screen.getByText(/Din sag er uændret/)).toBeInTheDocument();
     // Vejen videre er menuen, så teksten skal pege på den frem for at efterlade brugeren uden næste
-    // skridt (den gamle side nævnte hverken tilbage-knappen eller adressefeltet).
+    // skridt.
     expect(screen.getByText(/vælg en side i menuen/i)).toBeInTheDocument();
   });
 
@@ -57,7 +57,7 @@ describe('PageNotFound – brugerens to betingelser', () => {
     const appSource = readSource('src/App.tsx');
 
     // `*`-routen skal stå mellem `<Route element={<AppShell />}>` og dens afsluttende tag. Lå den
-    // uden for, ville 404 igen være en side uden menu – præcis den blindgyde, fundet handler om.
+    // uden for, ville 404 være en side uden menu – en blindgyde.
     const shellBlock = /<Route element=\{<AppShell \/>\}>([\s\S]*?)<\/Route>/.exec(appSource);
     expect(shellBlock).not.toBeNull();
     expect(shellBlock![1]).toContain('path="*"');

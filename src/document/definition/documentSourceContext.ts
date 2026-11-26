@@ -12,22 +12,21 @@
  * `collectAllEoRows`); fire EET-faner deler én projektion; to rente- og to årsløn-outputs ligeledes.
  * Uden memo ville den reaktive knap-gate køre den samme aggregering fire gange pr. render.
  *
- * **Hvorfor nøglen er builderen selv (den aktuelle implementering-rettelse):** memoen var oprindeligt
- * `shared<T>(key: object, compute: () => T)`, hvor cachen gemte `unknown` og castede til kalderens
- * frit valgte `T`. Samme nøgle kunne derfor lovligt genbruges med en anden forventet type og
- * returnere den første værdi under forkert statisk type – et typehul, ikke bare en skønhedsfejl.
- * Nu ER builder-funktionen både nøgle og beregning, så nøgle og resultattype ikke kan komme fra hinanden.
+ * **Hvorfor nøglen er builderen selv:** en memo af formen `shared<T>(key: object, compute: () => T)`,
+ * hvor cachen gemmer `unknown` og caster til kalderens frit valgte `T`, lader samme nøgle lovligt
+ * genbruges med en anden forventet type og returnere den første værdi under forkert statisk type – et
+ * typehul, ikke bare en skønhedsfejl. Builder-funktionen ER derfor både nøgle og beregning, så nøgle og resultattype ikke kan komme fra hinanden.
  *
  * Cachens levetid er kontekstobjektets: én pr. revision på render-siden, én pr. aktivering i
  * preflighten. Nøglen er altså aldrig tokenet – to kontekster med samme token er stadig to
  * selvstændige, immutable snapshots, og cachen kan derfor aldrig udlevere et resultat, der hører til
  * et andet input eller andre settings.
  *
- * **`settings` er GATE-settings og intet andet.** Konteksten bar før hele hovedappens
- * `SourceSettings`, som også indeholder `documentDownloadFormat`. Enhver definition kunne derfor
- * lovligt forgrene sin gate på det valgte outputformat – en usynlig, formatafhængig blokering, som
+ * **`settings` er GATE-settings og intet andet.** Bar konteksten hele hovedappens
+ * `SourceSettings`, som også indeholder `documentDownloadFormat`, kunne enhver definition lovligt
+ * forgrene sin gate på det valgte outputformat – en usynlig, formatafhængig blokering, som
  * §A2a's krav om samme definition i begge kanaler ikke fanger, fordi begge kanaler ville se den
- * samme skæve gate. Formatet bor nu i miljøets `renderSettings` og læses først EFTER gaten; her er
+ * samme skæve gate. Formatet bor derfor i miljøets `renderSettings` og læses først EFTER gaten; her er
  * det ikke i typen, så et forsøg på at læse det er en compilerfejl. Hovedappens brevhoved-flag er
  * den bevidste undtagelse: flaget afgør, om stamdata overhovedet er en gate-relevant afhængighed,
  * og kopieres derfor til gate-settings sammen med render-settings fra samme source-snapshot.

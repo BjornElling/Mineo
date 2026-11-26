@@ -12,12 +12,12 @@ import {
 } from '../../../../utils/file/defaultDirectoryLocation';
 
 /**
- * Standardplacerings-rækken. Den havde INGEN testdækning før dette spor.
+ * Standardplacerings-rækken.
  *
- * Det, der måles her, er præcis den fejl, opdelingen af rækkens to halvdele gav: navnet kom fra
- * IndexedDB-metadata, mens kursivering og «Nulstil» kom fra `settings.defaultDirectoryHandleId` i
- * localStorage. De to lagre kan ryddes hver for sig, så rækken kunne vise standardens navn stylet
- * som et intakt brugervalg. `utilgaengelig` er den tilstand, den gamle form ikke kunne udtrykke.
+ * Det, der måles her, er den fejl, en opdeling af rækkens to halvdele ville give: navnet kommer fra
+ * IndexedDB-metadata, mens kursivering og «Nulstil» kommer fra `settings.defaultDirectoryHandleId` i
+ * localStorage. De to lagre kan ryddes hver for sig, så en opdelt række kunne vise standardens navn
+ * stylet som et intakt brugervalg. `utilgaengelig` er netop den tilstand.
  */
 
 const getDirectoryDisplayInfoMock = vi.fn();
@@ -159,9 +159,9 @@ describe('DefaultDirectoryRow – handlinger', () => {
   });
 
   /**
-   * Mislykkes SKRIVNINGEN af registreringen (`null`-id), må rækken ikke påstå et gemt valg. Den
-   * gamle form satte navnet optimistisk fra `directoryHandle.name` UDEN at se på returværdien, og
-   * viste dermed «Sager» som valgt mappe, selv når intet var registreret.
+   * Mislykkes SKRIVNINGEN af registreringen (`null`-id), må rækken ikke påstå et gemt valg. Sættes
+   * navnet optimistisk fra `directoryHandle.name` UDEN at se på returværdien, vises «Sager» som
+   * valgt mappe, selv når intet er registreret.
    */
   it('viser ikke et valg når registreringen ikke kunne gemmes', async () => {
     const user = userEvent.setup();

@@ -26,8 +26,7 @@ import {
 import type { GridCellCoord } from '../../../components/tables/gridCore/gridCoreTypes';
 import type { TillaegstidEnhed } from '../../../schemas/formSchemas/enumSchemas';
 
-// Genetablerer de INTEGRATIONS-invarianter, de fire slettede tabelsuiter dækkede på den gamle celle-vej.
-// Adfærden lever nu i `useGridCoreController` + de nye Grid-celler, og var kun dækket af to nav-tests.
+// Pinner tabelcellernes INTEGRATIONS-invarianter. Adfærden lever i `useGridCoreController` + Grid-cellerne.
 //
 // Det centrale er BROEN mellem de to redigerings-autoriteter (`useGridCellSurface`):
 //   1. grid-core ejer navigation og edit-ÅBNING (to-trins-klik, printbar tast, Enter/Escape i capture-fasen),
@@ -71,7 +70,7 @@ const canonical = <T,>(field: FieldRef<T>): T =>
 const AMOUNT_CELL: GridCellCoord = { rowId: 'r1', colIndex: 0 };
 const CHOICE_CELL: GridCellCoord = { rowId: 'r1', colIndex: 1 };
 
-/** En minimal, men ÆGTE grid: rigtig controller, rigtig capture-keydown, rigtige greenfield-celler. */
+/** En minimal, men ÆGTE grid: rigtig controller, rigtig capture-keydown, rigtige Grid-celler. */
 let gridController: ReturnType<typeof useGridCoreController>['controller'] | null = null;
 
 const GridHarness: React.FC = () => {

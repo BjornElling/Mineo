@@ -279,9 +279,8 @@ export const standaloneRenteAlleDocumentDefinition: StandaloneDocumentDefinition
         for (const [index, row] of input.rows.entries()) {
           if (index > 0) composer.addPage();
 
-          // Canonical ISO parses DIREKTE. Vejen gik tidligere ISO → dansk streng → `Date`, altså
-          // to formatskift for at nå den samme dato – og et `?? ''`, der gjorde en manglende konvertering til
-          // en "ugyldig dato" frem for til en typefejl.
+          // Canonical ISO parses DIREKTE. En omvej via dansk streng ville være to formatskift for at nå
+          // den samme dato og gøre en manglende konvertering til en "ugyldig dato" frem for til en typefejl.
           const startDate = parseISODate(row.actualInterestDate);
           const endDate = parseISODate(row.beregningsdato);
           if (!startDate || !endDate) throw new Error('Ugyldige datoer for renteberegning');

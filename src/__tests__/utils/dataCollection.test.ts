@@ -86,9 +86,9 @@ describe('dataCollection', () => {
 
   // `hasRealData()` er BEVIDST slettet: "indeholder sagen brugerdata?" har ét sandt sted,
   // `settledInputHasAnyData()` (eksponeret som `hasAnyData()`), som måler mod NY-SAGS-baseline i stedet for
-  // mod tomhed. `hasRealData` var et konkurrerende svar bygget på feltoptælling og regnede hver `false` og
-  // hvert standardtal som brugerdata – derfor kunne en helt tom standardsag gemmes som et rigtigt
-  // sagsartefakt. Modulet her tæller nu KUN felter til preflight-rapportering.
+  // mod tomhed. `hasRealData` ville være et konkurrerende svar bygget på feltoptælling, der regner hver
+  // `false` og hvert standardtal som brugerdata – så kunne en helt tom standardsag gemmes som et rigtigt
+  // sagsartefakt. Modulet her tæller KUN felter til preflight-rapportering.
   it('eksporterer ikke en konkurrerende data-presence-forespørgsel', async () => {
     const module = await import('../../utils/dataCollection');
     expect(Object.keys(module)).not.toContain('hasRealData');
