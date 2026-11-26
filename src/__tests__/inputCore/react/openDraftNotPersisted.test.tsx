@@ -10,7 +10,7 @@
 // ikke at en RIGTIG åben draft undlader at nå derhen – den åbner aldrig en editor.
 //
 // Her åbnes en faktisk editor, draften ændres UDEN settle, og en frisk runtime hydreres fra den ægte
-// sessionStorage-envelope. Invarianten (§1.2, §10-kriterium 4): den åbne draft er ikke en fjerde
+// sessionStorage-envelope. Invarianten (§1.2, §5 kriterium 4): den åbne draft er ikke en fjerde
 // inputkanal – efter reload findes kun det senest AFSLUTTEDE input.
 import * as React from 'react';
 import { renderHook, act } from '@testing-library/react';
@@ -116,7 +116,7 @@ describe('åben draft persisteres ikke over en reload (§1.2)', () => {
 
   it('en FEJLENDE, ikke-settlet draft persisteres heller ikke som rejected råtekst', () => {
     // Uden dette tilfælde kunne en fremtidig "gem draften, så brugeren ikke mister den"-mekanik
-    // smugle rå tekst ind ad rejected-kanalen, hvor den ville blokere `.eo` (§3.9) uden et settle.
+    // smugle rå tekst ind ad rejected-kanalen, hvor den ville blokere `.eo` (§2.9) uden et settle.
     dispatchInput(store, catalog, settleField(field, '2020'), { now: 1 });
 
     const { result } = renderEditor(field);

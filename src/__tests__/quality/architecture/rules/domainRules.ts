@@ -437,7 +437,7 @@ export const PAGE_BOUNDARY_RULES: readonly PageBoundaryRule[] = [
     // EET-siden": dokumentdefinitionerne læser EET's reader-projektion for at injicere de virtuelle
     // rækker (`domain-boundary-contract.md` §9). Koblingen er TRANSITIV og var derfor usynlig, indtil
     // reglen begyndte at følge importgrafen – den er den samme autorisation, `Erstatningsopgoerelse.tsx`
-    // allerede havde, og listerne er nu ens for side og faner.
+    // allerede havde, og listerne er ens for side og faner.
     allowedSections: ['erstatningsopgoerelse', 'stamdata'],
   },
   { label: 'Forsørgertab', root: 'src/components/pages/Forsoergertab.tsx', allowedSections: ['forsoergertab', 'faellesAarsloen', 'stamdata'] },
@@ -483,7 +483,7 @@ export const PAGE_BOUNDARY_RULES: readonly PageBoundaryRule[] = [
 /**
  * ANSVARSGRÆNSE: en beregningsmotor kaldes KUN af sin egen reader-projektion.
  *
- * §7.3: motoren fodres kun fra en `ready`-projektion. Grænsen kan holde i praksis – nul callsites uden for
+ * §4.3: motoren fodres kun fra en `ready`-projektion. Grænsen kan holde i praksis – nul callsites uden for
  * projektionerne – og alligevel være UBEVOGTET: uden denne regel ville intet fange en side, en
  * dokumentdefinition eller en komponent, der greb direkte efter motoren og dermed omgik gaten. Værnet
  * håndhæver derfor ANSVARET (hvem må kalde en motor) frem for bestemte NAVNE.
@@ -515,14 +515,14 @@ const collectForeignEngineCalls = (entry: SourceEntry): readonly Finding[] =>
       message:
         `\`${ref.calleeName}(...)\` er en beregningsmotor, som kun må kaldes af sin egen reader-projektion `
         + `(${ENGINE_ENTRYPOINT_OWNERS.get(ref.calleeName)}). Motoren fodres KUN fra en \`ready\`-projektion `
-        + '(§7.3); et direkte kald herfra omgår dependency-gaten, så et tal kan beregnes på input, der '
+        + '(§4.3); et direkte kald herfra omgår dependency-gaten, så et tal kan beregnes på input, der '
         + 'ikke rækker til det. Læs projektionens resultat i stedet.',
     }));
 
 export const engineCallOwnedByProjectionRule = defineRule({
   id: 'domain/engine-call-owned-by-projection',
   description:
-    'En beregningsmotor kaldes kun af sin egen reader-projektion (§7.3). Et direkte motorkald fra en '
+    'En beregningsmotor kaldes kun af sin egen reader-projektion (§4.3). Et direkte motorkald fra en '
     + 'side, en dokumentdefinition eller en komponent omgår dependency-gaten.',
   liveTarget: {
     kind: 'precondition',
@@ -681,7 +681,7 @@ export const pageSectionAccessBoundary = defineRule({
       entry.relativePath.startsWith(`${PAGES_ROOT}/`) && collectSectionAccesses(entry).length > 0,
     rationale:
       'mindst én page-fil importerer et descriptor-katalog – dvs. koblingen, reglen regulerer, findes '
-      + 'stadig i den form, greenfield bruger',
+      + 'stadig i den form, inputCore bruger',
   },
   appliesTo: (relativePath) => relativePath.startsWith(`${PAGES_ROOT}/`),
   find: (entry, graph) => {
@@ -900,7 +900,7 @@ export const crossDomainDescriptorPort = forbidImports({
 // Invarianten – "et persisteret parse-felt må ikke fejle åbent" – er ikke opgivet; den er blevet
 // STRUKTUREL og kan derfor ikke længere brydes af en udeladt prop:
 //
-//   - Greenfield-feltvejen (`src/inputCore/react/fields/`) tager `field: FieldRef<T>` og
+//   - Feltvejen (`src/inputCore/react/fields/`) tager `field: FieldRef<T>` og
 //     `location: EditorLocation` som PÅKRÆVEDE props. Uden dem kompilerer feltet ikke.
 //   - Fejlvisningen afledes af `useFormFieldSurface`/`useGridCellSurface` fra det tokenbundne
 //     issue-snapshot (§1.8) – ikke af en valgfri callback. Der er intet `onFieldError` at udelade;

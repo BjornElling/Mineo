@@ -84,7 +84,7 @@ const differingKeys = (
  */
 const ACCEPTEREDE_AFVIGELSER: Readonly<Record<string, Readonly<Record<string, string>>>> = {
   erstatningsopgoerelse: {
-    svieSmertePerioder: 'Fabrikken sår en pladsholderrække; greenfield-rækkepladsholdere er virtuelle.',
+    svieSmertePerioder: 'Fabrikken sår en pladsholderrække; inputCores rækkepladsholdere er virtuelle.',
     tafPerioder: 'Som svieSmertePerioder.',
     ferieperioder: 'Som svieSmertePerioder.',
     fravaerPerioder: 'Som svieSmertePerioder.',
@@ -92,7 +92,7 @@ const ACCEPTEREDE_AFVIGELSER: Readonly<Record<string, Readonly<Record<string, st
   },
   aarsloen: {},
   renteberegning: {
-    rentekravRows: 'Fabrikken sår en pladsholderrække; greenfield-rækkepladsholdere er virtuelle.',
+    rentekravRows: 'Fabrikken sår en pladsholderrække; inputCores rækkepladsholdere er virtuelle.',
   },
 };
 

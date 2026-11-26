@@ -23,7 +23,7 @@ import {
 } from '../../inputCore/catalog/stamdataDescriptors';
 import { computeForsoergertabSnapshot, type ForsoergertabSnapshot } from './forsoergertabSnapshot';
 
-// Forsørgertab-projektionen (§3.4/§5.4/§1.10). En ALMINDELIG ren funktion over
+// Forsørgertab-projektionen (input-architecture.md §2.4/§1.10). En ALMINDELIG ren funktion over
 // den offentlige `InputReader`, der erstatter `Forsoergertab.tsx`'s rå `usePersistedForm`/
 // `usePersistedSectionSelector`-læsning + `useFormFieldErrors`-gating. Den er den ENE kanoniske projektion til
 // både sidevisning og download-gaten.
@@ -60,7 +60,7 @@ const skadestypeRef: FieldRef<Skadestype | undefined> = stamdataSkadestypeField.
 export type ForsoergertabReaderProjection = Readonly<{
   /** Det ENE snapshot (uændret beregning). Driver både sidevisning og download-gaten. */
   snapshot: ForsoergertabSnapshot;
-  /** Kildesnapshottets token – issue-snapshot og reader stammer fra samme evaluering (§3.4). */
+  /** Kildesnapshottets token – issue-snapshot og reader stammer fra samme evaluering (§2.4). */
   sourceToken: EvaluationSourceToken;
 }>;
 
@@ -98,7 +98,7 @@ export const buildForsoergertabReaderProjection = (reader: InputReader): Forsoer
   const skadestype = readField(reader.read(skadestypeRef));
 
   const snapshot = computeForsoergertabSnapshot({
-    // Feltnavne opløses gennem readeren (§3.2a): `stamdata.skadedato` hedder «Anmeldelsesdato» ved en
+    // Feltnavne opløses gennem readeren (§2.2): `stamdata.skadedato` hedder «Anmeldelsesdato» ved en
     // erhvervssygdom, og et feltissue skal navngive feltet, som brugeren ser det.
     resolveFieldLabel: reader.labelOf,
     values: {

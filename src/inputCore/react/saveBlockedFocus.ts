@@ -7,7 +7,7 @@ import { scrollTargetIntoView } from '../../utils/scrollTargetIntoView';
 import { lookupEditorLocation, type EditorLocationDestination } from './editorLocationDestination';
 import { blinkFieldAttention } from './fieldAttentionBlink';
 
-// Save-blocking focus (§1.4/§3.2). `.eo`-save blokeres KUN af aktivt relevant rejected råinput (§3.9);
+// Save-blocking focus (§1.4/§2.2). `.eo`-save blokeres KUN af aktivt relevant rejected råinput (§2.9);
 // `CaseFileOperations.evaluateSave` returnerer de blokerende `SerializedFieldAddress`'er.
 //
 // Målet lokaliseres via den FULDE serialiserede feltadresse – samme identitet som undo/redo-restoren bruger

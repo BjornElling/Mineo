@@ -8,7 +8,7 @@ import type {
   StamdataValues,
 } from '../../../schemas/formSchemas';
 
-// INVARIANT (`form-contract.md` §2.3, `error-contract.md` §5, design §1.10/§3.9): en beregningsmotor må
+// INVARIANT (`form-contract.md` §2.3, `error-contract.md` §5, input-architecture.md §1.10/§2.9): en beregningsmotor må
 // ALDRIG kaldes, når en af DENS EGNE afhængigheder har en rød feltfejl. Readeren maskerer en rød værdi til
 // `undefined`, så et motorkald ville regne på et FALSK input – fx kan en rød EAL-årsløn ellers falde tilbage
 // til ASL-årslønnen (`eetEalCalculation.ts:184-193`) og rapportere `source: 'asl'`, som om feltet var tomt.

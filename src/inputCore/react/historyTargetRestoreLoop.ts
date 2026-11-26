@@ -1,6 +1,6 @@
 import { scrollTargetIntoView } from '../../utils/scrollTargetIntoView';
 
-// Den ENE undo/redo-fokusrestore-løkke (§3.7). Runtime-neutral: kalderen leverer KUN `findTarget`, der
+// Den ENE undo/redo-fokusrestore-løkke (§2.7). Runtime-neutral: kalderen leverer KUN `findTarget`, der
 // lokaliserer det synlige fokusmål. Den fælles adfærd – vent-på-mount over faneskift, scroll-hvis-ikke-synlig,
 // fokus-ring-markør og AFBRYDELSE hvis brugeren imens flytter fokus til et andet brugbart felt – bor ÉT sted.
 //
@@ -109,7 +109,7 @@ const reportUnreachableRestoreTarget = (describeTarget?: () => string): void => 
 };
 
 /**
- * Den delte rAF-retry-restore-løkke (§3.7). Runtime-agnostisk: kalderen leverer KUN `findTarget`, der lokaliserer
+ * Den delte rAF-retry-restore-løkke (§2.7). Runtime-agnostisk: kalderen leverer KUN `findTarget`, der lokaliserer
  * det synlige fokusmål (feltadresse + editorlokation, jf. `historyRestoreTarget`). Den fælles adfærd –
  * vent-på-mount over faneskift, scroll-hvis-ikke-synlig, fokus-ring-markør og AFBRYDELSE hvis brugeren imens
  * flytter fokus til et andet brugbart felt – bor ÉT sted.

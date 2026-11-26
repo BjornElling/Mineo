@@ -14,11 +14,10 @@ import {
 export { containsUnaryMinusToken } from '../../utils/numericDraftAdmission';
 export { isIntegerDraftAllowed } from './draftAdmission';
 
-// Tastaturfiltrene er nu AFLEDT af feltfamiliernes draft-prædikater i `draftAdmission.ts`, som også er
-// det, `onDraftChange` håndhæver. Før havde keydown-vejen sin egen kopi af hver regel, og den kopi var
-// samtidig det ENESTE værn – derfor forsvandt hele tegn- og længdekontrollen på mobile skærmtastaturer,
-// som skriver direkte i `<input>` uden en brugbar `keydown`. Filteret er nu et ekstra, caret-bevarende
-// værn oven på prædikatet, ikke en parallel sandhed om hvad feltet tillader.
+// Tastaturfiltrene er AFLEDT af feltfamiliernes draft-prædikater i `draftAdmission.ts`, som også er
+// det, `onDraftChange` håndhæver. En egen kopi af reglerne i keydown-vejen kan ikke være eneste værn:
+// mobile skærmtastaturer skriver direkte i `<input>` uden en brugbar `keydown`. Filteret er derfor et
+// ekstra, caret-bevarende værn oven på prædikatet, ikke en parallel sandhed om hvad feltet tillader.
 
 type KeyDownEvent = React.KeyboardEvent<HTMLInputElement>;
 

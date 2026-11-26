@@ -70,7 +70,7 @@ const TafPeriodeTable = React.memo(({
     createRowId: createTafRowId,
     createEmptyRow,
     locationPrefix: 'erstatningsopgoerelse.tafPerioder',
-    // route + tabKey er eksplicit navigation-metadata (§3.7); TAF-perioderne bor på EO-oplysningerfanen.
+    // route + tabKey er eksplicit navigation-metadata (§2.7); TAF-perioderne bor på EO-oplysningerfanen.
     locationNav: { route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER },
   });
   const persistSortedOrder = usePersistSortedCollectionOrder(collection);
@@ -101,7 +101,7 @@ const TafPeriodeTable = React.memo(({
         const committed = table.committedById.get(row.rowId);
         const calculated = committed === undefined ? null : (derivedById[committed.id] ?? null);
         // Cutoff-issuet slås op på cellens EGEN, allerede bundne feltadresse. Spec'ets `field` er bundet
-        // med hele ejerstien (§3.2), så opslaget kan ikke ramme en anden række end den, cellen redigerer.
+        // med hele ejerstien (§2.2), så opslaget kan ikke ramme en anden række end den, cellen redigerer.
         const fraCell = table.buildCellSpec(row, eoTafPeriodeFraField, 0);
         const tilCell = table.buildCellSpec(row, eoTafPeriodeTilField, 1);
         const loseCell = table.buildCellSpec(row, eoTafPeriodeLoseFeriedageField, 2);

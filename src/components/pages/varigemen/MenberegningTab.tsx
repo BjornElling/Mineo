@@ -51,8 +51,7 @@ import { blinkFieldAttention } from '../../../inputCore/react/fieldAttentionBlin
 // nu på inputCore: méngrad + beregningsdato skriver/læser gennem den offentlige `InputReader` + den ene
 // write-grænse (ingen `usePersistedForm`/`setFieldValue`-prop); de tværsektionelle stamdata-datoer læses gennem
 // samme reader (ingen rå `usePersistedSectionSelector`). Den ENE reader-afledte projektion
-// (`buildVarigeMenReaderProjection`) driver både beregningsvisning og download-gaten. Beregningstal og synlig
-// adfærd er uændrede (§5.4).
+// (`buildVarigeMenReaderProjection`) driver både beregningsvisning og download-gaten.
 
 const mengradRef = varigeMenMengradField.bind();
 /** Méngradens tegn- og længdepolitik fra dens eget codec – én erklæring for formular og grid. */
@@ -62,7 +61,7 @@ const fodselsdatoRef = stamdataSkadelidteFodselsdatoField.bind();
 const skadedatoRef = stamdataSkadedatoField.bind();
 const skadestypeRef = stamdataSkadestypeField.bind();
 
-// route + tabKey er eksplicit navigation-metadata (§3.7); begge felter bor på menberegning-fanen.
+// route + tabKey er eksplicit navigation-metadata (§2.7); begge felter bor på menberegning-fanen.
 const MENGRAD_LOCATION = { locationId: 'varigemen:mengrad', route: APP_ROUTES.varigemen, tabKey: PAGE_DEFAULT_TAB.varigemen } as const;
 const BEREGNINGSDATO_LOCATION = { locationId: 'varigemen:beregningsdato', route: APP_ROUTES.varigemen, tabKey: PAGE_DEFAULT_TAB.varigemen } as const;
 
@@ -85,7 +84,7 @@ const MenberegningTab = React.memo(() => {
     []
   );
 
-  // Den ENE reader-afledte projektion (§3.4/§5.4) – beregningsvisning og download-gate deler præcis samme sandhed.
+  // Den ENE reader-afledte projektion (§2.4) – beregningsvisning og download-gate deler præcis samme sandhed.
   const projection = React.useMemo(
     () => buildVarigeMenReaderProjection(evaluation.reader),
     [evaluation]
@@ -126,7 +125,7 @@ const MenberegningTab = React.memo(() => {
     [beregningsdato]
   );
 
-  // Spejlet stamdata-værdi: navnet OG dets afledte former kommer fra feltets ene navneregel (§3.2a),
+  // Spejlet stamdata-værdi: navnet OG dets afledte former kommer fra feltets ene navneregel (§2.2),
   // aldrig fra en lokal ternary; en erhvervssygdom omtales dermed ikke med et «skadestidspunkt»,
   // sagen ikke har.
   const datoReference = resolveStamdataDatoReference(skadestype);

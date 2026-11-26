@@ -8,7 +8,7 @@ import * as differencekrav from '../../../domain/erhvervsevnetab/eetCalculationG
 import type { ErhvervsevnetabComposedValues, StamdataValues } from '../../../schemas/formSchemas';
 import { toISODateString } from '../../../types/branded';
 
-// INVARIANT (`form-contract.md` §2.3, `error-contract.md` §5, design §1.10/§3.9): hvert EET-panel kalder KUN
+// INVARIANT (`form-contract.md` §2.3, `error-contract.md` §5, §1.10/§2.9): hvert EET-panel kalder KUN
 // sin motor, når panelets EGNE afhængigheder er ready.
 //
 // Testene spionerer på de faktiske motormoduler. Et `computation: null` alene beviser intet – motoren kan

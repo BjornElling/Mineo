@@ -80,7 +80,7 @@ const OFFENTLIGE_YDELSER_ROW_ORIGIN: CollectionRowOrigin = {
   tabKey: EO_TAB_KEYS.OFFENTLIGE_YDELSER,
 };
 
-/** Midlertidigt-EET-togglens felt-ref + editorlokation (§3.2); feltet bor på Offentlige ydelser-fanen. */
+/** Midlertidigt-EET-togglens felt-ref + editorlokation (§2.2); feltet bor på Offentlige ydelser-fanen. */
 const midlertidigtEetFieldRef = eoMidlertidigtEetFraEetSidenField.bind();
 const MIDLERTIDIGT_EET_LOCATION: EditorLocation = {
   locationId: 'erstatningsopgoerelse.midlertidigtEetFraEetSiden',
@@ -89,9 +89,8 @@ const MIDLERTIDIGT_EET_LOCATION: EditorLocation = {
 };
 
 /**
- * Reguleringstogglens editorlokation (§3.2). Feltet blev flyttet hertil fra EO oplysninger-fanen
- *; `locationId` er uændret, fordi det navngiver FELTETS editorlokation og ikke fanen – men
- * `tabKey` peger nu på Offentlige ydelser, så fokusnavigationen lander det rigtige sted.
+ * Reguleringstogglens editorlokation (§2.2). `locationId` navngiver FELTETS editorlokation, ikke fanen;
+ * `tabKey` peger på Offentlige ydelser, så fokusnavigationen lander det rigtige sted.
  */
 const REGULER_OFFENTLIGE_YDELSER_LOCATION: EditorLocation = {
   locationId: 'erstatningsopgoerelse.regulerOffentligeYdelser',
@@ -377,7 +376,7 @@ const OffentligeYdelserTab = React.memo(({ values, midlertidigtEetToggleWarning,
         inputTransactionStep(setImmediateField(eoBilagSelectionMidlertidigEetField.bind(), nextChecked)),
       ];
       // Togglen er kun STRUKTUREL, når den faktisk sletter rækker (dvs. ved tilslå). Slår den fra, er det en
-      // ren felttransaktion, og en rækkeorigin ville foregøgle en rækkehandling, der ikke fandt sted (§3.7).
+      // ren felttransaktion, og en rækkeorigin ville foregøgle en rækkehandling, der ikke fandt sted (§2.7).
       if (rowDeletes.length > 0) {
         edit.dispatch(
           structuralInputTransaction([...rowDeletes, ...fieldSteps]),
@@ -386,7 +385,7 @@ const OffentligeYdelserTab = React.memo(({ values, midlertidigtEetToggleWarning,
       } else {
         // Den simple ændring skal bære origin, så undo kan navigere og refokusere
         // togglen. Den er et FELT-commit – transaktionen rører kun felter – og bærer derfor togglens egen
-        // feltorigin, præcis som feltadapterens normale `commitImmediate`-vej gør (§3.7).
+        // feltorigin, præcis som feltadapterens normale `commitImmediate`-vej gør (§2.7).
         edit.dispatch(
           inputTransaction(fieldSteps),
           buildFieldHistoryOrigin(MIDLERTIDIGT_EET_LOCATION, midlertidigtEetFieldRef)
@@ -538,7 +537,7 @@ const OffentligeYdelserTab = React.memo(({ values, midlertidigtEetToggleWarning,
         {/*
           Reguleringen af offentlige ydelser hører til ydelserne selv og stod tidligere på EO
           oplysninger-fanen. Feltet er uændret; kun editorlokationen er flyttet hertil, så
-          fokusnavigationen fører brugeren til den fane, feltet faktisk redigeres på (§3.2).
+          fokusnavigationen fører brugeren til den fane, feltet faktisk redigeres på (§2.2).
 
           Synligheden er PRÆCIS den samme betingelse som før flytningen – nu udtrykt gennem det delte
           relevans-prædikat, så synlighed og beregningsrelevans har ét sandt sted.
@@ -583,7 +582,7 @@ const OffentligeYdelserTab = React.memo(({ values, midlertidigtEetToggleWarning,
         </Typography>
         <MultilineTextField
           field={eoOffentligeYdelserKommentarerField.bind()}
-          // route + tabKey er eksplicit navigation-metadata (§3.7); feltet bor på Offentlige ydelser-fanen.
+          // route + tabKey er eksplicit navigation-metadata (§2.7); feltet bor på Offentlige ydelser-fanen.
           location={{ locationId: 'erstatningsopgoerelse.offentligeYdelserKommentarer', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.OFFENTLIGE_YDELSER }}
           name="offentligeYdelserKommentarer"
           width={800}

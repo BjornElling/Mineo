@@ -101,7 +101,8 @@ const requireReadyAggregate = <TInput>(
           ? source.projection.aggregateProjection.issues
           : undefined,
         // Fallbacken bruges kun ved en TOM issue-liste; ellers udleder klassifikationen klassen af
-        // aggregat-projektionens egne issues (§3.1), som her altid er røde feltissues (kun `optional`-reads).
+        // aggregat-projektionens egne issues (`document-output-contract.md` §A5.1), som her altid er røde
+        // feltissues (kun `optional`-reads).
         'Fejl i indtastning'
       ),
     };
@@ -269,9 +270,9 @@ export const renteDocumentDefinition: MineoDocumentDefinition<RenteDocumentInput
       };
     },
     /**
-     * Datoerne gives videre CANONICAL. Generatoren tog tidligere `dd-mm-åååå` som en utypet
-     * `string`, så callsiten måtte konvertere med `isoToDanish` og fail-close på et `undefined`, typen ikke
-     * kunne fange. Begge generatorer i domænet tager nu `ISODateString`, så formatuenigheden er
+     * Datoerne gives videre CANONICAL. Begge generatorer i domænet tager `ISODateString`; en utypet
+     * `dd-mm-åååå`-`string` ville tvinge callsiten til at konvertere med `isoToDanish` og fail-close på et
+     * `undefined`, typen ikke kan fange. Med den kanoniske type er formatuenigheden
      * urepræsenterbar frem for noget en konvertering pr. callsite skal huske.
      */
     loadRenderer: async () => {

@@ -1,13 +1,14 @@
 import type { CodecFamily, ControlKind, SectionKey } from './ledgerTypes';
 
-// Midlertidigt fase-0-inventar (§6.1): én dataidentitet pr. persisteret felt (IKKE pr. Zod-leaf – en AmountValue er ÉT
-// felt, selv om schemaet har `kind`/`value`/`expression`; entity-id'er er strukturelle, ikke felter).
+// Feltledgeren (coverage-register, input-architecture.md §3.1): én dataidentitet pr. persisteret felt (IKKE pr.
+// Zod-leaf – en AmountValue er ÉT felt, selv om schemaet har `kind`/`value`/`expression`; entity-id'er er
+// strukturelle, ikke felter).
 //
 // Feltidentiteterne + baseline-count udledes MASKINELT fra de levende Zod-schemas i completeness-testen, så
-// der ikke findes en parallel manuel path-autoritet (§ inputkernen exitkriterium). Dette modul bidrager med
-// canonicaliseringen (leaf → datafelt) og codec-/kontroltype-annotationen pr. felt. Collection-børns codecs
-// ejes af `collectionLedger.ts`; her annoteres kun top-level-felter (inkl. felter i singular property-objekter
-// som `eoBilagSelection`, `overenskomstFilter`, `eoAngivetLoenLoenudvikling`).
+// der ikke findes en parallel manuel path-autoritet. Dette modul bidrager med canonicaliseringen (leaf →
+// datafelt) og codec-/kontroltype-annotationen pr. felt. Collection-børns codecs ejes af `collectionLedger.ts`;
+// her annoteres kun top-level-felter (inkl. felter i singular property-objekter som `eoBilagSelection`,
+// `overenskomstFilter`, `eoAngivetLoenLoenudvikling`).
 
 /** Amount-triplens leaves (`X.kind`/`X.value`/`X.expression`) samles til datafeltet `X`. */
 export const AMOUNT_LEAF_SUFFIX = /\.(kind|value|expression)$/;

@@ -114,7 +114,7 @@ export const getCaseScopedSessionStorageKeys = (): readonly ManifestStorageKey[]
   ];
 
 /**
- * Den ENESTE sessionStorage-nøgle for sagsinput (draft/commit-designet §2.1.6/§3.7): hele det
+ * Den ENESTE sessionStorage-nøgle for sagsinput (`input-architecture.md` §2.7): hele det
  * afsluttede inputaggregat ligger i én envelope under denne nøgle.
  *
  * Sektionsopdelt sessionpersistering og en parallel recovery-kanal må ikke genindføres; hele det
@@ -158,7 +158,10 @@ export const UI_STORAGE_KEYS = buildKeyMap(UI_STORAGE_KEY_SUFFIXES);
 export const createActiveTabStorageKey = (pageId: string): ManifestStorageKey =>
   asManifestKey(ns(`${ACTIVE_TAB_SUFFIX_PREFIX}${pageId}`));
 
-/** Current-only envelope-nøgle for inputkernen (§2.1.6). Namespace-aware og dovent resolveret. */
+/**
+ * Current-only envelope-nøgle for inputkernen (`input-architecture.md` §2.7). Namespace-aware og dovent
+ * resolveret.
+ */
 export const getCurrentInputEnvelopeStorageKey = (): ManifestStorageKey =>
   asManifestKey(ns(CURRENT_INPUT_ENVELOPE_SUFFIX));
 

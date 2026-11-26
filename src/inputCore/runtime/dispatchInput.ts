@@ -98,7 +98,7 @@ export const __hydrateInputStoreForTest = (
   requireStoreInternals(store).hydrate(input, options);
 };
 
-// Input-runtime (§3.6): den ENE autoritative write-grænse. Alle inputændringer – felt, række, system og
+// Input-runtime (§2.6): den ENE autoritative write-grænse. Alle inputændringer – felt, række, system og
 // history – går gennem `dispatchInput`. Den bygger kandidaten med den rene reducer/history, serialiserer den ene
 // current-only envelope, skriver med byte-verificeret read-back, opdaterer store + revision + history i ét
 // store-write og ruller BÅDE storage og store tilbage til før-snapshot ved enhver fejl. Der er ingen anden vej ind.
@@ -109,7 +109,7 @@ export type RuntimeInputCommand<TField = unknown, TEntity = unknown> =
   | Readonly<{ kind: 'redo' }>;
 
 export type DispatchInputOptions = Readonly<{
-  /** Struktur-origin for history-/fejlnavigation (§3.7). Ikke relevant for undo/redo. */
+  /** Struktur-origin for history-/fejlnavigation (§2.7). Ikke relevant for undo/redo. */
   origin?: HistoryOrigin;
   /** Deterministisk tidsstempel til test; ellers `Date.now()`. */
   now?: number;
@@ -206,7 +206,7 @@ const assertStructuralOrigin = (
   if (valid) return;
   throw new Error(
     `Strukturel inputcommand (${command.kind}) kræver en history-origin, så undo/redo har et `
-    + 'restore-anker til den gendannede række (§3.7).'
+    + 'restore-anker til den gendannede række (§2.7).'
   );
 };
 
@@ -214,7 +214,7 @@ export type DispatchInputResult = Readonly<{
   changed: boolean;
   revision: InputRevision;
   /**
-   * Kun sat efter en SUCCESFULD undo/redo (§3.7): origin for det gendannede history-frame, så shellen kan navigere
+   * Kun sat efter en SUCCESFULD undo/redo (§2.7): origin for det gendannede history-frame, så shellen kan navigere
    * til den rette route/fane og fokusere det felt, ændringen kom fra. Fraværende for alle andre commands, for en
    * no-op undo/redo og hvis det gendannede frame ingen origin havde – så en mislykket/tom restore aldrig navigerer.
    */
@@ -238,7 +238,7 @@ const commitCandidate = (
   nextHistory: InputHistory,
   committedAt: number,
   /**
-   * Autoritativ hel-sags-replacement (replaceCase/clearCase) skriver ALTID og skaber en ny revision (§3.7),
+   * Autoritativ hel-sags-replacement (replaceCase/clearCase) skriver ALTID og skaber en ny revision (§2.7),
    * også når indholdet er identisk. Det er nødvendigt, for at `Slet alt` kan rydde en bevaret korrupt kilde og
    * ophæve `writesBlocked` (§1.12), selv når runtime-input allerede er tomt.
    */
@@ -247,7 +247,7 @@ const commitCandidate = (
   const serialized = serializeCurrentEnvelope(candidateInput);
   const persisted = catalog.validateSettledInput(parseCurrentEnvelope(serialized));
 
-  // §3.6 pkt. 4: afvis semantisk no-op uden et write, en revision eller et history-trin.
+  // §2.6 pkt. 4: afvis semantisk no-op uden et write, en revision eller et history-trin.
   if (!force && deepEqual(persisted, before.input)) {
     return Object.freeze({ changed: false, revision: before.revision });
   }
@@ -310,8 +310,8 @@ const commitCandidate = (
 
 /**
  * Udsteder én autoritativ inputkommando mod den givne store + katalog. Ukendte/slettede feltreferencer og
- * XOR-brud afvises af reduceren FØR nogen observerbar mutation (§7.4). Én brugerhandling giver højst ét
- * history-trin og præcis én ny revision ved reel ændring (§3.6).
+ * XOR-brud afvises af reduceren FØR nogen observerbar mutation (§4.4). Én brugerhandling giver højst ét
+ * history-trin og præcis én ny revision ved reel ændring (§2.6).
  *
  * STRUKTURELLE rækkecommands (insert/delete/reorder/settle-i-ny-række, og en transaktion der indeholder
  * mindst ét sådant trin) kræver en origin, så undo/redo har et restore-anker. Den ENE generiske signatur med
@@ -404,7 +404,7 @@ const dispatchInputWithBehavior = <TField, TEntity>(
     const result = commitCandidate(
       store, catalog, before, transition.target.input, transition.history, committedAt, false
     );
-    // Surface KUN origin efter en gennemført commit (§3.7): en fejlende commit rammer aldrig hertil (den kaster/
+    // Surface KUN origin efter en gennemført commit (§2.7): en fejlende commit rammer aldrig hertil (den kaster/
     // ruller tilbage i commitCandidate), og et frame uden origin giver ingen restore. Shellen navigerer derfor
     // aldrig efter en mislykket eller tom restore.
     if (result.changed && transition.target.origin !== undefined) {
@@ -417,7 +417,7 @@ const dispatchInputWithBehavior = <TField, TEntity>(
   const reduced = reduceInputCommand(before.input, command, catalog);
   const authoritative = isAuthoritativeReplacement(command);
   const nextHistory = authoritative
-    ? createInputHistory() // §3.7: hel-sags-replacement rydder history.
+    ? createInputHistory() // §2.7: hel-sags-replacement rydder history.
     : behavior.kind === 'persistedSortOrder'
       ? rebaseSortedCollectionOrder(before.history, catalog, behavior.collection, reduced.input)
       : pushInputHistory(before.history, before.input, options.origin);

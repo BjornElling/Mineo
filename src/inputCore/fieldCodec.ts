@@ -1,4 +1,4 @@
-// Inputkernen (§3.3): ét codec pr. inputfamilie på tværs af formular og grid. Codecs er rene funktioner
+// Inputkernen (§2.3): ét codec pr. inputfamilie på tværs af formular og grid. Codecs er rene funktioner
 // uden React, DOM eller storage. En afvist resolution bærer en MASKINLÆSBAR årsag og detaljer, så UI
 // aldrig reparser råteksten for at finde tooltipteksten (§1.8).
 
@@ -22,7 +22,7 @@ export type FieldResolution<T> =
   | Readonly<{ status: 'rejected'; reason: FieldRejectReason; detail?: FieldRejectDetail }>;
 
 /**
- * De codec-FAMILIER, kernen har. §7.1 kræver, at den fælles feltkontrakt køres mod BÅDE form- og
+ * De codec-FAMILIER, kernen har. §4.1 kræver, at den fælles feltkontrakt køres mod BÅDE form- og
  * grid-adapteren "for hver codecfamilie" – og det krav kan kun håndhæves, hvis familierne er
  * OPREGNELIGE. Uden navnet var listen en hånd-vedligeholdt konstant i en testfil, og præcis derfor kunne
  * dækningen falde bagud til én form-familie og én grid-familie uden at noget blev rødt.
@@ -83,7 +83,7 @@ export type FieldSignPolicy = 'nonNegative' | 'signed';
 export type FieldDecimalPolicy = 'integerOnly' | 'decimal';
 
 export type FieldCodec<T> = Readonly<{
-  /** Codecets familie – den ene identitet, §7.1's dækningskrav opregnes over. */
+  /** Codecets familie – den ene identitet, §4.1's dækningskrav opregnes over. */
   family: FieldCodecFamily;
   /**
    * Fortegns-politikken for de NUMERISKE familier (`integer`, `amount`, `percent` og deres string-backed

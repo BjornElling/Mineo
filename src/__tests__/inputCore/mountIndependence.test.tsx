@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 /**
- * §10-kriterium 22 som en DIREKTE måling: *issues, beregninger og gates afhænger ikke af component mount.*
+ * input-architecture.md §5 kriterium 22 som en DIREKTE måling: *issues, beregninger og gates afhænger ikke
+ * af component mount.*
  *
  * **Hvorfor kriteriet har brug for sin EGEN kilde.** De nærliggende tests måler hver især noget andet:
  * arkitekturharnesset beviser, at ingen komponent SKRIVER ind i issue-snapshottet, og de enkelte
@@ -183,7 +184,7 @@ const buildMixedCase = (): SettledInput => {
   return store.getState().input;
 };
 
-describe('§10-kriterium 22 – issues, beregninger og gates afhænger ikke af component mount', () => {
+describe('§5 kriterium 22 – issues, beregninger og gates afhænger ikke af component mount', () => {
   it('issues, projektion og dokumentgate er identiske med og uden et monteret komponenttræ', () => {
     const input = buildMixedCase();
 

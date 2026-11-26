@@ -20,7 +20,7 @@ import {
 import { defineStructuralField, isUndefined } from '../structuralDescriptors';
 import { SHORT_TEXT_MAX_LENGTH } from './fieldLengthLimits';
 
-// Produkt-descriptors for `stamdata`-sektionen (§3.2). Alle felter er top-level skalarer; ingen
+// Produkt-descriptors for `stamdata`-sektionen (§2.2). Alle felter er top-level skalarer; ingen
 // samlinger. Den tomme sektion er `{}` (alle felter optional).
 
 const createEmptyStamdataSection = (): unknown => ({});
@@ -114,7 +114,7 @@ export const stamdataSkadestypeField = defineStructuralField<Skadestype | undefi
 });
 
 /**
- * Feltets navn er KONTEKSTUELT (§3.2a): «Skadedato» ved Arbejdsulykke og ukendt skadestype,
+ * Feltets navn er KONTEKSTUELT (§2.2): «Skadedato» ved Arbejdsulykke og ukendt skadestype,
  * «Anmeldelsesdato» ved Erhvervssygdom. Reglen er erklæret HER – på feltet – så både den synlige label og
  * enhver besked om feltet navngiver det ens.
  *

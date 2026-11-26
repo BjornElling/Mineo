@@ -50,7 +50,7 @@ type Props = Readonly<{
 }>;
 
 const extendedSpecificationRef = erhvervsevnetabBilagVisUdvidetSpecifikationField.bind();
-// route + tabKey er eksplicit navigation-metadata (§3.7); feltet bor på løbende-ydelser-fanen.
+// route + tabKey er eksplicit navigation-metadata (§2.7); feltet bor på løbende-ydelser-fanen.
 const EXTENDED_SPECIFICATION_LOCATION = { locationId: 'erhvervsevnetab:loebendeYdelser:visUdvidetSpecifikation', route: APP_ROUTES.erhvervsevnetab, tabKey: ERHVERVSEVNETAB_TAB_KEYS.LOEBENDE_YDELSER } as const;
 
 // Samme månedsformatter som dokumentet: «Mdr.» er den faktor, «Beregnet EET» ganges med,

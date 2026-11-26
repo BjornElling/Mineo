@@ -6,7 +6,7 @@ import type { AnyFieldRef } from '../../../inputCore/fieldDescriptor';
 import { toISODateString } from '../../../types/branded';
 import type { VarigeMenBeregningResult } from '../../../domain/varigemen/varigeMenCalculations';
 
-// Greenfield-gate (§A2/§3.4/§5.4): gaten afledes nu af den ENE reader-projektion. Sandhedstabellen er uændret:
+// Gaten (§A2, input-architecture.md §2.4) afledes af den ENE reader-projektion. Sandhedstabellen er uændret:
 //   - projektion blokeret af en rød feltfejl → varigemen:field-error,
 //   - projektion blokeret KUN af missing → varigemen:missing-fields,
 //   - projektion ready men beregningsResultat=null → varigemen:no-result,

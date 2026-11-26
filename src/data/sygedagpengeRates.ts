@@ -149,7 +149,7 @@ assertSygedagpengeRatesIntegritet(sygedagpengeRates);
 export const SYGEDAGPENGE_RATE_MIN_DATE: ISODateString = firstSygedagpengeRate.fraDato;
 export const SYGEDAGPENGE_RATE_MAX_DATE: ISODateString = lastSygedagpengeRate.tilDato;
 // Insert-vinduet for "Indsæt maksimal sygedagpengesats" er hele satsdækningen. ATP og OP
-// er nu kolonner på hver satsrække, så et nyt satsår dækker automatisk alle tre led.
+// er kolonner på hver satsrække, så et nyt satsår dækker automatisk alle tre led.
 export const SYGEDAGPENGE_INSERT_MIN_DATE: ISODateString = SYGEDAGPENGE_RATE_MIN_DATE;
 export const SYGEDAGPENGE_INSERT_MAX_DATE: ISODateString = SYGEDAGPENGE_RATE_MAX_DATE;
 

@@ -171,9 +171,8 @@ describe('lag 2 – hvert numerisk produktionsfelt ERKLÆRER en politik', () => 
 
 describe('lag 3 – den ægte komponent blokerer tastetrykket', () => {
   /**
-   * Åbner editoren og returnerer inputtet. Et lukket greenfield-felt er `readOnly`, og dets tegnfilter er
-   * ikke tilkoblet – en test, der taster på et LUKKET felt, ville derfor være grøn uanset politikken. Det var
-   * netop den fælde, den første reproduktion af dette fund faldt i.
+   * Åbner editoren og returnerer inputtet. Et lukket felt er `readOnly`, og dets tegnfilter er
+   * ikke tilkoblet – en test, der taster på et LUKKET felt, ville derfor være grøn uanset politikken.
    */
   const openEditor = (): HTMLInputElement => {
     const input = screen.getByRole('textbox') as HTMLInputElement;

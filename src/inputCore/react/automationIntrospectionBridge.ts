@@ -23,7 +23,7 @@ import {
 //   - Ingen skrivevej. Der eksporteres ingen setter, ingen commit og ingen edit-port. En automatisering
 //     skal fremkalde en ændring gennem den samme brugerflade som mennesket, ellers ville testen bevise
 //     noget om broen frem for om programmet.
-//   - Ingen ny læsegrænse. Alt hentes gennem den eksisterende `InputReadPort` (§3.4) og de attributter,
+//   - Ingen ny læsegrænse. Alt hentes gennem den eksisterende `InputReadPort` (§2.4) og de attributter,
 //     `historyRestoreTarget` allerede ejer. Broen tilføjer ikke en parallel feltidentitet – den eksponerer
 //     den ENE, `input/single-field-identity-in-dom` allerede håndhæver.
 //   - Ingen canonical værdiudlæsning. `InputReader.read` er bevidst `FieldRef`-baseret og kan ikke drives

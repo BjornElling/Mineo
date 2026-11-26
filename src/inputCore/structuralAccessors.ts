@@ -6,7 +6,7 @@ import type {
 } from './fieldAddress';
 import type { PersistedInputSections } from './settledInput';
 
-// Inputkernen (§3.2): generiske strukturelle accessorer, der navigerer en FieldAddress/CollectionRef
+// Inputkernen (§2.2): generiske strukturelle accessorer, der navigerer en FieldAddress/CollectionRef
 // direkte over det almindelige sektionsobjekt. De gør descriptor-katalogets read/write mekaniske – en
 // descriptor behøver ikke en håndskrevet per-felt-lukning, kun sin strukturelle template.
 //

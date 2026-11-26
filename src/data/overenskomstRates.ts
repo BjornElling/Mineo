@@ -157,7 +157,7 @@ export const assertOffentligReguleringsDatoGyldig = (dato: DanishDateString): vo
 /**
  * Type for base properties i satserFromTable
  * Alle properties er optional, da kun de fælles værdier skal angives
- * Inkluderer nu også kolonner der kan være null i tabellen
+ * Inkluderer også kolonner der kan være null i tabellen
  */
 type OverenskomstSatsBase = Partial<Omit<
   OverenskomstPeriodeSats,

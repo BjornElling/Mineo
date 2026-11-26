@@ -117,7 +117,7 @@ export type DependencySpec =
 /**
  * Fokusmålet for et navigerbart EO-issue.
  *
- * Målet er en KANONISK feltadresse (§3.2) – den samme dataidentitet undo/redo (`findRestoreTarget`) og
+ * Målet er en KANONISK feltadresse (§2.2) – den samme dataidentitet undo/redo (`findRestoreTarget`) og
  * save-blokeringens fokus (`lookupEditorLocation`) bruger. Adressen bindes af issue-kataloget fra
  * produktionens egne felt-descriptorer, så et omdøbt felt bliver en compilerfejl frem for et link, der
  * lydløst falder tilbage til rækkeankeret.

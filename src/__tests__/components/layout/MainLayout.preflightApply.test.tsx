@@ -48,7 +48,7 @@ import { loadFromFile } from '../../../utils/fileLoad';
 import { clickMainLayoutAction } from './mainLayoutActionTestUtils';
 
 // Preflight-apply routes gennem replacement-grænsen. "Feltfejl ryddes ved
-// load" er nu strukturelt: en `replaceCase` erstatter hele inputtet (rejected råtekst inklusive), hæver
+// load" er strukturelt: en `replaceCase` erstatter hele inputtet (rejected råtekst inklusive), hæver
 // `replacementGeneration` og efterlader et rent issue-snapshot. Vi hævder mod runtime i stedet for det legacy
 // fieldErrors-lager.
 

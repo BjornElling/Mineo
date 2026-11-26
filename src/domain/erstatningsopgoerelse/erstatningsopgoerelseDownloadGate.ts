@@ -19,7 +19,7 @@ import {
 import type { ErstatningsopgoerelseReaderProjection } from './erstatningsopgoerelseReaderProjection';
 import { selectBlockingLoenindkomstEntityIds } from './eoInputIssues';
 
-// EO download-gate (§3.4/§3.9/§5.4). En ren, React-fri gate der afledes af den ENE
+// EO download-gate (input-architecture.md §2.4/§2.9). En ren, React-fri gate der afledes af den ENE
 // reader-projektion (`buildErstatningsopgoerelseReaderProjection`) i stedet for `useEoBeregningViewModel`'s live
 // store-reads (`useFieldErrorsBySourceForSection`/`useBlockingFieldIdsBySuffixForSection`). Den ejer gate-
 // beslutningen for de FIRE EO-dokumenter (erstatningsopgørelse, TAF fordelt på år, TAF opreguleret, TAF-kravgraf).
@@ -110,7 +110,7 @@ const resolveEoRowBlockingState = (
 ): EoRowBlockingState => {
   // BEVIDST: ingen `isActive`-guard som view-modellen (der springer collectAllEoRows over på en inaktiv fane
   // for at spare render-arbejde). Gaten er en ren funktion af inputtet og må ikke afhænge af component mount/fane
-  // (§3.4/§3.9 + acceptkriterie §10 pkt. 22) – den afspejler altid den sande blokerings-tilstand.
+  // (§2.4/§2.9 + §5 kriterium 22) – den afspejler altid den sande blokerings-tilstand.
   const { snapshot, eoValues, stamdataValues, eoErrors, stamdataErrors } = projection;
 
   // EET-kilde-fejl (kun ved aktiv midlertidigt-EET-import) læses fra snapshot-invarianterne, som view-modellen.

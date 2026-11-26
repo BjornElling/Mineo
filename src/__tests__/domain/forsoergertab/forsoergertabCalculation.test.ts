@@ -12,7 +12,7 @@ const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
 
 /**
  * Disse tests måler motorens egen beregning på GYLDIGT input, så ingen dependency-gruppe er blokeret.
- * Gate-flagene er påkrævede (§3.9), netop for at et udeladt flag ikke lydløst kan åbne motoren igen.
+ * Gate-flagene er påkrævede (§2.9), netop for at et udeladt flag ikke lydløst kan åbne motoren igen.
  */
 const NOT_BLOCKED = { ealBlocked: false, aslBlocked: false } as const;
 
@@ -381,8 +381,8 @@ describe('computeForsoergertabAslYdelser', () => {
   });
 
   it('læser de udbetalte måneder af tabellens egen sum, så de to halvdele ikke kan drifte', () => {
-    // Fladens to halvdele brugte før hver sin læsning: tabellen dagbaseret, kapitalfaktoren hele
-    // kalendermåneder. Denne test låser, at der nu kun er ÉN kilde til tallet.
+    // Fladens to halvdele må ikke have hver sin læsning (tabellen dagbaseret, kapitalfaktoren hele
+    // kalendermåneder). Denne test låser, at der kun er ÉN kilde til tallet.
     const result = computeForsoergertabAslYdelser({
       skadedato: toISODateString('2020-06-10'),
       beregningsdato: toISODateString('2025-07-01'),

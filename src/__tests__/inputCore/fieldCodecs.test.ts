@@ -148,7 +148,7 @@ describe('fieldCodecs', () => {
     // tastningen og blive til 4.000.000. VISNINGEN ovenfor er decimalløs.
     expect(integerOnly.acceptsInitialKey(',')).toBe(true);
     expect(withDecimals.acceptsInitialKey(',')).toBe(true);
-    // Settle er nu det sted, decimalpolitikken håndhæves: heltalsfeltet afrunder, decimalfeltet bevarer.
+    // Settle er det sted, decimalpolitikken håndhæves: heltalsfeltet afrunder, decimalfeltet bevarer.
     expect(integerOnly.parseForSettle('450.000,60')).toEqual({ status: 'valid', value: { kind: 'number', value: 450001 } });
     expect(withDecimals.parseForSettle('450.000,60')).toEqual({ status: 'valid', value: { kind: 'number', value: 450000.6 } });
     // Cifre åbner stadig editoren i begge – reglen rammer kommaet, ikke al indtastning.

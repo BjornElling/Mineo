@@ -5,7 +5,7 @@ import type { ConsumerIssue, FieldIssue } from './inputIssue';
 import type { EntityRef, InputReader } from './inputReader';
 import type { EvaluationSourceToken } from './evaluationSource';
 
-// Inputkernen (§3.4/§11): domæneprojektioner er ALMINDELIGE rene funktioner. De læser konkrete refs
+// Inputkernen (§2.4/§6): domæneprojektioner er ALMINDELIGE rene funktioner. De læser konkrete refs
 // gennem readeren, samler issues og returnerer et lille `ready | blocked`-resultat. Ingen generisk
 // projektions-DSL, ingen symbols/brands, intet manuelt `global|section|row`-scope: den præcise dependency
 // følger af de refs, funktionen faktisk læser.
@@ -49,7 +49,7 @@ export type ProjectionCollector = Readonly<{
 }>;
 
 /**
- * `label` kommer fra readerens `labelOf` – feltets navn i den AKTUELLE kontekst (§3.2a), ikke descriptorens
+ * `label` kommer fra readerens `labelOf` – feltets navn i den AKTUELLE kontekst (§2.2), ikke descriptorens
  * kontekstfrie form. Ellers ville en `missing`-besked navngive feltet anderledes end den røde feltfejl på
  * samme felt, og anderledes end den label brugeren ser.
  */
@@ -120,7 +120,7 @@ export const runProjection = <T>(
 
   // ⚠️ `body` udfører FØR statussen er afgjort nedenfor. Den må derfor bygge motorinput, men ALDRIG kalde
   // en beregningsmotor: et motorkald her ville køre, selv når projektionen ender `blocked`. Brug
-  // `mapReadyProjection` på det færdige resultat i stedet (§3.9/§5.4).
+  // `mapReadyProjection` på det færdige resultat i stedet (§2.9).
   const value = body(collector);
   if (issues.length > 0) {
     return Object.freeze({

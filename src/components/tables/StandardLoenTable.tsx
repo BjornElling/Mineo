@@ -53,11 +53,11 @@ import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
 // Den delte StandardLoenTable. Tabellen renderes i to kontekster: Årsløn (top-level `aarsloen.tableData`) og EO's
 // løntabel NESTED under hvert ansættelsesforhold. `fieldSet` parametriserer collection + celle-descriptorer, så
 // komponenten selv er sideagnostisk.
-//  - `useCollectionRows(fieldSet.collection)` ejer rækkernes id'er + insert/delete/reorder (§3.8). En celles værdi
+//  - `useCollectionRows(fieldSet.collection)` ejer rækkernes id'er + insert/delete/reorder (§2.8). En celles værdi
 //    bor kun i inputaggregaten; der findes ingen konkurrerende celle-værdikopi.
 //  - hver celle er en `Grid*Cell` over `useCellEditor` (draft/commit) bro-forbundet til grid-core-navigationen.
 //    Celle-specs bygges af den FÆLLES `buildCollectionCellSpec`: begge cellearter bærer en fuldt bundet `FieldRef`,
-//    hvor ejer-id'erne udledes af collectionens sti (§3.2). En trailing PLACEHOLDER-række promoverer atomisk ved
+//    hvor ejer-id'erne udledes af collectionens sti (§2.2). En trailing PLACEHOLDER-række promoverer atomisk ved
 //    første ikke-tomme settle (§1.11).
 //  - de committede rækker læses read-only via `readStandardLoenTableRows(fieldSet, reader)` – KUN til sortering,
 //    afledte kolonner (col6/7/8) og tomheds-vurdering.
@@ -78,7 +78,7 @@ export type StandardLoenTableProps = {
   saveOrderPath?: TableSaveOrderPath;
   calculateDerivedRow?: (row: StandardLoenTableRow) => StandardLoenRowDerived;
   /**
-   * Eksplicit navigation-metadata for cellernes editorlokationer (§3.7): route + fane for den side/fane, tabellen
+   * Eksplicit navigation-metadata for cellernes editorlokationer (§2.7): route + fane for den side/fane, tabellen
    * bor på. Tabellen renderes i flere kontekster (Årsløn vs. EO-lønindkomst), så route/fane kan ikke udledes af
    * `collection` – kalderen leverer den. Udeladt route = ikke-navigerbar lokation (restoren navigerer da ikke).
    */
@@ -128,7 +128,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
     );
 
     // Committede rækker læses read-only fra readeren – til sortering, afledte kolonner og tomheds-vurdering.
-    // Celleværdien bor kun i inputaggregaten; dette er ingen konkurrerende værdikopi (§3.8).
+    // Celleværdien bor kun i inputaggregaten; dette er ingen konkurrerende værdikopi (§2.8).
     const committedRows = React.useMemo(
       () => readStandardLoenTableRows(fieldSet, evaluation.reader),
       [evaluation, fieldSet]
@@ -154,7 +154,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
     /**
      * Rækkeadvarslen for en celle, som en spread-bar prop.
      *
-     * Opslaget sker på cellens EGEN, allerede bundne feltadresse (§3.2 – hele ejerstien er med), så det ikke
+     * Opslaget sker på cellens EGEN, allerede bundne feltadresse (§2.2 – hele ejerstien er med), så det ikke
      * kan ramme en anden række eller en anden tabelinstans (EO renderer én løntabel pr. ansættelsesforhold).
      * Cellens eget røde issue har forrang – en ugyldig dato vises altså frem for den gule ring.
      */

@@ -14,8 +14,8 @@ import { createEvaluationSourceToken, createInputRevision, createSettingsRevisio
 import { serializeFieldAddress } from '../../../inputCore/fieldAddress';
 import { rentekravBelobField, rentekravRowsCollectionRef } from '../../../inputCore/catalog/renteberegningDescriptors';
 
-// Greenfield Renteberegning reader-projektion (§3.4/§5.4): beviser at projektionen (a) kører den EKSISTERENDE
-// `computeRentekravRow` byte-identisk på reader-rekonstruerede rækker (§5.4 hårdt stop mod talændring) og (b)
+// Renteberegnings reader-projektion (input-architecture.md §2.4): beviser at projektionen (a) kører den EKSISTERENDE
+// `computeRentekravRow` byte-identisk på reader-rekonstruerede rækker (ingen talændring) og (b)
 // isolerer per-række (§1.10). Rejected-state-gating dækkes af Renteberegning-integrationstesten, der driver det
 // rigtige felt; her fokuseres på den rene projektion over committed data.
 

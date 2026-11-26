@@ -34,7 +34,7 @@ import { resolveFieldIssueTooltip } from '../../../inputCore/inputIssue';
 import { STANDARD_LOEN_COLUMN_LABELS } from '../../../types/table';
 import { AMOUNT_DIVISION_BY_ZERO_MESSAGE } from '../../../utils/expressionAmount';
 
-// Årsløn-projektionen (§3.4/§5.4). Beviser at `readAarsloenValues`
+// Årsløn-projektionen (input-architecture.md §2.4). Beviser at `readAarsloenValues`
 // rekonstruerer et komplet `AarsloenValues` fra readeren, og at `resolveAarsloenFieldErrorGate` spejler
 // legacy `resolveAarsloenCanonicalRangeIssues`' betingelser (§1.6/§1.9): rød sats blokerer kun i procent-tilstand.
 
@@ -230,7 +230,7 @@ describe('buildAarsloenReaderProjection', () => {
     expect(projection.tableValidation.errors).toEqual([]);
   });
 
-  // §3.9: motoren kaldes KUN i ready-grenen. En rød feltfejl på et beregningskritisk input skjuler værdien i
+  // §2.9: motoren kaldes KUN i ready-grenen. En rød feltfejl på et beregningskritisk input skjuler værdien i
   // readeren; et resultat beregnet på den skjulte tomværdi ville være misvisende – derfor findes der INTET.
   it('blokeret gate → ingen beregning (motoren kaldes ikke)', () => {
     const input = dispatch(empty(), settle(feriePctRef, '150'));

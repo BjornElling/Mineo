@@ -20,7 +20,7 @@ import {
 import { createValidationReader, deriveFieldIssueSet } from './inputReader';
 import { activeFieldIssue, type FieldIssueSet } from './inputIssue';
 
-// Inputkernen (§3.6): alle autoritative ændringer bygges af ÉN ren, exhaustiv reducer. Storage, revision
+// Inputkernen (§2.6): alle autoritative ændringer bygges af ÉN ren, exhaustiv reducer. Storage, revision
 // og history ejes af runtime-runneren (inputkernen). Reduceren håndhæver XOR-invarianten (§1.5): et ugyldigt settle
 // rydder feltets canonical slot til tomværdien OG skriver den rå fejlende tekst atomisk.
 
@@ -207,7 +207,7 @@ export const inputTransaction = (
   if (steps.some((step) => step.structural)) {
     throw new Error(
       'InputReducer: en transaktion med rækkeændringer skal bygges med `structuralInputTransaction`, '
-      + 'så dispatch-porten kan kræve en navigerbar destination til undo/redo (§3.7).'
+      + 'så dispatch-porten kan kræve en navigerbar destination til undo/redo (§2.7).'
     );
   }
   return Object.freeze({ kind: 'transaction', structural: false, steps: Object.freeze([...steps]) });
@@ -303,7 +303,8 @@ const removeRejectedBelowEntity = (
 };
 
 /**
- * §3.6/§7.5: en ændring, der skjuler et felt med en aktiv rød fejl, rydder feltet i samme transaktion.
+ * §2.6/form-contract.md §7.5: en ændring, der skjuler et felt med en aktiv rød fejl, rydder feltet i samme
+ * transaktion.
  *
  * **Hovedreglen (§7.5):** et valg må ikke slette brugerens indtastninger. Kun eksplicit slettende
  * kontroller – `Slet række`, `Slet alt`, Delete/Backspace på et fokuseret felt – fjerner data, og de er
@@ -473,7 +474,7 @@ const buildUncleanedCandidate = <TField, TEntity>(
       // Flere felt-/rækkeændringer fra én eksplicit brugerhandling skal være ét observerbart revision-/undo-trin.
       // Hvert mellemtrin valideres, men ingen mellemtilstand forlader den rene reducer.
       // De to arter reduceres IDENTISK; adskillelsen findes kun, så dispatch-porten kan kræve en navigerbar
-      // destination for den strukturelle variant (§3.7).
+      // destination for den strukturelle variant (§2.7).
       let candidate = input;
       for (const step of command.steps) {
         candidate = step.reduce(candidate, catalog);
@@ -510,7 +511,7 @@ const reduceInputTransactionStep = <TField, TEntity>(
 
 export type InputReducerResult = Readonly<{ changed: boolean; input: SettledInput }>;
 
-/** Ren, exhaustiv, validerende reducer. Afviser semantisk no-op uden en ny revision (§3.6 pkt. 4). */
+/** Ren, exhaustiv, validerende reducer. Afviser semantisk no-op uden en ny revision (§2.6 pkt. 4). */
 export const reduceInputCommand = <TField, TEntity>(
   input: SettledInput,
   command: InputMutationCommand<TField, TEntity>,

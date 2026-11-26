@@ -171,14 +171,14 @@ import { collectBeregningsgrundlagCellIssues } from './beregningsgrundlagCellIss
 import { collectSvieSmerteCutoffDateIssues } from './svieSmerteCutoffDateIssues';
 import { collectSvieSmerteOverlapIssues } from './svieSmerteOverlapIssues';
 
-// Erstatningsopgørelse-projektionen (§3.4/§5.4/§1.10). En
+// Erstatningsopgørelse-projektionen (input-architecture.md §2.4/§1.10). En
 // ALMINDELIG ren funktion over den offentlige `InputReader`, der erstatter `Erstatningsopgoerelse.tsx`'s revisions-
 // gatede `getPersistedSectionSnapshot`/`getFieldErrorsBySourceSnapshot`-effekt, som byggede `computeEoSnapshot`.
 //
 // Modsat de mindre slices har EO's snapshot-motor (`computeEoSnapshot`) sin egen `erstatningsopgoerelseValidator`,
 // der re-validerer ALLE bounds/regler PÅ VÆRDIERNE (ikke på et fieldErrors-map). Blokeringen kommer derfor fra
 // værdierne – ikke fra de to fieldErrors-maps, som motoren kun videregiver uændret til inspektion-snapshottet.
-// Vi følger derfor Satser-/EET-/Forsørgertab-doktrinen (§3.4/§5.4):
+// Vi følger derfor Satser-/EET-/Forsørgertab-doktrinen (§2.4):
 //  - VALUE-REKONSTRUKTION: hvert felt læses gennem readeren og falder tilbage til sin canonical tomværdi, når
 //    readeren skjuler en rød feltfejl (rejected format/range) ELLER en null-sektion giver `undefined` for et felt,
 //    hvis tomværdi ikke er `undefined` (fx required-choice 'maaned'). `computeEoSnapshot` køres UÆNDRET på
@@ -584,7 +584,7 @@ export type ErstatningsopgoerelseReaderProjection = Readonly<{
   // fordi den ville ligne en dependency-erklæring uden faktisk at gate outputtet.
   /** Henter et skift til «Midlertidigt EET indsættes fra Erhvervsevnetab-siden» et fradrag? */
   midlertidigtEetSkiftGiverFradrag: boolean;
-  /** Kildesnapshottets token – issue-snapshot og reader stammer fra samme evaluering (§3.4). */
+  /** Kildesnapshottets token – issue-snapshot og reader stammer fra samme evaluering (§2.4). */
   sourceToken: EvaluationSourceToken;
 }>;
 

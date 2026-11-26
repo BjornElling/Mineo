@@ -3,7 +3,7 @@
  *
  * Programmet har tre veje, der fører brugeren hen til en indtastning, som kræver opmærksomhed:
  * undo/redo-fokusrestoren, save-blokeringens fokus og de interne fejl-/advarselslinks. Alle tre
- * lokaliserer målet gennem den ENE feltidentitet i DOM (`data-mineo-field-address`, §3.2) – men kun
+ * lokaliserer målet gennem den ENE feltidentitet i DOM (`data-mineo-field-address`, §2.2) – men kun
  * Årslønssidens løntabel havde en visuel markering, og den var privat for netop den tabel: en lokal
  * `flashCell`-state, et lokalt `@keyframes errorFlash` og et cellekoordinat (`rowId` + `colIdx`), som
  * ingen anden flade kan tale.

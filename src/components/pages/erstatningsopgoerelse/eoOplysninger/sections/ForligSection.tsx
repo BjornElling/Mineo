@@ -13,7 +13,7 @@ import { createFieldWarning } from '../../../../../inputCore/fieldWarning';
 import { resolveForligDatoEfterOpgoerelseMessage } from '../../../../../domain/erstatningsopgoerelse/validation/forligOgStatusDatoEfterOpgoerelse';
 import { APP_ROUTES } from '../../../../../config/pageNavigation';
 import { EO_TAB_KEYS } from '../../../../../config/eoTabKeys';
-// route + tabKey på location er eksplicit navigation-metadata (§3.7); alle felter i denne sektion bor på EO-oplysningerfanen.
+// route + tabKey på location er eksplicit navigation-metadata (§2.7); alle felter i denne sektion bor på EO-oplysningerfanen.
 
 /** Sektion 2: Forlig om ansvarsgrad + evt. forligsdato. */
 export default function ForligSection() {

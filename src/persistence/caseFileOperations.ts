@@ -9,11 +9,11 @@ import { deepEqual } from '../utils/deepEqual';
 import { projectEoSave, type EoSaveProjection } from './eoSaveProjection';
 
 // `CaseFileOperations`-porten ejer `.eo`-save via `projectEoSave` og load-apply over
-// reader-/replacement-grænserne (§3.10). Den eksponerer hverken rå sektioner, rejected maps eller
+// reader-/replacement-grænserne (§2.10). Den eksponerer hverken rå sektioner, rejected maps eller
 // feltissues. Den læser kun det afsluttede input gennem en injiceret kildeoptager og skriver kun gennem
 // den ene autoritative `replaceCase`-command. UI-flow (preflight-dialog, overwrite-gate, PWA-samtidighed,
 // fokusrestore) og selve fil-I/O'et (`saveToFile`/`loadFromFile`, codec, metadata) ejes fortsat af
-// shell-use-casen og de bevarede `utils/file*`-primitiver (§4.1); porten binder dem til input-runtime.
+// shell-use-casen og de bevarede `utils/file*`-primitiver; porten binder dem til input-runtime.
 
 /**
  * Den minimale runtime-grænse porten har brug for. Injiceres (ikke den fulde binding), så porten er
@@ -32,13 +32,13 @@ export type CaseRuntimeAccess = Readonly<{
    */
   getNewCaseInput: () => SettledInput;
   /**
-   * Optager et FRISKT, stabilt kildesnapshot til `.eo`-save (§3.9 pkt. 2): efter settle læses input +
+   * Optager et FRISKT, stabilt kildesnapshot til `.eo`-save (§2.9 pkt. 2): efter settle læses input +
    * token samlet, så save-projektionen evalueres mod præcis den revision, der skrives.
    */
   captureSaveSource: () => Readonly<{ input: SettledInput; token: EvaluationSourceToken }>;
   /**
    * Anvender et indlæst snapshot som ÉN autoritativ hel-sags-replacement (`replaceCase`), der rydder
-   * history og flytter `replacementGeneration` (§3.7). Kaster ved schema-/katalogafvisning.
+   * history og flytter `replacementGeneration` (§2.7). Kaster ved schema-/katalogafvisning.
    */
   applyReplaceCase: (candidate: SettledInputCandidate) => void;
 }>;
@@ -50,7 +50,7 @@ export type EoSaveOutcome =
 /**
  * Bygger et load-apply-kandidat fra et schema-gyldigt `.eo`-snapshot. Et indlæst `.eo` er altid canonical
  * (rejected råtekst serialiseres aldrig til fil, §1.6), så `rejectedInputs` er tomt. Snapshotets `undefined`-
- * sektioner mappes til `null`, fordi den afsluttede inputtilstand bruger `null` for en tom sektion (§3.1).
+ * sektioner mappes til `null`, fordi den afsluttede inputtilstand bruger `null` for en tom sektion (§2.1).
  */
 export const buildLoadReplaceCaseCandidate = (
   snapshot: PersistedSectionsSnapshot
@@ -63,11 +63,11 @@ export const buildLoadReplaceCaseCandidate = (
 
 /**
  * Porten. En tynd, ren orkestrering oven på `CaseRuntimeAccess`: den kobler den bevarede fil-I/O til
- * input-runtime uden at eksponere en ny altomfattende facade (§3.10).
+ * input-runtime uden at eksponere en ny altomfattende facade (§2.10).
  */
 export type CaseFileOperations = Readonly<{
   /**
-   * Evaluerer `.eo`-save (§3.9): optager frisk kilde, kører `projectEoSave` og returnerer enten det
+   * Evaluerer `.eo`-save (§2.9): optager frisk kilde, kører `projectEoSave` og returnerer enten det
    * schema-parsede canonical snapshot + kildetoken (klar til `saveToFile`) eller de blokerende rejected
    * adresser. Selve fil-skrivningen og settle-før-save ligger i use-casen (contract §2/§6).
    */
@@ -117,7 +117,7 @@ export const createCaseFileOperations = (runtime: CaseRuntimeAccess): CaseFileOp
  * Et ikke-tomt `rejectedInputs` tæller altid som brugerdata (§1.6): et rejected-only felt (tomt canonical slot
  * + bevaret fejlende råtekst) er afsluttet brugerinput, og en load må ikke kunne overskrive det ubemærket.
  *
- * Dette er den ene data-presence-forespørgsel; consumers får resultatet, ikke rå sections (§5.4).
+ * Dette er den ene data-presence-forespørgsel; consumers får resultatet, ikke rå sections (§2.4).
  */
 export const settledInputHasAnyData = (input: SettledInput, newCase: SettledInput): boolean =>
   Object.keys(input.rejectedInputs).length > 0

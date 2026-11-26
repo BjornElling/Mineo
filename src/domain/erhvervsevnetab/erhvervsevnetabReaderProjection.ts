@@ -58,7 +58,7 @@ import { computeEetSnapshot, type EetSnapshot } from './eetSnapshot';
 import { buildAslAfgoerelserSummaryIssues } from './aslAfgoerelserIssueSummary';
 import { resolveStamdataDatoReference, type SkadestypeDatoLabel } from '../policies/stamdataCalculations';
 
-// Erhvervsevnetab-projektionen (§3.4/§5.4/§1.10). En ALMINDELIG ren
+// Erhvervsevnetab-projektionen (input-architecture.md §2.4/§1.10). En ALMINDELIG ren
 // funktion over den offentlige `InputReader`, der erstatter `Erhvervsevnetab.tsx`'s rå `usePersistedForm`/
 // `usePersistedSectionSelector`/`useInvalidDraftForFieldSelector`-læsning + `useFormFieldErrors`-gating. Den er
 // den ENE kanoniske projektion til alle fem tabs (løbende ydelser, kapitalisering, EET efter EAL, differencekrav)
@@ -183,7 +183,7 @@ export type ErhvervsevnetabReaderProjection = Readonly<{
     forligAnsvarsgradBroek: string | undefined;
     forligDato: ISODateString | undefined;
   }>;
-  /** Kildesnapshottets token – issue-snapshot og reader stammer fra samme evaluering (§3.4). */
+  /** Kildesnapshottets token – issue-snapshot og reader stammer fra samme evaluering (§2.4). */
   sourceToken: EvaluationSourceToken;
 }>;
 

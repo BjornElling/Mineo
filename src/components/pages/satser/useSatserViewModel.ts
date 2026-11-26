@@ -12,7 +12,7 @@ import type { EditorLocation } from '../../../inputCore/editor/fieldEditorState'
 /**
  * Satser-sidens ene kanoniske viewmodel (`page-component-contract.md` §4.4).
  *
- * Vist = beregnet (§3.9): sidevisningen udledes af SAMME reader-projektion, som definitionens gate bruger. Et
+ * Vist = beregnet (§2.9): sidevisningen udledes af SAMME reader-projektion, som definitionens gate bruger. Et
  * out-of-bounds eller tomt år giver `blocked` → satser skjules OG download blokeres; der findes ikke en
  * separat visningsvej, der kunne vise satser for et fallback-år.
  *
@@ -20,9 +20,9 @@ import type { EditorLocation } from '../../../inputCore/editor/fieldEditorState'
  * fejlrouting – ejes af definitionen (§A2). Modellen konfigurerer den ikke; den aktiverer den.
  */
 
-// Stabil felt-ref + editorlokation (§3.2): locationId er editor-metadata, ikke datafeltets identitet.
+// Stabil felt-ref + editorlokation (§2.2): locationId er editor-metadata, ikke datafeltets identitet.
 const aargangRef = satserAargangField.bind();
-// route er eksplicit navigation-metadata (§3.7); Satser er en side uden faner (tabKey: null).
+// route er eksplicit navigation-metadata (§2.7); Satser er en side uden faner (tabKey: null).
 const aargangLocation: EditorLocation = {
   locationId: 'satser:aargang',
   route: APP_ROUTES.satser,

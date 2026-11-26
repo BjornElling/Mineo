@@ -11,7 +11,7 @@ export type ProductionInputRuntimeProviderProps = Readonly<{
 
 /**
  * Tynd produktions-provider. Bindingen bygges/hydreres uden for React (før render) og gives ind, så en
- * remount aldrig re-hydrerer eller overskriver input (§3.10). Adskilt fra `InputRuntimeProvider`, så
+ * remount aldrig re-hydrerer eller overskriver input (§2.10). Adskilt fra `InputRuntimeProvider`, så
  * test-wiring og produktions-wiring ikke deler mount-ansvar.
  *
  * Komponenten ligger i sit eget modul: runtime-modulet eksporterer bootstrap-funktioner, og en blanding af

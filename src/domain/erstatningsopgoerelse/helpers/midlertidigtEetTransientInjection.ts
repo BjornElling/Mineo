@@ -218,8 +218,8 @@ export const resolveMidlertidigtEetUdenAfgoerelseIssue = (args: Readonly<{
  * Når togglen `midlertidigtEetFraEetSiden` er `'Ja'`, injiceres rækkerne fra EET-siden
  * transient ind i `offentligeYdelserRows` (som om de var indtastet i tabellen).
  *
- * Eksisterende manuelle `midlertidigt_eet`-rækker filtreres defensivt væk, så invarianten
- * fra §6.1 i implementeringsplanen ikke kan brydes ved fx en bug i UI'et.
+ * Eksisterende manuelle `midlertidigt_eet`-rækker filtreres defensivt væk, så invarianten – togglen
+ * erstatter de manuelle rækker helt (`domain-boundary-contract.md` §10) – ikke kan brydes ved fx en bug i UI'et.
  *
  * Når togglen er `'Nej'`, returneres EO-værdierne uændret.
  */

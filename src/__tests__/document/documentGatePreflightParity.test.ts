@@ -1,5 +1,5 @@
 /**
- * §10-kriterium 27 / kontraktens §A2a: *alle 18 dokumentoutputs bruger samme definition til reaktiv gate
+ * §5 kriterium 27 / kontraktens §A2a: *alle 18 dokumentoutputs bruger samme definition til reaktiv gate
  * og click-preflight* – målt for ALLE atten.
  *
  * **Hvorfor alle atten.** `document-output-contract.md` §A2a lover, at hver dokumentdefinition særskilt
@@ -234,7 +234,7 @@ const INPUTS: readonly (readonly [string, () => SettledInput])[] = [
   ],
 ];
 
-describe('gate = preflight for ALLE 18 hovedapp-outputs (§A2a, §10-kriterium 27)', () => {
+describe('gate = preflight for ALLE 18 hovedapp-outputs (§A2a, §5 kriterium 27)', () => {
   it('dækker alle 18 katalogiserede hovedapp-outputs – listen kan ikke blive ufuldstændig', () => {
     // Uden denne binding kunne en ny definition tilføjes til kataloget UDEN at blive paritetsmålt,
     // mens testen forblev grøn.

@@ -253,7 +253,7 @@ describe('adaptPersistedSectionForLoad', () => {
       expect(migrated.loenindkomstAnsaettelsesforhold[0]?.beregnStoreBededagstillaeg).toBe(false);
     });
 
-    it('er identity for en ukendt kildeversion (§3.1a: intet versions-gæt)', () => {
+    it('er identity for en ukendt kildeversion (schema-evolution §3.1a: intet versions-gæt)', () => {
       const section = { loenindkomstAnsaettelsesforhold: [employment()] };
       const { value } = adaptPersistedSectionForLoad('erstatningsopgoerelse', section, '2.9');
       const rows = (value as { loenindkomstAnsaettelsesforhold: Record<string, unknown>[] })

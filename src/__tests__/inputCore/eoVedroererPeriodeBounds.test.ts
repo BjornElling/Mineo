@@ -10,13 +10,13 @@ import { toISODateString, type ISODateString } from '../../types/branded';
 import type { CanonicalView, FieldDescriptor, FieldRef } from '../../inputCore/fieldDescriptor';
 
 /**
- * «Vedrører perioden» var fladens ENESTE dato uden bund i sagens egen skadedato.
+ * «Vedrører perioden» har bund i sagens egen skadedato ligesom fladens øvrige otte datoer.
  *
- * En dato otte år før skaden blev afsluttet canonical med neutral kant og uden besked, mens fladens øvrige
- * otte datoer alle havde skadedatoen som gulv og sagde det. Perioden afgrænser samtlige krav, dokumentets
- * overskriftslinje og sammentællingens «Det samlede krav for perioden …», så et forkert årstal – den
- * hyppigste datofejl – gik uhindret igennem. Felterne bruger nu samme spec som resten af fladen, hvilket
- * også giver dem erhvervssygdoms-reglen (anmeldelsesdato minus 5 år) uden en parallel implementering.
+ * Perioden afgrænser samtlige krav, dokumentets overskriftslinje og sammentællingens «Det samlede krav for
+ * perioden …». Uden bunden ville en dato otte år før skaden blive afsluttet canonical med neutral kant og uden
+ * besked, så et forkert årstal – den hyppigste datofejl – ville gå uhindret igennem. Felterne bruger samme spec som
+ * resten af fladen, hvilket også giver dem erhvervssygdoms-reglen (anmeldelsesdato minus 5 år) uden en parallel
+ * implementering.
  */
 
 const SKADEDATO = '2018-06-01';

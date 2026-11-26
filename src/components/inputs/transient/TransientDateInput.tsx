@@ -25,7 +25,7 @@ import { useTransientDraft } from './useTransientDraft';
 // læses fra den ene kilde frem for at være en fjerde kopi af strengen.
 import { DATE_FORMAT_PLACEHOLDER } from '../../../utils/fieldFormatPlaceholders';
 
-// Transient datofelt (§3.1-undtagelse: IKKE sagsdata). Bruges i overlays/dialoger, hvor datoen kun lever i
+// Transient datofelt (§2.1-undtagelse: IKKE sagsdata). Bruges i overlays/dialoger, hvor datoen kun lever i
 // komponentens egen state – fx løntrin-finderens opslagsdato. Scratch-værdien har ingen feltadresse, history
 // eller persistens, men dens redigeringsflade følger BEVIDST det ordinære datofelt: samme to-trins-aktivering,
 // tegnfilter, paste-normalisering, længerestriksning og bounds-tilstand. Ellers ville den samme dato have to

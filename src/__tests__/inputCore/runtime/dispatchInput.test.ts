@@ -87,7 +87,7 @@ const countWrites = (target: SlimInputStore): { count: () => number; stop: () =>
   return { count: () => writes, stop: unsub };
 };
 
-describe('dispatchInput – transaktionsinvarianter (§7.4)', () => {
+describe('dispatchInput – transaktionsinvarianter (§4.4)', () => {
   it('afviser en ukendt/slettet feltreference FØR nogen observerbar mutation', () => {
     const before = store.getState();
     expect(() => dispatchInput(store, catalog, settleField(tillaegstidField.bind('findes-ikke'), '5')))
@@ -226,7 +226,7 @@ describe('dispatchInput – transaktionsinvarianter (§7.4)', () => {
   });
 });
 
-describe('dispatchInput – undo/redo (§3.6/§7.2)', () => {
+describe('dispatchInput – undo/redo (§2.6/§4.2)', () => {
   it('gyldig A → ugyldig X → undo → redo gendanner hele tilstandene, hver med en ny revision', () => {
     dispatchInput(store, catalog, settleField(aargangField.bind(), '2020'), { now: 1 });
     dispatchInput(store, catalog, settleField(aargangField.bind(), 'abc'), { now: 2 });
@@ -304,7 +304,7 @@ describe('dispatchInput – undo/redo (§3.6/§7.2)', () => {
   });
 });
 
-describe('dispatchInput – restoredOrigin surfaces kun ved en gennemført undo/redo (§3.7)', () => {
+describe('dispatchInput – restoredOrigin surfaces kun ved en gennemført undo/redo (§2.7)', () => {
   const originFor = <T>(field: FieldRef<T>) => ({
     kind: 'field' as const,
     field: field.address,
@@ -335,7 +335,7 @@ describe('dispatchInput – restoredOrigin surfaces kun ved en gennemført undo/
     expect(result.restoredOrigin).toBeUndefined();
   });
 
-  // En STRUKTUREL rækkehandling bærer en origin UDEN feltadresse (§3.7): der er intet enkelt felt, men route +
+  // En STRUKTUREL rækkehandling bærer en origin UDEN feltadresse (§2.7): der er intet enkelt felt, men route +
   // fane skal med, så undo af en slet/indsæt/sortér navigerer til den tabel, ændringen kom fra.
   it('en rækkehandlings origin (uden feltadresse) surfacer route + fane ved undo', () => {
     const rowOrigin = {
@@ -361,8 +361,8 @@ describe('dispatchInput – restoredOrigin surfaces kun ved en gennemført undo/
   // `undefined`, og en undo kunne gendanne en række uden noget sted at navigere til.
   //
   // Kravet er "origin SKAL være der", ikke "origin skal være af arten collection": en række-PROMOVERING er
-  // kontraktligt et felt-settle (§3.8) og bærer med rette et feltorigin, så undo fokuserer den skrevne celle.
-  describe('strukturelle rækkecommands kræver en origin (§3.7)', () => {
+  // kontraktligt et felt-settle (§2.8) og bærer med rette et feltorigin, så undo fokuserer den skrevne celle.
+  describe('strukturelle rækkecommands kræver en origin (§2.7)', () => {
     const structuralCommands = [
       { navn: 'insertRow', command: () => insertRow(rentekravRowsRef(), makeRow('r9')) },
       { navn: 'deleteRow', command: () => deleteRow(rentekravRowsRef(), 'r1') },
@@ -498,7 +498,7 @@ describe('dispatchInput – restoredOrigin surfaces kun ved en gennemført undo/
     });
 
     it('ACCEPTERER en promovering med FELTORIGIN – undo fokuserer den skrevne celle', () => {
-      // Promoveringen er et felt-settle (§3.8). Et krav om collection-origin dér ville give en DÅRLIGERE
+      // Promoveringen er et felt-settle (§2.8). Et krav om collection-origin dér ville give en DÅRLIGERE
       // restore: brugeren ville blot landes på tabellen i stedet for i cellen.
       const fieldOrigin = {
         kind: 'field' as const,
@@ -868,7 +868,7 @@ describe('dispatchPersistedSortOrder – sortering deler ikke undo-historikken',
   });
 });
 
-describe('dispatchInput – styrende valg rydder skjult+rødt som ét trin (§1.9/§3.6/§7.5)', () => {
+describe('dispatchInput – styrende valg rydder skjult+rødt som ét trin (§1.9/§2.6, form-contract §7.5)', () => {
   it('setImmediateField der gør et felt med aktiv bounds-fejl skjult rydder canonical som ét trin; bevarer gyldigt nabofelt', () => {
     dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1')), { now: 1, origin: testRowOrigin() });
     dispatchInput(store, catalog, settleField(belobField.bind('r1'), '500'), { now: 2 });
@@ -923,7 +923,7 @@ describe('currentSessionEnvelope', () => {
   });
 });
 
-describe('initializeInputRuntime – hydration og fail-closed (§1.12/§3.10)', () => {
+describe('initializeInputRuntime – hydration og fail-closed (§1.12/§2.10)', () => {
   it('uden en aktiv session starter tomt med writes tilladt', () => {
     const startup = initializeInputRuntime(store, catalog);
     expect(startup.notice).toBeNull();
@@ -967,7 +967,7 @@ describe('initializeInputRuntime – hydration og fail-closed (§1.12/§3.10)', 
   });
 
   // Hydration af en GYLDIG session er dækket ovenfor; en session med
-  // FEJLENDE input var ikke. Det er ikke symmetrisk pynt: §10-kriterium 18 ("første fejlende settle i
+  // FEJLENDE input var ikke. Det er ikke symmetrisk pynt: §5 kriterium 18 ("første fejlende settle i
   // placeholder-række overlever F5") og §1.6's sondring mellem rejected råtekst og canonical bounds-fejl er
   // begge kun opfyldt, hvis fejltilstanden faktisk genopstår gennem `initializeInputRuntime`. Testene nedenfor
   // kører den ægte serialiserings-/parse-vej, ikke en direkte store-hydration.
@@ -976,7 +976,7 @@ describe('initializeInputRuntime – hydration og fail-closed (§1.12/§3.10)', 
     dispatchInput(store, catalog, settleField(aargangField.bind(), '2020'), { now: 1 });
     dispatchInput(store, catalog, settleField(aargangField.bind(), 'abc'), { now: 2 });
     const persisted = store.getState().input;
-    // §10-kriterium 2/3: det ugyldige settle fjernede canonical; kun råteksten er tilbage.
+    // §5 kriterium 2/3: det ugyldige settle fjernede canonical; kun råteksten er tilbage.
     expect(rejectedAt(persisted, aargangField.bind())?.raw).toBe('abc');
 
     const fresh = __createSlimInputTestStore();
@@ -1021,7 +1021,7 @@ describe('initializeInputRuntime – hydration og fail-closed (§1.12/§3.10)', 
     expect(Object.keys(stored!).sort()).toEqual(Object.keys(createEmptySettledInput()).sort());
   });
 
-  it('en placeholder-promoveret række med fejlende felt overlever reload (punkt 11, §1.11/§10-kriterium 18)', () => {
+  it('en placeholder-promoveret række med fejlende felt overlever reload (punkt 11, §1.11/§5 kriterium 18)', () => {
     // Kæden i sin helhed: første fejlende settle i en endnu ikke oprettet række → atomisk rækkeoprettelse →
     // serialisering → `initializeInputRuntime`. Et snapshot i storen alene dækker ikke F5-benet gennem den
     // ægte envelope.
@@ -1033,7 +1033,7 @@ describe('initializeInputRuntime – hydration og fail-closed (§1.12/§3.10)', 
       {
         now: 1,
         // Promoveringen udgår fra CELLE-editoren, ikke fra en rækkehandling: origin er derfor en feltadresse
-        // (§3.7), præcis som `useCellEditor`s settle-override leverer den.
+        // (§2.7), præcis som `useCellEditor`s settle-override leverer den.
         origin: {
           kind: 'field',
           field: belobField.bind(rowId).address,
@@ -1091,7 +1091,7 @@ describe('initializeInputRuntime – hydration og fail-closed (§1.12/§3.10)', 
   });
 });
 
-describe('EvaluationSourceToken-binding (§3.4)', () => {
+describe('EvaluationSourceToken-binding (§2.4)', () => {
   it('input-mutation gør tokenet stale; settingsbump gør det også stale', () => {
     const t0 = readSourceToken(store);
     dispatchInput(store, catalog, settleField(aargangField.bind(), '2020'));

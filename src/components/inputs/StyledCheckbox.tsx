@@ -38,7 +38,7 @@ type StyledCheckboxProps = Readonly<{
   lockedOn?: boolean;
   size?: 'small' | 'medium';
   /**
-   * Undo/redo-fokusrestore-attributter (§3.7): sættes på checkbox-input-slottet, så fokus efter undo/redo
+   * Undo/redo-fokusrestore-attributter (§2.7): sættes på checkbox-input-slottet, så fokus efter undo/redo
    * lander PRÆCIST på denne editorlokation (feltadresse + editorlokation), ikke via `name`.
    * `inputCore/react/fields/CheckboxField` leverer dem.
    */
@@ -114,7 +114,7 @@ const StyledCheckbox = ({
           size={size}
           sx={CHECKBOX_FOCUS_HALO_SX}
           slotProps={{
-            // Feltidentitet i DOM: serialiseret feltadresse + editorlokation (§3.2/§3.7), sat af
+            // Feltidentitet i DOM: serialiseret feltadresse + editorlokation (§2.2/§2.7), sat af
             // feltfamilien og videreført her. Checkboxen er en immediate-commit widget, så restoren skal
             // kunne finde den uden forudgående fokus – men identiteten er adressen, ikke `name`.
             // Transiente checkboxes (fx app-settings på Indstillinger) har ingen feltadresse og deltager

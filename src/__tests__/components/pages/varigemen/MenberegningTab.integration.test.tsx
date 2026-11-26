@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 import { hydrateSlimInputStoreForTest } from '../../../../test/actSafeInputStore';
 //
-// Varige mén-fanen (§2.4 formularrækkefølge): hele fanen kører på den ENE
+// Varige mén-fanen: hele fanen kører på den ENE
 // input-runtime (ingen legacy FormPersistence/invalidDrafts/props). Denne integrationstest kører gennem den
-// RIGTIGE migrerede fane + den ægte produktions-runtime og beviser stien felt → settle → reader-projektion →
-// download-gate (§1.5/§1.6/§3.9): en canonical méngrad uden for 1..120 blokerer downloaden med en synlig rød
+// RIGTIGE fane + den ægte produktions-runtime og beviser stien felt → settle → reader-projektion →
+// download-gate (§1.5/§1.6/§2.9): en canonical méngrad uden for 1..120 blokerer downloaden med en synlig rød
 // feltfejl, en byttet datoorden i stamdata blokerer, og et fuldt gyldigt input når dokumentservicen med et frisk
 // stamdata-snapshot.
 import { render, screen, waitFor, within } from '@testing-library/react';

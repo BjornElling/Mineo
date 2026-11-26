@@ -144,7 +144,7 @@ export const buildRenteberegningReaderProjection = (args: Readonly<{
   const rowIds = reader.listEntities(rentekravRowsCollectionRef).map(({ entityId }) => entityId);
   const rowProjections = new Map<string, ProjectionResult<RentekravRowResult>>();
   for (const rowId of rowIds) {
-    // Trin 1: læs motorinput og afgør ready|blocked. Trin 2: kald motoren KUN i ready-grenen (§3.9).
+    // Trin 1: læs motorinput og afgør ready|blocked. Trin 2: kald motoren KUN i ready-grenen (§2.9).
     // Motoren ligger BEVIDST uden for `runProjection`-kroppen: kroppen udføres, før statussen er afgjort.
     rowProjections.set(rowId, mapReadyProjection(
       runProjection(reader, `renteberegning.row.${rowId}`, (collector) => readRowEngineInput(collector, rowId)),

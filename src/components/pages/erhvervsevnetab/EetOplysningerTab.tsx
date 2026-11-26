@@ -56,7 +56,7 @@ const forligProcentRef = forligInputFields.procent.bind();
 const forligBroekRef = forligInputFields.broek.bind();
 const forligDatoRef = forligInputFields.dato.bind();
 
-// route + tabKey er eksplicit navigation-metadata (§3.7). aslAarsloen/ealAarsloen deler feltadresse med
+// route + tabKey er eksplicit navigation-metadata (§2.7). aslAarsloen/ealAarsloen deler feltadresse med
 // Forsørgertab, men bærer HER route `/erhvervsevnetab` + oplysninger-fanen – det er route (ikke feltadresse) der
 // bestemmer, hvilken side undo/redo lander på. Dette er den kritiske EET-vs-Forsørgertab-split.
 const EET_OPLYSNINGER_NAV = { route: APP_ROUTES.erhvervsevnetab, tabKey: ERHVERVSEVNETAB_TAB_KEYS.EET_OPLYSNINGER } as const;

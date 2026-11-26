@@ -41,7 +41,7 @@ export type EoPdfPresentation = Readonly<{
   skadelidteNavn: string | null;
   skadestypeLinje: string | null;
   /**
-   * Skadedato-feltets navn i sagens kontekst (§3.2a). Modellen bærer det FÆRDIGT, fordi den er det sidste
+   * Skadedato-feltets navn i sagens kontekst (§2.2). Modellen bærer det FÆRDIGT, fordi den er det sidste
    * sted, skadestypen findes som en værdi: en downstream-generator kunne ellers kun genskabe navnet ved at
    * læse `skadestypeLinje`s prosa-præfiks – og en ændret formulering ville da tavst give feltet det forkerte
    * navn i grafen.

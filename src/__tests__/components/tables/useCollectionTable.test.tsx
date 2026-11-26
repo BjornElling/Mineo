@@ -19,7 +19,7 @@ import type { RentekravRow } from '../../../schemas/formSchemas';
  *
  *  - RÆKKEFØLGEN kommer fra `displayRows`, mens placeholder-IDENTITETEN kommer fra mængden af
  *    committede id'er. Blandede man de to, ville en sortering kunne flytte den tomme rækkes
- *    identitet, og en history-origin fra før sorteringen ville miste sit element (§1.11/§3.7).
+ *    identitet, og en history-origin fra før sorteringen ville miste sit element (§1.11/§2.7).
  *  - HVOR MANGE tomme rækker der vises, afgøres af `minimumVisibleRows` og katalogets fælles
  *    tomhedsvurdering. Den læser både canonical og afvist input, så en række ikke forsvinder fra
  *    sletning eller sortering, blot fordi dens seneste tekst blev afvist.

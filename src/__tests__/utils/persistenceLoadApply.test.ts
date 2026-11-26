@@ -174,7 +174,7 @@ describe('applyAuthoritativeLoadSnapshot – den synkrone, autoritative fase', (
   it('fejler fail-closed hvis load-resultatet mangler snapshot', () => {
     const applySnapshot = vi.fn();
 
-    // Typen kræver nu et snapshot på et anvendeligt load-resultat, men runtime-guarden er bevidst
+    // Typen kræver et snapshot på et anvendeligt load-resultat, men runtime-guarden er bevidst
     // bevaret som forsvar i dybden: skulle et malformet resultat alligevel nå apply, skal det fail-close.
     const malformedResult = {
       status: 'loaded', source: 'manual', filename: 'x.eo',

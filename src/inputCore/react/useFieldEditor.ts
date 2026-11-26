@@ -33,18 +33,18 @@ import {
 import type { EditorFocusTarget } from '../runtime/activeEditorRegistry';
 import { fieldAddressesEqual } from '../fieldAddress';
 
-// React-laget (§2.3/§3.5): ÉN persisted felt-editor direkte over `FieldRef`, reader og runner. Adapteren
+// React-laget (§2.5): ÉN persisted felt-editor direkte over `FieldRef`, reader og runner. Adapteren
 // ejer KUN rendering, aktivering, hit-area og navigation – den parser ikke, persisterer ikke, holder ingen
-// fejlstate og vælger ingen history-policy (§3.5). Alt det ligger i den rene state-machine + engine + runner.
+// fejlstate og vælger ingen history-policy (§2.5). Alt det ligger i den rene state-machine + engine + runner.
 //
-// Lukket visning afledes DIREKTE fra den afsluttede revision (§3.5): ingen lukket draftkopi, pending-prop-guard,
+// Lukket visning afledes DIREKTE fra den afsluttede revision (§2.5): ingen lukket draftkopi, pending-prop-guard,
 // fingerprint, epoch eller resync-effect. Den åbne draft er universelt inert (§1.2): tastning ændrer kun draften;
 // afsluttet input, revision, issues og gates rører sig ikke, før editoren settler.
 
 /** Hvad UI'et skal rendere. `displayText` er lukket-visning fra revisionen ELLER den åbne draft. */
 export type FieldEditorView<T> = Readonly<{
   isOpen: boolean;
-  /** Teksten i inputfeltet: åben draft, ellers lukket-visning fra den afsluttede revision (§3.5). */
+  /** Teksten i inputfeltet: åben draft, ellers lukket-visning fra den afsluttede revision (§2.5). */
   displayText: string;
   /**
    * Teksten, der skal i clipboard ved kopi af et lukket felt. Den bruger codecets edit-format, så et
@@ -52,7 +52,7 @@ export type FieldEditorView<T> = Readonly<{
    */
   copyText: string;
   /**
-   * Lukket-visningen fra den AFSLUTTEDE revision – uafhængigt af om editoren er åben (§3.5).
+   * Lukket-visningen fra den AFSLUTTEDE revision – uafhængigt af om editoren er åben (§2.5).
    *
    * Findes, fordi «har feltet en værdi?» og «står der noget i inputtet?» IKKE er samme spørgsmål, når
    * editoren er åben: en tømt draft over en afsluttet værdi giver et tomt `displayText`, mens feltet
@@ -79,7 +79,7 @@ export type FieldEditorController<T> = FieldEditorView<T> & Readonly<{
   cancel: () => void;
   /** Delete/Backspace på et lukket, fokuseret felt: ryd og commit straks (§1.3). No-op hvis intet at rydde. */
   clearImmediate: () => void;
-  /** Dropdown/toggle/radio: commit værdien straks uden cancel-fase (§1.3/§3.6). */
+  /** Dropdown/toggle/radio: commit værdien straks uden cancel-fase (§1.3/§2.6). */
   commitImmediate: (value: T) => void;
   /**
    * Afslut feltet med en PROGRAMMATISK leveret canonical værdi (§1.3) – handlingsknapper som »Indsæt dags dato«.
@@ -97,7 +97,7 @@ export type FieldEditorController<T> = FieldEditorView<T> & Readonly<{
  * normale `settleField`/`clearField`. Bruges KUN af placeholder-celleeditoren, hvor det første ikke-tomme settle
  * skal blive en atomisk `settleFieldInNewRow` (rækkeoprettelse + feltskrivning i én transaktion). Returnerer den
  * `null`, sker der intet dispatch (tomt settle på en placeholder = ingen række oprettes). Kaldet er rent og bygger
- * kun på intentet, så editorens state-machine forbliver uændret – der er fortsat kun ÉN motor (§3.5).
+ * kun på intentet, så editorens state-machine forbliver uændret – der er fortsat kun ÉN motor (§2.5).
  */
 export type SettleCommandOverride<T> = (intent: EditorSettleIntent<T>) => EditorDispatch<T> | null;
 
@@ -110,7 +110,7 @@ export type SettleCommandOverride<T> = (intent: EditorSettleIntent<T>) => Editor
 export type ImmediateCommitOverride<T> = (value: T) => EditorDispatch<T> | null;
 
 /**
- * Den fælles persisted felt-editor. Bruges af både form- og grid-adapteren (§7.1 – samme suite mod begge). En
+ * Den fælles persisted felt-editor. Bruges af både form- og grid-adapteren (§4.1 – samme suite mod begge). En
  * `focusTarget` (fx et input-element via ref) gives, så en kritisk handling kan fokusere feltet ved fail-closed.
  * `settleOverride` re-router KUN settle-command'en (placeholder-promotion, §1.11); alt andet – draft, cancel,
  * clear, issue-visning, registrering – er identisk med et almindeligt felt.
@@ -145,7 +145,7 @@ export const useFieldEditor = <T>(
   // selve åbningen; der er derfor ingen prop→state-effect, som kan overskrive afsluttet input eller en draft.
   const boundState = sameEditorIdentity ? state : createClosedEditor(field, location);
 
-  // Den lukkede visning + aktive issue afledes ALTID fra den aktuelle afsluttede revision (§3.5/§1.8), aldrig
+  // Den lukkede visning + aktive issue afledes ALTID fra den aktuelle afsluttede revision (§2.5/§1.8), aldrig
   // fra state.open.draft. Under redigering vises den åbne draft, men issuet forbliver revisionens (§1.2).
   const view = deriveSettledFieldView(snapshot.input, field);
   const issue = activeFieldIssueFor(issueSnapshot, field);
@@ -187,7 +187,7 @@ export const useFieldEditor = <T>(
     [closeActiveRegistration, edit]
   );
 
-  /** Luk editoren uden command – brugt når et settle ville landet efter en autoritativ replacement (§3.5). */
+  /** Luk editoren uden command – brugt når et settle ville landet efter en autoritativ replacement (§2.5). */
   const closeWithoutCommand = React.useCallback((current: FieldEditorState<T>) => {
     const closed = cancelEditor(current);
     latest.current = { ...latest.current, state: closed };
@@ -201,7 +201,7 @@ export const useFieldEditor = <T>(
     // settle-kald (fx blur + coordinatorens settle) må heller ikke dispatche to gange: `latest.current.state`
     // opdateres HER, før næste render, så det andet kald ser den lukkede tilstand.
     if (current.open === null) return;
-    // §3.5: en autoritativ replacement (load/reset) på en nyere revision må ikke settle draften ind i den
+    // §2.5: en autoritativ replacement (load/reset) på en nyere revision må ikke settle draften ind i den
     // erstattede tilstand. Luk da uden command.
     if (isSettleStale(current, latest.current.snapshot.replacementGeneration)) {
       closeWithoutCommand(current);
@@ -282,7 +282,7 @@ export const useFieldEditor = <T>(
   const settleValue = React.useCallback(
     (value: T) => {
       const current = latest.current.state;
-      // §3.5: en ÅBEN editor på en erstattet revision må ikke settle ind i den erstattede tilstand – hverken
+      // §2.5: en ÅBEN editor på en erstattet revision må ikke settle ind i den erstattede tilstand – hverken
       // sin egen draft eller en programmatisk værdi. En LUKKET editor er aldrig stale, og knappen skal virke
       // på et felt, brugeren ikke har åbnet.
       if (current.open !== null && isSettleStale(current, latest.current.snapshot.replacementGeneration)) {
@@ -290,7 +290,7 @@ export const useFieldEditor = <T>(
         return;
       }
       // Værdien går ind som RÅTEKST gennem feltets codec – ikke som canonical write. Så gælder præcis samme
-      // parse, samme rejected-XOR og samme validering som for en tastet værdi (§1.5/§7.1).
+      // parse, samme rejected-XOR og samme validering som for en tastet værdi (§1.5/§4.1).
       const { next, intent } = settleEditorWithText(current, field.descriptor.codec.formatForEdit(value));
       dispatchSettleIntent(next, intent);
     },

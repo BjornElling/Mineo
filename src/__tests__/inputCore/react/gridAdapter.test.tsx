@@ -35,9 +35,9 @@ import {
   testRowOrigin, testLocation } from '../testCatalog';
 import type { TillaegstidEnhed } from '../../../schemas/formSchemas/enumSchemas';
 
-// Grid-adapteren (§2.5/§3.8, §7.1) – rækkeinfrastruktur + celleeditor – mod syntetiske issue-
+// Grid-adapteren (input-architecture.md §2.8, §4.1) – rækkeinfrastruktur + celleeditor – mod syntetiske issue-
 // snapshots. Rækkeinfrastrukturen ejer KUN id'er/rækkefølge/add/delete/reorder; celleværdier bor i
-// inputaggregaten (ingen konkurrerende værdikopi, §3.8). Placeholder-promotion (§1.11) tester vi eksplicit.
+// inputaggregaten (ingen konkurrerende værdikopi, §2.8). Placeholder-promotion (§1.11) tester vi eksplicit.
 
 let catalog: InputCatalog;
 let store: SlimInputStore;
@@ -93,10 +93,10 @@ const rejectedRaw = <T,>(field: FieldRef<T>): string | undefined =>
 
 const belobRef = (rowId: string) => belobField.bind(rowId);
 
-// Rækkehandlingers destination er obligatorisk (§3.7); testene bruger én fælles lokation.
+// Rækkehandlingers destination er obligatorisk (§2.7); testene bruger én fælles lokation.
 const TEST_ROW_ORIGIN = { locationId: 'test.rentekrav', route: '/renteberegning', tabKey: null } as const;
 
-describe('useCollectionRows – §3.8 rækkeinfrastruktur', () => {
+describe('useCollectionRows – §2.8 rækkeinfrastruktur', () => {
   it('lister aktuelle entity-id\'er fra den afsluttede revision', () => {
     dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1')), { origin: testRowOrigin() });
     dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r2')), { origin: testRowOrigin() });
@@ -120,7 +120,7 @@ describe('useCollectionRows – §3.8 rækkeinfrastruktur', () => {
     expect(result.current.rowIds).toEqual(['a']);
   });
 
-  it('row-delete fjerner rækkens rejected descendants atomisk (§3.8)', () => {
+  it('row-delete fjerner rækkens rejected descendants atomisk (§2.8)', () => {
     dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1')), { origin: testRowOrigin() });
     dispatchInput(store, catalog, settleField(belobRef('r1'), 'abc')); // rejected råtekst i cellen
     expect(rejectedRaw(belobRef('r1'))).toBe('abc');
@@ -138,7 +138,7 @@ describe('useCollectionRows – §3.8 rækkeinfrastruktur', () => {
 const renderCell = <T,>(cell: CellSpec<T, unknown>, binding: InputRuntimeBinding) =>
   renderHook(() => useCellEditor<T>(cell), { wrapper: wrapper(binding) });
 
-describe('useCellEditor – eksisterende-række-celle (§7.1 identisk med formularfelt)', () => {
+describe('useCellEditor – eksisterende-række-celle (§4.1 identisk med formularfelt)', () => {
   it('gyldigt settle skriver cellens canonical værdi', () => {
     dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1')), { origin: testRowOrigin() });
     const binding = makeBinding();
@@ -291,7 +291,7 @@ describe('useCellEditor – placeholder-promotion (§1.11)', () => {
   });
 });
 
-describe('grid-adapter – §7.2 statekæde: række med fejl → slet række → undo → redo', () => {
+describe('grid-adapter – §4.2 statekæde: række med fejl → slet række → undo → redo', () => {
   it('gendanner/fjerner rækken, fejlende råinput og gates som én tilstand', () => {
     const binding = makeBinding();
 
@@ -329,7 +329,7 @@ describe('grid-adapter – §7.2 statekæde: række med fejl → slet række →
   });
 });
 
-describe('grid-adapter – irrelevant-felt-oprydning ved styrende valg (§1.9/§3.6)', () => {
+describe('grid-adapter – irrelevant-felt-oprydning ved styrende valg (§1.9/§2.6)', () => {
   it('promoverer en række og bevarer at tillaegstid er relevant, når enhed ≠ uger', () => {
     // Sanity: enhedField default 'dage' → tillaegstid relevant. Vi verificerer at cellen kan skrives.
     dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1', { enhed: 'dage' })), { origin: testRowOrigin() });

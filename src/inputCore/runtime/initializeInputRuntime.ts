@@ -8,7 +8,7 @@ import { createNewCaseInput } from './newCaseInput';
 import type { SlimInputStore } from './slimInputStore';
 import { hydrateInputStoreOnce } from './dispatchInput';
 
-// Hydrér ÉN gang før React-render fra den ene current-only envelope (§3.10). Begge app-entrypoints
+// Hydrér ÉN gang før React-render fra den ene current-only envelope (§2.10). Begge app-entrypoints
 // kalder denne før render mod den samme runtime; provider-remount hydrerer aldrig igen.
 
 export type InputRuntimeStartupNotice = Readonly<{

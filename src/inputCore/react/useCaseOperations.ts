@@ -13,7 +13,7 @@ import { clearCase, replaceCase } from '../inputReducer';
 import { createNewCaseInput } from '../runtime/newCaseInput';
 import { useCaseRuntimeAccess } from './inputRuntimeContext';
 
-// React-laget (§3.10): den tynde bro, der binder de framework-frie case-porte til produktions-runtime.
+// React-laget (§2.10): den tynde bro, der binder de framework-frie case-porte til produktions-runtime.
 // Shell-use-casen (`useFileSaveLoad`) forbruger portene herfra.
 // Broen eksponerer hverken rå sektioner eller skrivbare hel-sektionshooks – kun de to porte, hvis grænseflader
 // selv er rene (`CaseRuntimeAccess`/`CaseResetRuntimeAccess`). `replaceCase`/`clearCase` udstedes gennem
@@ -44,7 +44,7 @@ export const useCaseOperations = (settings: AppSettings): CaseOperations => {
       // runtime, React-træet viser. Ellers kunne en alternativ/testbinding vise én sag, mens save læste en anden.
       getSettledInput: () => runtime.captureStableSource().input,
       getNewCaseInput: () => createNewCaseInput(runtime.catalog, seedNewCase),
-      // Frisk, stabilt {input, token}-snapshot til save-projektionen (§3.9 pkt. 2).
+      // Frisk, stabilt {input, token}-snapshot til save-projektionen (§2.9 pkt. 2).
       captureSaveSource: () => runtime.captureStableSource(),
       applyReplaceCase: (candidate) => {
         runtime.replaceCase(replaceCase(candidate));

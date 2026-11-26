@@ -186,7 +186,7 @@ export class CriticalActionCoordinator {
       if (blocked !== null) return blocked;
     }
 
-    // §3.4/contract §5: efter en vellykket klargøring læses et FRISK, stabilt kildesnapshot. Save/download
+    // §2.4/contract §5: efter en vellykket klargøring læses et FRISK, stabilt kildesnapshot. Save/download
     // evaluerer imod dette token; navigation/load/undo/redo bruger det ikke, men et frisk token er altid gyldigt.
     const { token } = captureStableSource(
       () => readSourceToken(this.store),

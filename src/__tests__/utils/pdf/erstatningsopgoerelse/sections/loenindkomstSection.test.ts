@@ -239,7 +239,7 @@ describe('renderLoenindkomstSection periode-underoverskrifter', () => {
       loenudviklingBeregningsgrundlag: 'Manuelt angivet',
       shSoPct: 0,
       // Kolonnen hedder «FP/FV/SH/SO/St.B.»: Store Bededagstillægget ER en del af det målte tal, og
-      // det er nu et eksplicit tilvalg (indskudte-loentillaeg-contract.md §2a).
+      // det er et eksplicit tilvalg (indskudte-loentillaeg-contract.md §2a).
       beregnStoreBededagstillaeg: true,
       indtaegtsoplysningerTableData: [
         {
@@ -294,7 +294,7 @@ describe('renderLoenindkomstSection periode-underoverskrifter', () => {
       loenudviklingBeregningsgrundlag: 'Manuelt angivet',
       shSoPct: 0,
       // Kolonnen hedder «FP/FV/SH/SO/St.B.»: Store Bededagstillægget ER en del af det målte tal, og
-      // det er nu et eksplicit tilvalg (indskudte-loentillaeg-contract.md §2a).
+      // det er et eksplicit tilvalg (indskudte-loentillaeg-contract.md §2a).
       beregnStoreBededagstillaeg: true,
       indtaegtsoplysningerTableData: [
         {

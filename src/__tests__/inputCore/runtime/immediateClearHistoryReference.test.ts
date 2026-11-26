@@ -124,7 +124,7 @@ const expectMatchesReference = (
   expect(store.getState().history.future).toHaveLength(reference.future.length);
 };
 
-describe('runtime immediate clear – uafhængig history-reference (§1.3/§3.6/§7.2)', () => {
+describe('runtime immediate clear – uafhængig history-reference (§1.3/§2.6/§4.2)', () => {
   let catalog: InputCatalog;
   let store: SlimInputStore;
 

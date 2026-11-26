@@ -160,7 +160,7 @@ describe('»Indsæt dags dato« – fælles kommandokontrakt på alle fem flader
       const state = slimInputStore.getState();
       expect(state.revision).toBe(revisionBefore + 1);
       expect(state.history.past.length).toBe(pastBefore + 1);
-      // §3.7: undo skal kunne navigere tilbage til det felt, knappen skrev i.
+      // §2.7: undo skal kunne navigere tilbage til det felt, knappen skrev i.
       expect(state.history.past.at(-1)?.origin?.kind).toBe('field');
     });
   }

@@ -23,7 +23,7 @@ void bootstrapClientApp({
   preloadApp: loadApp,
   renderApp: async () => {
     const [{ default: AuthGate }, { bootstrapProductionInputRuntime }] = await loadApp();
-    // Hydrér input-runtime FØR render (§3.10).
+    // Hydrér input-runtime FØR render (§2.10).
     // Kun bindingen bruges her: `MainLayout` henter selv `startup.notice` ved at gen-kalde den
     // IDEMPOTENTE bootstrap, og viser den som overlay ved mount.
     const { binding: inputRuntimeBinding } = bootstrapProductionInputRuntime();

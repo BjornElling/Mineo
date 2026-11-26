@@ -24,7 +24,7 @@ export { resolveSkadeEllerAnmeldelsesdatoReference };
 
 /**
  * EO-prosaens form af skadedato-navnet. `label` er IKKE et selvstændigt navnevalg: det læses fra
- * `resolveSkadestypeDatoLabel`, som er feltets ene navneautoritet (§3.2a). Kun `kind` og den bøjede
+ * `resolveSkadestypeDatoLabel`, som er feltets ene navneautoritet (§2.2). Kun `kind` og den bøjede
  * `labelLower` (prosaform: «på skadedatoen») tilføjes her.
  */
 export const resolveAnvendtReguleringsdatoReference = (params: Readonly<{

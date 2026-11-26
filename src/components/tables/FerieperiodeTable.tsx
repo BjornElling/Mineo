@@ -75,7 +75,7 @@ const FerieperiodeTable = React.memo(({
     locationPrefix: kind === 'taf'
       ? 'erstatningsopgoerelse.ferieperioder'
       : 'erstatningsopgoerelse.fravaerPerioder',
-    // route + tabKey er eksplicit navigation-metadata (§3.7); begge render-steder (TAF- og
+    // route + tabKey er eksplicit navigation-metadata (§2.7); begge render-steder (TAF- og
     // beregningsperiode-varianten) bor på EO-oplysningerfanen.
     locationNav: { route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER },
   });

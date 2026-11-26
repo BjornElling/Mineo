@@ -10,7 +10,7 @@ import type { SectionKey } from '../fieldAddress';
 // De er coverage-registre og ikke runtime-routere: de opregner, hvad der findes, og afgør intet om, hvad der
 // sker. Den grænse er fortsat bindende.
 
-/** Codec-familier på tværs af form og grid (§3.3). Én familie pr. inputtype. */
+/** Codec-familier på tværs af form og grid (§2.3). Én familie pr. inputtype. */
 export type CodecFamily =
   | 'date'
   | 'amount'

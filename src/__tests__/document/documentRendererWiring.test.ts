@@ -108,7 +108,7 @@ describe('renderer-wiring: rente-specifikationen kræver CANONICAL ISO', () => {
     )).toThrow('Ugyldige datoer for renteberegning');
   });
 
-  it('BEGGE rente-outputs deler nu ét datoformat – pin det, så en divergens ikke genopstår', () => {
+  it('BEGGE rente-outputs deler ét datoformat – pin det, så en divergens ikke genopstår', () => {
     // Divergensen er lukket ved roden (generatorens signatur), så testen pinner enigheden: begge
     // definitioner bærer ISO, og ingen af dem må bære dansk format.
     expect(input.actualInterestDate).toMatch(ISO_DATE);

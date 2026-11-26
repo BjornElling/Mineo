@@ -19,24 +19,22 @@ import { toKroner } from '../money/money';
 /**
  * Delt præsentationsmodel for kapitaliserings-afgørelsesblokken.
  *
- * UI-fanen (`EetKapitaliseringTab`) og dokument-generatoren (`kapitaliseringDocument`) viste tidligere
- * den SAMME sekvens af rækker – felt-udvælgelse, rækkefølge og betinget synlighed – hver for sig. Det
- * er den faktiske drift-risiko: tilføjer man et felt eller ændrer en betingelse, skal det huskes to
- * steder. Denne builder ejer nu sekvensen ét sted; hver forbruger renderer rækkerne i sit eget idiom
- * (React label/value-hover-rækker vs. `writeLeftRightText` med højre-justeret beløbskolonne).
+ * UI-fanen (`EetKapitaliseringTab`) og dokument-generatoren (`kapitaliseringDocument`) viser den SAMME
+ * sekvens af rækker – felt-udvælgelse, rækkefølge og betinget synlighed. Byggede de den hver for sig, skulle
+ * et nyt felt eller en ændret betingelse huskes to steder. Denne builder ejer sekvensen ét sted; hver
+ * forbruger renderer rækkerne i sit eget idiom (React label/value-hover-rækker vs. `writeLeftRightText` med
+ * højre-justeret beløbskolonne).
  *
- * Den ENESTE bevidste forskel mellem UI og dokument er nu, hvornår Køn-rækken vises; den bæres som en
+ * Den ENESTE bevidste forskel mellem UI og dokument er, hvornår Køn-rækken vises; den bæres som en
  * eksplicit option, så den ikke er tavst duplikeret. Grundydelse-rækken har to forskellige layouts og
  * bæres derfor som en egen række-`kind`, som hver forbruger renderer.
  *
- * To tidligere options er FJERNET, fordi divergensen selv var fundet: særfaktor-etiketten skrev `<` i
- * UI'en og `≤` i dokumentet om samme regel, og reguleringsdatoen stod i lang form på skærmen
- * og kort form i dokumentet. Begge er nu delte konstanter/formater. Indfør dem ikke igen –
- * skærm og dokument skal kunne lægges ved siden af hinanden.
+ * Særfaktor-etiketten (`<`/`≤`) og reguleringsdatoens form er delte konstanter/formater, ikke options:
+ * en option pr. kanal lader skærm og dokument skrive samme regel forskelligt. Indfør dem ikke som
+ * options – skærm og dokument skal kunne lægges ved siden af hinanden.
  *
- * UI'en havde derudover en ekstra "Beregningsdato"-række, som er fjernet helt: fanen er
- * bevidst uafhængig af beregningsdatoen, så rækken var den eneste værdi i boksen, intet i boksen
- * afhang af. Genindfør den ikke her.
+ * Der er bevidst ingen "Beregningsdato"-række: fanen er uafhængig af beregningsdatoen, så rækken ville
+ * være den eneste værdi i boksen, intet i boksen afhang af. Genindfør den ikke her.
  */
 
 /**

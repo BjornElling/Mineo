@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 import { hydrateSlimInputStoreForTest } from '../../../test/actSafeInputStore';
 //
-// Satser-siden (§2.4): sidens `aargang` er et `YearField` over den ene
-// input-runtime. Denne integrationstest kører gennem den RIGTIGE migrerede side + den ægte produktions-runtime
+// Satser-siden: sidens `aargang` er et `YearField` over den ene
+// input-runtime. Denne integrationstest kører gennem den RIGTIGE side + den ægte produktions-runtime
 // (`ProductionInputRuntimeProvider` mod `slimInputStore`/`criticalActionCoordinator`) – den beviser den
-// virkelige sti felt → settle → reader-projektion → download-gate (§1.5/§1.6/§3.9), uden legacy
+// virkelige sti felt → settle → reader-projektion → download-gate (§1.5/§1.6/§2.9), uden legacy
 // `invalidDrafts`/`FormPersistenceProvider`.
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';

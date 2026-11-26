@@ -2,7 +2,7 @@ import { serializeFieldAddress, type SerializedFieldAddress } from './fieldAddre
 import type { AnyFieldRef, FieldIssuePriority } from './fieldDescriptor';
 import type { EvaluationSourceToken } from './evaluationSource';
 
-// Inputkernen (§3.4/§1.6): issue-modellen skelner mellem feltfejl, consumerfejl og warning. Der lagres
+// Inputkernen (§2.4/§1.6): issue-modellen skelner mellem feltfejl, consumerfejl og warning. Der lagres
 // INGEN `blocksSave`/`blocksProjection`-booleans. Konsekvensen udledes STRUKTURELT af kind + placering +
 // consumerens faktiske reads – ikke af et konfigurerbart flag. Save-blokering følger `rejectedInputs`, ikke
 // issuefarve (§1.6): kun rejected råtekst blokerer `.eo`; en canonical bounds/rule-feltfejl kan gemmes.
@@ -173,7 +173,7 @@ export const resolveFieldIssueSummaryText = (issue: FieldIssue): string => {
 
 /**
  * Immutabelt feltissue-snapshot: højst ét aktivt rødt issue pr. felt (§1.8). Bygges af feltvalidatorerne
- * fra afsluttet input; mounted komponenter rapporterer aldrig ind i det (§1.8/§3.4).
+ * fra afsluttet input; mounted komponenter rapporterer aldrig ind i det (§1.8/§2.4).
  */
 export type FieldIssueSet = Readonly<{
   get: (address: SerializedFieldAddress) => FieldIssue | undefined;

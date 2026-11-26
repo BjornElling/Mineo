@@ -56,7 +56,7 @@ import {
   yearStringBoundsValidator,
 } from './boundsValidators';
 
-// Produkt-descriptors for `aarsloen`-sektionen (§3.2). Måned/år bevarer schemaets historiske
+// Produkt-descriptors for `aarsloen`-sektionen (§2.2). Måned/år bevarer schemaets historiske
 // canonical strengrepræsentation via string-backed codec; ugefelterne er allerede canonical strenge.
 
 // En materialiseret sektion og descriptorens tomværdi skal være enige; ny-sags-seeden tilvælger særskilt.
@@ -208,7 +208,7 @@ const ANTAL_FERIEDAGE_MAX = 99;
 // 0..99 er en afledt bounds-issue (feltvalidator), ikke codec-config: antalFeriedage forbliver canonical med et
 // rødt afledt issue uden for [0,99] (§1.6), i modsætning til et format/range-rejected råtekst-felt. Reglen er
 // KUN relevant, når omregning er valgt OG der ikke er fuld løn under ferie – udtrykt som en ren relevansregel
-// over de canonical toggle-felter (§3.1: relevans må aldrig afhænge af mounted state/settings). Et skjult/
+// over de canonical toggle-felter (§2.1: relevans må aldrig afhænge af mounted state/settings). Et skjult/
 // irrelevant felt overblokerer ikke (§1.9).
 export const aarsloenAntalFeriedageField = defineStructuralField<number | undefined>({
   id: 'aarsloen.antalFeriedage',
@@ -350,7 +350,7 @@ const rowAmount = (
   });
 
 // Årsløn og EO-lønindkomst viser SAMME tabel med samme overskrifter, men har hvert sit descriptor-sæt.
-// Navnene kommer derfor fra det neutrale `STANDARD_LOEN_COLUMN_LABELS` (§3.2a) – ellers kunne samme kolonne
+// Navnene kommer derfor fra det neutrale `STANDARD_LOEN_COLUMN_LABELS` (§2.2) – ellers kunne samme kolonne
 // hedde to ting afhængigt af hvilken side, brugeren stod på.
 const stdLabel = STANDARD_LOEN_COLUMN_LABELS;
 

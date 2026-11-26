@@ -41,9 +41,9 @@ export const aarsloenFradragsParentes = (
 /**
  * Omregningsformlen: «33.750,00 / 21 x 231», eller «33.750,00 x 12» når divisoren er 1.
  *
- * Særreglen for én enhed fandtes allerede i dokumentgeneratoren, men ikke på skærmen, så skærmen skrev
- * «(33.750,00 / 1 x 12)» – en division uden indhold, som gør formlen sværere at læse, og som fik den, der
- * sammenholdt skærm og bilag, til at lede efter en forskel. Reglen bor nu ét sted, så begge skriver ens.
+ * Uden særreglen for én enhed står der «(33.750,00 / 1 x 12)» – en division uden indhold, som gør formlen
+ * sværere at læse. Reglen bor ét sted, så skærm og bilag skriver ens; ellers leder den, der sammenholder
+ * dem, efter en forskel.
  */
 export const aarsloenOmregningFormel = (
   beloeb: string,

@@ -52,7 +52,7 @@ import {
   useSfggEnhedsskiftBekraeftelse,
 } from '../../../../../domain/erstatningsopgoerelse/react/useSfggEnhedsskiftBekraeftelse';
 
-// route + tabKey er eksplicit navigation-metadata (§3.7); alle felter i denne sektion bor på EO-oplysningerfanen.
+// route + tabKey er eksplicit navigation-metadata (§2.7); alle felter i denne sektion bor på EO-oplysningerfanen.
 const eoOplyLocation = (locationId: string) => ({
   locationId,
   route: APP_ROUTES.erstatningsopgoerelse,
@@ -267,10 +267,9 @@ export default function IndtaegtFoerSkadenSection() {
                 </Box>
 
                 {/*
-                  «Offentlige ydelser i beregningsperioden reguleres» stod tidligere her, men hører
-                  sagligt til de offentlige ydelser og bor nu på Offentlige ydelser-fanen.
-                  Feltet selv er uændret – kun editorlokationen er flyttet, og dermed den fane
-                  fokusnavigationen fører brugeren til (§3.2).
+                  «Offentlige ydelser i beregningsperioden reguleres» hører sagligt til de offentlige
+                  ydelser og har sin editorlokation på Offentlige ydelser-fanen – den fane,
+                  fokusnavigationen fører brugeren til (§2.2).
                 */}
 
                 {/*
@@ -486,7 +485,7 @@ export default function IndtaegtFoerSkadenSection() {
                 manualCellWarnings={loenudviklingWarnings}
                 manualLocationPrefix="erstatningsopgoerelse.eoAngivetLoenLoenudvikling.loenudviklingManuelTableData"
                 manualPercentLocationPrefix="erstatningsopgoerelse.eoAngivetLoenLoenudvikling.loenudviklingManuelProcentsatsTableData"
-                // route + tabKey er eksplicit navigation-metadata (§3.7); her bor tabellerne på EO-oplysningerfanen.
+                // route + tabKey er eksplicit navigation-metadata (§2.7); her bor tabellerne på EO-oplysningerfanen.
                 locationNav={{ route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                 loenudviklingBasis={loenudviklingBasis}
           statistikModel={eoLoenudvikling.loenudviklingStatistikModel}

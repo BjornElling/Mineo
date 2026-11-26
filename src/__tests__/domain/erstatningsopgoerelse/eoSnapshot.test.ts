@@ -186,7 +186,7 @@ describe('computeEoSnapshot', () => {
       { id: 'r1', fra: toISODateString('2024-01-01'), til: toISODateString('2024-07-15'), loseFeriedage: 0 },
     ];
     // SFGG-beregningskilde vælges ('Ingen'), så en incidentel SFGG-"ikke valgt"-fejl ikke blokerer
-    // download (SFGG-fejl er nu fail-closed/blokerende). Testen handler om TAF-clamping, ikke SFGG.
+    // download (SFGG-fejl er fail-closed/blokerende). Testen handler om TAF-clamping, ikke SFGG.
     eoValues.sfggAnsaettelsesforhold = [{
       ansaettelsesforholdId: eoValues.loenindkomstAnsaettelsesforhold[0].id,
       sfggBeregningskilde: 'Ingen',

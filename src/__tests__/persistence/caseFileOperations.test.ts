@@ -44,7 +44,7 @@ const settle = <TField, TEntity>(
   store: SlimInputStore,
   command: RuntimeInputCommand<TField, TEntity>
 ): void => {
-  // Strukturelle rækkecommands kræver en origin (§3.7): fixturen seeder rækker og har ingen brugerhandling at
+  // Strukturelle rækkecommands kræver en origin (§2.7): fixturen seeder rækker og har ingen brugerhandling at
   // pege på, men skal levere en gyldig origin ligesom produktionen. Helperen tager den brede commandunion, så
   // origin sendes altid med – den ignoreres for de ikke-strukturelle arter.
   const dispatchAny = dispatchInput as (
@@ -58,7 +58,7 @@ const settle = <TField, TEntity>(
 
 describe('caseFileOperations', () => {
   describe('evaluateSave', () => {
-    it('blokerer med den præcise rejected adresse ved format-fejl (§1.6/§3.9)', () => {
+    it('blokerer med den præcise rejected adresse ved format-fejl (§1.6/§2.9)', () => {
       const store = __createSlimInputTestStore();
       settle(store, settleField(aargangField.bind(), 'ikke-et-tal'));
       const ops = createCaseFileOperations(buildRuntime(store));
@@ -82,7 +82,7 @@ describe('caseFileOperations', () => {
       expect(outcome.status).toBe('ready');
       if (outcome.status !== 'ready') return;
       expect(outcome.snapshot.satser?.aargang).toBe(1800);
-      // Kildetokenet matcher runtime på save-tidspunktet (§3.9 pkt. 2).
+      // Kildetokenet matcher runtime på save-tidspunktet (§2.9 pkt. 2).
       expect(outcome.token).toEqual(readSourceToken(store));
     });
 
@@ -102,7 +102,7 @@ describe('caseFileOperations', () => {
   });
 
   describe('applyLoadedSnapshot', () => {
-    it('anvender et indlæst snapshot som autoritativ replacement og rydder history (§3.7)', () => {
+    it('anvender et indlæst snapshot som autoritativ replacement og rydder history (§2.7)', () => {
       const store = __createSlimInputTestStore();
       settle(store, settleField(aargangField.bind(), '2020'));
       const generationBefore = store.getState().replacementGeneration;
@@ -118,7 +118,7 @@ describe('caseFileOperations', () => {
 
       expect(store.getState().input.sections.satser?.aargang).toBe(2020);
       expect(store.getState().replacementGeneration).toBeGreaterThan(generationBefore);
-      // history ryddet af replaceCase (§3.7): undo er et no-op.
+      // history ryddet af replaceCase (§2.7): undo er et no-op.
       const beforeUndo = store.getState().revision;
       dispatchInput(store, catalog, { kind: 'undo' });
       expect(store.getState().revision).toBe(beforeUndo);

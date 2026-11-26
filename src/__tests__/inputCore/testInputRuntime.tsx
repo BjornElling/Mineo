@@ -8,7 +8,7 @@ import { createInputEvaluation } from '../../inputCore/inputReader';
 import { createEvaluationSourceToken, settleField, type InputCatalog, type FieldRef } from '../../inputCore';
 import { createTestCatalog } from './testCatalog';
 
-// Delt test-harness for greenfield-feltmontering. Samler den binding-opsætning, som ellers blev kopieret ind i
+// Delt test-harness for feltmontering. Samler den binding-opsætning, som ellers skulle kopieres ind i
 // hver testfil (store + katalog + registry + evaluering + provider). Ét sted, så en ændring i bindingens
 // konstruktion ikke skal efterrettes i n testfiler.
 
@@ -34,7 +34,7 @@ export const createTestInputRuntime = (): TestInputRuntime => {
   return { store, catalog, registry, binding };
 };
 
-/** Renderer `node` under en frisk greenfield-runtime-binding. Returnerer også runtime, så testen kan settle felter. */
+/** Renderer `node` under en frisk runtime-binding. Returnerer også runtime, så testen kan settle felter. */
 export const renderWithTestInputRuntime = (
   node: React.ReactNode
 ): ReturnType<typeof render> & Readonly<{ runtime: TestInputRuntime }> => {

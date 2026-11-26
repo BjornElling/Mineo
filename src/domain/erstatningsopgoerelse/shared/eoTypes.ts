@@ -25,7 +25,7 @@ export type EoModel = Readonly<{
   skadelidteNavn: string | null;
   skadestypeLinje: string | null;
   /**
-   * Skadedato-feltets navn i sagens kontekst (§3.2a). Bæres FÆRDIGT gennem modellen, så en generator ikke
+   * Skadedato-feltets navn i sagens kontekst (§2.2). Bæres FÆRDIGT gennem modellen, så en generator ikke
    * skal genskabe navnet ved at læse `skadestypeLinje`s prosa-præfiks.
    */
   skadedatoLabel: SkadestypeDatoLabel;

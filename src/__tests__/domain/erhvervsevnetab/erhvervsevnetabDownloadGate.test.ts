@@ -24,7 +24,7 @@ import type {
   StamdataValues,
 } from '../../../schemas/formSchemas';
 
-// Erhvervsevnetabs download-gate (§3.4/§5.4/§1.10). Beviser at gaten:
+// Erhvervsevnetabs download-gate (input-architecture.md §2.4/§1.10). Beviser at gaten:
 //   (a) pr. fane oversætter snapshottets `hasBlockingErrors`/`computation` til den korrekte reason-kode
 //       (field-error vs missing-fields vs no-result vs tilladt),
 //   (b) bevarer den DEPENDENCY-SPECIFIKKE per-fane-blokering (§1.10), herunder differencekravets EAL-afhængighed,

@@ -33,12 +33,12 @@ export type EditorDispatch<T> = Readonly<{
   origin: FieldHistoryOrigin;
 }>;
 
-// Editor-bindingen (§3.5/§3.6): rene, framework-frie hjælpere, der oversætter mellem den afsluttede
+// Editor-bindingen (§2.5/§2.6): rene, framework-frie hjælpere, der oversætter mellem den afsluttede
 // revision og editor-state-machinen. De rører ikke React, DOM eller storage – de læser et immutabelt
 // `SettledInput`-snapshot og udsteder de commands, runtime-bindingen sender til `dispatchInput`.
 
 /**
- * Afleder den lukkede visning UDELUKKENDE fra det afsluttede input (§3.5): står feltet som rejected råtekst,
+ * Afleder den lukkede visning UDELUKKENDE fra det afsluttede input (§2.5): står feltet som rejected råtekst,
  * vises den ordret; ellers vises den canonical værdi. `readCanonical` ejes af descriptoren, så visningen aldrig
  * afhænger af en lokal draftkopi.
  */
@@ -47,7 +47,7 @@ export const deriveSettledFieldView = <T>(input: SettledInput, field: FieldRef<T
   if (rejected !== undefined) return Object.freeze({ kind: 'rejected', rejected });
   const raw = field.descriptor.readCanonical(input.sections, field.address);
   // `readCanonical` returnerer `undefined` for et fravær (fx en endnu ikke oprettet `null`-sektion) og anvender
-  // BEVIDST ikke feltets `emptyValue` (§3.4-renhed). Den lukkede visning skal derimod vise feltets canonical
+  // BEVIDST ikke feltets `emptyValue` (§2.4-renhed). Den lukkede visning skal derimod vise feltets canonical
   // TOMVÆRDI ved fravær: for et optionelt felt er tomværdien selv `undefined` (uændret), men for et påkrævet
   // valg (fx `tillaegAngivesSom`→'procent', `loenperiode`→'maaned') er tomværdien den gyldige default. Uden dette
   // ville en fresh/`Slet alt`-sag (alle sektioner `null`) give `undefined` til en påkrævet-valg-control og få den
@@ -57,7 +57,7 @@ export const deriveSettledFieldView = <T>(input: SettledInput, field: FieldRef<T
 };
 
 /**
- * Den viste tekst i lukket tilstand (§3.5): rejected råtekst ordret eller `codec.format` af den canonical
+ * Den viste tekst i lukket tilstand (§2.5): rejected råtekst ordret eller `codec.format` af den canonical
  * værdi. Bruges af UI-basen; parsing/formatering ligger aldrig i adapteren.
  */
 export const formatSettledFieldText = <T>(field: FieldRef<T>, view: SettledFieldView<T>): string =>
@@ -73,7 +73,7 @@ export const activeFieldIssueFor = <T>(
 ): FieldIssue | undefined => activeFieldIssue(issues, serializeFieldAddress(field.address));
 
 // Felteditorens origin er ALTID en feltorigin – også for de to promoveringsveje (`settleFieldInNewRow` og
-// `insertRow` fra et immediate-commit-valg). En promovering er kontraktligt et FELT-settle (§3.8), og undo
+// `insertRow` fra et immediate-commit-valg). En promovering er kontraktligt et FELT-settle (§2.8), og undo
 // skal derfor fokusere den celle, brugeren skrev i – ikke blot navigere til tabellen.
 export const buildFieldHistoryOrigin = <T>(
   location: EditorLocation,
@@ -82,7 +82,7 @@ export const buildFieldHistoryOrigin = <T>(
   kind: 'field' as const,
   field: field.address,
   editorLocationId: location.locationId,
-  // Route/fane bæres videre som eksplicit navigation-metadata (§3.7), så undo/redo-restoren kan finde tilbage
+  // Route/fane bæres videre som eksplicit navigation-metadata (§2.7), så undo/redo-restoren kan finde tilbage
   // til den rette side/fane. Begge er PÅKRÆVEDE på `EditorLocation`, så destinationen er altid
   // komplet; en `route === undefined`-gren ville dække en tilstand, typen ikke tillader.
   route: location.route,
@@ -130,8 +130,8 @@ export const promoteRowSettleIntentToCommand = <TEntity, TField>(
 };
 
 /**
- * Immediate-commit for choice/toggle (§1.3/§3.6): dropdownvalg og toggle committer straks uden en cancel-fase.
- * Bruger `setImmediateField`, så reduceren kan køre den styrende-valg-oprydning (§3.6) atomisk.
+ * Immediate-commit for choice/toggle (§1.3/§2.6): dropdownvalg og toggle committer straks uden en cancel-fase.
+ * Bruger `setImmediateField`, så reduceren kan køre den styrende-valg-oprydning (§2.6) atomisk.
  */
 export const immediateCommitCommand = <T>(
   field: FieldRef<T>,
@@ -163,7 +163,7 @@ export const promoteRowImmediateCommitToCommand = <TEntity, TField>(
 /**
  * Delete/Backspace på et lukket, fokuseret felt (§1.3): rydder og committer straks til tomværdien. Guardet på
  * feltets aktuelle view, så et allerede tomt felt uden rejected råinput er `null` (ingen command) – ellers
- * ville et strukturelt tom-write (fx `null`-sektion → `{}`) give en overflødig undo-frame (§3.6).
+ * ville et strukturelt tom-write (fx `null`-sektion → `{}`) give en overflødig undo-frame (§2.6).
  * Rydningen sker kun, når der faktisk er en ikke-tom værdi eller en rejected råtekst.
  */
 export const immediateClearCommand = <T>(

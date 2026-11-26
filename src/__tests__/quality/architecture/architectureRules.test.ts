@@ -518,7 +518,7 @@ describe('architectureRules – AST-baseret arkitekturgrænse-harness', () => {
     expect(textOnlyProbes).toEqual([]);
   });
 
-  // Fraværsregler: kontrollen er nu GENERISK og obligatorisk, og den kører i BEGGE retninger.
+  // Fraværsregler: kontrollen er GENERISK og obligatorisk, og den kører i BEGGE retninger.
   //
   // Retning 1 (fravær): hvert forbudt navn skal være fraværende i grafen.
   // Retning 2 (prædikatet virker): navnet skal kunne FINDES i en syntetisk fil, der bruger det.

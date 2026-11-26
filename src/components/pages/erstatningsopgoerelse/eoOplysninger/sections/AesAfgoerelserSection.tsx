@@ -30,7 +30,7 @@ import {
 } from '../../../../../domain/erstatningsopgoerelse/validation/aesDatoEfterOpgoerelse';
 import { APP_ROUTES } from '../../../../../config/pageNavigation';
 import { EO_TAB_KEYS } from '../../../../../config/eoTabKeys';
-// route + tabKey på location er eksplicit navigation-metadata (§3.7); alle felter i denne sektion bor på EO-oplysningerfanen.
+// route + tabKey på location er eksplicit navigation-metadata (§2.7); alle felter i denne sektion bor på EO-oplysningerfanen.
 
 /** Sektion 3: AES-afgørelser (varige mén, midlertidigt + endeligt EET, øvrigt). */
 export default function AesAfgoerelserSection() {

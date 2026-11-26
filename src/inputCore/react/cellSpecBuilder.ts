@@ -5,7 +5,7 @@ import type { CellSpec } from './useCellEditor';
 import { bindCollectionCell, collectionOwnerEntityIds } from '../collectionCellBinding';
 
 /**
- * Editorlagets ene celle-spec-model for alle dynamiske tabeller (§1.11, §3.2).
+ * Editorlagets ene celle-spec-model for alle dynamiske tabeller (§1.11, §2.2).
  *
  * Problemet den løser: en celles dataidentitet er `descriptor` bundet til HELE ejerstien – for en top-level
  * collection kun rækkens entity-id, for en nested collection (fx EO's løntabel under ét ansættelsesforhold)
@@ -21,10 +21,10 @@ export type CollectionCellBinding<TEntity> = Readonly<{
   collection: CollectionRef;
   /** Opret den fuldt schemaformede tom-række-entity, som en promotion indsætter. */
   createEmptyRow: (rowId: string) => TEntity;
-  /** Stabilt lokations-præfiks for cellernes editorlokationer (§3.7). */
+  /** Stabilt lokations-præfiks for cellernes editorlokationer (§2.7). */
   locationPrefix: string;
   /**
-   * Eksplicit navigation-metadata for editorlokationen (§3.7): route + fane. PÅKRÆVET, så en celles undo/redo
+   * Eksplicit navigation-metadata for editorlokationen (§2.7): route + fane. PÅKRÆVET, så en celles undo/redo
    * altid kan navigere til den side/fane, ændringen kom fra. `tabKey: null` = siden har ingen faner.
    */
   locationNav: Readonly<{ route: string; tabKey: string | null }>;
@@ -37,7 +37,7 @@ export type CollectionRenderRow = Readonly<{ rowId: string; kind: 'existing' | '
 // samme adresseberegning som editoren uden at importere en komponentmodul.
 
 /**
- * Kanonisk, kollisionsfrit lokations-præfiks for en collection-instans (§3.7).
+ * Kanonisk, kollisionsfrit lokations-præfiks for en collection-instans (§2.7).
  *
  * Ejer-id'erne SKAL med: EO renderer én løntabel pr. ansættelsesforhold, altså flere instanser af samme
  * collection-type samtidigt. Et præfiks på kun `section.collection` ville give to kort identiske editorlokationer,

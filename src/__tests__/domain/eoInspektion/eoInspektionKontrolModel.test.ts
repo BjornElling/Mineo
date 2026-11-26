@@ -532,7 +532,7 @@ describe('buildEOInspektionModel – loenindkomst og offentligeydelser kolonner 
     expect(hasLoenKolonne).toBe(true);
   });
 
-  it('employment-kolonner viser nu underoverskrifter uden ansættelsesnummer', () => {
+  it('employment-kolonner viser underoverskrifter uden ansættelsesnummer', () => {
     const model = buildEOInspektionModel({
       ...base(),
       vedroererPeriodeFra: toISODateString('2024-01-01') as never,

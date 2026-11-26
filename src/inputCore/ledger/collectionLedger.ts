@@ -1,8 +1,9 @@
 import type { CodecFamily, ControlKind, SectionKey } from './ledgerTypes';
 
-// Midlertidigt fase-0-inventar (§6.2): én entry pr. dynamisk collection. `path` er den strukturelle sti til collectionen
-// (tom for top-level; en forælder-collection-sti udtrykkes med `[]`). Completeness-testen verificerer, at
-// nøjagtig disse collections findes i de faktiske Zod-schemas, og at hver childfield hører til collectionen.
+// Collectionledgeren (coverage-register, input-architecture.md §3.2): én entry pr. dynamisk collection. `path` er
+// den strukturelle sti til collectionen (tom for top-level; en forælder-collection-sti udtrykkes med `[]`).
+// Completeness-testen verificerer, at nøjagtig disse collections findes i de faktiske Zod-schemas, og at hver
+// childfield hører til collectionen.
 
 export type CollectionChildField = Readonly<{
   name: string;
@@ -16,7 +17,7 @@ export type CollectionLedgerEntry = Readonly<{
   /** Strukturel forælder-sti; tom for top-level collections. `[]` markerer en forælder-collections rækker. */
   path: string;
   collection: string;
-  /** Entity-id-egenskaben (§6.2). De fleste bruger `id`; sfgg-ansættelsesforhold bruger `ansaettelsesforholdId`. */
+  /** Entity-id-egenskaben (§3.2). De fleste bruger `id`; sfgg-ansættelsesforhold bruger `ansaettelsesforholdId`. */
   entityIdProperty: string;
   childFields: readonly CollectionChildField[];
   /** Id'er på nested collections under denne collections rækker. */

@@ -12,7 +12,7 @@ import { eoStandardLoenCollectionRef } from '../../../domain/erstatningsopgoerel
 import { aarsloenTableDataCollectionRef } from '../../../domain/aarsloen/aarsloenStandardLoenFieldSet';
 import type { StandardLoenTableRow } from '../../../schemas/formSchemas';
 
-// Den fælles cellebindingskontrakt (§3.2, §1.11). Kernekravet: en celles dataidentitet er descriptoren bundet til
+// Den fælles cellebindingskontrakt (§2.2, §1.11). Kernekravet: en celles dataidentitet er descriptoren bundet til
 // HELE ejerstien – og den er den SAMME for en eksisterende række og for dens placeholder. Kunne de to arter få
 // forskellig adressestruktur, ville en nested tabel (EO's løntabel under ét ansættelsesforhold) binde med for få
 // entity-led, og adresseariteten i `FieldDescriptor.bind` ville kaste under render.
@@ -132,7 +132,7 @@ describe('buildCollectionCellSpec – samme adressestruktur for begge cellearter
 });
 
 describe('collectionLocationPrefix – to instanser af samme collection kolliderer ikke', () => {
-  it('nested instanser under forskellige ejere får forskellige editorlokationer (§3.7)', () => {
+  it('nested instanser under forskellige ejere får forskellige editorlokationer (§2.7)', () => {
     const a = buildCollectionCellSpec(binding(eoStandardLoenCollectionRef('af-1')), existing('row-1'), eoStandardRowFields.col2, 2);
     const b = buildCollectionCellSpec(binding(eoStandardLoenCollectionRef('af-2')), existing('row-1'), eoStandardRowFields.col2, 2);
     expect(a.location.locationId).not.toBe(b.location.locationId);

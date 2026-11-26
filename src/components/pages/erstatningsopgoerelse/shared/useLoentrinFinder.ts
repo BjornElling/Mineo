@@ -127,11 +127,9 @@ export const EO_OPLYSNINGER_LOENTRIN_FINDER_KEY = 'eoAngivetLoen';
  * Løntrin-finder-overlayets state machine. ÉN hook for begge flader (Lønindkomst pr.
  * ansættelsesforhold, EO-oplysninger med ét sæt felter).
  *
- * De to flader havde tidligere hver sin hook, ~95 % ordret identiske, med kun `open`-udtrykket og
- * sessionStorage-roundtrippet til forskel. Duplikeringen var reel: den samme keyboard-effekt og de
- * samme seks state-felter stod to steder og skulle rettes to steder – fx blev fokus-restoren
- * (§Popup-fokus-restore) tilføjet i begge, mens fejlen med den delte trigger-ref kun fandtes i den ene.
- * Den eneste forskel er nu nøglen (`key`): ét kort pr. ansættelsesforhold mod EO oplysningers ene kontrol.
+ * Fladerne deler keyboard-effekt, state-felter og fokus-restore (§Popup-fokus-restore), så en rettelse
+ * ikke skal laves to steder. Den eneste forskel er nøglen (`key`): ét kort pr. ansættelsesforhold mod
+ * EO oplysningers ene kontrol.
  *
  * Bevidst page-lokal og transient: overlayet skriver aldrig til persisteret sagsdata (jf.
  * `mineo-field-pattern` §3 «Transiente felter deltager ikke» i undo/redo). Nøgle-persistensen er

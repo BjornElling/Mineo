@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 import { hydrateSlimInputStoreForTest } from '../../../test/actSafeInputStore';
 //
-// Renteberegning-siden (§2.4/§2.5): hele siden kører på den ENE
+// Renteberegning-siden: hele siden kører på den ENE
 // input-runtime (ingen legacy FormPersistence/invalidDrafts). Denne integrationstest kører gennem den RIGTIGE
-// migrerede side + den ægte produktions-runtime og beviser den virkelige sti felt → settle → reader-projektion
-// → download-gate (§1.5/§1.6/§3.9): en afsluttet ugyldig beregningsdato blokerer downloads, og en gyldig
+// side + den ægte produktions-runtime og beviser den virkelige sti felt → settle → reader-projektion
+// → download-gate (§1.5/§1.6/§2.9): en afsluttet ugyldig beregningsdato blokerer downloads, og en gyldig
 // committed række når dokumentservicen.
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';

@@ -396,23 +396,21 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
   );
 
   /**
-   * Rækkefejlenes blokering udledes IKKE længere her.
+   * Rækkefejlenes blokering udledes IKKE her.
    *
-   * Fanen brugte tidligere en page-lokal `hasBlockingEoRowErrors` til at overstyre gatens tooltip med en
-   * hardkodet streng ("…når der er fejl ovenfor"). Det var to konkurrerende kilder til samme afgørelse, og
-   * viewmodellens variant var desuden fane-afhængig (`isActive`-guarden nedenfor filtrerer rækkerne væk på
-   * en inaktiv fane), hvad en gate-tekst aldrig må være (`document-output-contract.md` §A2.1).
+   * En page-lokal afgørelse, der overstyrede gatens tooltip, ville være en konkurrerende kilde til samme
+   * afgørelse og desuden fane-afhængig (`isActive`-guarden nedenfor filtrerer rækkerne væk på en inaktiv
+   * fane), hvad en gate-tekst aldrig må være (`document-output-contract.md` §A2.1).
    *
-   * Beslutningen ligger nu i `eoDocumentDownloadGate` som klassen `page-errors`, afledt af gatens egen
+   * Beslutningen ligger i `eoDocumentDownloadGate` som klassen `page-errors`, afledt af gatens egen
    * fane-uafhængige `collectAllEoRows`-kørsel. Fanen læser kun `*DisabledReason` fra handlet.
    */
 
   /**
    * De fire EO-dokumentoutputs. Hele preflighten – settle, frisk capture, token-lighed,
-   * projektion, gate – ligger nu i definitionerne, som deler ÉN kildekontekst: `collectAllEoRows` og
+   * projektion, gate – ligger i definitionerne, som deler ÉN kildekontekst: `collectAllEoRows` og
    * gate-sættet køres derfor én gang pr. revision, ikke fire. Bilagsudvælgelsen og den valgfri
-   * `midlertidigtEetGroups` er flyttet ind i definitionerne, hvor de hører til: de er dokumentets
-   * input, ikke sidens.
+   * `midlertidigtEetGroups` ligger også i definitionerne: de er dokumentets input, ikke sidens.
    */
   const documentContext = useMineoDocumentSourceContext();
   const eoDownload = useMineoDocumentOutputWithContext(erstatningsopgoerelseDocumentDefinition, undefined, documentContext);
@@ -775,7 +773,7 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
     antalPoster: (eoValues.oevrigeKravPerioder ?? []).filter((row) => !isOevrigeKravRowEmpty(row)).length,
   });
 
-  // Navnet kommer fra feltets ene navneregel (§3.2a), aldrig fra en lokal ternary.
+  // Navnet kommer fra feltets ene navneregel (§2.2), aldrig fra en lokal ternary.
   const skadedatoLabel = resolveSkadestypeDatoLabel(stamdataValues?.skadestype);
   // En rød skadedato-fejl (fx omvendt datoorden) må ikke vises som et tomt '-' – det læses som "her
   // er ikke indtastet noget", når der reelt STÅR noget, bare ugyldigt (samme fejlklasse som Varige

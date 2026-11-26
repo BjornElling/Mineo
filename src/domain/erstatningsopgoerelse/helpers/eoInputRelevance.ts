@@ -24,8 +24,8 @@ import { isOffentligOverenskomstId } from '../../../data/overenskomstRates';
  *     allerede neutraliseret her.
  *  3. EO-descriptorerne bærer dem som `relevance` (`erstatningsopgoerelseDescriptors.ts`). Det er
  *     inputCores fælles læsegrænse: readeren returnerer feltets tomværdi, `deriveFieldIssueSet`
- *     danner ingen rød ring for det, og et valg, der skjuler et rødt felt, rydder det (§7.5). Dermed
- *     ser ALLE læsere – validatoren, rækkebyggerne, dependency-projektionen, dokumentet – det
+ *     danner ingen rød ring for det, og et valg, der skjuler et rødt felt, rydder det
+ *     (`form-contract.md` §7.5). Dermed ser ALLE læsere – validatoren, rækkebyggerne, dependency-projektionen, dokumentet – det
  *     skjulte felt som ikke udfyldt, også de ikke-talfødende felter nedenfor. Så kun motorerne
  *     neutraliserede værdier, kunne en skjult, halvudfyldt række spærre opgørelsen i validatoren
  *     med en fejl, brugeren ikke kan finde.

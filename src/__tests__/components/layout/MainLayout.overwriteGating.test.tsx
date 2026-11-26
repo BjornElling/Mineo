@@ -184,7 +184,7 @@ describe('MainLayout (overwrite gating)', () => {
 
     expect(storedInput().sections.stamdata?.skadelidte).toBe('Y');
     expect(storedInput().sections.satser?.aargang).toBe(2021);
-    // Applyet skrev den ene current-envelope (§3.6).
+    // Applyet skrev den ene current-envelope (§2.6).
     expect(persistedEnvelopeInput().sections.stamdata?.skadelidte).toBe('Y');
     expect(screen.getByTestId('pathname')).toHaveTextContent('/stamdata');
   });

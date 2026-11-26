@@ -20,7 +20,7 @@ import { useAarsloenVm } from './aarsloenContext';
  * dokumentet. Formlerne er urørte; sektionen viser kun det, `beregningsData` allerede indeholder.
  *
  * Ved en fatal beregningsfejl viser sammentællingen '—' frem for et tal: projektionen har da ikke kaldt motoren,
- * så der findes intet resultat, og en beregning på den skjulte tomværdi ville være misvisende (§1.6/§3.9).
+ * så der findes intet resultat, og en beregning på den skjulte tomværdi ville være misvisende (§1.6/§2.9).
  */
 const AarsloenBeregningSection = React.memo(() => {
   const vm = useAarsloenVm();

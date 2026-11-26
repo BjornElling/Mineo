@@ -50,14 +50,14 @@ import { ASL_VIRKNINGSDATO_INFO } from '../../domain/erhvervsevnetab/eetAslAfgoe
 
 // EetAslAfgoerelserTable: Rækkeinfrastruktur, celleværdier
 // og celleredigering går nu udelukkende gennem inputCore – som StandardLoenTable/BeregnetRenteTable:
-//  - `useCollectionRows(aslAfgoerelser)` ejer rækkernes id'er + insert/delete/reorder (§3.8) – ingen
+//  - `useCollectionRows(aslAfgoerelser)` ejer rækkernes id'er + insert/delete/reorder (§2.8) – ingen
 //    `useGridRowPersistenceCore`, `internalTableData`, `invalidDrafts`, fingerprint eller persistence-effect.
 //  - hver redigerbar celle er en `Grid*Cell` over `useCellEditor`, bro-forbundet til grid-core-
 //    navigationen. Descriptorernes codecs + bounds-validatorer ejer parse/format/paste + celle-bounds (§1.6);
 //    kryds-række-domænereglerne (dublet-datoer, identiske afgørelser, virkningsdato efter tidl.kap.) kommer fra
 //    forælderens reader-afledte `ruleIssues` som STRUKTURELLE feltissues og slås op på cellens egen feltadresse.
 //  - de committede rækker (til sort + kryds-validering) er reader-afledte af forælderen, så tabellen og
-//    projektionen deler præcis samme sandhed. Der er ingen konkurrerende celle-værdikopi (§3.8).
+//    projektionen deler præcis samme sandhed. Der er ingen konkurrerende celle-værdikopi (§2.8).
 //  - trailing PLACEHOLDER-rækker (§1.11): tomme rækker persisteres ikke, så den viste tabel = de
 //    committede rækker + `max(1, EET_ASL_MIN_VISIBLE_ROWS − antal committede)` tomme indtastningsrækker
 //    (to synlige tomme rækker på en tom sag).

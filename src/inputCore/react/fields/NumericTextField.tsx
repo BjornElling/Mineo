@@ -12,7 +12,7 @@ import type { FieldWarning } from '../../fieldWarning';
 import { keyFilterFromAdmission, type DraftAdmission } from '../../../components/inputs/draftAdmission';
 import { useFieldLabel } from '../useFieldLabel';
 
-// Numerisk tekst-felt (§2.4/§3.5): den delte TYNDE skal for alle single-`<input>` numeriske
+// Numerisk tekst-felt (§2.5): den delte TYNDE skal for alle single-`<input>` numeriske
 // codec-familier (år, heltal, beløb, procent, brøk, uge). Præcis som `DateField`, men med et
 // familiespecifikt tegnfilter givet ind som prop i stedet for hardcodet. Parse/format/paste-normalisering
 // ejes af descriptorens codec; commit-intervaller og tværgående bounds er FELTVALIDATORER (inputkernen), ikke

@@ -30,7 +30,7 @@ type KronetillaegEnhed = AnciennitetSatsPer;
  * mangler den – ikke en runtime-overraskelse.
  */
 
-/** Navigation-metadata (§3.7). Feltets fane kan ikke udledes af adressen. */
+/** Navigation-metadata (§2.7). Feltets fane kan ikke udledes af adressen. */
 export type FieldLocation = Readonly<{
   locationId: string;
   route: string;

@@ -3,7 +3,7 @@ import { satserAargangField } from '../../inputCore/catalog/satserDescriptors';
 import type { InputReader } from '../../inputCore/inputReader';
 import { runProjection, type ProjectionResult } from '../../inputCore/projection';
 
-// Satser-projektionen (§3.4/§3.9, inputkernen-slice). En ALMINDELIG ren funktion over den offentlige
+// Satser-projektionen (input-architecture.md §2.4/§2.9). En ALMINDELIG ren funktion over den offentlige
 // `InputReader`: den kræver satsårets felt og udleder satserne. Dependency og blokering følger af det ene
 // felt, funktionen faktisk læser.
 //

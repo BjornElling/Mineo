@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 /**
- * Den ENE placeholder-identitets-livscyklus for alle dynamiske tabeller (§1.11, §3.7).
+ * Den ENE placeholder-identitets-livscyklus for alle dynamiske tabeller (§1.11, §2.7).
  *
  * En dynamisk tabel viser de committede rækker plus mindst én tom indtastningsrække. Den tomme række har en
  * UI-identitet – et række-id – som cellernes feltadresser og editorlokationer bygges af. Ved første ikke-tomme

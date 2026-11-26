@@ -48,7 +48,7 @@ export type PersistenceLoadApplyResult =
 
 /**
  * Anvender ét autoritativt, pre-valideret sektionssnapshot atomisk. Input-runtime binder dette til
- * `CaseFileOperations.applyLoadedSnapshot` (→ `replaceCase` gennem coordinatoren, §3.10). Kaster ved
+ * `CaseFileOperations.applyLoadedSnapshot` (→ `replaceCase` gennem coordinatoren, §2.10). Kaster ved
  * schema-/katalogafvisning, så apply-fejl aldrig efterlader en delvist erstattet sag.
  */
 export type ApplyLoadedSnapshot = (snapshot: PersistedSectionsSnapshot) => void;
@@ -87,8 +87,8 @@ export const applyAuthoritativeLoadSnapshot = (args: {
 };
 
 /**
- * Den ASYNKRONE metadata-halvdel: filnavn, filhåndtag og PWA-request-oprydning (§4.1). Kører EFTER
- * replacement-barrieren er lukket, fordi den ikke ejer sagsinput og derfor ikke må holde draft-discard åben
+ * Den ASYNKRONE metadata-halvdel: filnavn, filhåndtag og PWA-request-oprydning (`persistence-contract.md` §11).
+ * Kører EFTER replacement-barrieren er lukket, fordi den ikke ejer sagsinput og derfor ikke må holde draft-discard åben
  * mens brugeren kan begynde at redigere den netop indlæste sag. En fejl her er ikke en apply-fejl:
  * sagen ER indlæst, og brugeren får en advarsel om den manglende synkronisering.
  */

@@ -189,7 +189,7 @@ const RAEKKENAVNGIVNE_ISSUE_IDS: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * Bygger ét EET-panel med en STRUKTUREL dependency-gate foran motoren (§1.10/§3.9).
+ * Bygger ét EET-panel med en STRUKTUREL dependency-gate foran motoren (input-architecture.md §1.10/§2.9).
  *
  * Kontraktkravet er, at kun en `ready` projektion må fodre en beregningsmotor (`form-contract.md` §2.3), og
  * at en projektion ikke kalder motoren, hvis et afhængigt issue gør input uanvendeligt
@@ -406,7 +406,7 @@ const buildEfterEalProjection = (input: EetSnapshotInput): EetSnapshot['efterEal
   const usesAslAarsloenFallback = !isUsableAmount(input.values.ealAarsloen);
   const usesAslEetPctFallback = !isUsableEetPct(input.values.ealEetPct);
 
-  // Forliget er nu en afhængighed også HER, fordi fanen selv viser det forligsreducerede EAL-krav.
+  // Forliget er en afhængighed også HER, fordi fanen selv viser det forligsreducerede EAL-krav.
   const forligBlocking = buildForligBlockingIssues(input);
 
   const blockingIssues = [

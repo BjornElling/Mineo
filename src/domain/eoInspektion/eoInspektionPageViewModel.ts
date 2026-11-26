@@ -159,7 +159,7 @@ const buildSfggSections = (
       order.push(employmentId);
     }
     // Rækker der BÆRER en tabel projiceres som tabel; øvrige rækker vises som label/værdi.
-    // Betingelsen er nu rækkens egen struktur – ikke et id-præfiks-gæt.
+    // Betingelsen er rækkens egen struktur – ikke et id-præfiks-gæt.
     if (row.table) {
       const projected = projectSfggTable(row);
       if (projected) {

@@ -1,20 +1,20 @@
 import type { FieldRef } from '../fieldDescriptor';
 import type { RejectedInput } from '../settledInput';
 
-// Inputkernen (§3.5, mineo-field-pattern Lag B): ÉN felt-editor-state-machine for både formular og
+// Inputkernen (§2.5, mineo-field-pattern Lag B): ÉN felt-editor-state-machine for både formular og
 // grid. Den er ren og framework-fri – ingen React, DOM, storage eller dispatch. Den ejer KUN den åbne editors
 // rå draft og lifecycle. Lukket visning er ikke state her; den afledes direkte af den afsluttede revision
-// (§3.5). Der findes ingen lukket draftkopi, touched-kopi, pending-prop-guard, fingerprint eller epoch-resync.
+// (§2.5). Der findes ingen lukket draftkopi, touched-kopi, pending-prop-guard, fingerprint eller epoch-resync.
 //
 // State-machinen udsteder INTENTS (settle/no-op), som runtime-bindingen oversætter til én `settleField`-
-// command mod `dispatchInput`. Selve I/O, revision og history ejes af runneren (§3.6), aldrig af editoren.
+// command mod `dispatchInput`. Selve I/O, revision og history ejes af runneren (§2.6), aldrig af editoren.
 
 /**
- * Editorlokationens overflademetadata (§3.2/§3.5). Fokusmål er IKKE en del af datafeltets identitet.
+ * Editorlokationens overflademetadata (§2.2/§2.5). Fokusmål er IKKE en del af datafeltets identitet.
  *
  * Lokationen EJER sin destination. `route` + `tabKey` er PÅKRÆVEDE, fordi de er det eneste sted, der ved hvor
  * feltet redigeres: samme datafelt kan have flere editorer (`faellesAarsloen` uden egen route, forligsfelterne
- * på to sider), og både undo/redo-restoren (§3.7) og save-blokeringens fokus (§1.4) navigerer efter dem. Var de
+ * på to sider), og både undo/redo-restoren (§2.7) og save-blokeringens fokus (§1.4) navigerer efter dem. Var de
  * valgfri, ville en glemt destination gøre lokationen uopnåelig UDEN at nogen type eller test fejlede – og et
  * globalt feltadresse→fane-kort måtte kompensere og skabe en parallel destinationsmodel.
  *
@@ -35,7 +35,7 @@ export type EditorLocation = Readonly<{
 }>;
 
 /**
- * Den lukkede visning af et felt, afledt UDELUKKENDE af den afsluttede revision (§3.5). Enten vises den rå
+ * Den lukkede visning af et felt, afledt UDELUKKENDE af den afsluttede revision (§2.5). Enten vises den rå
  * rejected tekst ordret, eller den canonical værdi via `codec.format`.
  */
 export type SettledFieldView<T> =
@@ -47,7 +47,7 @@ export type FieldEditorState<T> = Readonly<{
   location: EditorLocation;
   /**
    * Åben-tilstand. Er den `null`, er editoren lukket, og visningen afledes af den afsluttede revision.
-   * Er den sat, ejer editoren den lokale rå draft samt åbningsrevisionen (§3.5).
+   * Er den sat, ejer editoren den lokale rå draft samt åbningsrevisionen (§2.5).
    */
   open: Readonly<{
     draft: string;
@@ -57,7 +57,7 @@ export type FieldEditorState<T> = Readonly<{
 }>;
 
 /**
- * Draften, som editoren skal åbnes med (§3.5): rejected rå tekst vises ordret, ellers `codec.formatForEdit`.
+ * Draften, som editoren skal åbnes med (§2.5): rejected rå tekst vises ordret, ellers `codec.formatForEdit`.
  * En valgfri `initialKey` (tast-initieret åbning) erstatter draften med det første tegn.
  */
 const seedDraft = <T>(field: FieldRef<T>, view: SettledFieldView<T>, initialKey?: string): string => {
@@ -99,7 +99,7 @@ export const openEditor = <T>(
 };
 
 /**
- * Om et settle ville lande efter en autoritativ replacement siden editorens åbning (§3.5, mineo-field-pattern
+ * Om et settle ville lande efter en autoritativ replacement siden editorens åbning (§2.5, mineo-field-pattern
  * Lag B: "En autoritativ replacement kan ikke passere commit-barrieren, mens editoren er åben"). En autoritativ
  * hel-sags-replacement (load/reset/`Slet alt`) hæver replacement-generationen; almindelige feltcommits gør ikke.
  * Runtime-bindingen konsulterer denne før den udsteder et settle-intent.
@@ -147,7 +147,7 @@ export const settleEditor = <T>(
  * Den leverede tekst ERSTATTER en eventuel åben draft. Knappen er en eksplicit afslutningshandling, så den
  * halvskrevne draft er netop det, brugeren beder om at få overskrevet; at settle draften i stedet ville
  * ignorere handlingen. Editoren lukkes uanset om den var åben, og intentet er identisk med et tastet settle –
- * så råteksten går gennem feltets codec, XOR-invarianten og history på præcis samme vej (§1.5/§3.6).
+ * så råteksten går gennem feltets codec, XOR-invarianten og history på præcis samme vej (§1.5/§2.6).
  *
  * Bemærk, at der IKKE er en immediate-vej her: værdien skal parses af codecet, ikke skrives direkte som
  * canonical. `setImmediateField` er forbeholdt choice/toggle, hvor der aldrig findes en råtekst at parse.

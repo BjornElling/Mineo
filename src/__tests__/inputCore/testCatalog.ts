@@ -29,7 +29,7 @@ import {
 } from '../../inputCore';
 import { unconstrainedDateBounds } from '../../inputCore/dateBoundsDeclaration';
 
-// Ren, framework-fri testkatalog for greenfield-inputkernen. Bygger på ægte sektionsschemas (`satser`,
+// Ren, framework-fri testkatalog for inputkernen. Bygger på ægte sektionsschemas (`satser`,
 // `renteberegning`), så XOR- og eksistens-valideringen køres mod den rigtige Zod-kontrakt.
 
 const readSatser = (sections: PersistedInputSections): SatserValues | null => sections.satser;
@@ -152,7 +152,7 @@ export const belobField: FieldDescriptor<AmountValue | undefined> = defineField(
 
 /**
  * `tillaegstid` er kun relevant, når satsåret IKKE er 2000. Bruges til at teste, at et styrende valg, som
- * gør feltet irrelevant, rydder en aktiv rød feltfejl (§1.9/§3.6) men bevarer en gyldig værdi.
+ * gør feltet irrelevant, rydder en aktiv rød feltfejl (§1.9/§2.6) men bevarer en gyldig værdi.
  */
 export const tillaegstidField: FieldDescriptor<number | undefined> = defineField({
   id: 'renteberegning.rentekravRows.tillaegstid',
@@ -188,7 +188,7 @@ export const enhedField: FieldDescriptor<TillaegstidEnhed> = defineField({
 /**
  * `renterFra` – datofamiliens RÆKKE-repræsentant.
  *
- * §7.1's fælles feltkontrakt skal køres mod BÅDE form- og grid-adapteren for
+ * §4.1's fælles feltkontrakt skal køres mod BÅDE form- og grid-adapteren for
  * hver codecfamilie, og `date` havde kun et formularfelt i testkataloget. Uden en celle-udgave kunne
  * kontrakten ikke sammenligne de to adaptere for netop den familie.
  */
@@ -206,7 +206,7 @@ export const renterFraField: FieldDescriptor<ISODateString | undefined> = define
     updateRow(sections, findRowId(address), (row) => ({ ...row, renterFra: value })),
 });
 
-// ── §7.1's øvrige codecfamilier ──────────────────────────────────────────────────────────────────────
+// ── §4.1's øvrige codecfamilier ──────────────────────────────────────────────────────────────────────
 //
 // De tre nedenfor findes, så den FÆLLES feltkontrakt kan køres mod begge
 // adaptere for hver familie, produktionen har på begge surfaces. De bruger `defineStructuralField`, som
@@ -292,7 +292,7 @@ export const makeRow = (id: string, overrides: Partial<RentekravRow> = {}): Rent
 export const rentekravRowsRef = () => createCollectionRef({ section: 'renteberegning', path: [], collection: 'rentekravRows' });
 
 /**
- * Rækkeorigin til test-fixtures, der SEEDER rækker via `dispatchInput` (§3.7).
+ * Rækkeorigin til test-fixtures, der SEEDER rækker via `dispatchInput` (§2.7).
  *
  * Strukturelle rækkecommands kræver en origin, så en undo altid har et restore-anker. En test, der blot
  * opsætter en baseline-række, har ingen brugerhandling at pege på – men den skal levere en gyldig origin
@@ -308,12 +308,12 @@ export const testRowOrigin = (collection = 'rentekravRows'): CollectionHistoryOr
 });
 
 /**
- * Editorlokation til test-fixtures (§3.2). `route` + `tabKey` er PÅKRÆVEDE på `EditorLocation`, fordi lokationen
+ * Editorlokation til test-fixtures (§2.2). `route` + `tabKey` er PÅKRÆVEDE på `EditorLocation`, fordi lokationen
  * ejer sin egen fokusdestination. ÉT delt fixture, så et opblødt krav ikke kan gemme sig i en test, der opfandt
  * sin egen halve lokation.
  *
  * Lokationen er NAVIGERBAR som produktionens, og det er ikke en bekvemmelighed: en placeholder-celle promoverer
- * sin række med `settleFieldInNewRow` – en STRUKTUREL command, hvis origin kræver en rigtig route (§3.7,
+ * sin række med `settleFieldInNewRow` – en STRUKTUREL command, hvis origin kræver en rigtig route (§2.7,
  * `assertStructuralOrigin`). Et første forsøg gav fixturet en tom "ikke navigerbar" route; det gjorde fire
  * placeholder-tests røde, og runtime havde ret. Fixturet efterligner derfor produktionen frem for at opfinde en
  * svagere variant – præcis grunden til at der kun findes ÉT.

@@ -37,7 +37,7 @@ import {
 } from '../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
 import { serializeFieldAddress } from '../../../inputCore/fieldAddress';
 
-// Erstatningsopgørelsens reader-projektion (§3.4/§5.4/§1.10): beviser at projektionen
+// Erstatningsopgørelsens reader-projektion (input-architecture.md §2.4/§1.10): beviser at projektionen
 // (a) rekonstruerer det fulde EO-/stamdata-værdiobjekt fra readeren med irrelevante felters tomværdi, (b)
 // kører den EKSISTERENDE `computeEoSnapshot` UÆNDRET på de reader-læste værdier (§5.4 hårdt stop mod talændring),
 // (c) fører røde reader-feltfejl ind i eoErrors/stamdataErrors-mappene (top-level + `${afId}:loenindkomst`), og

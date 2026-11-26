@@ -32,9 +32,9 @@ export const satserDocumentDefinition: MineoDocumentDefinition<SatserDocumentInp
     labels: { documentName: 'satser' },
     project: (context) => {
       const { reader } = context.evaluation;
-      // Klassen UDLEDES af issuene (§3.1). Før citerede begge grene `issues[0]` ubetinget, så et tomt
-      // satsår gav "Satsår er ikke udfyldt" som ordret citat frem for den universelle "Indtastning
-      // mangler" – modsat den `missing`-klasse, issuet selv bærer.
+      // Klassen UDLEDES af issuene (`document-output-contract.md` §A5.1). Et ubetinget citat af `issues[0]`
+      // ville give "Satsår er ikke udfyldt" som ordret citat ved et tomt satsår frem for den universelle
+      // "Indtastning mangler" – modsat den `missing`-klasse, issuet selv bærer.
       const projection = projectSatser(reader);
       if (projection.status !== 'ready') {
         return blockedProjectionFromCauses('satser:year-blocked', projection.issues, 'Satsåret er ikke gyldigt');

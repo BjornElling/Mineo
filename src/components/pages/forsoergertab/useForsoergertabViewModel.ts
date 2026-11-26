@@ -39,7 +39,7 @@ import { resolveInsertTodayDisabledReason } from '../../../utils/insertTodayDate
  * Hele siden kører på inputCore: de fem forsoergertab-felter + de delte ASL/EAL-årsløn skriver/læser gennem den
  * offentlige `InputReader` + den ene write-grænse, og de tværsektionelle stamdata-datoer læses gennem samme
  * reader. Den ENE reader-afledte projektion driver både beregningsvisning og download-gaten; den kører
- * `computeForsoergertabSnapshot` UÆNDRET (§5.4 – ingen talændring).
+ * `computeForsoergertabSnapshot` uden egen talberegning.
  *
  * Snapshottet ejer den dependency-specifikke panel-/gate-logik (§1.10) – det gates derfor ikke bag en global
  * blocked-tilstand: en fejl på fx virkningsdato blokerer ASL + download, men bevarer EAL-panelet.
@@ -60,7 +60,7 @@ const skadedatoRef = stamdataSkadedatoField.bind();
 const skadestypeRef = stamdataSkadestypeField.bind();
 
 /**
- * route er eksplicit navigation-metadata (§3.7); Forsørgertab er en side uden faner (tabKey: null). De to
+ * route er eksplicit navigation-metadata (§2.7); Forsørgertab er en side uden faner (tabKey: null). De to
  * faellesAarsloen-lokationer (aslAarsloen/ealAarsloen) deler feltadresse med Erhvervsevnetab, men MED route
  * `/forsoergertab` – det er route (ikke feltadresse/section), der disambiguerer, hvilken side undo/redo lander på.
  */

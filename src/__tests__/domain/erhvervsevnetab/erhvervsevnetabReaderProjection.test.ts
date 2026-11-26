@@ -57,7 +57,7 @@ import type {
 } from '../../../schemas/formSchemas';
 import type { RejectedInputs } from '../../../inputCore/settledInput';
 
-// Erhvervsevnetabs reader-projektion (§3.4/§5.4/§1.10): beviser at projektionen (a) kører den
+// Erhvervsevnetabs reader-projektion (input-architecture.md §2.4/§1.10): beviser at projektionen (a) kører den
 // EKSISTERENDE `computeEetSnapshot` byte-identisk på reader-læste værdier (§5.4 hårdt stop mod talændring, inkl. den
 // rekonstruerede aslAfgoerelser-collection), (b) fører canonical bounds-feltfejl (§1.6) på ealEetPct + rækkeceller ind
 // i snapshottets per-fane-gate, og (c) bevarer den DEPENDENCY-SPECIFIKKE per-fane-blokering (§1.10): en ealEetPct-fejl
@@ -389,8 +389,9 @@ describe('buildErhvervsevnetabReaderProjection', () => {
   it('skift Endelig → Midlertidig bevarer kapitaliseringsfelterne og GENUDLEDER deres fejl', () => {
     // Kravet er TODELT, og begge dele er load-bearing:
     //
-    //  1. Værdierne BEVARES. Et skift af afgørelsestype er et almindeligt valg, ikke en sletteknap (§7.5
-    //     hovedregel). Rydnings-UNDTAGELSEN i §7.5 pkt. 2 rammer ikke her: den forudsætter, at valget gør
+    //  1. Værdierne BEVARES. Et skift af afgørelsestype er et almindeligt valg, ikke en sletteknap
+    //     (`form-contract.md` §7.5 hovedregel). Rydnings-UNDTAGELSEN i §7.5 pkt. 2 rammer ikke her: den
+    //     forudsætter, at valget gør
     //     feltet SKJULT (en `relevance`-regel på descriptoren), og kapitaliseringsfelterne forbliver
     //     synlige ved `Midlertidig`. Fejlen kan derfor ses og rettes, og så skal data blive stående.
     //  2. Fejlvurderingen FØLGER valget. Kapitaliseringsreglerne er afgørelsestype-afhængige, så de

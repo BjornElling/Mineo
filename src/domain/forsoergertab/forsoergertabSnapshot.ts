@@ -39,7 +39,7 @@ export type ForsoergertabSnapshotInput = Readonly<{
   stamdata: StamdataValues | null;
   fieldErrors: ForsoergertabFieldErrors;
   /**
-   * Feltets brugervendte navn i den aktuelle kontekst (§3.2a) – i praksis `InputReader.labelOf`.
+   * Feltets brugervendte navn i den aktuelle kontekst (input-architecture.md §2.2) – i praksis `InputReader.labelOf`.
    *
    * PÅKRÆVET, fordi et felt kan have en KONTEKSTUEL label: `stamdata.skadedato` hedder «Anmeldelsesdato»
    * ved en erhvervssygdom. Snapshottet slår navnet op frem for at bygge feltrefs uden kontekst.
@@ -241,7 +241,7 @@ export const computeForsoergertabSnapshot = (input: ForsoergertabSnapshotInput):
     return beregningsdato ? minISO(maxDato, beregningsdato) : maxDato;
   })();
 
-  // Dependency-gaten afgøres FØR motoren, pr. gruppe (§1.10/§3.9): en rød afhængighed blokerer sin egen
+  // Dependency-gaten afgøres FØR motoren, pr. gruppe (§1.10/§2.9): en rød afhængighed blokerer sin egen
   // motor og BEVARER den anden. En stamdata-datoordensfejl er en fælles afhængighed for begge grupper.
   const hasSharedDateOrderError = stamdataDateOrderMessage !== undefined;
   const ealBlocked = hasSharedDateOrderError || hasAnyDependencyError(
@@ -416,7 +416,7 @@ export const computeForsoergertabSnapshot = (input: ForsoergertabSnapshotInput):
    * brugeren havde udfyldt. De tre øvrige flader er allerede fail-closed på præcis denne måde
    * (`eetSnapshot.ts`: `issues.some(i => i.severity === 'error')`); Forsørgertab var outlier'en.
    *
-   * Retningen er nu den modsatte af en allowlist: et NYT issue i motoren blokerer som udgangspunkt, og skal
+   * Retningen er den modsatte af en allowlist: et NYT issue i motoren blokerer som udgangspunkt, og skal
    * aktivt undtages for ikke at gøre det.
    *
    * **Undtagelsen er «feltet er ikke udfyldt endnu».** Motoren mærker ALLE sine issues `severity: 'error'`

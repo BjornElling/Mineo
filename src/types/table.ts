@@ -11,7 +11,7 @@ export type StandardLoenTableColumnKey =
   | 'pensionBeloeb';
 
 /**
- * KOLONNENAVNENE – ét sandt sted (§3.2a).
+ * KOLONNENAVNENE – ét sandt sted (§2.2).
  *
  * Standard-løn-tabellen vises af BÅDE Årsløn og EO-lønindkomst, som har hvert sit descriptor-katalog.
  * Navnene bor derfor her, i det neutrale type-lag, og forbruges tre steder: de to descriptor-kataloger

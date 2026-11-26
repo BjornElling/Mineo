@@ -13,7 +13,7 @@ import type { DateBoundsDeclaration } from './dateBoundsDeclaration';
 import type { PersistedInputSections } from './settledInput';
 import { amountResultBoundsValidator } from './amountResultBounds';
 
-// Inputkernen (§3.2): hvert persisteret brugerfelt har ÉN immutable beskrivelse med kun de egenskaber,
+// Inputkernen (§2.2): hvert persisteret brugerfelt har ÉN immutable beskrivelse med kun de egenskaber,
 // der bruges nu. Kataloget er et almindeligt statisk readonly katalog, som valideres én gang – ingen
 // stateful klasse, runtime-registrering, seal-lifecycle, factory-brands eller WeakSet-autorisering.
 
@@ -47,7 +47,7 @@ export type CanonicalWrite<T> = (
 ) => PersistedInputSections;
 
 /**
- * Ren canonical-læsning uden issues (§3.4 pkt. 1). Relevansregler og feltvalidatorer læser HER, aldrig
+ * Ren canonical-læsning uden issues (§2.4 pkt. 1). Relevansregler og feltvalidatorer læser HER, aldrig
  * gennem den offentlige reader – så feltvurderingen ikke bliver cirkulær.
  *
  * `listEntityIds` giver en samlings aktuelle række-id'er i rækkefølge, så en regel kan binde felterne i
@@ -61,8 +61,8 @@ export type CanonicalView = Readonly<{
 }>;
 
 /**
- * Inputdrevet relevansregel (§3.1 pkt. 4). Ren funktion af andre felters canonical værdier; må ALDRIG
- * afhænge af mounted componentstate eller AppSettings for et persisteret felt (§3.1).
+ * Inputdrevet relevansregel (§2.1 pkt. 4). Ren funktion af andre felters canonical værdier; må ALDRIG
+ * afhænge af mounted componentstate eller AppSettings for et persisteret felt (§2.1).
  */
 export type FieldIssueSpec = Readonly<{
   reason: 'bounds' | 'rule' | 'schema';
@@ -85,11 +85,11 @@ export type FieldValidator<T> = (
 ) => FieldIssueSpec | undefined;
 
 export type FieldDescriptorConfig<T> = Readonly<{
-  /** Stabil, menneskelæsbar id – den ene dataidentitet for feltet (§6.1), uafhængig af editorlokation. */
+  /** Stabil, menneskelæsbar id – den ene dataidentitet for feltet (§3.1), uafhængig af editorlokation. */
   id: string;
   template: FieldAddressTemplate;
   codec: FieldCodec<T>;
-  /** Canonical tomværdi/clear-operation – obligatorisk del af hvert felt (§3.1 pkt. 3). */
+  /** Canonical tomværdi/clear-operation – obligatorisk del af hvert felt (§2.1 pkt. 3). */
   emptyValue: T;
   /** Semantisk tomhed er eksplicit; gyldige defaults som `false` eller `'dage'` må ikke gættes som missing. */
   isEmpty: (value: T) => boolean;
@@ -102,7 +102,7 @@ export type FieldDescriptorConfig<T> = Readonly<{
    */
   label: string;
   /**
-   * Kontekstuel labelregel (§3.2a). Udeladt = `label` er navnet i alle kontekster.
+   * Kontekstuel labelregel (§2.2). Udeladt = `label` er navnet i alle kontekster.
    *
    * Erklæres den, SKAL `label` være den kontekstfrie form af samme navn, og hver mulig returværdi skal være
    * et navn, brugeren faktisk kan se stå ved feltet. Rendersiden må ikke skrive labelen selv – den læser
@@ -146,7 +146,7 @@ export type AnyFieldRef = Readonly<{
 }>;
 
 /**
- * Kontekstuel labelregel (§3.2a): feltets brugervendte navn som en REN funktion af andre felters canonical
+ * Kontekstuel labelregel (§2.2): feltets brugervendte navn som en REN funktion af andre felters canonical
  * værdier – samme form som {@link RelevanceRule} og {@link FieldValidator}, og derfor med samme garantier
  * (ingen mounted componentstate, ingen AppSettings, ingen cirkularitet).
  *

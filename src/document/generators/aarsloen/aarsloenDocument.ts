@@ -175,7 +175,7 @@ const addIndtaegtsoplysningerTable = (
     return harPeriode || harLoen;
   });
 
-  // Overskrifterne er kolonnernes ERKLÆREDE dokument-form (§3.2a), fælles med erstatningsopgørelsens
+  // Overskrifterne er kolonnernes ERKLÆREDE dokument-form (§2.2), fælles med erstatningsopgørelsens
   // lønindkomst-bilag – et værn beviser, at hver forkortelse er afledt af det kanoniske navn.
   const headerLabels = getStandardLoenDocumentTableHeaders(loenperiode);
 

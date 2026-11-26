@@ -103,7 +103,7 @@ describe('persisterede specialtoggles → klik → undo-fokusmål', () => {
     // Committen landede som brugerens ene handling.
     expect(slimInputStore.getState().input.sections.aarsloen?.omregningTilFuldtAar).toBe(true);
 
-    // (1) Originen er et FELT-commit med feltets adresse OG editorlokation (§3.7).
+    // (1) Originen er et FELT-commit med feltets adresse OG editorlokation (§2.7).
     const origin = latestOrigin();
     expect(origin?.kind).toBe('field');
     if (origin?.kind !== 'field') return;

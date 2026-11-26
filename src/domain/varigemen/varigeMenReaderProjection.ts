@@ -14,7 +14,7 @@ import {
 import { computeVarigeMenEngine } from './varigeMenEngine';
 import type { VarigeMenBeregningResult } from './varigeMenCalculations';
 
-// Varige mén-projektionen (§3.4/§5.4). En ALMINDELIG ren funktion over den
+// Varige mén-projektionen (input-architecture.md §2.4). En ALMINDELIG ren funktion over den
 // offentlige `InputReader`. Den afløste `MenberegningTab`s rå `usePersistedForm`/`usePersistedSectionSelector`-
 // læsning + `useFormFieldErrors`-gating. Den er den ENE kanoniske projektion til både sidevisning og
 // dokumentgaten.
@@ -65,7 +65,7 @@ const VARIGE_MEN_DOCUMENT_CONSUMER_ID = 'document.varigemen';
 export const buildVarigeMenReaderProjection = (reader: InputReader): VarigeMenReaderProjection =>
   // Trin 1: `runProjection` læser motorinput og afgør ready|blocked. Trin 2: `mapReadyProjection` kalder
   // motoren KUN i ready-grenen. Motoren ligger BEVIDST uden for kroppen: kroppen udføres, FØR statussen er
-  // afgjort, så et motorkald derinde ville køre også når projektionen ender blokeret (§3.9). Manuelle
+  // afgjort, så et motorkald derinde ville køre også når projektionen ender blokeret (§2.9). Manuelle
   // undefined-guards i kroppen er ikke et alternativ: sikkerheden ville hvile på, at hvert fremtidigt read også
   // blev tilføjet til guarden.
   mapReadyProjection(

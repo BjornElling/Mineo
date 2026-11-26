@@ -19,8 +19,8 @@ type LicenseModalProps = {
  * Modal til visning af LICENSE-tekst
  *
  * **Tastaturet bliver i vinduet.** Modalen er et håndrullet overlay – den bygger ikke på MUI
- * `Dialog` og arvede derfor heller ikke dens `FocusTrap`. Tab vandrede ud i siden bagved, selv om
- * vinduet dækkede skærmen og erklærede sig `aria-modal="true"`. Fangsten kommer nu fra den SAMME
+ * `Dialog` og arver derfor ikke dens `FocusTrap`. Uden fangst vandrer Tab ud i siden bagved, selv om
+ * vinduet dækker skærmen og erklærer sig `aria-modal="true"`. Fangsten kommer fra den SAMME
  * primitiv, MUI `Dialog` selv bruger, frem for en fjerde håndrullet fokusmekanisme
  * (`keyboard-navigation.md` §Popup-fokus-restore: én implementering).
  *

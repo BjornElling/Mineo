@@ -6,9 +6,9 @@ import { capitalizeFirstCharDa } from '../../utils/formatUtils';
 /**
  * Sætningerne, der forklarer, hvilken side af en skæringsdato sagens skade-/anmeldelsesdato ligger på.
  *
- * Skærmen og dokumentet skrev før hver sin ordrette kopi med «Skaden er sket/indtrådt …» – også ved en
- * erhvervssygdom, som ikke «sker», men er anmeldt. Teksterne bor nu ét sted og udleder formuleringen af
- * beregningens egen `skadestype` gennem `resolveStamdataDatoReference`.
+ * Teksterne bor ét sted, fælles for skærm og dokument, og udleder formuleringen af beregningens egen
+ * `skadestype` gennem `resolveStamdataDatoReference` – en erhvervssygdom «sker» ikke, men er anmeldt, så
+ * «Skaden er sket/indtrådt …» må ikke stå fast.
  */
 
 /** De to linjer under «Løbende ASL-ydelser» i differencekravet. */

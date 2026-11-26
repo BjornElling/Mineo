@@ -11,7 +11,7 @@ import NumericTextField from './NumericTextField';
 import type { FieldWarning } from '../../fieldWarning';
 import { resolveAmountCharPolicy } from './charLengthPolicy';
 
-// Beløbs-felt (§2.4/§3.5, samlet input-enhed): familie-skal over `NumericTextField` med
+// Beløbs-felt (§2.5, samlet input-enhed): familie-skal over `NumericTextField` med
 // beløbsudtryks-tegnfilteret, den delte "kr."-enheds-adornment (muted når tom) og et `fx`-udtryksmærke, når den
 // committede værdi er et udtryk. Parse/format/paste og beløbsgrammatik ejes af descriptorens beløbs-codec.
 // Komponenten modtager KUN sin `field`/`location` + rendering-props – ingen `value`/`onCommit`/`onFieldError` (§2.4).

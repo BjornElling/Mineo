@@ -123,7 +123,7 @@ describe('useUndoRedoShortcuts – overlayet ejer tastaturet', () => {
   });
 });
 
-describe('useUndoRedoShortcuts – onRestore-kontrakt (§3.7)', () => {
+describe('useUndoRedoShortcuts – onRestore-kontrakt (§2.7)', () => {
   it('kalder onRestore med det gendannede frames origin efter en gennemført undo', async () => {
     // To ændringer MED origin, så past-stakken bærer et frame med origin at gendanne.
     dispatchInput(store, catalog, settleField(aargangField.bind(), '2020'), { now: 1, origin: origin() });

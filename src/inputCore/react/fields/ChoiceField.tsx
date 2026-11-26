@@ -14,10 +14,10 @@ import type { FieldWarning } from '../../fieldWarning';
 import { useFieldLabel } from '../useFieldLabel';
 import { resolveChoiceAllowEmpty } from './choiceEmptinessPolicy';
 
-// Choice-felt (§1.3/§3.6): dropdown committer STRAKS via `commitImmediate` – ingen draft/settle-fase.
+// Choice-felt (§1.3/§2.6): dropdown committer STRAKS via `commitImmediate` – ingen draft/settle-fase.
 // Modtager kun sin `field`/`location` og sine options som children. Den viste værdi læses fra den afsluttede
 // revision gennem editor-controlleren; valget dispatcher `setImmediateField` (som kører den styrende-valg-
-// oprydning atomisk, §3.6). `StyledDropdown` ejer selv sin popover-interaktion og keyboard-navigation.
+// oprydning atomisk, §2.6). `StyledDropdown` ejer selv sin popover-interaktion og keyboard-navigation.
 
 export type ChoiceFieldProps<
   TValue extends StyledDropdownValue,

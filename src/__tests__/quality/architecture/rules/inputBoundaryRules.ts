@@ -2,7 +2,7 @@
  * Inputgrænser og legacy-fravær.
  *
  * Skrivegrænsen, den rå sektionsadgang, systemportens producentliste, de transiente controls og
- * forbudt-identifier-gaten. Kernen i §3.6's capability-opdeling.
+ * forbudt-identifier-gaten. Kernen i input-architecture.md §2.6's capability-opdeling.
  *
  * Del af det koncern-opdelte arkitekturmanifest: storage-, input-, domæne-, UI- og dokumentregler bor
  * hver for sig, så en regel og dens nabo hører til samme emne. `architectureRules.ts` samler de fem
@@ -27,7 +27,7 @@ import {
 } from '../astQueries';
 import { defineRule, forbidImports, type Finding } from '../ruleKit';
 
-// --- Skrivegrænsen: kun runneren skriver input (§3.6) -------------------------
+// --- Skrivegrænsen: kun runneren skriver input (§2.6) -------------------------
 
 /**
  * PRIMÆRVÆRNET er STRUKTUREN, ikke denne regel.
@@ -61,7 +61,7 @@ const ZUSTAND_STORE_OWNERS: readonly string[] = [
 export const inputWriteBoundary = defineRule({
   id: 'input/write-boundary',
   description:
-    'Kun runneren skriver input (§3.6). Grænsen er STRUKTUREL: `SlimInputStore` er rent læsbar, '
+    'Kun runneren skriver input (§2.6). Grænsen er STRUKTUREL: `SlimInputStore` er rent læsbar, '
     + 'og Zustands `StoreApi` (og dermed `setState`) forlader aldrig '
     + '`slimInputStore.ts`. Reglen dækker resterne: en nyimporteret rå Zustand-store til input, og '
     + 'produktionsbrug af den isolerede testfabrik.',
@@ -92,7 +92,7 @@ export const inputWriteBoundary = defineRule({
             position: ref.position,
             message:
               `Rå Zustand-store uden for ${INPUT_STORE_OWNER} – en ny mutabel store er en ny, ubevogtet `
-              + 'inputvej. Skriv gennem `dispatchInput`; læs gennem readeren/projektionen (§3.6).',
+              + 'inputvej. Skriv gennem `dispatchInput`; læs gennem readeren/projektionen (§2.6).',
           });
         }
       }
@@ -173,7 +173,7 @@ export const inputWriteBoundary = defineRule({
 // --- Rå sektionsadgang: kun gennem en navngiven projektion ---------------------
 
 /**
- * `input.sections[...]` er den RÅ persisterede form. §3.4's læsegrænse siger, at consumers læser
+ * `input.sections[...]` er den RÅ persisterede form. §2.4's læsegrænse siger, at consumers læser
  * gennem `InputReader`/projektionen, så en værdi bag en rød feltfejl er skjult og en gate kan blokere
  * korrekt. Et rå sektionsopslag omgår hele den mekanik.
  *
@@ -187,7 +187,7 @@ const RAW_SECTION_OWNERS = 'src/inputCore/';
 /**
  * Save-/persistensprojektionen er den ene LEGITIME rå læser uden for inputkernen: den skal
  * serialisere HVER sektion til `.eo`-filen, og en maskeret reader-værdi ville skrive et andet
- * dokument end det, brugeren har indtastet. Den udtømmende enumeration ER dens opgave (§3.9).
+ * dokument end det, brugeren har indtastet. Den udtømmende enumeration ER dens opgave (§2.9).
  */
 const RAW_SECTION_SERIALIZERS: readonly string[] = [
   'src/persistence/eoSaveProjection.ts',
@@ -224,14 +224,14 @@ export const rawSectionAccessBoundary = defineRule({
   description:
     'Rå adgang til `…input.sections` – i ENHVER form (subscript, property, reference/spread, '
     + 'destrukturering) – hører i `src/inputCore/` (readeren + den navngivne diagnostikprojektion) og i '
-    + 'de to navngivne persistensporte. Alle andre lag læser gennem `InputReader`/projektionen (§3.4), '
+    + 'de to navngivne persistensporte. Alle andre lag læser gennem `InputReader`/projektionen (§2.4), '
     + 'så en værdi bag en rød feltfejl forbliver skjult og gates blokerer korrekt.',
   liveTarget: {
     kind: 'precondition',
     probe: (entry) => (entry.relativePath.startsWith(RAW_SECTION_OWNERS)
       || RAW_SECTION_SERIALIZERS.includes(entry.relativePath))
       // AST-signal, ikke tekst: `.sections` skal LÆSES, ikke blot nævnes i en kommentar (og netop
-      // dette modul bærer nu flere kommentarer om den rå form, som en tekstprobe ville have accepteret).
+      // dette modul bærer flere kommentarer om den rå form, som en tekstprobe ville have accepteret).
       && hasMemberRead(entry, 'sections'),
     rationale:
       'den rå sektionsform findes stadig i inputkernen – forsvinder `sections` fra `SettledInput`, '
@@ -258,7 +258,7 @@ export const rawSectionAccessBoundary = defineRule({
 
     const message =
       'Rå sektionsadgang uden for inputCore – læs gennem `useInputEvaluation`/en domæneprojektion, '
-      + 'eller (til diagnostik) gennem `useInputDiagnostics` (§3.4).';
+      + 'eller (til diagnostik) gennem `useInputDiagnostics` (§2.4).';
 
     const elementAccess = collectElementAccess(entry)
       // `chainText` er hele udtrykket inkl. subscript; vi matcher på objektet FØR `[`, så både
@@ -397,7 +397,7 @@ export const eoSurfaceOnAuthoritativeEditorPath = defineRule({
       position: { line: 1, column: 1 },
       message:
         'EO-inputflade uden for den autoritative editorvej: filen sætter field/location/onCommit/onDraftChange, '
-        + 'men importerer eller kalder ingen af inputCores editorveje (§3.5/§3.6).',
+        + 'men importerer eller kalder ingen af inputCores editorveje (§2.5/§2.6).',
     }];
   },
   violatingFixtures: [
@@ -899,7 +899,7 @@ export const sourceSettingsProjectionBoundary = defineRule({
   ],
 });
 
-// --- Cellebinding: én bindingsmodel for grid-/tabelceller (§3.2, §1.11) -------
+// --- Cellebinding: én bindingsmodel for grid-/tabelceller (§2.2, §1.11) -------
 
 /** Den rene primitive der ejer cellebindingen. Kun her konstrueres en celles dataidentitet. */
 const CELL_BINDING_OWNER = 'src/inputCore/collectionCellBinding.ts';
@@ -925,7 +925,7 @@ export const cellBindingSingleSource = defineRule({
   description:
     'Tabelflader må ikke selv binde en celles dataidentitet med `descriptor.bind(...)`. Cellebindingen '
     + 'ejes af den rene `bindCollectionCell`-primitive, som editorens `buildCollectionCellSpec` bruger '
-    + 'og som udleder ejer-id\'erne af collectionens sti (§3.2) – ellers kan en nested tabel binde med for '
+    + 'og som udleder ejer-id\'erne af collectionens sti (§2.2) – ellers kan en nested tabel binde med for '
     + 'få entity-led og kaste under render.',
   liveTarget: {
     kind: 'precondition',
@@ -957,7 +957,7 @@ export const cellBindingSingleSource = defineRule({
           `\`${call.calleeText}(...)\` binder en celles dataidentitet lokalt. Brug `
           + '`useCollectionCellSpecBuilder`/`buildCollectionCellSpec`, som bruger den rene '
           + '`bindCollectionCell`-primitive og udleder ejer-id\'erne af collectionens sti – en lokal binding '
-          + 'kan glemme ejeren i en nested collection (§3.2).',
+          + 'kan glemme ejeren i en nested collection (§2.2).',
       });
     }
     return findings;
@@ -1098,7 +1098,7 @@ export const programmaticFieldCommitUsesSettle = defineRule({
   ],
 });
 
-// --- Issue-capabilityen: consumers blokerer på konkrete reads (§1.10, §3.4) ----
+// --- Issue-capabilityen: consumers blokerer på konkrete reads (§1.10, §2.4) ----
 
 /**
  * En bred issue-capability er rodårsagen til overblokering.
@@ -1109,7 +1109,7 @@ export const programmaticFieldCommitUsesSettle = defineRule({
  * skal derfor være en GRÆNSE, ikke en konvention.
  *
  * Grænsen er primært STRUKTUREL: `fieldIssues` er FJERNET fra den offentlige reader, så det brede
- * snapshot slet ikke er i hånden – et genindført sektionsfilter er nu en typefejl. Reglen lukker resten:
+ * snapshot slet ikke er i hånden – et genindført sektionsfilter er en typefejl. Reglen lukker resten:
  * `issues.all` må ikke nås uden for inputkernen og de navngivne ejere. Den findes, fordi
  * `InputEvaluation.issues` fortsat bærer snapshottet (dokumentlivscyklussen skal have tokenet), og
  * `.all` derfra ville genåbne hullet UDEN en typefejl.
@@ -1135,7 +1135,7 @@ export const issueSnapshotCapabilityBoundary = defineRule({
   description:
     'Det brede feltissue-snapshot (`issues.all`) læses kun i inputkernen. Consumers uden for kernen '
     + 'blokerer på konkrete reads – `reader.read(field)` eller `createTrackedInputReader` – så en gate ikke kan blokere bredere end sine '
-    + 'faktiske dependencies (§1.10, §3.4).',
+    + 'faktiske dependencies (§1.10, §2.4).',
   liveTarget: {
     kind: 'precondition',
     // Reglen hviler på TRE forudsætninger, og hver af dem skal kunne konstateres i kildegrafen. Proben
@@ -1227,7 +1227,7 @@ export const issueSnapshotCapabilityBoundary = defineRule({
   ],
 });
 
-// --- Afledte felter skrives i reduktionen, ikke fra en effect (§3.6) -----------
+// --- Afledte felter skrives i reduktionen, ikke fra en effect (§2.6) -----------
 
 /**
  * Et AFLEDT felt er en konsekvens af brugerens valg, ikke en selvstændig handling.
@@ -1360,7 +1360,7 @@ const KEY_FILTER_OWNERS: readonly string[] = [
  * De tegn-/længdeværn, hvis `allowNegative` skal komme fra feltets descriptor. Brøkfamilien er bevidst
  * UDE: den har ingen `signPolicy`, og dens fortegn er en egenskab ved brøk-formatet.
  *
- * BEGGE former står her med vilje. Kaldsstederne erklærer nu deres politik gennem `*Admission`-fabrikkerne,
+ * BEGGE former står her med vilje. Kaldsstederne erklærer deres politik gennem `*Admission`-fabrikkerne,
  * men `filter*KeyDown` er stadig en offentlig, kaldbar vej – udelades den, ville et nyt callsite kunne
  * hardkode `allowNegative` ad præcis den vej, reglen blev skrevet for at lukke.
  */

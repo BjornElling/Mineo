@@ -27,7 +27,7 @@ import { eoEmploymentFields } from '../../../../inputCore/catalog/erstatningsopg
 import { serializeFieldAddress } from '../../../../inputCore/fieldAddress';
 import { toISODateString, type ISODateString } from '../../../../types/branded';
 
-// Den nested løntabel under et ansættelsesforhold (§1.11, §3.2). Kravet: hele kortet – inklusive løntabellens
+// Den nested løntabel under et ansættelsesforhold (§1.11, §2.2). Kravet: hele kortet – inklusive løntabellens
 // placeholder-række OG dens committede rækker – kan renderes. Cellernes dataidentitet er nested (ejerens id +
 // rækkens id), og hver synlig celle kunne være første fejlsted, hvis en surface bandt med for få entity-led.
 //

@@ -53,7 +53,7 @@ import { buildAarsloenIssueRows } from '../../../domain/aarsloen/aarsloenIssueRo
  * Modellen orkestrerer – den genberegner ikke: beregningskernen ligger i `buildAarsloenReaderProjection`.
  */
 
-// Stabile felt-refs + editorlokationer (§3.2): locationId er editor-metadata, ikke dataidentitet.
+// Stabile felt-refs + editorlokationer (§2.2): locationId er editor-metadata, ikke dataidentitet.
 const feriePctRef = aarsloenFeriePctField.bind();
 const fritvalgPctRef = aarsloenFritvalgPctField.bind();
 const shSoPctRef = aarsloenShSoPctField.bind();
@@ -69,7 +69,7 @@ const retTilSjetteFerieugeRef = aarsloenRetTilSjetteFerieugeField.bind();
 const antalFeriedageRef = aarsloenAntalFeriedageField.bind();
 const omregningTilFuldtAarRef = aarsloenOmregningTilFuldtAarField.bind();
 
-// route er eksplicit navigation-metadata (§3.7); Årsløn er en side uden faner (tabKey: null).
+// route er eksplicit navigation-metadata (§2.7); Årsløn er en side uden faner (tabKey: null).
 const loc = (field: string): EditorLocation =>
   ({ locationId: `aarsloen:${field}`, route: APP_ROUTES.aarsloen, tabKey: null });
 
@@ -130,7 +130,7 @@ export function useAarsloenViewModel() {
 
   // Omregning-toggle: den persisterede canonical værdi + den centrale gate. Toggle-visning og skjult indhold
   // reagerer på samme committed forudsætninger (gate). Togglen er et ALMINDELIGT persisteret felt gennem
-  // `ToggleField` (§3.2/§3.7) – gaten leveres som dens `commit`-override, så en ugyldig aktivering afvises uden
+  // `ToggleField` (§2.2/§2.7) – gaten leveres som dens `commit`-override, så en ugyldig aktivering afvises uden
   // at feltbindingen eller undo/redo-fokusmetadataen falder væk.
 
   const {
@@ -139,7 +139,7 @@ export function useAarsloenViewModel() {
     decideToggle: decideOmregningToggle,
   } = useOmregningToggle({ gate: omregningGate, tabelRef });
 
-  // Fatal-gate (§1.6/§3.9): et satsinput uden for 0–100 (eller antalFeriedage uden for 0–99) er en RØD
+  // Fatal-gate (§1.6/§2.9): et satsinput uden for 0–100 (eller antalFeriedage uden for 0–99) er en RØD
   // feltfejl. Projektionen kalder da IKKE motoren (`calculation === null`), så der findes intet resultat at
   // vise – en beregning på den skjulte tomværdi ville være misvisende.
   const { calculation } = readerProjection;

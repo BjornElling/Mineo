@@ -62,7 +62,7 @@ const expectRestoreAttrs = (element: Element, serializedAddress: string, locatio
   expect(element.getAttribute(EDITOR_LOC_ATTR)).toBe(locationId);
 };
 
-describe('restore-target-attributter på det fokuserbare element (§3.7)', () => {
+describe('restore-target-attributter på det fokuserbare element (§2.7)', () => {
   it('form-tekstfelt (IntegerField)', () => {
     renderField(<IntegerField field={aargangField.bind()} location={testLocation('loc-int')} name="aargang" />);
     expectRestoreAttrs(screen.getByRole('textbox'), serializeFieldAddress(aargangField.bind().address), 'loc-int');
@@ -168,7 +168,7 @@ describe('restore-target-attributter på det fokuserbare element (§3.7)', () =>
   });
 
   // Toggle + checkbox: verificér på komponentniveau, at prop'en spredes på det fokuserbare input-slot. (De
-  // greenfield-wrappere, der leverer prop'en, dækkes strukturelt af arkitektur-guarden.)
+  // feltwrappere, der leverer prop'en, dækkes strukturelt af arkitektur-guarden.)
   it('toggle (StyledToggleSwitch) spreder restoreTargetAttributes på input-slottet', () => {
     const attrs = buildRestoreTargetAttributes('serialized-addr', 'loc-toggle', '/aarsloen', null);
     render(<StyledToggleSwitch checked={false} onCommit={() => true} ariaLabel="tog" restoreTargetAttributes={attrs} />);

@@ -28,7 +28,7 @@ import { BROWSER_LANE_TAG } from './support/lanes';
 
 const BLINK_CLASS = 'mineo-field-attention-blink';
 
-/** Den ENE feltidentitet i DOM (§3.2). Bruges til at skrive blinkmålets identitet ned. */
+/** Den ENE feltidentitet i DOM (input-architecture.md §2.2). Bruges til at skrive blinkmålets identitet ned. */
 const FIELD_ADDRESS_ATTRIBUTE = 'data-mineo-field-address';
 
 /** `--color-status-error` er #ef4444; markeringen er 20 % af den farve blandet ind i baggrunden. */
@@ -656,8 +656,8 @@ test.describe('Blinkmarkeringen males i browseren', () => {
       runtimeSignals,
       externalRequests,
     }) => {
-      // Før kunne togglen stå tændt ved TAF «Nej» og spærre opgørelsen med «… slutdato mangler», selv om intet fra
-      // fanen bruges. Fanens felter er nu ikke relevante uden TAF-krav, og fanen siger det i stedet for at vise dem.
+      // Uden TAF-krav er fanens felter ikke relevante, og fanen siger det i stedet for at vise dem – ellers kunne
+      // togglen stå tændt ved TAF «Nej» og spærre opgørelsen med «… slutdato mangler», selv om intet fra fanen bruges.
       await login(page);
       await fillEetSource(page, [{
         afgoerelsesdato: '01-06-2020',

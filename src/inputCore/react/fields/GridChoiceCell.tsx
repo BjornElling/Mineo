@@ -18,11 +18,11 @@ import { useAutofillSuggestion } from '../autofillSuggestContext';
 import { visuallyHiddenStyle } from '../../../components/shared/visuallyHiddenStyle';
 import { AutofillSuggestMarker } from './AutofillSuggestMarker';
 
-// Grid dropdown-celle (§2.5/§3.6): et immediate-commit-valg i en grid-celle. Den er grid-pendanten til
+// Grid dropdown-celle (§2.6): et immediate-commit-valg i en grid-celle. Den er grid-pendanten til
 // `ChoiceField` (form-dropdown) og den ene celle-valg-kontrol (fx rentekrav-enhed).
 // Menuvalget committer STRAKS gennem `useCellEditor().commitImmediate` – der er aldrig en åben draft at settle, så
 // grid-core-navigationens `commitCurrent` er altid en no-op-success. Den viste værdi + røde issue læses fra den
-// afsluttede revision gennem controlleren; der er ingen konkurrerende celle-værdikopi (§3.8).
+// afsluttede revision gennem controlleren; der er ingen konkurrerende celle-værdikopi (§2.8).
 //
 // Visuelt følger den samme kantregel som de øvrige grid-celler: almindelige grids har ingen særskilt
 // feltkontur, mens løse tabeller beholder formularens afrundede outlined stil.
@@ -105,7 +105,7 @@ const GridChoiceCellInner = <
   );
   const autofillId = React.useId();
 
-  // Restore-mål via feltadresse + editorlokation (§3.7): begge cellearter bærer den samme færdigt bundne
+  // Restore-mål via feltadresse + editorlokation (§2.7): begge cellearter bærer den samme færdigt bundne
   // cellereference, som editoren driver, så fokus efter undo/redo lander på DENNE grid-celles editorlokation.
   const restoreTargetAttributes = useRestoreTargetAttributes(cell.field.address, cell.location);
 
@@ -116,7 +116,7 @@ const GridChoiceCellInner = <
   const tooltipProp = issueText.tooltip === undefined ? {} : { tooltipText: issueText.tooltip };
   // Feltnavnet kommer fra den ENE autoritet – `InputReader.labelOf` – præcis som i formularens
   // `ChoiceField`. Cellen læste før `descriptor.label` direkte og gik uden om feltets `contextualLabel`,
-  // så et felt med kontekstafhængigt navn kunne hedde to ting (§3.2a).
+  // så et felt med kontekstafhængigt navn kunne hedde to ting (§2.2).
   const fieldLabel = useFieldLabel(cell.field);
   const accessibleName = ariaLabel ?? fieldLabel;
 

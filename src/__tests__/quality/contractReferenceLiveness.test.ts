@@ -164,7 +164,7 @@ const REFERENCE_EXCEPTIONS: readonly ContractReference[] = [
     contract: 'src/contracts/persistence-contract.md',
     reference: 'commitInvalidDraft',
     direction: 'absent',
-    note: 'Slettet sammen med invalidDrafts-modellen; greenfield bruger rejectedInputs.',
+    note: 'Slettet sammen med invalidDrafts-modellen; inputCore bruger rejectedInputs.',
   },
   {
     contract: 'src/contracts/undo-redo-contract.md',
@@ -267,7 +267,7 @@ const REFERENCE_EXCEPTIONS: readonly ContractReference[] = [
     ['collectPresentFieldErrors', 'Slettet opsamler for feltfejl-bussen.'],
     ['EoInputIssueSource', 'Slettet source-register; §11 forbyder source-dimensionen eksplicit.'],
     ['EoFieldIssuesBySource', 'Slettet source-register; samme forbud.'],
-    ['invalidDrafts', 'Slettet draft-model. Greenfield persisterer afvist råtekst som rejectedInputs.'],
+    ['invalidDrafts', 'Slettet draft-model. inputCore persisterer afvist råtekst som rejectedInputs.'],
     ['draftRows', 'Slettet parallel rækkedraft-model; rækker lever i det ene aggregat.'],
     ['useTableInputCore', 'Slettet legacy tabel-input-hook.'],
     ['useRowDrafts', 'Slettet legacy rækkedraft-hook.'],

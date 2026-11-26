@@ -8,7 +8,7 @@ import {
 
 // Input-diagnostik: devtools-/bugrapport-fladen har et LEGITIMT behov for at se den
 // rå persisterede sektionsform – det er hele pointen med en fejlrapport. Men behovet er en NAVNGIVET
-// projektion, ikke en generel undtagelse fra §3.4's læsegrænse.
+// projektion, ikke en generel undtagelse fra §2.4's læsegrænse.
 //
 // Shellen må ikke selv gribe ned i `getSettled().input.sections[pageKey]`; et råt sektionsopslag uden for
 // inputinfrastrukturen gør grænsen til en aftale frem for en konstruktion. Dette modul ejer opslaget, og `domain/raw-section-access-boundary` håndhæver, at ingen anden fil uden for

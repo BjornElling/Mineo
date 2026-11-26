@@ -31,7 +31,7 @@ export type EntityChoiceFieldProps<TValue extends StyledDropdownValue, TEntity> 
 }>;
 
 export default function EntityChoiceField<TValue extends StyledDropdownValue, TEntity>({ descriptor, collection, entity, entityId, entityExists, location, children, placeholder, width, name, getOptionLabel, sx }: EntityChoiceFieldProps<TValue, TEntity>) {
-  // Én cellebinding for begge arter (§3.2): feltet bindes HÉR med hele ejerstien fra collectionen efterfulgt af
+  // Én cellebinding for begge arter (§2.2): feltet bindes HÉR med hele ejerstien fra collectionen efterfulgt af
   // entityens id, så en eksisterende og en endnu ikke oprettet entity aldrig kan få forskellig adressestruktur.
   const field = React.useMemo(
     () => descriptor.bind(...collectionOwnerEntityIds(collection), entityId),
@@ -44,12 +44,12 @@ export default function EntityChoiceField<TValue extends StyledDropdownValue, TE
     [collection, entity, entityExists, field, location]
   );
   const controller = useCellEditor(cell);
-  // Restore-mål via feltadresse + editorlokation (§3.7): samme bundne cellefeltadresse som editoren driver, så
+  // Restore-mål via feltadresse + editorlokation (§2.7): samme bundne cellefeltadresse som editoren driver, så
   // fokus efter undo/redo lander på DENNE editorlokation.
   const restoreTargetAttributes = useRestoreTargetAttributes(field.address, location);
   const issueText = resolveFieldIssueText(controller.issue);
   // Feltnavnet kommer fra den ENE autoritet, også for en endnu ikke oprettet række: et navn er metadata
-  // om feltet, ikke dets værdi, så `labelOf` kræver ikke en eksisterende entity (§3.2a).
+  // om feltet, ikke dets værdi, så `labelOf` kræver ikke en eksisterende entity (§2.2).
   const accessibleName = useFieldLabel(field);
   return <StyledDropdown<TValue>
     ariaLabel={accessibleName}

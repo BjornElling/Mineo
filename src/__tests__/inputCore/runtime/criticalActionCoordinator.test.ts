@@ -9,8 +9,8 @@ import {
   type SlimInputStore,
 } from '../../../inputCore/runtime';
 
-// Coordinatoren (§1.4/§2.2, critical-action-contract §3/§5/§7) afsluttes gennem den
-// rebasede handlingsmatrix – INGEN `block`-policy. Navigation/save/download settler; load bevarer draften frem til
+// Coordinatoren (input-architecture.md §1.4, critical-action-contract §3/§5/§7) følger
+// handlingsmatrixen – INGEN `block`-policy. Navigation/save/download settler; load bevarer draften frem til
 // vellykket replacement; undo/redo er no-op. Testene driver en syntetisk editor uden React/DOM.
 
 let store: SlimInputStore;
@@ -263,7 +263,7 @@ describe('CriticalActionCoordinator – fail-closed og serialisering', () => {
   });
 });
 
-describe('ActiveEditorRegistry – højst én aktiv editor (§3.5)', () => {
+describe('ActiveEditorRegistry – højst én aktiv editor (§2.5)', () => {
   it('afviser en anden samtidig registrering', () => {
     const a = makeEditor({ id: 'a' });
     const b = makeEditor({ id: 'b' });

@@ -34,7 +34,7 @@ import { SVIE_SMERTE_DELVIS_SYGEMELDING_SATS_LABELS } from '../../../../../schem
 import { APP_ROUTES } from '../../../../../config/pageNavigation';
 import { EO_TAB_KEYS } from '../../../../../config/eoTabKeys';
 import { resolveSvieSmerteSatsAarForReferenceDate } from '../../../../../domain/erstatningsopgoerelse/helpers/svieSmerteSatsAar';
-// route + tabKey på location er eksplicit navigation-metadata (§3.7); alle felter i denne sektion bor på EO-oplysningerfanen.
+// route + tabKey på location er eksplicit navigation-metadata (§2.7); alle felter i denne sektion bor på EO-oplysningerfanen.
 
 /** Sektion 4: Svie- og smertegodtgørelse (krav, periode-tabel, satser, tidligere godtgørelse). */
 export default function SvieSmerteSection() {

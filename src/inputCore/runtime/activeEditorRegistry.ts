@@ -1,4 +1,4 @@
-// Der findes højst ÉN aktiv persisted editor pr. app-runtime (§2.2.1/§3.5). Registret holder den
+// Der findes højst ÉN aktiv persisted editor pr. app-runtime (§2.5). Registret holder den
 // aktive editors settle-kald,
 // isEditing-probe samt fokusmål for fail-closed-feedback.
 //
@@ -32,7 +32,7 @@ export type ActiveEditor = Readonly<{
 
 /**
  * Højst-én-aktiv-editor-registret. En ny registrering, mens en anden editor allerede er registreret, er en
- * invariantbrud: efter §3.5 kan der kun være én åben persisted editor. Adapteren afmelder altid den forrige,
+ * invariantbrud: efter §2.5 kan der kun være én åben persisted editor. Adapteren afmelder altid den forrige,
  * før den åbner den næste, så to samtidige registreringer aldrig opstår.
  */
 export class ActiveEditorRegistry {
@@ -41,7 +41,7 @@ export class ActiveEditorRegistry {
   register(editor: ActiveEditor): () => void {
     if (this.active !== null) {
       throw new Error(
-        `ActiveEditorRegistry: der er allerede en aktiv editor (${this.active.id}); kun én må være åben ad gangen (§3.5).`
+        `ActiveEditorRegistry: der er allerede en aktiv editor (${this.active.id}); kun én må være åben ad gangen (§2.5).`
       );
     }
     this.active = editor;

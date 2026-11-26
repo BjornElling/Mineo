@@ -63,7 +63,7 @@ export const canonicalStringCodecValidator = (
   return {
     reason: 'schema',
     code,
-    // Samme navneautoritet som `format`-beskeden: en kontekstuel label (§3.2a) skal også her være det navn,
+    // Samme navneautoritet som `format`-beskeden: en kontekstuel label (§2.2) skal også her være det navn,
     // brugeren ser stå ved feltet.
     message: `Der er gemt en ugyldig værdi i feltet ${quoteFieldLabel(resolveFieldLabel(field.descriptor, view))}`,
   };

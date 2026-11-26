@@ -18,7 +18,7 @@ const amount = (value: number): AmountValue => ({ kind: 'number', value });
  *
  * `.eo`-save/load og F5-sessionStorage deler præcis samme serialiserings-/parse-kerne:
  *   canonical sektion → `JSON.stringify` (containeren/envelopen) → `JSON.parse`
- *   → `nullToUndefinedDeep` (inbound-transformens første trin, §3.1a) → `schema.parse`.
+ *   → `nullToUndefinedDeep` (inbound-transformens første trin, `schema-evolution.md` §3.1a) → `schema.parse`.
  * Vi kører den kerne her som én round-trip og hævder, at hvert skjult felt overlever.
  *
  * Kæden bar tidligere et ekstra `serializeFormValues`-trin (undefined→null), som produktionen IKKE

@@ -23,7 +23,7 @@ import { createRelevanceTrackingView, resolveRelevanceStatus, type RelevanceStat
 
 export type EntityRef = Readonly<{ collection: CollectionRef; entityId: string }>;
 
-// ── §3.4 pkt. 1: ValidationReader ──────────────────────────────────────────────────────────────────
+// ── §2.4 pkt. 1: ValidationReader ──────────────────────────────────────────────────────────────────
 // Læser afsluttet canonical/rejected input og dependencies UDEN at anvende feltissues. Kun
 // input-/valideringsinfrastrukturen må bruge den. Den er grundlaget for både relevans, feltvalidatorer
 // og den offentlige reader – så feltvurderingen aldrig bliver cirkulær.
@@ -82,19 +82,20 @@ const canonicalViewOf = (reader: ValidationReader): CanonicalView => Object.free
   listEntityIds: (collection: CollectionRef) => reader.listEntities(collection).map((entity) => entity.entityId),
 });
 
-// ── §3.4 pkt. 2: feltvalidatorerne udleder det immutable issue-snapshot ──────────────────────────────
+// ── §2.4 pkt. 2: feltvalidatorerne udleder det immutable issue-snapshot ──────────────────────────────
 
 /**
  * Bygger det immutable feltissue-snapshot fra afsluttet input. Rejected råtekst giver et `format`-issue;
  * canonical validatorer giver bounds/rule-issues (fx en out-of-bounds-værdi, der forbliver gembar i `.eo`).
  * Mounted komponenter indgår aldrig.
  *
- * Irrelevante (= skjulte, §7.3) felter giver aldrig et aktivt issue (§1.9): en rød markering, brugeren ikke
- * kan se, kan hverken rettes eller retfærdiggøres. Det gælder BEGGE fejlformer, og det er netop derfor
- * reduceren (`clearFieldsHiddenWhileRed`) RYDDER et felt, som en ændring skjuler, mens det bar en rød fejl (§7.5 pkt. 2) –
- * ellers ville en skjult rejection blokere `.eo`-save globalt (§8) uden et felt at pege på. Rydningen og
- * denne tavshed er to halvdele af samme regel: det skjulte er tavst, FORDI det er ryddet. Undtagelsen er et
- * `ubestemt` felt: dets afviste råtekst bevares, mens årsagen – selv afvist og synlig – spærrer Gem.
+ * Irrelevante (= skjulte, form-contract.md §7.3) felter giver aldrig et aktivt issue (§1.9): en rød
+ * markering, brugeren ikke kan se, kan hverken rettes eller retfærdiggøres. Det gælder BEGGE fejlformer, og
+ * det er netop derfor reduceren (`clearFieldsHiddenWhileRed`) RYDDER et felt, som en ændring skjuler, mens det
+ * bar en rød fejl (§7.5 pkt. 2) – ellers ville en skjult rejection blokere `.eo`-save globalt (§8) uden et
+ * felt at pege på. Rydningen og denne tavshed er to halvdele af samme regel: det skjulte er tavst, FORDI
+ * det er ryddet. Undtagelsen er et `ubestemt` felt: dets afviste råtekst bevares, mens årsagen – selv
+ * afvist og synlig – spærrer Gem.
  */
 export const deriveFieldIssueSet = (
   reader: ValidationReader,
@@ -114,7 +115,7 @@ export const deriveFieldIssueSet = (
   for (const field of catalog.listFieldInstances(reader.input.sections)) {
     const status = reader.relevanceStatus(field);
     if (status === 'irrelevant' || (status === 'ubestemt' && options.includeUndetermined !== true)) continue;
-    // Kontekstuelle labels (§3.2a) opløses HER, hvor konteksten findes: issuet skal navngive feltet med
+    // Kontekstuelle labels (§2.2) opløses HER, hvor konteksten findes: issuet skal navngive feltet med
     // præcis det navn, brugeren ser stå ved feltet i denne tilstand.
     const anyRef = toAnyFieldRef(field, view);
 
@@ -180,7 +181,7 @@ export const deriveFieldIssueSet = (
   return buildFieldIssueSet(issues);
 };
 
-// ── §3.4 pkt. 3: den offentlige InputReader ─────────────────────────────────────────────────────────
+// ── §2.4 pkt. 3: den offentlige InputReader ─────────────────────────────────────────────────────────
 // Kombinerer samme input med issue-snapshot. Rejected input, almindelige canonical fejl og irrelevante
 // (skjulte) værdier skjules for consumers; en `context`-fejl er den kontrollerede undtagelse: værdien er
 // formatmæssigt repræsenterbar og skal bevares, mens den domæneprojektion, der ejer kontekstreglen, selv
@@ -191,7 +192,7 @@ export type ReadFieldResult<T> =
   | Readonly<{ status: 'error'; issue: FieldIssue }>;
 
 /**
- * Den offentlige reader (design §3.4 pkt. 3).
+ * Den offentlige reader (input-architecture.md §2.4 pkt. 3).
  *
  * ⚠️ Der er BEVIDST ingen `fieldIssues: FieldIssueSnapshot` her. Et frit issue-snapshot ville lade en
  * consumer filtrere på sektionsnavn og blokere på felter, den aldrig læser. Afhængigheder ville dermed
@@ -211,7 +212,7 @@ export type InputReader = Readonly<{
   /** Rejected råtekst tæller som rækkeindhold; en række med kun sin default gør ikke. */
   hasEntityInput: (collection: CollectionRef, entityId: string) => boolean;
   /**
-   * Feltets brugervendte navn i den aktuelle kontekst (§3.2a) – det navn brugeren SER stå ved feltet.
+   * Feltets brugervendte navn i den aktuelle kontekst (§2.2) – det navn brugeren SER stå ved feltet.
    *
    * Kanalen er bevidst SMAL: readeren navngiver et felt, den udleverer ikke canonical værdier. En
    * kontekstuel labelregel læser andre felters canonical værdier, men gør det INDE i readeren, hvor

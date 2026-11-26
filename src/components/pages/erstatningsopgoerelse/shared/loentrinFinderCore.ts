@@ -13,9 +13,8 @@ import { getNyesteOffentligLoenTabelDato, getOffentligLoenTabelForDato } from '.
  *
  * Bevidst React-fri: tager allerede-resolvet input og returnerer et resultat. `useLoentrinFinder`
  * (samme mappe) ejer state og kalder denne kerne for beregningslogikken (inputvalidering +
- * satstabel-opslag + resultatbygning/-sortering). Kernen blev udskilt, mens de to flader endnu havde
- * hver sin hook; de er nu konsolideret til én, men adskillelsen består, fordi den holder den rene
- * beregning testbar uden React.
+ * satstabel-opslag + resultatbygning/-sortering). Adskillelsen holder den rene beregning testbar uden
+ * React.
  */
 
 export type LoentrinFinderErrors = Readonly<{

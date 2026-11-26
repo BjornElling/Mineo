@@ -17,7 +17,7 @@ import type { EoSnapshot } from './eoSnapshot';
  * niveau-fejlene fra `collectAllEoRows` (fx resultat-afhængige SFGG-fejlrækker): de gatede knappen
  * upstream, men ikke selve dokument-genereringen.
  *
- * Denne rene funktion ejer nu gate-beslutningen ét sted. View-modellen kalder den for hvert dokument
+ * Denne rene funktion ejer gate-beslutningen ét sted. View-modellen kalder den for hvert dokument
  * (med live AppSettings/felt-fejl tilgængelige til række-evalueringen) og videregiver det resulterende
  * `DocumentDownloadGateResult` til service-grænsen, som fail-closer på det. Service-laget får dermed
  * ét gate-resultat pr. dokument uden at skulle kende AppSettings (C15-grænsen bevares).

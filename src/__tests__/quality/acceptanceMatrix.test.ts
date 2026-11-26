@@ -156,7 +156,7 @@ const ACCEPTANCE_CRITERIA: readonly AcceptanceCriterion[] = [
     title: 'Form og grid bruger samme editor og codec; deres adaptere ejer kun interaktion/rendering/navigation.',
     sources: [
       {
-        // §7.1's FÆLLES kontrakt: ÉN invariantliste, kørt mod BEGGE adaptere for hver codecfamilie.
+        // §4.1's FÆLLES kontrakt: ÉN invariantliste, kørt mod BEGGE adaptere for hver codecfamilie.
         // Uden en fælles suite ville kriteriet være målt af to uafhængige suiter, der tilfældigvis
         // hver dækkede sin halvdel.
         file: 'src/__tests__/inputCore/react/fieldContract.surfaces.test.tsx',
@@ -387,7 +387,7 @@ const ACCEPTANCE_CRITERIA: readonly AcceptanceCriterion[] = [
         tests: ['row-delete fjerner rækkens rejected descendants atomisk'],
       },
       {
-        // §7.4's artspecifikke row-delete-invariant. De generiske per-command-invarianter kører under
+        // §4.4's artspecifikke row-delete-invariant. De generiske per-command-invarianter kører under
         // `describe.each` med dynamiske navne og kan derfor ikke citeres (se `stateChains`-noten);
         // denne leaf bærer netop descendant-/orphan-påstanden med sit eget faste navn.
         file: 'src/__tests__/inputCore/runtime/commandInvariants.test.ts',

@@ -46,13 +46,10 @@ const valueOrNull = <T>(result: Result<T> | null): T | null =>
 /**
  * Ren, synkron årslønsberegning – årslønsdomænets ene beregningsindgang.
  *
- * Modulet lå tidligere i `src/hooks/useAarsloenBeregning.ts` og eksponerede desuden en `useAarsloenBeregning`-
- * hook. Hook-wrapperen havde INGEN produktionscallsites: efter reader-projektionens indførelse
- * kalder `aarsloenProjection.ts` den rene funktion, og memoiseringen ejes af projektionen. Kun hookens egne
- * tests holdt den levende – de kørte altså en vej, ingen bruger kunne nå, og en fejl i den rene beregnings
- * kontrolflow kunne derfor bevises "dækket" gennem en død adapter. Hook + fil-placering er væk, og
- * beregningen bor nu ved sin domænegrænse, hvor dens eneste consumer også bor (`src/hooks` importeres ikke
- * længere fra `src/domain`).
+ * `aarsloenProjection.ts` kalder den rene funktion og ejer memoiseringen; der findes bevidst ingen
+ * `useAarsloenBeregning`-hook. En hook-wrapper uden produktionscallsites holdes kun levende af sine egne tests,
+ * så en fejl i beregningens kontrolflow kan bevises "dækket" gennem en død adapter. Beregningen bor ved sin
+ * domænegrænse, hvor dens eneste consumer også bor (`src/domain` importerer ikke fra `src/hooks`).
  */
 type AarsloenPeriodeInput = Readonly<{
   tableData: AarsloenBeregningInput['values']['tableData'];

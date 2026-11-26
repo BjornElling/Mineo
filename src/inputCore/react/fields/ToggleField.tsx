@@ -11,7 +11,7 @@ import {
   type AccessibleNameProps,
 } from '../../../components/inputs/accessibleName';
 
-// Toggle-felt (§1.3/§3.6): en boolsk immediate-commit control. Klik/Enter/Space committer STRAKS via
+// Toggle-felt (§1.3/§2.6): en boolsk immediate-commit control. Klik/Enter/Space committer STRAKS via
 // `commitImmediate` – ingen draft/settle-fase. Modtager kun sin `field`/`location`; den viste checked-tilstand
 // læses fra den afsluttede revision gennem editor-controlleren. Feltet har BEVIDST ingen ref-videreførsel:
 // en afvisning (`'reject'`) får switchen til at ryste af sig selv, så en gate behøver ingen adgang til den.
@@ -69,7 +69,7 @@ const ToggleField = (props: ToggleFieldProps) => {
     // En boolsk descriptor har altid en defineret canonical værdi (emptyValue false/true); controller.value er
     // derfor defineret for et toggle-felt. Fald tilbage til false for at opfylde den controlled kontrakt.
     const unavailable = unavailableReason !== undefined && unavailableReason !== null;
-    // En inaktiv kontakt vises slået fra af `StyledToggleSwitch` selv (§10.5).
+    // En inaktiv kontakt vises slået fra af `StyledToggleSwitch` selv (page-component-contract.md §10.5).
     const checked = checkedOverride ?? controller.value ?? false;
 
     const handleCommit = React.useCallback(

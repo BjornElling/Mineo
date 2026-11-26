@@ -15,14 +15,14 @@ import {
   productionInputFields,
 } from '../../../inputCore/catalog/productionCatalog';
 
-// Greenfield save-blocking focus (§1.6/§3.2/§3.9): målet lokaliseres via den FULDE serialiserede feltadresse –
-// samme identitet som undo/redo-restoren. Adressen reduceres ALDRIG til et feltnavn: to celler i forskellige
-// rækker deler feltnavn, så en navnebaseret søgning kunne fokusere den forkerte celle.
+// Save-blocking focus (input-architecture.md §1.6/§2.2/§2.9): målet lokaliseres via den FULDE serialiserede
+// feltadresse – samme identitet som undo/redo-restoren. Adressen reduceres ALDRIG til et feltnavn: to celler i
+// forskellige rækker deler feltnavn, så en navnebaseret søgning kunne fokusere den forkerte celle.
 //
-// DESTINATIONEN ejes af editorlokationen (§3.2). Der findes ikke længere en global feltadresse→fane-
-// afbildning: den mounted editor bærer sin egen route + fane i DOM. Testene nedenfor er skrevet mod netop det
-// skift – særligt "hidden mounted editor vinder over sektionens side" og "et spejlet felt følger den editor,
-// brugeren står ved", som den globale model kun kunne ramme med route-særregler.
+// DESTINATIONEN ejes af editorlokationen (§2.2). Der findes ingen global feltadresse→fane-afbildning: den
+// mounted editor bærer sin egen route + fane i DOM. Testene nedenfor dækker særligt "hidden mounted editor
+// vinder over sektionens side" og "et spejlet felt følger den editor, brugeren står ved", som en global model
+// kun kunne ramme med route-særregler.
 
 vi.mock('../../../hooks/usePersistedActiveTab', () => ({ setActiveTabForPage: vi.fn() }));
 

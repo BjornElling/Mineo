@@ -26,7 +26,7 @@ import { toISODateString } from '../../../types/branded';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 import type { EoInvariant } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotInvariants';
 
-// EO's download-gate (§3.9): beviser at gaten for de fire EO-dokumenter afledes af den
+// EO's download-gate (input-architecture.md §2.9): beviser at gaten for de fire EO-dokumenter afledes af den
 // ENE reader-projektion og blokerer på præcis de samme rækker/invarianter som den nuværende view-model – men uden
 // live store-reads. Genbruger reader-projektionens rekonstruktion, så gaten ser byte-identiske gate-inputs.
 

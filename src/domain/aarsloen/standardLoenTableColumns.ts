@@ -5,7 +5,7 @@ import { formatISOToDanish } from '../../utils/dateFormatting';
 // Normativt: col2 og col3 er to visuelt adskilte lønfelter med identisk domænebetydning.
 // De må kun adskilles i præsentationen; beregningsmæssigt summeres de blot.
 //
-// KOLONNENAVNE ER ÉT SANDT STED (§3.2a): `STANDARD_LOEN_COLUMN_LABELS` i `types/table.ts`. Både de to
+// KOLONNENAVNE ER ÉT SANDT STED (§2.2): `STANDARD_LOEN_COLUMN_LABELS` i `types/table.ts`. Både de to
 // descriptor-kataloger og overskrifterne herunder læser derfra. Modulet havde tidligere sin EGEN navneliste,
 // og de to drev fra hinanden: `col4` hed «Ikke-pensionsgivende løn» i overskriften, mens en fejl på præcis
 // den celle bad brugeren rette «Løn (3)». Samme fejlklasse, blot mellem gridoverskrift og
@@ -124,7 +124,7 @@ export const resolveStandardLoenPeriodColumns = (
 
 /**
  * Kolonnens navn i BESKEDER – uden overskriftens layout-linjeskift. Det er samme navn som feltets
- * descriptor-label og dermed samme navn, en feltfejl på cellen bruger (§3.2a).
+ * descriptor-label og dermed samme navn, en feltfejl på cellen bruger (§2.2).
  */
 export const resolveStandardLoenColumnLabel = (colKey: StandardLoenTableColumnKey): string =>
   STANDARD_LOEN_COLUMN_LABELS[colKey];

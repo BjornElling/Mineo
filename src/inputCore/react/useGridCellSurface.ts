@@ -21,7 +21,7 @@ import { isFocusTransferIntoConfirmationDialog } from './modalFocusTransfer';
 import { useAutofillSuggestion } from './autofillSuggestContext';
 import type { AutofillSuggestion } from '../autofill/autofillSuggestModel';
 
-// Grid-celle-surface (§2.5/§3.5): den ENE UI-mekanik for en persisteret grid-celle. Den
+// Grid-celle-surface (§2.5): den ENE UI-mekanik for en persisteret grid-celle. Den
 // bro-forbinder de TO redigerings-autoriteter, som en løntabel har:
 //
 //  1. `GridCoreController` (via StandardGridTable + `tableKeyboardNavigation`, capture-fase) ejer NAVIGATION og
@@ -29,11 +29,11 @@ import type { AutofillSuggestion } from '../autofill/autofillSuggestModel';
 //     klik-udenfor-commit. Det er en bevidst bevaret surface-mekanik (§2.5 – grid-adapteren ejer navigation),
 //     som opererer på DOM + en per-celle `GridCellEditorHandle`.
 //  2. `useCellEditor` (den ENE editor-motoren) ejer DRAFT/COMMIT: åben draft, settle→command, cancel,
-//     immediate-clear, rejected-visning og det tokenbundne feltissue (§3.5/§1.8).
+//     immediate-clear, rejected-visning og det tokenbundne feltissue (§2.5/§1.8).
 //
 // Broen: grid-core `openEditing(cell)` → editorens `open()`; editorens `settle()` → grid-core `closeEditing()`.
 // Cellen registrerer en `GridCellEditorHandle`, hvis metoder udelukkende delegerer til controlleren, så der
-// kun er ÉN write-grænse (§3.6) og ÉT sæt draft-state. Dette lag holder ingen parallel draftkopi,
+// kun er ÉN write-grænse (§2.6) og ÉT sæt draft-state. Dette lag holder ingen parallel draftkopi,
 // fingerprint eller epoch-resync; det hører til i motoren/readeren.
 
 /** Familiespecifikt tegnfilter i åben editor (fx `filterIntegerKeyDown`); kaldes efter Enter/Escape/nav. */
@@ -59,7 +59,7 @@ export type GridCellSurfaceConfig = Readonly<{
 }>;
 
 export type GridCellSurface<T> = Readonly<{
-  /** Draften i åben tilstand, ellers lukket-visning fra den afsluttede revision (§3.5). Bindes til `<input>`. */
+  /** Draften i åben tilstand, ellers lukket-visning fra den afsluttede revision (§2.5). Bindes til `<input>`. */
   displayText: string;
   /** Genindsættelig tekst fra den afsluttede værdi, fx et fuldt beløbsudtryk. */
   copyText: string;
@@ -75,7 +75,7 @@ export type GridCellSurface<T> = Readonly<{
   readOnly: boolean;
   /**
    * DOM-attributter, celle-`<input>`'et SKAL bære, så undo/redo-fokusrestoren kan lokalisere præcis denne celle
-   * (§3.7): serialiseret feltadresse + editorlokation. Celle-komponenten spreder dem på inputtet.
+   * (§2.7): serialiseret feltadresse + editorlokation. Celle-komponenten spreder dem på inputtet.
    */
   restoreTargetAttributes: RestoreTargetAttributes;
   /**
@@ -157,7 +157,7 @@ export const useGridCellSurface = <T, TEntity = unknown>(
   const cellFieldRef = React.useRef<FieldRef<T>>(cellFieldOf(cell));
   cellFieldRef.current = cellFieldOf(cell);
 
-  // Undo/redo-fokusrestore-mål (§3.7): serialiseret celle-feltadresse + editorlokation. Genberegnes kun når
+  // Undo/redo-fokusrestore-mål (§2.7): serialiseret celle-feltadresse + editorlokation. Genberegnes kun når
   // celle-spec'et skifter identitet (ny række/kolonne), så attribut-objektet er stabilt mellem renders.
   const restoreTargetAttributes = React.useMemo(
     () => buildRestoreTargetAttributes(
@@ -393,7 +393,7 @@ export const useGridCellSurface = <T, TEntity = unknown>(
 };
 
 /**
- * Den bundne `FieldRef` for et celle-spec. BEGGE cellearter bærer den færdigt bundne reference (§3.2), så der
+ * Den bundne `FieldRef` for et celle-spec. BEGGE cellearter bærer den færdigt bundne reference (§2.2), så der
  * findes ingen surface-lokal bindingsregel, der kunne drifte fra tabellens egen.
  */
 const cellFieldOf = <T, TEntity>(cell: CellSpec<T, TEntity>): FieldRef<T> => cell.field;

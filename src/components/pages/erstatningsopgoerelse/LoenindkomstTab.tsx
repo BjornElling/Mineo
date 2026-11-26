@@ -34,12 +34,12 @@ const LoenindkomstTab = React.memo(({
   loenudviklingIssues,
 }: Props) => {
   // View-model-laget ejer al afledt visningstilstand, lokal UI-state og handlers (jf. A1).
-  // Siden er nu en tynd forbruger: den læser kun den flade model og beskriver layout.
+  // Siden er en tynd forbruger: den læser kun den flade model og beskriver layout.
   const vm = useLoenindkomstViewModel({
     eoValues,
     stamdataValues,
   });
-  // Fanen er nu en komposition: den deler view-modellen med ansættelsesforhold-kortene via
+  // Fanen er en komposition: den deler view-modellen med ansættelsesforhold-kortene via
   // konteksten (jf. A1) og beholder kun det fane-niveau-layout (intro, overlay, dialoger).
   const {
     deleteDialogOpen,

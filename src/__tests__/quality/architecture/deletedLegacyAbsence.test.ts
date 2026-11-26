@@ -95,7 +95,7 @@ describe('slettet legacy er faktisk fraværende (fraværsreglernes modstykke)', 
     expect(
       alive,
       'Et navn på forbudt-listen lever stadig som identifier. Enten er sletningen ufuldstændig, '
-        + 'eller også hører navnet ikke på listen (fx fordi det er levende greenfield-vokabular).'
+        + 'eller også hører navnet ikke på listen (fx fordi det er levende inputCore-vokabular).'
     ).toEqual([]);
   });
 
@@ -124,7 +124,7 @@ describe('slettet legacy er faktisk fraværende (fraværsreglernes modstykke)', 
     for (const entry of entries) {
       if (entry.relativePath.startsWith('src/__tests__/')) continue;
 
-      // (a) @deprecated i produktionskoden: exitkriterie 1 forbyder en bevaret, udfaset vej.
+      // (a) @deprecated i produktionskoden: input-architecture.md §5 kriterium 29 forbyder en bevaret, udfaset vej.
       if (/@deprecated\b/.test(entry.text)) {
         facades.push(`${entry.relativePath} – @deprecated`);
       }
@@ -135,7 +135,7 @@ describe('slettet legacy er faktisk fraværende (fraværsreglernes modstykke)', 
       //     `Fallback` er BEVIDST udeladt af mønsteret. Ordet bruges i domænet om ægte, ønsket
       //     ADFÆRD – fald-tilbage-dage ved ren ferie/weekend
       //     ([[project_feriedage_indkomst_fald_tilbage]]) og fokusmål efter en slettet række – ikke om
-      //     en dual-read-facade. Exitkriterie 1's "fallback" handler om en bevaret gammel læsevej ved
+      //     en dual-read-facade. Kriterium 29's "fallback" handler om en bevaret gammel læsevej ved
       //     siden af den nye; den fanges af @deprecated-kontrollen og af legacy-modulkontrollen ovenfor.
       //     At forbyde ordet ville tvinge en omdøbning af korrekt domænesprog.
       const sourceFile = entry.ast;
@@ -161,7 +161,7 @@ describe('slettet legacy er faktisk fraværende (fraværsreglernes modstykke)', 
 
     expect(
       facades,
-      'Exitkriterie 1: ingen permanent intern compatibility-facade, fallback eller dual-read under src/.'
+      '§5 kriterium 29: ingen permanent intern compatibility-facade, fallback eller dual-read under src/.'
     ).toEqual([]);
   });
 
@@ -215,7 +215,7 @@ describe('slettet legacy er faktisk fraværende (fraværsreglernes modstykke)', 
 
     expect(
       facades,
-      'Exitkriterie 1: en ikke-barrel-fil, hvis hele flade består af `export … from`, holder kun gamle importstier '
+      '§5 kriterium 29: en ikke-barrel-fil, hvis hele flade består af `export … from`, holder kun gamle importstier '
         + 'i live. Opdatér consumers til det kanoniske modul og slet filen. (En ægte offentlig '
         + 'pakkegrænse samler flere moduler og hedder `index.ts`.)'
     ).toEqual([]);

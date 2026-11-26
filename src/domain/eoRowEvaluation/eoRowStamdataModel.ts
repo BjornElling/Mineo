@@ -53,7 +53,7 @@ export const buildEoStamdataRows = (
     ? advokatErrors.concat(sagsbehandlerErrors).some((e) => e.severity === 'error') ? 'error' : 'warning'
     : isNonEmptyString(advokatSagsbehandler) ? 'ok' : 'ok';
 
-  // Rækkens label er samme feltnavn, brugeren ser på Stamdata: læses fra feltets ene navneregel (§3.2a).
+  // Rækkens label er samme feltnavn, brugeren ser på Stamdata: læses fra feltets ene navneregel (§2.2).
   const skadedatoLabel = resolveSkadestypeDatoLabel(values.skadestype);
 
   // Konverter skadedato til dansk format

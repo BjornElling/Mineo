@@ -565,7 +565,7 @@ export const eoSnapshotToTafKravGrafDocument = (
   const firstWindow = timeWindows[0];
   const lastWindow = timeWindows.at(-1);
   const skadeMarker = skadeIso && firstWindow && lastWindow && skadeIso >= firstWindow.fra && skadeIso <= lastWindow.til
-    // Navnet er FÆRDIGT på modellen (§3.2a) – det må ikke genskabes ved at læse `skadestypeLinje`s prosa.
+    // Navnet er FÆRDIGT på modellen (§2.2) – det må ikke genskabes ved at læse `skadestypeLinje`s prosa.
     ? { date: skadeIso, label: model.skadedatoLabel }
     : null;
 

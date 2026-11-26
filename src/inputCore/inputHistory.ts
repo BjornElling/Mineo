@@ -1,20 +1,20 @@
 import type { FieldAddress } from './fieldAddress';
 import type { SettledInput } from './settledInput';
 
-// Inputkernen (§3.7): history snapshotter kun afsluttet input og strukturel fokus-origin. Runtime-
+// Inputkernen (§2.7): history snapshotter kun afsluttet input og strukturel fokus-origin. Runtime-
 // runneren (`inputCore/runtime`) validerer target, skriver sessionen og skaber den nye monotone revision.
 
 export const MAX_INPUT_HISTORY_STEPS = 50;
 
 /**
- * Route + fane for den lokation, ændringen kom fra (§3.7). Eksplicit typed navigation-metadata, så undo/redo-
+ * Route + fane for den lokation, ændringen kom fra (§2.7). Eksplicit typed navigation-metadata, så undo/redo-
  * restoren kan navigere til den rette side/fane UDEN at string-parse `editorLocationId` eller udlede route af
  * `field.section`. `undefined` route = en ikke-navigerbar lokation (fx standalone); `tabKey: null` = ingen faner.
  *
  * Kun FELT-origins må udelade destinationen: standalone MinProcesrente-gridet er en reelt ikke-navigerbar
  * lokation, og restoren fokuserer der blot feltet uden at navigere. En STRUKTUREL rækkehandling har derimod
  * intet felt at fokusere – uden destination ville dens undo gendanne data og efterlade brugeren på en
- * vilkårlig side. Derfor kræver `CollectionHistoryOrigin` nedenfor destinationen (§3.7).
+ * vilkårlig side. Derfor kræver `CollectionHistoryOrigin` nedenfor destinationen (§2.7).
  */
 type OriginDestination =
   // ALT-eller-INTET: en `tabKey` uden `route` er lydløst inert, fordi restoren kun aktiverer fanen inde i

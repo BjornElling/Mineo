@@ -23,9 +23,9 @@ import {
   type SourceSettings,
 } from '../../settings/sourceSettings';
 
-// Den ene app-variants inputruntime (§3.10), uafhængig af HVILKET felt-katalog varianten bruger. Den
+// Den ene app-variants inputruntime (§2.10), uafhængig af HVILKET felt-katalog varianten bruger. Den
 // hydrerer runtime FØR render (`initializeInputRuntime`) mod applikations-singletonerne og distribuerer den
-// færdige binding til React-træet gennem `InputRuntimeProvider`. Provideren hydrerer aldrig igen (§3.10);
+// færdige binding til React-træet gennem `InputRuntimeProvider`. Provideren hydrerer aldrig igen (§2.10);
 // en remount genbruger den samme runtime uden at overskrive input.
 //
 // **Hvorfor kataloget gives ind og ikke importeres.** Mineo og MinProcesrente deler denne runtime, men ikke
@@ -34,7 +34,7 @@ import {
 // opstartschunk, selv om renteberegneren aldrig læser dem. Hver variant konfigurerer derfor værten med sit
 // eget katalog: Mineo via `productionInputRuntime.tsx`, MinProcesrente via `minprocesrenteMain.tsx`.
 //
-// **Feltvalidering (inputkernen, slicevis):** `getIssues` optager et STABILT kildesnapshot (§3.4) og udleder det
+// **Feltvalidering (inputkernen, slicevis):** `getIssues` optager et STABILT kildesnapshot (§2.4) og udleder det
 // faktiske tokenbundne feltissue-snapshot via `captureStableInputEvaluation`. Rejected råtekst (format) og
 // canonical-validatorer på de migrerede sektioner giver derfor ægte røde feltfejl. Sektioner uden migrerede
 // validatorer bidrager ikke med issues – Satser-årets min/maxYear-bounds er en canonical
@@ -116,7 +116,7 @@ const readEvaluation = (): InputEvaluation => {
 /**
  * Bygger bindingen mod applikations-singletonerne. `getIssues`/`getEvaluation` deler den token-cachede
  * `InputEvaluation`, så det offentlige reader-lag og editorernes issue-visning ser præcis samme tokenbundne
- * snapshot (§3.4).
+ * snapshot (§2.4).
  */
 export const createInputRuntimeHostBinding = (): InputRuntimeBinding => createInputRuntimeBinding(
   slimInputStore,
@@ -127,7 +127,7 @@ export const createInputRuntimeHostBinding = (): InputRuntimeBinding => createIn
 
 /**
  * Optager den aktuelle tokenbundne `InputEvaluation` (issues + offentlig reader) fra runtime.
- * Consumer-siden (projektioner, sidevisning, download-preflight) læser HER, aldrig gennem rå sektioner (§3.4).
+ * Consumer-siden (projektioner, sidevisning, download-preflight) læser HER, aldrig gennem rå sektioner (§2.4).
  * Delt cache med `getIssues`, så reader og editor-issues aldrig kan drifte fra hinanden.
  */
 export const getInputRuntimeHostEvaluation = (): InputEvaluation => readEvaluation();
@@ -179,7 +179,7 @@ let bootstrappedRuntime: InputRuntimeBootstrap | null = null;
 
 /**
  * Hydrerer variantens runtime én gang før render og returnerer startup-status (fx korruptions-/utilgængelig-
- * notice, §1.12) samt den færdige binding. Kaldes af hvert app-entrypoint FØR React-render (§3.10); et
+ * notice, §1.12) samt den færdige binding. Kaldes af hvert app-entrypoint FØR React-render (§2.10); et
  * gentaget kald returnerer den første bootstrap uden at rehydrere.
  *
  * `seedNewCase` er variantens ny-sags-seed; den evalueres kun, hvis der ikke findes en aktiv session.

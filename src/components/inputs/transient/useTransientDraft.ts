@@ -2,7 +2,7 @@ import * as React from 'react';
 import type { DraftAdmission } from '../draftAdmission';
 
 // Transient (ikke-persisteret) inputtilstand. Til de FÅ flader, hvor et input IKKE er sagsdata og derfor
-// ikke hører i den autoritative inputtilstand (§3.1): et overlay/dialog-scratchfelt, hvis værdi kun lever i
+// ikke hører i den autoritative inputtilstand (§2.1): et overlay/dialog-scratchfelt, hvis værdi kun lever i
 // komponentens egen state.
 //
 // Bevidst adskilt fra den autoritative feltvej: her er ingen feltadresse, intet issue-snapshot, ingen

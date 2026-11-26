@@ -2,8 +2,8 @@
 import { render, screen } from '@testing-library/react';
 import { bootstrapProductionInputRuntime } from '../../../inputCore/react';
 
-// Greenfield-migreret standalone (§2.4 trin 4): MinProcesrente kører nu på den ENE greenfield input-runtime, ikke
-// legacy FormPersistence. Denne test dækker den standalone-specifikke shell-adfærd (mobil-scroll-fix + mount).
+// MinProcesrente-standalone kører på den ENE input-runtime, ikke legacy FormPersistence. Denne test dækker
+// den standalone-specifikke shell-adfærd (mobil-scroll-fix + mount).
 // Commit/undo-adfærden dækkes af de rene runtime-/reducer-tests og Renteberegning-integrationstesten, ikke her.
 
 vi.mock('../../../components/pages/renteberegning/RenteberegningTab', () => ({

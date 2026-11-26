@@ -88,7 +88,7 @@ import {
   type LoenudviklingFelt,
 } from '../../domain/erstatningsopgoerelse/helpers/eoInputRelevance';
 
-// Produkt-descriptors for EO's nested løntræ (§3.2): samlingen `loenindkomstAnsaettelsesforhold`
+// Produkt-descriptors for EO's nested løntræ (§2.2): samlingen `loenindkomstAnsaettelsesforhold`
 // med skalarfelter + overenskomstFilter + tre nested tabeller, samt det singulære property-objekt
 // `eoAngivetLoenLoenudvikling` med sin filter + to nested tabeller.
 
@@ -489,7 +489,7 @@ const stdAmount = (
 ): FieldDescriptor<AmountValue | undefined> =>
   optField<AmountValue>(STD_ID, stdRowPath, field, label, 'text', tableAmountCodec, undefined, relevance);
 
-// Kolonnenavnene er ét sandt sted (`STANDARD_LOEN_COLUMN_LABELS`, §3.2a): descriptor-labelen ER
+// Kolonnenavnene er ét sandt sted (`STANDARD_LOEN_COLUMN_LABELS`, §2.2): descriptor-labelen ER
 // gridoverskriften, så en fejl på en celle navngiver den kolonne, brugeren faktisk ser.
 const stdLabel = STANDARD_LOEN_COLUMN_LABELS;
 

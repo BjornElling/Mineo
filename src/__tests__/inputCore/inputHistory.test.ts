@@ -10,7 +10,7 @@ import {
 import { createEmptySettledInput, type SettledInput } from '../../inputCore';
 import { createFieldAddress, type FieldAddress } from '../../inputCore/fieldAddress';
 
-// History bevarer struktur-origin (§3.7) symmetrisk gennem undo → redo, så undo/redo-restoren kan
+// History bevarer struktur-origin (§2.7) symmetrisk gennem undo → redo, så undo/redo-restoren kan
 // navigere til den rette route/fane og fokusere feltet, ændringen kom fra. Ren datastruktur-test uden runtime.
 
 const address: FieldAddress = { section: 'satser', path: [], field: 'aargang' };
@@ -27,7 +27,7 @@ const origin: HistoryOrigin = {
 const inputA: SettledInput = createEmptySettledInput();
 const inputB: SettledInput = createEmptySettledInput();
 
-describe('inputHistory – origin-bevaring (§3.7)', () => {
+describe('inputHistory – origin-bevaring (§2.7)', () => {
   it('bevarer originen symmetrisk gennem undo → redo', () => {
     // Push et før-snapshot (inputA) MED origin; current er nu inputB.
     const history = pushInputHistory(createInputHistory(), inputA, origin);
@@ -64,7 +64,7 @@ describe('inputHistory – origin-bevaring (§3.7)', () => {
 // Ellers kan en direkte `dispatchInput`-kalder lave en rækkehandling uden et sted at navigere hen – og en
 // rækkehandling har ingen feltadresse at falde tilbage på. Testen er compile-time: `@ts-expect-error` FEJLER,
 // hvis typen igen bliver eftergivende, så en opblødning ikke kan slippe gennem en grøn suite.
-describe('CollectionHistoryOrigin – destinationen er påkrævet i kernetypen (§3.7)', () => {
+describe('CollectionHistoryOrigin – destinationen er påkrævet i kernetypen (§2.7)', () => {
   it('accepterer et origin med fuld destination', () => {
     const origin: CollectionHistoryOrigin = {
       kind: 'collection',
@@ -101,7 +101,7 @@ describe('CollectionHistoryOrigin – destinationen er påkrævet i kernetypen (
 // Destinationen er ALT-eller-INTET. En `tabKey` uden `route` er lydløst
 // inert, fordi restoren kun aktiverer fanen inde i `route !== undefined`-grenen (`MainLayout`). Typen gør den
 // inkohærens urepræsenterbar, i stedet for at lade et runtime-værn fange den bagefter.
-describe('FieldHistoryOrigin – destinationen er alt-eller-intet (§3.7)', () => {
+describe('FieldHistoryOrigin – destinationen er alt-eller-intet (§2.7)', () => {
   const renteAddress = createFieldAddress({ section: 'renteberegning', path: [], field: 'beregningsdato' });
 
   it('accepterer et anker HELT UDEN destination (standalone er ikke-navigerbar)', () => {

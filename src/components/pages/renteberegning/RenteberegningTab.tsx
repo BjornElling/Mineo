@@ -36,11 +36,10 @@ import {
 } from '../../../inputCore/catalog/renteberegningDescriptors';
 import { APP_ROUTES, PAGE_DEFAULT_TAB } from '../../../config/pageNavigation';
 
-// RenteberegningTab: Hele fanen kører nu på
+// RenteberegningTab: Hele fanen kører på
 // inputCore: beregningsdato + kommentarer skriver/læser gennem den offentlige `InputReader` + den ene
 // write-grænse (ingen `usePersistedForm`); rentekrav-tabellen ejer sine rækker via grid-adapteren; og den ENE
 // reader-afledte projektion (`buildRenteberegningReaderProjection`) driver både tabeloutput og alle download-gates.
-// Beregningstal og synlig adfærd er uændrede (§5.4).
 
 interface TechnicalAssumptionsListProps {
   items: readonly string[];
@@ -76,9 +75,8 @@ const buildEditorLocation = (locationId: string, locationNav: RenteberegningLoca
  * dokumenthandles som props frem for at komponere dem selv: den ejende side kender sin app, fanen
  * gør ikke.
  *
- * Tidligere modtog fanen i stedet tre `onDownload*`-callbacks og skrev SELV hele preflighten
- * (settle → capture → token-lighed → gate) – fire gange, én pr. handler plus de reaktive gates.
- * Alt det ligger nu i definitionerne.
+ * Hele preflighten (settle → capture → token-lighed → gate) ligger i definitionerne, så fanen ikke
+ * gentager den pr. handler ved siden af de reaktive gates.
  */
 export interface RenteberegningTabProps {
   /**
@@ -141,7 +139,7 @@ const RenteberegningTab = React.memo(({
   );
   const beregningsdatoController = useFieldEditor(beregningsdatoRef, beregningsdatoLocation);
 
-  // Den ENE reader-afledte projektion (§3.4/§5.4) – tabeloutput og download-gates deler præcis samme sandhed.
+  // Den ENE reader-afledte projektion (§2.4) – tabeloutput og download-gates deler præcis samme sandhed.
   const projection = React.useMemo(
     () => buildRenteberegningReaderProjection({
       reader: evaluation.reader,

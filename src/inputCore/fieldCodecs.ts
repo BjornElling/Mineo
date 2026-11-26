@@ -57,8 +57,8 @@ import {
   rejectedResolution,
 } from './fieldCodec';
 
-// Inputkernen (§3.3): ét codec pr. inputfamilie, bygget over de EKSISTERENDE godkendte parse-kerner i
-// `../utils/*` (§11). Et codec afviser KUN ugyldigt format/schema-urepræsenterbarhed; en schema-gyldig værdi
+// Inputkernen (§2.3): ét codec pr. inputfamilie, bygget over de EKSISTERENDE godkendte parse-kerner i
+// `../utils/*` (§6). Et codec afviser KUN ugyldigt format/schema-urepræsenterbarhed; en schema-gyldig værdi
 // uden for feltets aktive min/max committes canonical og bærer et afledt bounds-issue fra en feltvalidator (§1.6).
 // Paste-normaliseringen beholder sin min/max-clamp – commit-tiden afviser ikke på range.
 
@@ -487,7 +487,7 @@ export const createPercentFieldCodec = (
     signPolicy: config.allowNegative ? 'signed' : 'nonNegative',
     decimalPolicy: config.allowDecimals ? 'decimal' : 'integerOnly',
     parseForSettle: (raw): FieldResolution<number | undefined> => {
-      // Kun format afvises (§1.6/§3.3): parse uden grænser. En schema-gyldig out-of-bounds-procent committes
+      // Kun format afvises (§1.6/§2.3): parse uden grænser. En schema-gyldig out-of-bounds-procent committes
       // canonical; min/max vurderes af en canonical feltvalidator, ikke som en rejection her.
       const parsed = parsePercentDraftForCommit(raw, formatOnlyConfig);
       if (!parsed.ok) return rejectedResolution('format');

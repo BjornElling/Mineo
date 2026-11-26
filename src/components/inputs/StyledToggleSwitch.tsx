@@ -62,7 +62,7 @@ type StyledToggleSwitchOwnProps = {
   name?: string;
   value?: string;
   /**
-   * Undo/redo-fokusrestore-attributter (§3.7): sættes på input-slottet, så fokus efter undo/redo lander
+   * Undo/redo-fokusrestore-attributter (§2.7): sættes på input-slottet, så fokus efter undo/redo lander
    * PRÆCIST på denne editorlokation (feltadresse + editorlokation), ikke via `name`.
    * `inputCore/react/fields/ToggleField` og `MappedToggleField` leverer dem.
    */
@@ -186,7 +186,7 @@ const StyledToggleSwitch = (props: StyledToggleSwitchProps) => {
     onKeyDown: handleKeyDown,
     'aria-checked': visibleChecked,
     ...nameAttributes,
-    // Undo/redo-restore lokaliserer via feltadresse + editorlokation, ikke `name` (§3.2/§3.7).
+    // Undo/redo-restore lokaliserer via feltadresse + editorlokation, ikke `name` (§2.2/§2.7).
     ...(restoreTargetAttributes ?? {}),
   };
 

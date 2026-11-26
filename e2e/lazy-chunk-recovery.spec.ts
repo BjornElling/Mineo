@@ -51,8 +51,8 @@ test.describe('Lazy chunk recovery', { tag: BROWSER_LANE_TAG }, () => {
     // recovery uden automatisk reload og den eksplicitte reload – ikke browserens logpolitik.
     //
     // Hvilken ordlyd browseren bruger om den fjernede chunk, er derimod timingafhængigt: Firefox melder
-    // i nogle kørsler «Loading failed for the module with source …» i stedet for en 404-linje. Den
-    // gamle prøve godtog kun «status of 404» og var derfor flaky i Firefox på CI. Reglen er nu den
+    // i nogle kørsler «Loading failed for the module with source …» i stedet for en 404-linje. En prøve,
+    // der kun godtager «status of 404», er derfor flaky i Firefox på CI. Reglen er den
     // egentlige: enhver fejl skal handle om netop den chunk, testen selv har fjernet.
     const missingChunkPaths = [...new Set(missingChunkRequests.map((url) => new URL(url).pathname))];
     const isAboutMissingChunk = (message: string): boolean =>

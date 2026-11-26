@@ -1743,7 +1743,7 @@ describe('buildEoSygeferiegodtgoerelseRows', () => {
   });
 
   it('viser satsvalg-fejlen som blokerende rod-årsag ved differentieret direkte overenskomstsats uden satsvalg', () => {
-    // Manglende satsvalg for en differentieret direkte overenskomstsats er nu en blokerende
+    // Manglende satsvalg for en differentieret direkte overenskomstsats er en blokerende
     // valideringsfejl ("Satsvalg mangler"), så den autoritative beregning standses (snapshot.data
     // = null). EO-kontrol viser derfor satsvalg-fejlrækken (den handlingsanvisende rod-årsag), mens
     // den tidligere afledte "Dagssats kunne ikke fastsættes"-række ikke længere produceres – den

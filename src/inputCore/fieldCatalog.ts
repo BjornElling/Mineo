@@ -24,7 +24,7 @@ import {
   type SettledInputCandidate,
 } from './settledInput';
 
-// Inputkernen (§3.2): produktkataloget er ét almindeligt statisk readonly katalog, valideret ÉN gang
+// Inputkernen (§2.2): produktkataloget er ét almindeligt statisk readonly katalog, valideret ÉN gang
 // ved konstruktion og derefter immutabelt. Ingen seal-lifecycle, symbols, brands eller WeakSet.
 
 export type CollectionTemplateSegment =
@@ -181,8 +181,8 @@ export type InputCatalog = Readonly<{
   listFieldInstances: (sections: PersistedInputSections) => readonly AnyFieldRef[];
   /**
    * Katalog-afhængig envelope-validering: struktur + XOR + inputdrevet eksistens + relevans-invarianten
-   * på rejected input (§3.1, §7.5 pkt. 2): en færdig tilstand må ikke bære rejected råtekst i et skjult
-   * felt, da den ville blokere `.eo`-save usynligt.
+   * på rejected input (§2.1, form-contract.md §7.5 pkt. 2): en færdig tilstand må ikke bære rejected råtekst
+   * i et skjult felt, da den ville blokere `.eo`-save usynligt.
    */
   validateSettledInput: (candidate: SettledInputCandidate) => SettledInput;
   /**
@@ -191,7 +191,7 @@ export type InputCatalog = Readonly<{
    */
   validateSettledInputBeforeRelevanceCleanup: (candidate: SettledInputCandidate) => SettledInput;
   /**
-   * Materialiserer alle afledte skrivninger i kandidaten (§3.6). Kaldes af reduceren for HVER command, så
+   * Materialiserer alle afledte skrivninger i kandidaten (§2.6). Kaldes af reduceren for HVER command, så
    * en afledt værdi aldrig kan blive et selvstændigt history-trin. Kaster, hvis en regel ikke er idempotent.
    */
 }>;

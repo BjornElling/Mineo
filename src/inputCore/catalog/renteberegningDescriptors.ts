@@ -23,7 +23,7 @@ import { COMMENT_TEXT_MAX_LENGTH } from './fieldLengthLimits';
 import { isRentekravRowEmpty } from '../../domain/renteberegning/rowEmpty';
 import { calculateInterestDate } from '../../domain/renteberegning/rentekravValidation';
 
-// Produkt-descriptors for `renteberegning`-sektionen (§3.2): to skalarfelter og samlingen
+// Produkt-descriptors for `renteberegning`-sektionen (§2.2): to skalarfelter og samlingen
 // `rentekravRows` med dens rækkefelter. Den tomme sektion har en tom collection (schemaet kræver arrayet,
 // men tillader 0 rækker).
 

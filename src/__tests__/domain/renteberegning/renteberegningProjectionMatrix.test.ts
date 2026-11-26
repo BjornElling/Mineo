@@ -21,7 +21,7 @@ import {
   createSettingsRevision,
 } from '../../../inputCore/evaluationSource';
 
-// Den FULDE projektionsmatrix for Renteberegning (§1.10/§3.9). Den beviser `blocked`-grenene: at et rejected
+// Den FULDE projektionsmatrix for Renteberegning (§1.10/§2.9). Den beviser `blocked`-grenene: at et rejected
 // råinput blokerer, at blokeringen er PER RÆKKE, og at motoren ikke kaldes i en blokeret projektion.
 //
 // Matrixen her er: {gyldig, rejected råtekst, tom} × {rækkefelt, tværgående beregningsdato} × {række, aggregat}.

@@ -1,7 +1,7 @@
 /**
  * Scroll + fokus til det input, et navigerbart EO-issue peger på.
  *
- * Fokusmålet er en KANONISK feltadresse (§3.2) og slås op med `lookupEditorLocation` – præcis den
+ * Fokusmålet er en KANONISK feltadresse (§2.2) og slås op med `lookupEditorLocation` – præcis den
  * mekanisme undo/redo (`findRestoreTarget`) og save-blokeringens fokus bruger. Der findes derfor kun ÉT
  * identitetssystem for "hvilket felt skal brugeren se": adressen, som feltet selv bærer i DOM
  * (`data-mineo-field-address`), sat af form-/grid-surfacen for hver editorlokation.

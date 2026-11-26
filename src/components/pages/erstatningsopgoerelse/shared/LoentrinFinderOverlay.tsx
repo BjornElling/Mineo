@@ -153,9 +153,9 @@ const LoentrinFinderOverlay = React.memo((props: LoentrinFinderOverlayProps) => 
       if (!isInsideOverlay) return;
 
       // Escape håndteres BEVIDST ikke her. Denne lytter kører i capture-fasen for at eje Tab og Enter,
-      // og den nåede derfor tasten før et åbent felt inde i overlayet: Escape lukkede hele overlayet i
-      // stedet for at annullere den redigering, brugeren stod midt i (`keyboard-navigation.md`: én
-      // Escape må ikke både committe/annullere og lukke). Lukningen ligger nu i en separat lytter i
+      // og den når derfor tasten før et åbent felt inde i overlayet: Escape ville lukke hele overlayet i
+      // stedet for at annullere den redigering, brugeren står midt i (`keyboard-navigation.md`: én
+      // Escape må ikke både committe/annullere og lukke). Lukningen ligger i en separat lytter i
       // BOBLE-fasen nedenfor, som først når frem, hvis intet felt annullerede noget.
 
       if (event.key === 'Enter') {

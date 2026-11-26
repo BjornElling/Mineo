@@ -72,7 +72,7 @@ const dispatchSettle = <T>(state: ReturnType<typeof settleEditor<T>>): void => {
 
 const evaluate = () => captureStableInputEvaluation(store, catalog);
 
-describe('felt-editor-state-machine (§3.5, §1.2, §1.3)', () => {
+describe('felt-editor-state-machine (§2.5, §1.2, §1.3)', () => {
   it('åben draft ændrer intet afsluttet input eller revision (§1.2)', () => {
     // Afsæt en gyldig værdi.
     dispatchInput(store, catalog, settleIntentToCommand(
@@ -91,7 +91,7 @@ describe('felt-editor-state-machine (§3.5, §1.2, §1.3)', () => {
     expect(editor.open?.draft).toBe('abc');
   });
 
-  it('åbner draften fra en canonical værdi via formatForEdit, og fra rejected råtekst ordret (§3.5)', () => {
+  it('åbner draften fra en canonical værdi via formatForEdit, og fra rejected råtekst ordret (§2.5)', () => {
     // Gyldigt settle → canonical; genåbning viser formatForEdit.
     let editor = openEditor(createClosedEditor(aargangRef, LOC), viewOf(aargangRef), store.getState().revision);
     editor = changeDraft(editor, '2010');
@@ -134,7 +134,7 @@ describe('felt-editor-state-machine (§3.5, §1.2, §1.3)', () => {
     expect(store.getState().input.rejectedInputs[serializeFieldAddress(aargangRef.address)]).toBeUndefined();
   });
 
-  it('no-op settle (uændret draft) skriver ikke en ny revision (§3.6)', () => {
+  it('no-op settle (uændret draft) skriver ikke en ny revision (§2.6)', () => {
     dispatchSettle(settleEditor(changeDraft(openEditor(createClosedEditor(aargangRef, LOC), viewOf(aargangRef), store.getState().revision), '2010')));
     const revisionEfter = store.getState().revision;
     // åbn, rør ikke draften, settle igen
@@ -277,7 +277,7 @@ describe('felt-editor-engine – visning, issues og immediate commit', () => {
     expect(aargangRef.descriptor.readCanonical(store.getState().input.sections, aargangRef.address)).toBeUndefined();
   });
 
-  it('immediate clear på et allerede tomt felt er guardet no-op (ingen command, ingen revision) (§3.6)', () => {
+  it('immediate clear på et allerede tomt felt er guardet no-op (ingen command, ingen revision) (§2.6)', () => {
     const revisionFoer = store.getState().revision;
     // Feltet er aldrig rørt (canonical tomt, ingen rejected) → engine udsteder INGEN command.
     const translated = immediateClearCommand(aargangRef, viewOf(aargangRef), LOC);
@@ -308,7 +308,7 @@ describe('felt-editor-engine – visning, issues og immediate commit', () => {
     expect(editor.open?.openedAtReplacementGeneration).toBe(store.getState().replacementGeneration);
   });
 
-  it('isSettleStale opdager en autoritativ replacement, mens editoren er åben (§3.5)', () => {
+  it('isSettleStale opdager en autoritativ replacement, mens editoren er åben (§2.5)', () => {
     const editor = changeDraft(openEditor(
       createClosedEditor(aargangRef, LOC),
       viewOf(aargangRef),

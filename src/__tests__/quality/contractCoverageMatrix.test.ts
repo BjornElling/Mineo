@@ -39,7 +39,7 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
   {
     contractPath: 'src/contracts/critical-action-contract.md',
     requiredTestPaths: [
-      // Greenfield-runtime ejer den kritiske handlingsbarriere (`CriticalActionCoordinator` i inputCore).
+      // inputCore-runtimen ejer den kritiske handlingsbarriere (`CriticalActionCoordinator` i inputCore).
       'src/__tests__/inputCore/runtime/criticalActionCoordinator.test.ts',
       'src/__tests__/components/layout/MainLayout.navigationCommitGuard.test.tsx',
       'src/__tests__/components/layout/MainLayout.undoRedoEditorGuard.test.tsx',
@@ -480,7 +480,7 @@ describe('contract linkage matrix', () => {
    *
    * Invarianten er derfor LIGHED og ikke inklusion: listen skal være hele det tværgående sæt, hverken
    * mere eller mindre. Listen bevares som eksplicit data frem for at blive udledt i JSON'en (hvad et
-   * JSON-dokument ikke kan), så den fortsat er læsbar og reviewbar – men en glemt tilføjelse er nu en
+   * JSON-dokument ikke kan), så den fortsat er læsbar og reviewbar – men en glemt tilføjelse er en
    * rød test frem for en tavs uenighed.
    */
   it('page-component-kontrakten er underordnet PRÆCIS alle tværgående kontrakter', () => {

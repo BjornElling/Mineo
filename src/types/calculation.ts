@@ -21,7 +21,7 @@ export type AarsloenBeregningResult = AarsloenBeregningResultIngen | AarsloenBer
 
 /**
  * Den kanoniske "ingen beregning"-værdi. Bruges hvor en consumer skal rendere uden et resultat – fx når
- * årslønsprojektionen er blokeret af en rød feltfejl og derfor ikke har kaldt motoren (§3.9). Samme variant
+ * årslønsprojektionen er blokeret af en rød feltfejl og derfor ikke har kaldt motoren (§2.9). Samme variant
  * motoren selv returnerer, når input ikke rækker til en metode, så der findes kun ÉN "intet resultat"-form.
  */
 export const AARSLOEN_BEREGNING_INGEN: AarsloenBeregningResultIngen = Object.freeze({

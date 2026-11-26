@@ -29,7 +29,7 @@ import { CriticalActionCoordinator } from '../runtime/criticalActionCoordinator'
  *
  * En strukturel rækkecommand kræver en origin – argumentet er obligatorisk. Alt andet beholder det valgfrie.
  * ARTEN er fri: en brugerudløst rækkehandling giver `CollectionHistoryOrigin`, mens en række-promovering via
- * celle-commit giver `FieldHistoryOrigin`, så undo fokuserer den celle, brugeren skrev i (§3.8).
+ * celle-commit giver `FieldHistoryOrigin`, så undo fokuserer den celle, brugeren skrev i (§2.8).
  *
  * To fælder er bevidst undgået:
  * - En OVERLOAD duer ikke: `InputSurfaceCommand` er en union, så TypeScript matcher `inputTransaction(...)`
@@ -42,14 +42,14 @@ type OriginArgs<TKind extends string> = TKind extends StructuralCommandKind
   ? [origin: HistoryOrigin]
   : [origin?: HistoryOrigin];
 
-// React-laget (§3.5/§3.10): den ENE binding, React-adapterne læser fra. Den eksponerer hverken rå sektioner,
+// React-laget (§2.5/§2.10): den ENE binding, React-adapterne læser fra. Den eksponerer hverken rå sektioner,
 // rejected-input-map, et skrivbart feltfejlsregister eller skrivbare hel-sektionshooks. Den giver kun:
 // (1) den aktuelle afsluttede revision (input + revisionsnummer), (2) det
 // tokenbundne feltissue-snapshot (§1.8 – komponenter rapporterer ALDRIG ind i det; de læser det), (3) én
 // typed `dispatch`, og (4) editorregistret. Feltvalidatorerne leverer issue-snapshottet i produktionen; test
 // kan injicere et syntetisk snapshot for at isolere en enkelt issue-tilstand.
 
-/** Det aktuelle afsluttede input bundet til sin revision. Adapteren afleder lukket visning HERFRA (§3.5). */
+/** Det aktuelle afsluttede input bundet til sin revision. Adapteren afleder lukket visning HERFRA (§2.5). */
 export type SettledSnapshot = Readonly<{
   revision: InputRevision;
   replacementGeneration: number;
@@ -58,7 +58,7 @@ export type SettledSnapshot = Readonly<{
 type InternalSettledSnapshot = SettledSnapshot & Readonly<{ input: SettledInput }>;
 
 /**
- * **READ** – alt hvad en visning, en projektion eller et dokument må gøre med sagsinput (§3.5/§3.10).
+ * **READ** – alt hvad en visning, en projektion eller et dokument må gøre med sagsinput (§2.5/§2.10).
  *
  * Porten er bevidst rent læsende OG tokenbundet: der er ingen vej fra en read-consumer til en mutation, og
  * ingen vej til rå `sections` uden om `InputReader`. Adskillelsen er strukturel frem for kommenteret: lå
@@ -84,7 +84,7 @@ export type InputReadPort = Readonly<{
 }>;
 
 /**
- * **EDIT** – feltniveau-redigering (§3.6). Den capability, en felt-/celleadapter har brug for, og intet mere.
+ * **EDIT** – feltniveau-redigering (§2.6). Den capability, en felt-/celleadapter har brug for, og intet mere.
  *
  * En editor-flade kan udstede felt- og rækkecommands og registrere sig som aktiv editor. Den kan IKKE
  * nulstille en sektion, erstatte hele sagen eller udføre undo/redo – de operationer hører til systemporten,
@@ -92,7 +92,7 @@ export type InputReadPort = Readonly<{
  */
 export type InputEditPort = Readonly<{
   /**
-   * Den ENE write-grænse (§3.6). Feltadapteren udsteder kun felt-scopede commands.
+   * Den ENE write-grænse (§2.6). Feltadapteren udsteder kun felt-scopede commands.
    *
    * En STRUKTUREL rækkecommand (insert/delete/reorder/settle-i-ny-række samt en strukturel transaktion)
    * kræver en origin – ellers kunne undo/redo gendanne en række uden noget restore-anker. ARTEN er fri; se `OriginArgs`. `dispatchInput` håndhæver kravet også på runtime.
@@ -107,7 +107,7 @@ export type InputEditPort = Readonly<{
 }>;
 
 /**
- * **SYSTEM** – operationer på HELE sagen (§3.6/§3.10): sektionsreset, replacement, history og kritiske
+ * **SYSTEM** – operationer på HELE sagen (§2.6/§2.10): sektionsreset, replacement, history og kritiske
  * handlinger.
  *
  * Porten er forbeholdt composition roots: case-/persistence-porten (`useCaseOperations`), shellens
@@ -116,13 +116,13 @@ export type InputEditPort = Readonly<{
  */
 type InputSystemPort = Readonly<{
   /**
-   * System-reset af én sektion (§3.6). Adskilt fra `dispatch`, så en form-/grid-CELLE ikke kan udstede en
+   * System-reset af én sektion (§2.6). Adskilt fra `dispatch`, så en form-/grid-CELLE ikke kan udstede en
    * hel-sektionsmutation, men en sidesektions "Slet alle indtastninger" (fx renteberegning) kan. Route reset,
    * `Slet alt` og load gennem denne/`CaseResetOperations`-porten, aldrig gennem celle-dispatch.
    */
   resetSection: (command: ResetSectionCommand) => DispatchInputResult;
   /**
-   * System-ejet hel-sags-replacement (§3.6/§3.10). Adskilt fra `dispatch`, så en form-/grid-CELLE aldrig kan
+   * System-ejet hel-sags-replacement (§2.6/§2.10). Adskilt fra `dispatch`, så en form-/grid-CELLE aldrig kan
    * udstede en hel-sagsmutation. `CaseFileOperations` (load-apply) og `CaseResetOperations` routes HERIGENNEM;
    * `dispatchInput` klassificerer den som autoritativ (rydder history, tvinger commit, hæver
    * `replacementGeneration`) og tillader den som eneste command, når runtime er `writesBlocked` (clearCase, §1.12).
@@ -252,7 +252,7 @@ export const useCriticalActionCoordinator = (): CriticalActionCoordinator =>
 export const useSectionReset = (): InputSystemPort['resetSection'] => useInternals().system.resetSection;
 
 /**
- * Bygger en binding oven på den levende slim-store (§3.10). `getSettled` er memoiseret pr. revision, så
+ * Bygger en binding oven på den levende slim-store (§2.10). `getSettled` er memoiseret pr. revision, så
  * `useSyncExternalStore` ser en stabil reference mellem revisioner (ellers ville getSnapshot-identitetstjekket
  * loope). Issue-snapshottet leveres af consumeren (inputkernen-validatorer); i test injiceres et syntetisk snapshot.
  */
@@ -363,7 +363,7 @@ export type InputRuntimeProviderProps = Readonly<{
 }>;
 
 /**
- * Leverer bindingen til React-træet. Provideren hydrerer ALDRIG og overskriver aldrig input (§3.10) – begge
+ * Leverer bindingen til React-træet. Provideren hydrerer ALDRIG og overskriver aldrig input (§2.10) – begge
  * app-entrypoints initialiserer den samme runtime FØR render, og provideren distribuerer kun den færdige binding.
  */
 export const InputRuntimeProvider = ({ binding, children }: InputRuntimeProviderProps): React.ReactElement => (

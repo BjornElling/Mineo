@@ -148,7 +148,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
   );
   const showSaerligFraDatoInfo = af.saerligFraDatoRegulering === undefined
     || saerligFraDatoReguleringIssue !== undefined;
-  // route + tabKey er eksplicit navigation-metadata (§3.7); ansættelsesforholdets felter bor på Lønindkomstfanen.
+  // route + tabKey er eksplicit navigation-metadata (§2.7); ansættelsesforholdets felter bor på Lønindkomstfanen.
   const location = (name: string) => ({
     locationId: `erstatningsopgoerelse.loenindkomstAnsaettelsesforhold:${af.id}:${name}`,
     route: APP_ROUTES.erstatningsopgoerelse,
@@ -641,7 +641,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
         cellWarnings={tableCellWarningsByAfId.get(af.id)}
         useSmallFont={true}
         saveOrderPath={`erstatningsopgoerelse.loenindkomstAnsaettelsesforhold.${af.id}.indtaegtsoplysningerTableData`}
-        // route + tabKey er eksplicit navigation-metadata (§3.7); tabellen bor på Lønindkomstfanen.
+        // route + tabKey er eksplicit navigation-metadata (§2.7); tabellen bor på Lønindkomstfanen.
         locationNav={{ route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.LOENINDKOMST }}
       />
 
@@ -657,7 +657,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
           manualCellWarnings={loenudviklingWarnings}
           manualLocationPrefix={`erstatningsopgoerelse.loenindkomstAnsaettelsesforhold:${af.id}:loenudviklingManuelTableData`}
           manualPercentLocationPrefix={`erstatningsopgoerelse.loenindkomstAnsaettelsesforhold:${af.id}:loenudviklingManuelProcentsatsTableData`}
-          // route + tabKey er eksplicit navigation-metadata (§3.7); tabellerne bor på Lønindkomstfanen.
+          // route + tabKey er eksplicit navigation-metadata (§2.7); tabellerne bor på Lønindkomstfanen.
           locationNav={{ route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.LOENINDKOMST }}
           loenudviklingBasis={loenudviklingBasis}
           statistikModel={af.loenudviklingStatistikModel}

@@ -42,9 +42,8 @@ export const BILAGSNUMMER_MAX_LENGTH = 12;
 /**
  * De flerlinjede kommentarfelter (`MultilineTextField`).
  *
- * 512 er ikke et nyt tal: det er præcis det loft, `Kommentarer` på Offentlige ydelser allerede havde
- * (kontraktens §3.4). De to øvrige kommentarfelter – EO's `Særlige bemærkninger` og Renteberegningens
- * `Kommentarer` – havde intet og får nu det samme.
+ * 512 er loftet for `Kommentarer` på Offentlige ydelser (kontraktens §3.4). De to øvrige kommentarfelter –
+ * EO's `Særlige bemærkninger` og Renteberegningens `Kommentarer` – deler det.
  */
 export const COMMENT_TEXT_MAX_LENGTH = 512;
 

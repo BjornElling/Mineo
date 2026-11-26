@@ -14,7 +14,7 @@ setDocumentBrand('minprocesrente.dk');
 
 void bootstrapClientApp({
   renderApp: () => {
-    // Hydrér den ene input-runtime FØR render (§3.10). Standalone og hovedappen bruger samme inputkerne.
+    // Hydrér den ene input-runtime FØR render (§2.10). Standalone og hovedappen bruger samme inputkerne.
     // Kun renteberegningens katalog: Mineos øvrige descriptors og deres satstabeller hører ikke til her.
     const { binding } = bootstrapInputRuntime({ catalog: getRenteberegningInputCatalog() });
     return (

@@ -12,7 +12,7 @@
  * dokumentafhængighed i definitionen. Gaten læser den kanoniske `buildAarsloenReaderProjection` frem for et komponent-samlet objekt.
  *
  * `calculation === null` er projektionens måde at sige "feltgaten er rød, så motoren blev ikke kaldt"
- * (§3.9). Det er derfor en blokerings-årsag her, ikke en manglende værdi at gætte om.
+ * (input-architecture.md §2.9). Det er derfor en blokerings-årsag her, ikke en manglende værdi at gætte om.
  */
 import { getStandardLoenPeriodKeys } from '../standardLoen/standardLoenTableValidation';
 import {
@@ -136,7 +136,7 @@ export const evaluateAarsloenDownloadGate = (
   if (!hasAtLeastOneCompletePeriodRow(values.tableData, values.loenperiode)) {
     return blockDocumentDownload({ code: 'aarsloen:no-valid-rows', message: 'Ingen gyldige rækker i tabel' });
   }
-  // `calculation === null` betyder, at feltgaten var RØD, så motoren aldrig blev kaldt (§3.9) – ikke at
+  // `calculation === null` betyder, at feltgaten var RØD, så motoren aldrig blev kaldt (§2.9) – ikke at
   // noget mangler. Klassen udledes derfor af projektionens egne `fieldIssues`; ellers svarede grenen
   // "Indtastning mangler" på et felt, der er udfyldt med en ugyldig værdi.
   if (calculation === null) {

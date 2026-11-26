@@ -8,7 +8,7 @@ import { activeEditorRegistry, type ActiveEditor } from '../../../inputCore/runt
 /**
  * Monterer en åben editor. `settle()` kaster (uventet settle-fejl → fail-closed `blocked`, §1.4), og
  * `getFocusTarget` peger på et fokuserbart input, så shellens fail-closed-feedback kan fokusere det. Editoren
- * afmeldes ved unmount, så registrets højst-én-aktiv-invariant (§3.5) aldrig brydes mellem tests.
+ * afmeldes ved unmount, så registrets højst-én-aktiv-invariant (§2.5) aldrig brydes mellem tests.
  */
 export const OpenEditor = ({ label }: { label: string }): React.ReactElement => {
   const inputRef = React.useRef<HTMLInputElement>(null);

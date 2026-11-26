@@ -34,7 +34,7 @@ const EOOplysningerTab = React.memo(({
   indkomstBeregningKanSkjules: boolean;
 }) => {
   // View-model-laget bygges her og deles med sektion-komponenterne via konteksten (jf. A1):
-  // hver sektion forbruger `useEoOplysningerVm()` i stedet for at modtage props. Fanen er nu en
+  // hver sektion forbruger `useEoOplysningerVm()` i stedet for at modtage props. Fanen er en
   // ren komposition af sektioner + den side-lokale løntrin-finder-overlay.
   const baseVm = useEoOplysningerViewModel(
     values,

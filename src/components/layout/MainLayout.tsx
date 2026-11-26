@@ -77,12 +77,12 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
   }, []);
 
   // Den aktuelle afsluttede revision og autoritative replacement-generation driver unsaved-guardens
-  // baseline (§3.7). Replacement-generation hæves af load/reset/`Slet alt`.
+  // baseline (§2.7). Replacement-generation hæves af load/reset/`Slet alt`.
   const { revision, replacementGeneration } = useSettledSnapshot();
 
   // Global undo/redo-tastatur (inputkernens history via coordinatoren; åben editor = stille no-op, §1.4). Efter en
   // gennemført restore navigerer vi til origin-lokationens route/fane og re-fokuserer feltet, ændringen kom fra
-  // (§3.7) i denne rækkefølge: (1) sæt aktiv fane, (2) navigér til route, (3) planlæg fokusrestore.
+  // (§2.7) i denne rækkefølge: (1) sæt aktiv fane, (2) navigér til route, (3) planlæg fokusrestore.
   // route/fane er eksplicit typed metadata på originen (aldrig udledt af locationId/field.section).
   const handleUndoRedoRestore = React.useCallback((origin: HistoryOrigin) => {
     if (origin.route !== undefined) {
@@ -102,7 +102,7 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
     presentOverlay(overlayData);
   }, [presentOverlay]);
 
-  // Devtools-/bugrapport-diagnostik læser gennem den NAVNGIVNE diagnostikprojektion (§3.4). Shellen griber
+  // Devtools-/bugrapport-diagnostik læser gennem den NAVNGIVNE diagnostikprojektion (§2.4). Shellen griber
   // ikke selv ned i rå `sections`: opslaget ejes af `inputDiagnosticsProjection`, som er bundet til præcis den
   // runtime, React-træet viser. Ren read-only – der er ingen skrivevej herfra.
   const getPersistedSectionForDevtools = React.useCallback(

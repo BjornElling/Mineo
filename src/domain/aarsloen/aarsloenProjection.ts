@@ -236,7 +236,7 @@ export const resolveAarsloenFieldErrorGate = (
   return Object.freeze(issues);
 };
 
-// ── Reader-afledt tabelvalidering (§2.5/§3.4) ──────────────────────────────────
+// ── Reader-afledt tabelvalidering (input-architecture.md §2.4) ────────────────────────
 // Legacy StandardLoenTable samlede tre celle-fejl-kilder i `cellErrorsByCellKey` og fodrede dem til den rene
 // `getStandardLoenTableValidation`: (1) input-fejl via imperativt `onErrorChange`, (2) periode-rækkefølge-fejl,
 
@@ -267,7 +267,7 @@ export type AarsloenReaderProjection = Readonly<{
   tableValidation: StandardLoenTableValidationResult;
   omregningGate: AarsloenOmregningGate;
   /**
-   * Beregningen – `null` når projektionen er blokeret (§3.9: motoren kaldes KUN i `ready`-grenen).
+   * Beregningen – `null` når projektionen er blokeret (§2.9: motoren kaldes KUN i `ready`-grenen).
    *
    * En rød feltfejl skjuler værdien i readeren, og et resultat beregnet på den skjulte tomværdi ville være
    * misvisende. Det gælder BÅDE de beregningskritiske skalarer (satsprocent/antalFeriedage) OG en ugyldig
@@ -324,7 +324,7 @@ export const buildAarsloenReaderProjection = (reader: InputReader): AarsloenRead
     loenperiode: values.loenperiode,
     validationSummary: tableValidation.summary,
   });
-  // Feltgaten afgøres FØR motoren, så beregningen kun kaldes med input readeren vurderer brugbart (§3.9).
+  // Feltgaten afgøres FØR motoren, så beregningen kun kaldes med input readeren vurderer brugbart (§2.9).
   const fieldIssues = resolveAarsloenFieldErrorGate(reader, values, {
     omregningAktiveret: omregningGate.effectiveEnabled,
   });

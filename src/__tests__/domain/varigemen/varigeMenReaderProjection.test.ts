@@ -8,8 +8,8 @@ import { createEvaluationSourceToken, createInputRevision, createSettingsRevisio
 import { toISODateString } from '../../../types/branded';
 import type { StamdataValues, VarigeMenValues } from '../../../schemas/formSchemas';
 
-// Greenfield Varige mén reader-projektion (§3.4/§5.4/§1.7): beviser at projektionen (a) kører den EKSISTERENDE
-// `computeVarigeMenEngine` byte-identisk på de reader-læste værdier (§5.4 hårdt stop mod talændring), (b) blokerer
+// Varige méns reader-projektion (input-architecture.md §2.4/§1.7): beviser at projektionen (a) kører den EKSISTERENDE
+// `computeVarigeMenEngine` byte-identisk på de reader-læste værdier (ingen talændring), (b) blokerer
 // på en canonical bounds-feltfejl (méngrad uden for 1..120, §1.6), (c) blokerer på en byttet stamdata-datoorden
 // (rød feltfejl på skadedato/fødselsdato) og (d) udleder `missing` → blocked for et tomt påkrævet felt (§1.7).
 // Spejler `renteberegningReaderProjection.test.ts` / `forsoergertabReaderProjection.test.ts`.
@@ -97,7 +97,7 @@ describe('buildVarigeMenReaderProjection', () => {
   });
 
   /**
-   * Motoren må ALDRIG kaldes i en blokeret projektion (§3.9).
+   * Motoren må ALDRIG kaldes i en blokeret projektion (§2.9).
    *
    * ÆRLIG AFGRÆNSNING af hvad denne test beviser. Med de fire aktuelle dependencies kommer ENHVER blokering
    * fra en `unavailable`-læsning, som en manuel guard også ville standse på – de to former er derfor
@@ -110,7 +110,7 @@ describe('buildVarigeMenReaderProjection', () => {
    * `ProjectionReadResult`-unionen, og koden kompilerer ikke (verificeret ved probe: TS2339). En manuel
    * guard, der skal huskes udvidet, er erstattet af en, compileren håndhæver.
    */
-  it('kalder ALDRIG motoren, når projektionen er blokeret (§3.9)', async () => {
+  it('kalder ALDRIG motoren, når projektionen er blokeret (§2.9)', async () => {
     const engineModule = await import('../../../domain/varigemen/varigeMenEngine');
     const spy = vi.spyOn(engineModule, 'computeVarigeMenEngine');
     try {

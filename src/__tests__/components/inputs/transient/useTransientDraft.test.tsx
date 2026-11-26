@@ -7,7 +7,7 @@ import TransientDateInput from '../../../../components/inputs/transient/Transien
 import type { AmountValue } from '../../../../schemas/amountExpressionSchema';
 import type { ISODateString } from '../../../../types/branded';
 
-// Transient input (§3.1-undtagelsen): de FÅ flader, hvor et input ikke er sagsdata – overlay-/dialog-scratchfelter.
+// Transient input (§2.1-undtagelsen): de FÅ flader, hvor et input ikke er sagsdata – overlay-/dialog-scratchfelter.
 // De har hverken feltadresse, issue-snapshot, rejectedInputs, history eller persistens, men de skal bevare den
 // Mineo-velkendte blur-/Enter-commit-mekanik, så de føles som rigtige felter.
 //

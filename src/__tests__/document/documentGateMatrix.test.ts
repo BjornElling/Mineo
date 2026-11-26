@@ -283,10 +283,10 @@ const eetCaseWithUnderFifteenPercent = (): SettledInput => {
   return input;
 };
 
-describe('gate-matrix: warnings blokerer intet (§7.3, §10-kriterium 13)', () => {
+describe('gate-matrix: warnings blokerer intet (§4.3, §5 kriterium 13)', () => {
   /**
    * **Warning-benet kræver en ÆGTE warning.** En fixture, der committer en bounds-fejl (fx på
-   * `varigeMenMengrad`), skaber ingen warning – den måler §7.3's IKKE-RELEVANT-dimension, som allerede
+   * `varigeMenMengrad`), skaber ingen warning – den måler §4.3's IKKE-RELEVANT-dimension, som allerede
    * er dækket af `klasse IKKE-RELEVANT`-benene ovenfor. Med en sådan fixture er warning-benet falsk
    * dækket: en regression, hvor warnings begynder at blokere, ville bestå den deklarerede matrix.
    *
@@ -324,7 +324,7 @@ describe('gate-matrix: warnings blokerer intet (§7.3, §10-kriterium 13)', () =
   });
 
   /**
-   * §7.3's sidste punkt som sin egen assertion: *beregningsmotor kaldes aldrig fra en blocked
+   * §4.3's sidste punkt som sin egen assertion: *beregningsmotor kaldes aldrig fra en blocked
    * projektion.* Uden en eksplicit spy-assertion på netop den invariant –
    * kun tests, der målte at RESULTATET var fraværende. Forskellen er load-bearing: en motor, der
    * kaldes og hvis resultat kastes væk, ville bestå en resultat-assertion, men kunne kaste,

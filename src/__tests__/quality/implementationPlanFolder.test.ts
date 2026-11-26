@@ -7,7 +7,7 @@
  *   - En plan **slettes, mens den er uindfriet**: ryddes en mappe fuld af planer for afsluttet arbejde i
  *     ét hug, ryger en plan, hvis arbejde aldrig er begyndt, med i faldet.
  *   - En plan **bliver liggende, længe efter den er indfriet**, med `Status: IMPLEMENTERET`, og duplikerer
- *     den kontrakt, der nu ejer emnet.
+ *     den kontrakt, der ejer emnet.
  *
  * Statuslinjen er det ene signal, der adskiller de to tilstande, og den er derfor håndhævet her. En plan,
  * der erklærer sig implementeret, er udtjent: dens varige indhold hører i en kontrakt eller i

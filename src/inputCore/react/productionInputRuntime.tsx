@@ -15,7 +15,7 @@ import {
   type InputRuntimeBootstrap,
 } from './inputRuntimeHost';
 
-// Mineos wiring af den fælles inputruntime (§3.10): det fulde produktionskatalog og domænets ny-sags-seed.
+// Mineos wiring af den fælles inputruntime (§2.10): det fulde produktionskatalog og domænets ny-sags-seed.
 // Selve runtimen – hydrering, evalueringscache, settingsbro – ejes af `inputRuntimeHost.ts`, som ikke kender
 // noget katalog. MinProcesrente må derfor aldrig importere DETTE modul: det trækker alle descriptors og deres
 // satstabeller med ind (`scripts/verify-build-artifacts.mjs` håndhæver budgettet).

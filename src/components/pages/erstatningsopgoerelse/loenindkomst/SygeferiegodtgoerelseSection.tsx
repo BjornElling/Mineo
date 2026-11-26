@@ -81,7 +81,7 @@ const SygeferiegodtgoerelseSection = ({
 }: Props) => {
   if (!sfgg.show) return null;
 
-  // route + tabKey er eksplicit navigation-metadata (§3.7); SFGG-felterne bor på Lønindkomstfanen.
+  // route + tabKey er eksplicit navigation-metadata (§2.7); SFGG-felterne bor på Lønindkomstfanen.
   const location = (name: string) => ({
     locationId: `erstatningsopgoerelse.sfggAnsaettelsesforhold:${af.id}:${name}`,
     route: APP_ROUTES.erstatningsopgoerelse,

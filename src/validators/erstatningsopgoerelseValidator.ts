@@ -138,10 +138,9 @@ function validateSchema(values: unknown): ValidationError[] {
 function validateStandaloneRules(values: ErstatningsopgoerelseValues): ValidationError[] {
   const errors: ValidationError[] = [];
 
-  // Her stod kortvarigt advarslen om fravalgt Store Bededagstillæg. Den hører IKKE i validatoren:
-  // «Fejl og advarsler» på EO-beregningsfanen fodres udelukkende af række-byggerne i
-  // `src/domain/eoRowEvaluation/`, så en `severity: 'warning'` herfra blev aldrig vist – den blev
-  // kun en ikke-blokerende snapshot-invariant uden læser. Advarslen bor nu i `buildEoIndkomstRows`.
+  // Advarslen om fravalgt Store Bededagstillæg hører IKKE i validatoren: «Fejl og advarsler» på
+  // EO-beregningsfanen fodres udelukkende af række-byggerne i `src/domain/eoRowEvaluation/`, så en
+  // `severity: 'warning'` herfra ville aldrig blive vist. Advarslen bor i `buildEoIndkomstRows`.
 
   // Dato-interval validering: periodeFra <= periodeTil
   if (
@@ -839,8 +838,8 @@ function validateBeregnesUdFra(values: ErstatningsopgoerelseValues): ValidationE
   }
 
   if (beregnesUdFra === 'Beregningsperiode') {
-    // Én mangel, én linje: rækken i «Fejl og advarsler» siger det samme, og sikkerhedsnettet viser nu en
-    // validatorregel, som ingen række dækker. To beskeder – én pr. dato – gav da en ekstra linje.
+    // Én mangel, én linje: rækken i «Fejl og advarsler» siger det samme, og sikkerhedsnettet viser en
+    // validatorregel, som ingen række dækker. To beskeder – én pr. dato – ville give en ekstra linje.
     if (!values.tafBeregningsperiodeFra || !values.tafBeregningsperiodeTil) {
       errors.push({
         path: !values.tafBeregningsperiodeFra ? 'tafBeregningsperiodeFra' : 'tafBeregningsperiodeTil',

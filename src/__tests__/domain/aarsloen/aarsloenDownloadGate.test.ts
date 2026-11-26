@@ -9,7 +9,7 @@
  * håndbygget snapshot – og pinner hver blokerings-årsag med kode og besked.
  *
  * `calculation === null` er projektionens måde at sige "feltgaten er rød, så motoren blev ikke
- * kaldt" (§3.9). Det er derfor en selvstændig blokeringsgren, ikke en manglende værdi.
+ * kaldt" (input-architecture.md §2.9). Det er derfor en selvstændig blokeringsgren, ikke en manglende værdi.
  */
 import {
   createCollectionRef,
@@ -181,7 +181,7 @@ describe('evaluateAarsloenDownloadGate', () => {
     expectBlocked(evaluateAarsloenDownloadGate(project(input)), 'aarsloen:no-valid-rows');
   });
 
-  it('blokerer når en sats uden for 0..100 er afsluttet (§1.6/§3.9)', () => {
+  it('blokerer når en sats uden for 0..100 er afsluttet (§1.6/§2.9)', () => {
     const input = dispatch(withOneValidMonthRow(withValidStamdata(empty())), settle(aarsloenFeriePctField.bind(), '150'));
 
     // Værdien afvises af bounds-validatoren og er derfor et rødt feltissue; den når IKKE

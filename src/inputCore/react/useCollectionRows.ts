@@ -9,14 +9,14 @@ import {
 import type { DispatchInputResult } from '../runtime/dispatchInput';
 import type { CollectionHistoryOrigin } from '../inputHistory';
 
-// React-laget (§2.5 trin 1 / §3.8): rækkeinfrastrukturen for en dynamisk collection. Den ejer KUN de
+// React-laget (§2.8): rækkeinfrastrukturen for en dynamisk collection. Den ejer KUN de
 // stabile entity-id'er, rækkefølgen og add/delete/reorder – læst DIREKTE fra den afsluttede revision gennem
 // katalogets `listEntityIds`. Der findes ingen `draftRows`, `internalTableData`, fingerprint-kopi eller
-// effect-flush til persistence (§3.8): en celles værdi bor kun i inputaggregaten, aldrig i en konkurrerende
+// effect-flush til persistence (§2.8): en celles værdi bor kun i inputaggregaten, aldrig i en konkurrerende
 // række-værdikopi. Selve celleredigeringen ejes af `useCellEditor`; denne hook rører aldrig en celleværdi.
 
 /**
- * Tabellens editorlokation, som en rækkehandlings history-origin skal pege på (§3.7). Kalderen leverer den,
+ * Tabellens editorlokation, som en rækkehandlings history-origin skal pege på (§2.7). Kalderen leverer den,
  * fordi kun siden/fanen ved, hvor tabellen bor.
  *
  * ALLE tre felter er PÅKRÆVEDE. Var `route`/`tabKey` valgfrie, kunne en rækkehandling lydløst få en origin uden
@@ -64,13 +64,13 @@ const collectionCacheKey = (collection: CollectionRef): string => JSON.stringify
 
 /**
  * Rækkeoperationerne for en collection. `insert`/`remove`/`reorder` dispatcher de tilsvarende reducer-row-
- * commands gennem den ene write-grænse (§3.6), så én brugerhandling giver højst ét history-trin. Row-delete
- * fjerner rækkens rejected descendants i samme reducertrin (§3.8) – kalderen skal ikke rydde celler først.
+ * commands gennem den ene write-grænse (§2.6), så én brugerhandling giver højst ét history-trin. Row-delete
+ * fjerner rækkens rejected descendants i samme reducertrin (§2.8) – kalderen skal ikke rydde celler først.
  */
 export type CollectionRowCommands<TEntity> = Readonly<{
   /** Indsæt en fuldt formet entity (typisk en tom række via row-factory) på `index` (default: sidst). */
   insert: (entity: TEntity, index?: number) => DispatchInputResult;
-  /** Slet rækken med `entityId`; rejected descendants ryddes atomisk i samme command (§3.8). */
+  /** Slet rækken med `entityId`; rejected descendants ryddes atomisk i samme command (§2.8). */
   remove: (entityId: string) => DispatchInputResult;
   /** Ny rækkefølge; skal indeholde præcis de eksisterende entity-id'er (katalogets reorder-invariant). */
   reorder: (orderedEntityIds: readonly string[]) => DispatchInputResult;
@@ -120,10 +120,10 @@ export const useCollectionRows = <TEntity>(
 /**
  * KUN rækkekommandoerne – uden abonnement på collectionens id-liste.
  *
- * Til consumers, der allerede får rækkerne fra en slice-projektion (den kanoniske read-grænse, §3.4) og derfor
+ * Til consumers, der allerede får rækkerne fra en slice-projektion (den kanoniske read-grænse, §2.4) og derfor
  * ikke skal have et konkurrerende aggregat-read for samme collection. Det giver ÉN reaktiv rækkekilde pr. tabel.
  *
- * Hver kommando bærer en struktur-origin (§3.7), så en undo/redo af en rækkehandling kan navigere til den rette
+ * Hver kommando bærer en struktur-origin (§2.7), så en undo/redo af en rækkehandling kan navigere til den rette
  * route/fane. `locationNav` leveres af kalderen, fordi kun den ved, hvor tabellen bor.
  */
 export const useCollectionRowCommands = <TEntity>(
@@ -137,7 +137,7 @@ export const useCollectionRowCommands = <TEntity>(
   // En rækkehandling har ingen enkelt feltadresse; origin bærer i stedet tabellens editorlokation, så
   // restoren kan navigere til den rette side/fane efter en undo/redo af insert/delete/reorder.
   // Destinationen er OBLIGATORISK: en rækkehandling uden lokation ville gendanne data, men efterlade brugeren
-  // på en vilkårlig side (§3.7).
+  // på en vilkårlig side (§2.7).
   const rowOrigin = React.useMemo(
     () => buildRowHistoryOrigin(collection, origin),
     // `collection`/`origin` er værdimæssigt stabile pr. nøgle.

@@ -304,7 +304,7 @@ export const useFileSaveLoad = ({
   // kasseres først efter et succesfuldt apply, §1.4/§7).
   //
   // De to faser er BEVIDST adskilt: kun den synkrone apply ligger inde i replacement-barrieren, hvor
-  // draft-discard hører til. Metadata-/filhåndtags-/PWA-synkroniseringen (§4.1) er asynkron og ejer ikke
+  // draft-discard hører til. Metadata-/filhåndtags-/PWA-synkroniseringen er asynkron og ejer ikke
   // sagsinput; lå den inde i barrieren, kunne brugeren åbne og redigere et felt i den netop indlæste sag,
   // mens dens awaits kørte – og den nye draft blev derefter kasseret.
   const applyLoadedSnapshot = React.useCallback(async (result: ApplicableLoadFileResult): Promise<PersistenceLoadApplyResult> => {
@@ -368,7 +368,7 @@ export const useFileSaveLoad = ({
         return;
       }
 
-      // §3.9: evaluér `.eo`-save mod et frisk kildesnapshot. Blokeres KUN af aktivt relevant rejected råinput;
+      // §2.9: evaluér `.eo`-save mod et frisk kildesnapshot. Blokeres KUN af aktivt relevant rejected råinput;
       // canonical bounds/rule-fejl og manglende felter tillader save (§1.6).
       const saveOutcome = ops.file.evaluateSave();
       if (saveOutcome.status === 'blocked') {

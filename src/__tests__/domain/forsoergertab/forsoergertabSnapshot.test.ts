@@ -197,7 +197,7 @@ describe('computeForsoergertabSnapshot', () => {
       fieldErrors: { forsoergertab: {}, faellesAarsloen: {}, stamdata: {} },
     });
 
-    // Lag 1: motoren afviser ASL-delen, og beskeden bærer nu en feltadresse.
+    // Lag 1: motoren afviser ASL-delen, og beskeden bærer en feltadresse.
     expect(snapshot.canShowAsl).toBe(false);
     const feltIssue = snapshot.domainFieldIssues.all
       .find((issue) => issue.code === 'forsoergertab.forsoergertab-alder-missing');

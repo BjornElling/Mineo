@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 /**
- * §7.1's FÆLLES feltkontrakt – ÉN invariantliste kørt mod BEGGE adaptere for hver codecfamilie
+ * §4.1's FÆLLES feltkontrakt – ÉN invariantliste kørt mod BEGGE adaptere for hver codecfamilie
  * Kørt mod BEGGE adaptere.
  *
  * **Hvorfor suiten findes.** Form-suiterne (`useFieldEditor`, `useFormFieldSurface`) bruger kun
- * `aargangField` med integer-codec, og grid-suiten primært `belobField` med amount-codec. §7.1 kræver en
+ * `aargangField` med integer-codec, og grid-suiten primært `belobField` med amount-codec. §4.1 kræver en
  * fælles suite kørt mod begge adaptere pr. familie. Separate codec-unit-tests
  * (`fieldCodecs.test.ts`) og separate surface-tests beviser hver sin halvdel – men ikke
  * KOMPOSITIONEN, og det er dér, en regression i fx dato-, procent- eller choice-felters åbning,
@@ -16,7 +16,7 @@
  * familier fra produktionskataloget, og en familie uden en case her er en rød test med sit navn.
  *
  * **Hvad suiten deler, og hvad den ikke deler.** Begge adaptere returnerer den SAMME type
- * (`FieldEditorController<T>`), fordi §10-kriterium 6 kræver, at de kun ejer interaktion, rendering og
+ * (`FieldEditorController<T>`), fordi §5 kriterium 6 kræver, at de kun ejer interaktion, rendering og
  * navigation. Invariantlisten er derfor ordret den samme funktion for begge – ikke to lister, der
  * tilfældigvis hævder det samme. Det, der sagligt adskiller dem (tast-initieret åbning, paste,
  * Backspace/Delete på et lukket felt) hører til `useFormFieldSurface`s DOM-mekanik og måles fortsat i
@@ -126,7 +126,7 @@ const rejectedRaw = <T,>(field: FieldRef<T>): string | undefined =>
 
 /**
  * En surface er en funktion, der giver en `FieldEditorController<T>` for et felt. Formen er den samme
- * for de to adaptere – det er hele §10-kriterium 6 – så invariantlisten nedenfor kender ikke forskellen.
+ * for de to adaptere – det er hele §5 kriterium 6 – så invariantlisten nedenfor kender ikke forskellen.
  */
 type SurfaceKind = 'form' | 'grid';
 
@@ -216,7 +216,7 @@ const FAMILY_CASES = [
     cellField: () => kommentarerField.bind(),
     valid: { raw: 'en note', canonical: 'en note' },
     otherValid: { raw: 'en anden note', canonical: 'en anden note' },
-    // Fritekst kan ALDRIG afvises (§3.3) – og det er selv en invariant, ikke et hul.
+    // Fritekst kan ALDRIG afvises (§2.3) – og det er selv en invariant, ikke et hul.
     invalidRaw: null,
     emptyCanonical: undefined,
     keyboardOpenable: true,
@@ -316,7 +316,7 @@ const seedRow = (): void => {
 // ÉN invariantliste, to adaptere
 // ─────────────────────────────────────────────────────────────────────────────────────────────────
 
-describe('§7.1 fælles feltkontrakt – samme suite mod form OG grid pr. codecfamilie', () => {
+describe('§4.1 fælles feltkontrakt – samme suite mod form OG grid pr. codecfamilie', () => {
   for (const testCase of CONTRACT_CASES) {
     describe(`familie: ${testCase.family}`, () => {
       for (const surface of ['form', 'grid'] as const) {
@@ -387,7 +387,7 @@ describe('§7.1 fælles feltkontrakt – samme suite mod form OG grid pr. codecf
             expect(rejectedRaw(field)).toBeUndefined();
           });
 
-          it('no-op settle uden ændring giver ingen ny revision (§3.6)', () => {
+          it('no-op settle uden ændring giver ingen ny revision (§2.6)', () => {
             seedRow();
             const field = fieldFor();
             dispatchInput(store, catalog, settleField(field, testCase.valid.raw));
@@ -564,7 +564,7 @@ describe('§7.1 fælles feltkontrakt – samme suite mod form OG grid pr. codecf
  * Familielisten kommer fra produktionskataloget, ikke fra en konstant her. Det er hele grunden til
  * `FieldCodec.family`: en hånd-vedligeholdt liste kan falde bagud uden at nogen kontrol bliver rød.
  */
-describe('§7.1 dækning – hver levende codecfamilie er dækket eller navngivet som enkelt-surface', () => {
+describe('§4.1 dækning – hver levende codecfamilie er dækket eller navngivet som enkelt-surface', () => {
   type FamilySurfaces = Readonly<{ form: readonly string[]; cell: readonly string[] }>;
 
   const liveFamilies = (): ReadonlyMap<FieldCodecFamily, FamilySurfaces> => {
@@ -605,7 +605,7 @@ describe('§7.1 dækning – hver levende codecfamilie er dækket eller navngive
     expect(
       missing,
       'disse familier findes på BEGGE surfaces i produktionen, men har ingen case i FAMILY_CASES – '
-      + '§7.1 kræver den fælles kontrakt kørt for hver familie'
+      + '§4.1 kræver den fælles kontrakt kørt for hver familie'
     ).toEqual([]);
   });
 

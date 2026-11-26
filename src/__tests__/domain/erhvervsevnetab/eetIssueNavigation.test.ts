@@ -10,7 +10,7 @@ import {
 
 describe('resolveMidlertidigtEetIssueNavigation', () => {
   /**
-   * EET-fanens issues bærer nu OGSÅ en sektion, så linket viser HVOR på fanen problemet hører.
+   * EET-fanens issues bærer OGSÅ en sektion, så linket viser HVOR på fanen problemet hører.
    *
    * Før pegede denne vej kun på fanen: linket skiftede fane og efterlod brugeren øverst på siden uden
    * nogen markering. Målet er bevidst sektionen og ikke feltet – EO-siden forbruger denne rute og må

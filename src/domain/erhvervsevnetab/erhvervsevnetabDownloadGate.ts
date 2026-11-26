@@ -1,7 +1,7 @@
 /**
  * Rene, per-fane download-gate-beslutninger for Erhvervsevnetab-siden.
  *
- * Gaten (§3.4/§5.4/§1.10): gaten afledes af den ENE reader-projektion
+ * Gaten (input-architecture.md §2.4/§1.10) afledes af den ENE reader-projektion
  * (`buildErhvervsevnetabReaderProjection`), som sidevisningen allerede afspejler. I modsætning til de øvrige
  * slices har EET FIRE uafhængige dokumenter (løbende ydelser, kapitalisering, EET efter EAL, differencekrav),
  * hver med sin egen dependency-specifikke blokering (§1.10). Snapshottets per-fane-projektion bærer
@@ -20,7 +20,7 @@
  *
  * De to `Beregning kan ikke dannes`-grene bruger `blockDocumentDownloadForUnavailableCalculation`: input er
  * komplet og gyldigt, men beregningen kan ikke dannes. Klassen er fortsat `missing-input` (brugerens
- * praktiske handling ER at udfylde mere), men valget er nu eksplicit frem for en default, en fremtidig
+ * praktiske handling ER at udfylde mere), men valget er eksplicit frem for en default, en fremtidig
  * gren kunne falde i.
  *
  * En rød feltfejl har forrang over en manglende-felt-fejl (samme prioritet som Varige mén-/Forsørgertab-gaten

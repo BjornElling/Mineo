@@ -75,7 +75,7 @@ interface StyledRadioButtonProps<TValue extends string> {
   /** Kortere hover-tekst end den fulde besked. Se `StyledTextFieldBaseProps.tooltipText`. */
   tooltipText?: string;
   /**
-   * Undo/redo-fokusrestore-attributter (§3.7): sættes på den VALGTE radios input-slot, så fokus efter
+   * Undo/redo-fokusrestore-attributter (§2.7): sættes på den VALGTE radios input-slot, så fokus efter
    * undo/redo lander PRÆCIST på denne editorlokation (feltadresse + editorlokation), ikke via `name`.
    * `inputCore/react/fields/RadioField` leverer dem.
    */
@@ -125,7 +125,7 @@ const StyledRadioButtonInner = <TValue extends string>({
 
   const resolvedValue = value ?? emptyValue;
 
-  // Feltidentitets-attributter for den VALGTE radio: serialiseret feltadresse + editorlokation (§3.2/§3.7).
+  // Feltidentitets-attributter for den VALGTE radio: serialiseret feltadresse + editorlokation (§2.2/§2.7).
   // Kun den valgte radio bærer dem, så restoren fokuserer den faktisk valgte knap. Returnerer `undefined`,
   // når der intet er at bære (så MUI-slotProps forbliver uberørt).
   const selectedInputSlotProps = React.useMemo(() => {

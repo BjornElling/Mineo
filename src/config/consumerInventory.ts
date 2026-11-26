@@ -102,7 +102,7 @@ export const CONSUMER_CASE_FILE_PATHS = [
     symbol: 'loadFromFileHandle',
     consumers: ['src/hooks/useFileSaveLoad.ts'],
   },
-  // Load-apply er nu delt i to funktioner, men er fortsat ÉN sagsfil-vej. Inventaret peger på
+  // Load-apply er delt i to funktioner, men er ÉN sagsfil-vej. Inventaret peger på
   // den AUTORITATIVE halvdel – den, der erstatter sagen inde i replacement-barrieren. Den asynkrone
   // `synchronizeLoadMetadata` er ikke en sagsfil-vej men en efterfølgende metadata-synkronisering, og at
   // give den en femte post ville sige, at der findes fem veje til sagsfilen. Dens eneste consumer er

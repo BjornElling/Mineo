@@ -7,7 +7,7 @@ import NumericTextField from './NumericTextField';
 import { YEAR_FORMAT_PLACEHOLDER } from '../../../utils/fieldFormatPlaceholders';
 import { resolveYearCharPolicy } from './charLengthPolicy';
 
-// år-felt (§2.4/§3.5): den tynde familie-skal over `NumericTextField` med årsfamiliens
+// år-felt (§2.5): den tynde familie-skal over `NumericTextField` med årsfamiliens
 // tegnfilter. Parse/format/paste ejes af descriptorens år-codec; komponenten modtager derfor KUN sin
 // `field`/`location` + rendering-props – ingen `minYear`/`maxYear`/`onCommit`/`onFieldError` (§2.4). Satsårets
 // min/maxYear er en canonical bounds-feltvalidator; røde bounds-fejl kommer fra

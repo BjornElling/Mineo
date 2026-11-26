@@ -57,7 +57,7 @@ type Case = Readonly<{
   expectedSummary: string;
   /**
    * Det felt, fejlens link skal føre til. Angives som produktionens egen DESCRIPTOR plus rækkens id, så
-   * forventningen er den samme kanoniske adresse cellen redigeres på (§3.2) – ikke en DOM-strengkonvention,
+   * forventningen er den samme kanoniske adresse cellen redigeres på (§2.2) – ikke en DOM-strengkonvention,
    * der kan være sand i testen og uopnåelig i produktionen.
    */
   expectedFocus?: RowFieldFocus;

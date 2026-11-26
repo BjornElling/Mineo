@@ -2,7 +2,7 @@ import type { FieldRef } from '../fieldDescriptor';
 import { useInputEvaluation } from './useInputEvaluation';
 
 /**
- * Feltets SYNLIGE label – den ene måde en renderflade må komme til et feltnavn (§3.2a).
+ * Feltets SYNLIGE label – den ene måde en renderflade må komme til et feltnavn (§2.2).
  *
  * **Hvorfor hooken findes.** Skrives den synlige label i hånden på rendersiden (`<Typography
  * className="row--text">Skadedato</Typography>`), mens `descriptor.label` navngiver feltet i beskeder, binder

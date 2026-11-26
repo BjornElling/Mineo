@@ -18,9 +18,9 @@ import {
 import { toISODateString } from '../../types/branded';
 
 // §7.5 pkt. 2: en ændring, der skjuler et felt med en aktiv rød fejl, rydder feltet i samme transaktion. Reglen
-// sad før kun på valg (`setImmediateField`), men relevans kan også følge et tekstfelt eller en tabels indhold.
-// Uden rydningen efterlod indtastningen råtekst i et skjult felt, og relevans-invarianten afviste tilstanden
-// med en undtagelse – indtastningen kunne slet ikke gennemføres.
+// gælder ikke kun valg (`setImmediateField`): relevans kan også følge et tekstfelt eller en tabels indhold.
+// Uden rydningen ville indtastningen efterlade råtekst i et skjult felt, og relevans-invarianten ville afvise
+// tilstanden med en undtagelse – indtastningen kunne slet ikke gennemføres.
 
 const catalog = getProductionInputCatalog();
 const apply = (input: SettledInput, command: InputMutationCommand<unknown, unknown>): SettledInput =>

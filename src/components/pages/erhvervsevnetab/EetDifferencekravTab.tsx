@@ -72,7 +72,7 @@ const refs = {
   merErstatning: erhvervsevnetabIndregnMerErstatningField.bind(),
 } as const;
 
-// route + tabKey er eksplicit navigation-metadata (§3.7); alle felter bor på differencekrav-fanen.
+// route + tabKey er eksplicit navigation-metadata (§2.7); alle felter bor på differencekrav-fanen.
 const location = (field: string) => ({
   locationId: `erhvervsevnetab:differencekrav:${field}`,
   route: APP_ROUTES.erhvervsevnetab,

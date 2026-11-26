@@ -1,5 +1,5 @@
 /**
- * Dokumentgates er formatblinde – STRUKTURELT (§10-kriterium 27).
+ * Dokumentgates er formatblinde – STRUKTURELT (input-architecture.md §5 kriterium 27).
  *
  * **Fejlformen, det udelukker.** Bar `DocumentSourceContext.settings` hele `SourceSettings` med
  * `documentDownloadFormat` som felt, kunne enhver af de 18 definitioner læse det valgte outputformat i
@@ -102,7 +102,7 @@ const compileProbe = (source: string): readonly ts.Diagnostic[] => {
 const diagnosticTexts = (diagnostics: readonly ts.Diagnostic[]): string =>
   diagnostics.map((d) => `TS${d.code}: ${ts.flattenDiagnosticMessageText(d.messageText, ' ')}`).join('\n');
 
-describe('dokumentgates er formatblinde (§10-kriterium 27)', () => {
+describe('dokumentgates er formatblinde (§5 kriterium 27)', () => {
   /**
    * Testens hovedpåstand. Proben er skrevet, som en formatafhængig definition faktisk ville se ud:
    * den forgrener sin gate på det valgte format og bliver dermed `ready` for PDF og `blocked` for

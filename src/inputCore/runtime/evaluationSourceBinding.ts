@@ -8,7 +8,7 @@ import { createInputEvaluation, type InputEvaluation } from '../inputReader';
 import type { SettledInput } from '../settledInput';
 import type { SlimInputStore } from './slimInputStore';
 
-// Input-runtime (§3.4): binder den framework-frie `captureStableSource` til den levende store. Issues,
+// Input-runtime (§2.4): binder den framework-frie `captureStableSource` til den levende store. Issues,
 // beregninger, `.eo` og dokumenter (inputkernen) optager et stabilt kildesnapshot HER, så et resultat bindes til
 // ét `EvaluationSourceToken` (input- OG settingsrevision) og genkendes som stale ved enhver async-grænse.
 
@@ -31,7 +31,7 @@ export const captureStableInput = (
 /**
  * Optager et stabilt kildesnapshot og bygger den tokenbundne `InputEvaluation` (issues + offentlig reader).
  *
- * Tokenet bærer BÅDE input- og settingsrevisionen, så friskheden dækker begge kilder (§3.4).
+ * Tokenet bærer BÅDE input- og settingsrevisionen, så friskheden dækker begge kilder (§2.4).
  * Settingsrevisionen bumpes af `useSettingsRevisionBridge`, når det projekterede
  * `SourceSettings`-snapshot ændrer fingerprint. Selve settingsværdien gives ikke ind her: evalueringen
  * læser ikke settings (se `createInputEvaluation`), og en fri typeparameter ville netop genåbne

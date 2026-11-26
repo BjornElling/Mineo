@@ -82,7 +82,7 @@ const referencesTrackedCommittedSource = (
  * `useState`-initializer eller en setter i en `useEffect`. Peger KILDERNE på hooks, der ikke længere
  * findes, returnerer reglen tomt på første linje for hver eneste fil og måler dermed ingenting.
  *
- * Den ene læse-grænse er `useInputEvaluation()` (§3.4), hvis `reader` fodrer de rene
+ * Den ene læse-grænse er `useInputEvaluation()` (input-architecture.md §2.4), hvis `reader` fodrer de rene
  * reader-projektioner. Spejles dét i lokal React-state, opstår præcis den divergens mellem
  * committed sandhed og lokal kopi, reglen er skrevet for at forhindre.
  */
@@ -238,7 +238,7 @@ export const persistenceCommittedMirror = defineRule({
       (entry.relativePath.startsWith('src/components/pages/') || entry.relativePath.startsWith('src/hooks/'))
       && usesCommittedSource(entry),
     rationale:
-      'mindst én page/hook læser committed state gennem greenfields læse-grænse – kilden, der kan '
+      'mindst én page/hook læser committed state gennem inputCores læse-grænse – kilden, der kan '
       + 'spejles, findes altså stadig',
   },
   appliesTo: (relativePath) =>
@@ -931,7 +931,7 @@ export const documentGeneratorCursorElementAccess = forbidElementAccess({
 // En feltfamilie, der renderer sit EGET fokuserbare element – enten via en surface-hook
 // (`useFormFieldSurface`/`useGridCellSurface`) eller ved at rendere en fokuserbar `Styled*`-kontrol
 // (toggle/checkbox/radio/dropdown) – SKAL føre restore-target-attributterne igennem, så undo/redo kan re-fokusere
-// PRÆCIS den editorlokation, ændringen kom fra (§3.7). De tynde preset-skaller (Integer/Percent/Amount/…), der blot
+// PRÆCIS den editorlokation, ændringen kom fra (§2.7). De tynde preset-skaller (Integer/Percent/Amount/…), der blot
 // videresender `field`/`location` til en anden feltkomponent, har intet eget fokuserbart element og er
 // derfor rene UDEN attributterne – reglen flager dem ikke, fordi de hverken bruger en surface-hook eller en Styled*-kontrol.
 //
@@ -955,7 +955,7 @@ const FOCUSABLE_SURFACE_NAMES = [
 export const restoreTargetAttributesRule = defineRule({
   id: 'form/restore-target-attributes',
   description:
-    'Feltfamilier, der ejer et fokuserbart element (surface-hook eller Styled*-kontrol), skal føre restore-target-attributterne igennem, så undo/redo kan re-fokusere den rette editorlokation (§3.7).',
+    'Feltfamilier, der ejer et fokuserbart element (surface-hook eller Styled*-kontrol), skal føre restore-target-attributterne igennem, så undo/redo kan re-fokusere den rette editorlokation (§2.7).',
   liveTarget: {
     kind: 'precondition',
     probe: (entry) =>
@@ -976,7 +976,7 @@ export const restoreTargetAttributesRule = defineRule({
       position: { line: 1, column: 1 },
       message:
         'Feltfamilien renderer et fokuserbart element, men fører ikke restore-target-attributterne igennem '
-        + '(useRestoreTargetAttributes/restoreTargetAttributes) – undo/redo kan da ikke re-fokusere feltet (§3.7).',
+        + '(useRestoreTargetAttributes/restoreTargetAttributes) – undo/redo kan da ikke re-fokusere feltet (§2.7).',
     }];
   },
   violatingFixtures: [
@@ -995,7 +995,7 @@ export const restoreTargetAttributesRule = defineRule({
       relativePath: `${FIELDS_DIR}/XField.tsx`,
       code: 'const C = () => { const rta = useRestoreTargetAttributes(field.address, location); return <StyledCheckbox restoreTargetAttributes={rta} />; };',
     },
-    // Tynd preset-skal: videresender kun til en anden Greenfield-komponent → intet eget fokuserbart element.
+    // Tynd preset-skal: videresender kun til en anden inputCore-feltkomponent → intet eget fokuserbart element.
     {
       relativePath: `${FIELDS_DIR}/ZField.tsx`,
       code: 'const C = () => <NumericTextField field={field} location={location} />;',
@@ -1003,7 +1003,7 @@ export const restoreTargetAttributesRule = defineRule({
   ],
 });
 
-// --- Rækkehandlinger skal bære en navigerbar destination (§3.7) ---------------
+// --- Rækkehandlinger skal bære en navigerbar destination (§2.7) ---------------
 
 const ROW_COMMAND_HOOKS = new Set(['useCollectionRows', 'useCollectionRowCommands']);
 
@@ -1020,7 +1020,7 @@ export const rowCommandDestinationRule = defineRule({
   id: 'input/row-command-destination',
   description:
     'useCollectionRows/useCollectionRowCommands skal kaldes med et origin, der bærer en route, så undo/redo af '
-    + 'en rækkehandling kan navigere til den tabel, ændringen kom fra (§3.7).',
+    + 'en rækkehandling kan navigere til den tabel, ændringen kom fra (§2.7).',
   liveTarget: {
     kind: 'precondition',
     probe: (entry) =>
@@ -1041,7 +1041,7 @@ export const rowCommandDestinationRule = defineRule({
       if (originArgument === undefined) {
         findings.push({
           position: call.position,
-          message: `${call.calleeName} kaldt uden origin – rækkehandlingen får ingen destination (§3.7).`,
+          message: `${call.calleeName} kaldt uden origin – rækkehandlingen får ingen destination (§2.7).`,
         });
         continue;
       }
@@ -1060,7 +1060,7 @@ export const rowCommandDestinationRule = defineRule({
         position: call.position,
         message:
           `${call.calleeName} kaldt med et origin uden 'route' – undo/redo af insert/delete/reorder ville `
-          + 'gendanne data, men efterlade brugeren på en vilkårlig side (§3.7).',
+          + 'gendanne data, men efterlade brugeren på en vilkårlig side (§2.7).',
       });
     }
     return findings;
@@ -1269,7 +1269,7 @@ const FIELD_FAMILY_ADAPTERS: readonly string[] = [
 
 /**
  * De flader, der LOVLIGT renderer en rå control, fordi deres værdier ikke er sagsdata og derfor ikke har
- * en feltadresse at fokusere (§3.2). Listen er EKSPLICIT og kort med vilje: hver post er en flade uden
+ * en feltadresse at fokusere (§2.2). Listen er EKSPLICIT og kort med vilje: hver post er en flade uden
  * persisteret sagsinput, ikke en undtagelse for en control, der var svær at migrere.
  */
 const NON_CASE_DATA_CONTROL_SURFACES: readonly string[] = [
@@ -1414,7 +1414,7 @@ const collectAddressDerivedDestinationUses = (entry: SourceEntry): readonly Find
           + 'præcis den udelukkede model: dataidentiteten kan ikke afgøre, HVOR et felt redigeres – et '
           + 'felt kan have flere editorer (faellesAarsloen, forligsfelterne), og afbildningen måtte da '
           + 'kompensere med særregler for brugerens aktuelle route. Spørg i stedet den mountede editor via '
-          + '`lookupEditorLocation`; destinationen står på lokationen (§3.2).',
+          + '`lookupEditorLocation`; destinationen står på lokationen (§2.2).',
       });
     }
     ts.forEachChild(node, visit);
@@ -1487,7 +1487,7 @@ export const focusDestinationOwnedByLocationRule = defineRule({
  */
 const RESTORE_ATTRIBUTE_BUILDER_MODULE = 'src/inputCore/react/historyRestoreTarget.ts';
 
-/** De fire attribut-konstanter, en fokuserbar greenfield-editor SKAL bære. */
+/** De fire attribut-konstanter, en fokuserbar inputCore-editor SKAL bære. */
 const REQUIRED_RESTORE_ATTRS: readonly string[] = [
   'FIELD_ADDRESS_ATTR',
   'EDITOR_LOCATION_ATTR',
@@ -1571,7 +1571,7 @@ export const restoreAttributesCarryDestinationRule = defineRule({
       message:
         `Restore-target-attributterne mangler ${missing.join(', ')}. Et fokuserbart felt skal bære sin `
         + 'editorlokations EGEN route og fane, så save-blokeringens fokus kan sende brugeren til den rigtige '
-        + 'fane uden et globalt adresse→fane-kort (§3.2).',
+        + 'fane uden et globalt adresse→fane-kort (§2.2).',
     }];
   },
   violatingFixtures: [
@@ -1844,7 +1844,7 @@ const collectForbiddenFieldIdentityAttrs = (entry: SourceEntry): readonly Findin
       message:
         `${form} bruger '${attr}' som feltidentitet i DOM. Feltidentiteten er den serialiserede feltadresse `
         + '(data-mineo-field-address) plus editorlokations-id – ÉT system, som undo/redo, save-fokus og '
-        + 'EO-fejllinks deler (§3.2). En navne- eller kolonnestreng ved siden af er den parallelle model, '
+        + 'EO-fejllinks deler (§2.2). En navne- eller kolonnestreng ved siden af er den parallelle model, '
         + 'den er en parallel model og bevisligt uopnåelig for grid-celler.',
     });
   };
@@ -2191,7 +2191,7 @@ export const deletableCollectionTableOwnershipRule = defineRule({
  * det oven på celleindholdet.
  *
  * Kontrakten var hardkodet på hvert af de ti kaldsteder i fire stavemåder og var derfor lige så let
- * at glemme halvdelen af som at skrive rigtigt. Den bor nu i `RowDeleteLaneCell`/`rowDeleteLaneStyle`,
+ * at glemme halvdelen af som at skrive rigtigt. Den bor i `RowDeleteLaneCell`/`rowDeleteLaneStyle`,
  * og denne regel lukker vejen tilbage: en celle må ikke selv stave kontrakten.
  */
 const LANE_CELL_TAGS = new Set(['RowDeleteLaneCell']);
@@ -2470,7 +2470,7 @@ export const choiceFieldValueTypeInferredRule = defineRule({
 // --- Kontekstuelle feltnavne har ÉN autoritet -------------------------------
 
 /**
- * Modulet, der EJER navnevalget for skadedato-feltets kontekstafhængige navn (§3.2a). Det ene sted, hvor
+ * Modulet, der EJER navnevalget for skadedato-feltets kontekstafhængige navn (§2.2). Det ene sted, hvor
  * begge navne må stå i samme udtryk. Alle andre – også `eoDateReferenceText.ts`, som bøjer navnet til
  * EO-prosa – skal KALDE `resolveSkadestypeDatoLabel` frem for at gentage valget.
  */
@@ -2534,7 +2534,7 @@ const collectSkadestypeLabelChoices = (entry: SourceEntry): readonly Finding[] =
         position: { line: line + 1, column: character + 1 },
         message:
           'Her vælges der mellem feltets to navne («Skadedato»/«Anmeldelsesdato»). Navnevalget er feltets '
-          + 'eget (§3.2a) og bor i `resolveSkadestypeDatoLabel`; `stamdata.skadedato`-descriptorens '
+          + 'eget (§2.2) og bor i `resolveSkadestypeDatoLabel`; `stamdata.skadedato`-descriptorens '
           + '`contextualLabel` læser det, og både den synlige label og enhver besked om feltet får det '
           + 'derfra. Gentages valget her, kan de to drive fra hinanden – feltet hed «Anmeldelsesdato» på '
           + 'skærmen, mens fejlen bad brugeren rette «Skadedato». Kald funktionen i stedet, og '
@@ -2775,7 +2775,7 @@ const collectStandardLoenLabelLiterals = (entry: SourceEntry): readonly Finding[
         position: { line: line + 1, column: character + 1 },
         message:
           `Kolonnenavnet «${node.text}» er skrevet som en literal her. Standard-løn-tabellens kolonnenavne `
-          + `har ÉN kilde (\`STANDARD_LOEN_COLUMN_LABELS\` i ${STANDARD_LOEN_LABEL_OWNER}, §3.2a): de to `
+          + `har ÉN kilde (\`STANDARD_LOEN_COLUMN_LABELS\` i ${STANDARD_LOEN_LABEL_OWNER}, §2.2): de to `
           + 'descriptor-kataloger sætter dem som `label`, og `standardLoenTableColumns.ts` bygger '
           + 'gridoverskrifterne af dem. Skrives navnet igen her, kan overskriften og en fejlbesked om samme '
           + 'celle navngive kolonnen forskelligt – `col4` hed «Ikke-pensionsgivende løn» i overskriften og '

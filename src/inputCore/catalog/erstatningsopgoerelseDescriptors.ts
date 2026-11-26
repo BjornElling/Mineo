@@ -120,7 +120,7 @@ import {
   isTafRowEmpty,
 } from '../../domain/erstatningsopgoerelse/helpers/rowEmpty';
 
-// Produkt-descriptors for `erstatningsopgoerelse`-sektionen (§3.2): top-level skalarer (incl. nested
+// Produkt-descriptors for `erstatningsopgoerelse`-sektionen (§2.2): top-level skalarer (incl. nested
 // bilagsvalgs-booleans) og de rene top-level samlinger med deres rækkefelter. Lønindkomstens/EO-angivet løns
 // nested træ ligger i `erstatningsopgoerelseLoenDescriptors.ts`.
 
@@ -140,10 +140,9 @@ export const EO_LEDSAGETEKST_MAX_LENGTH = 64;
  * Den erklæres HER – på descriptoren – så både formularfeltet og en eventuel tabelcelle håndhæver
  * samme tal ved tastning OG paste.
  *
- * Parameteren er PÅKRÆVET. Den var valgfri, og resultatet var, at 11 af EO's 13 fritekstfelter blev
- * oprettet uden nogen grænse: `Særlige bemærkninger` og alle syv bilagsnumre-felter tog imod en
- * vilkårligt lang indsat tekst. Det er samme fejlmåde, som `dateField` nedenfor allerede har lukket
- * for datogrænserne – udeladelse er nu en typefejl, ikke en forglemmelse.
+ * Parameteren er PÅKRÆVET: var den valgfri, kunne et fritekstfelt oprettes uden nogen grænse og tage imod
+ * en vilkårligt lang indsat tekst. Som for `dateField`s datogrænser nedenfor er udeladelse derfor en
+ * typefejl, ikke en forglemmelse.
  */
 const optionalTextField = (
   field: string,
@@ -362,7 +361,7 @@ const requiredJaNejSkjulField = (
 ): FieldDescriptor<JaNejSkjul> =>
   requiredChoiceField(field, label, ['Ja', 'Nej', 'Skjul'], emptyValue);
 
-// ── Relevans: felter bag et valg (§7.3) ──────────────────────────────────────────
+// ── Relevans: felter bag et valg (form-contract.md §7.3) ──────────────────────────
 //
 // Et skjult felt er ikke udfyldt og må hverken påvirke beregning eller fejlmeddelelser. Spejler hvert
 // læsested sektionens valg for sig, får motorerne neutraliserede værdier, mens validatoren får de rå: en
@@ -452,7 +451,7 @@ const bilagsnumreRelevant = (view: CanonicalView): boolean =>
 // ── Base-blok ─────────────────────────────────────────────────────────────────────
 // Længderne er kontraktens egne (§4.1: 7 tegn; §4.2: 64 tegn), ikke skønnede.
 //
-// Labels er feltets SYNLIGE navn (§3.2a via `useFieldLabel`): de er derfor rækkens egen tekst, ikke et
+// Labels er feltets SYNLIGE navn (§2.2 via `useFieldLabel`): de er derfor rækkens egen tekst, ikke et
 // internt kaldenavn; ellers navngiver oplæsning og fejltekster et felt, brugeren ikke kan finde.
 // Hvor det synlige navn er delt over to tekster, er det sammensatte navn det rigtige.
 export const eoNummerField = optionalTextField('eoNummer', 'Erstatningsopgørelse nummer', EO_NUMMER_MAX_LENGTH);
@@ -466,10 +465,9 @@ export const eoOpgørelseLavetDenField = dateField(
   dateBounds(skadedatoBoundedSpec(dateRanges_erstatningsopgoerelse.opgoerelse)),
 );
 export const eoIndsaetUdkastStempelField = requiredJaNejField('indsaetUdkastStempel', 'Indsæt udkast-stempel', 'Nej');
-// «Vedrører perioden» er et skalar-dato-par. Kronologien lå KUN i legacy-validatoren som en
-// `ValidationError` med et tekst-path, og rækkeoversigten (`buildEoErstatningsopgoerelseRows`) læser
-// udelukkende core-feltissues – så fra > til kunne stå med normal formatering i oversigten, mens fejlen
-// kun nåede frem som en generel invariant på Beregning-fanen. Reglen bor nu på descriptoren som alle andre.
+// «Vedrører perioden» er et skalar-dato-par. Kronologien bor på descriptoren som alle andre regler:
+// rækkeoversigten (`buildEoErstatningsopgoerelseRows`) læser udelukkende core-feltissues, så en regel uden
+// for descriptoren ville lade fra > til stå med normal formatering i oversigten.
 const vedroererPeriodePair: DatePairBinding = {
   fra: () => eoVedroererPeriodeFraField,
   til: () => eoVedroererPeriodeTilField,
@@ -591,11 +589,10 @@ export const eoForligDatoField: FieldDescriptor<ISODateString | undefined> = def
   label: 'Forligsdato',
   controlKind: 'text',
   createEmptySection: createEmptyErstatningsopgoerelseSection,
-  // Bounds deler nu spec med de øvrige EO-datoer; ansvarsgrad-reglen er feltets egen og bliver stående.
-  // Rækkefølgen bevarer den hidtidige forrang: bounds FØRST, ansvarsgrad-reglen derefter. Den gamle
-  // håndskrevne validator returnerede bounds-issuet i en tidlig return, så en dato uden for intervallet
-  // aldrig nåede ansvarsgrad-kontrollen. `forligDatoBounds` holder erklæringen og bounds-validatoren
-  // samlet, mens den feltlokale regel tilføjes efter den.
+  // Bounds deler spec med de øvrige EO-datoer; ansvarsgrad-reglen er feltets egen. Forrangen er bounds
+  // FØRST, ansvarsgrad-reglen derefter: en dato uden for intervallet når aldrig ansvarsgrad-kontrollen.
+  // `forligDatoBounds` holder erklæringen og bounds-validatoren samlet, mens den feltlokale regel tilføjes
+  // efter den.
   ...forligDatoBounds,
   validators: [
     ...forligDatoBounds.validators,
@@ -611,7 +608,7 @@ export const eoForligDatoField: FieldDescriptor<ISODateString | undefined> = def
   ],
 });
 export const eoKravPaaOevrigeErstatningskravField = requiredJaNejSkjulField('kravPaaOevrigeErstatningskrav', 'Er der øvrige krav i erstatningsperioden', 'Ja');
-// §3.4: «Maksimumlængden er 512 tegn.»
+// input-field-behavior-contract.md §3.4: «Maksimumlængden er 512 tegn.»
 export const eoOffentligeYdelserKommentarerField = optionalTextField(
   'offentligeYdelserKommentarer', 'Kommentarer', COMMENT_TEXT_MAX_LENGTH, true, whenEo(tafSektionAktiv)
 );
@@ -949,9 +946,8 @@ const topLevelCollection = <TEntity extends Readonly<Record<string, unknown>>>(
 
 // tafPerioder
 export const eoTafPerioderCollection = topLevelCollection<TafPeriodeRow>('tafPerioder', isTafRowEmpty);
-// TAF-perioderne deklarerede min = skadedato i konfigurationen, men håndhævede den kun i
-// rækkeevaluerings-motoren, som producerer et kolonne-hint uden feltadresse – teksten kunne stå i
-// "Fejl og advarsler", mens cellen aldrig blev rød. Grænsen bor nu på descriptoren.
+// TAF-periodernes min = skadedato bor på descriptoren: rækkeevaluerings-motoren producerer kun et
+// kolonne-hint uden feltadresse, så teksten ville stå i "Fejl og advarsler", mens cellen aldrig blev rød.
 const tafPeriodeDates = rowDatePair('tafPerioder', 'fra', 'til', 'Fra o.m.', 'Til o.m.', {
   fra: skadedatoBoundedSpec({
     fallbackMin: dateRanges_erstatningsopgoerelse.tabelTAFFra.fallbackMin,
@@ -1053,7 +1049,7 @@ export const eoOevrigeKravDatoField: FieldDescriptor<ISODateString | undefined> 
   label: 'Dato',
   controlKind: 'text',
   createEmptySection: createEmptyErstatningsopgoerelseSection,
-  // Var en håndskrevet kopi af skadedato-reglen; deler nu spec med de øvrige EO-datoer.
+  // Deler skadedato-spec med de øvrige EO-datoer.
   ...dateBounds(skadedatoBoundedSpec(dateRanges_erstatningsopgoerelse.tabelOevrigeKravDato)),
   relevance: whenEo(oevrigeKravSektionAktiv),
 });

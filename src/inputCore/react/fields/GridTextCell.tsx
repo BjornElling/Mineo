@@ -18,7 +18,7 @@ import { resolveDraftLengthLimit } from './charLengthPolicy';
 import { AutofillSuggestMarker } from './AutofillSuggestMarker';
 import { copyWholeValueFromReadOnlyField } from '../../../utils/clipboardUtils';
 
-// Grid-celle-basis (§2.5/§3.5): den ENE tynde `<input>`-skal for en persisteret grid-celle, oven på
+// Grid-celle-basis (§2.5): den ENE tynde `<input>`-skal for en persisteret grid-celle, oven på
 // `useGridCellSurface` (som bro-forbinder grid-core-navigation ↔ editor-motoren). Den er grid-pendanten
 // til `NumericTextField`/`StyledTextFieldBase`, men med den kompakte tabel-InputBase-styling fra
 // `tableInputStyles`. Familie-skallerne (beløb/heltal/år/uge/dato) leverer kun deres tegnfilter + adornment +
@@ -86,7 +86,7 @@ const GridTextCellInner = <T, TEntity>(
   // Feltnavnet kommer fra den ENE autoritet – `InputReader.labelOf` – præcis som formularfelterne.
   // Cellen læste før `descriptor.label` direkte og gik dermed uden om feltets `contextualLabel`, så et
   // felt med et kontekstafhængigt navn ville hedde én ting i formularen og en anden i tabellen. Det er
-  // netop den drift, `useFieldLabel` blev oprettet for at fjerne (§3.2a).
+  // netop den drift, `useFieldLabel` blev oprettet for at fjerne (§2.2).
   const accessibleName = useFieldLabel(cell.field);
   // En grænse, der kun sættes på et enkelt kaldssted, er ikke et værn: direkte GridTextCell-brugere
   // skal arve codecets erklæring på samme måde som formularfelterne. En eksplicit prop kan stadig gøre

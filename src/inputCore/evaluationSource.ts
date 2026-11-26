@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-// Inputkernen (§3.4): issue-snapshots, consumerprojektioner og PreparedDocument bindes til ét
+// Inputkernen (§2.4): issue-snapshots, consumerprojektioner og PreparedDocument bindes til ét
 // EvaluationSourceToken. Tokenet omfatter BÅDE inputrevision OG settingsrevision, så en ændring i
 // AppSettings gør et resultat stale på samme måde som en ændring i input.
 
@@ -32,7 +32,7 @@ export const sourceTokensEqual = (left: EvaluationSourceToken, right: Evaluation
 const STABLE_SOURCE_RETRY_COUNT = 3;
 
 /**
- * Stabil dobbeltlæsning (§3.4): læs token, læs data, læs token igen. Kun hvis før/efter-tokenet er
+ * Stabil dobbeltlæsning (§2.4): læs token, læs data, læs token igen. Kun hvis før/efter-tokenet er
  * identisk må data og token bruges sammen. Ved samtidig ændring forsøges igen; kan et stabilt snapshot
  * ikke opnås inden for retrygrænsen, stoppes operationen fail-closed som en transient systemfejl.
  *

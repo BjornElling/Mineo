@@ -36,7 +36,7 @@ const makeInput = (editorLocationId: string): HTMLInputElement => {
   return input;
 };
 
-describe('findRestoreTarget – feltadresse + editorlokation (§3.7)', () => {
+describe('findRestoreTarget – feltadresse + editorlokation (§2.7)', () => {
   beforeEach(() => { document.body.innerHTML = ''; });
 
   it('finder KUN elementet, der bærer BÅDE feltadresse OG editorlokation', () => {
@@ -79,7 +79,7 @@ describe('findRestoreTarget – feltadresse + editorlokation (§3.7)', () => {
   });
 });
 
-describe('scheduleHistoryTargetRestore – fokus/scroll/fokus-ring + retry (§3.7)', () => {
+describe('scheduleHistoryTargetRestore – fokus/scroll/fokus-ring + retry (§2.7)', () => {
   const originalRaf = globalThis.requestAnimationFrame;
   const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
   let rafQueue: FrameRequestCallback[] = [];

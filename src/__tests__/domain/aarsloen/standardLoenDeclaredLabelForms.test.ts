@@ -8,7 +8,7 @@ import {
 import { STANDARD_LOEN_COLUMN_LABELS, type StandardLoenTableColumnKey } from '../../../types/table';
 
 /**
- * Værn for de to ERKLÆREDE former af et kolonnenavn (§3.2a).
+ * Værn for de to ERKLÆREDE former af et kolonnenavn (input-architecture.md §2.2).
  *
  * Kolonnenavnene har ét sandt sted, `STANDARD_LOEN_COLUMN_LABELS`. Både overskriftens ombrudte form og
  * dokumentets forkortede form er AFLEDTE former af det ene navn – ikke selvstændige strenge. Uden et værn

@@ -233,7 +233,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
       <CheckboxField
         key={key}
         field={descriptors[key].bind()}
-        // route + tabKey er eksplicit navigation-metadata (§3.7); bilagsvalgene bor på Beregningsfanen.
+        // route + tabKey er eksplicit navigation-metadata (§2.7); bilagsvalgene bor på Beregningsfanen.
         location={{ locationId: `erstatningsopgoerelse.eoBilagSelection.${key}`, route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.BEREGNING }}
         name={`eo-bilag-${key}`}
         unavailableReason={availability.enabled ? null : availability.disabledReason}
@@ -400,7 +400,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
           <Box className="row--label-right-hover__content">
             <ChoiceField
               field={eoBilagIndgaarField.bind()}
-              // route + tabKey er eksplicit navigation-metadata (§3.7); feltet bor på Beregningsfanen.
+              // route + tabKey er eksplicit navigation-metadata (§2.7); feltet bor på Beregningsfanen.
               location={{ locationId: 'erstatningsopgoerelse.eoBilagLoenindkomstOgOffentligeYdelserIndgaar', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.BEREGNING }}
               name="eoBilagLoenindkomstOgOffentligeYdelserIndgaar"
               allowEmpty={false}

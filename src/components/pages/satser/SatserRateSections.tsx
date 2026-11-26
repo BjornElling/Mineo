@@ -21,7 +21,7 @@ type Satser = NonNullable<SatserProjectionValue['satser']>;
  * De fire sats-sektioner (EAL, ASL, Diverse, Referencer).
  *
  * Komponenten renderes KUN for et gyldigt valgt år: `satser` er non-nullable her, fordi siden viser sin
- * vejledningstekst i stedet, når projektionen er `blocked` (§3.9). Sektionerne kan derfor ikke vise satser for et
+ * vejledningstekst i stedet, når projektionen er `blocked` (§2.9). Sektionerne kan derfor ikke vise satser for et
  * fallback-år.
  */
 const SatserRateSections = React.memo(({ satser }: { satser: Satser }) => (

@@ -13,7 +13,7 @@ import { AarsloenFuldLoenUnderFerieRow, AarsloenLoenPaaHelligdageRow } from './A
  * Beregningsprincipper: omregning til fuldt år og de felter, den låser op – uden overenskomst også «Fuld løn under
  * ferie» og «Løn på helligdage», der da kun læses af omregningen.
  *
- * Omregning-togglen er et ALMINDELIGT persisteret felt gennem `ToggleField` (§3.2/§3.7) – gaten leveres som dens
+ * Omregning-togglen er et ALMINDELIGT persisteret felt gennem `ToggleField` (§2.2/§2.7) – gaten leveres som dens
  * `commit`-override, så en ugyldig aktivering afvises uden at feltbindingen eller undo/redo-fokusmetadataen
  * falder væk. `checkedOverride` er nødvendig, fordi den VISTE tilstand kommer fra gaten frem for direkte fra
  * feltets afsluttede værdi.

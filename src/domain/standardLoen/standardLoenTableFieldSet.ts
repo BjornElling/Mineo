@@ -232,7 +232,7 @@ export const resolveStandardLoenInvalidCellIssues = (
   return issues;
 };
 
-/** Reader-afledt valideringssummary + errors. Den ENE kilde til løntabellens summary (§2.5/§3.4). */
+/** Reader-afledt valideringssummary + errors. Den ENE kilde til løntabellens summary (input-architecture.md §2.4). */
 export const resolveStandardLoenTableValidationFromReader = (
   fieldSet: StandardLoenTableFieldSet,
   reader: InputReader,

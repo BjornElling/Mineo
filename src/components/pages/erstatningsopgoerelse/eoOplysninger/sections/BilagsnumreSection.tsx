@@ -21,7 +21,7 @@ import type { ErstatningsopgoerelseValues } from '../../../../../schemas/formSch
 import { useEoOplysningerVm } from '../eoOplysningerContext';
 import { APP_ROUTES } from '../../../../../config/pageNavigation';
 import { EO_TAB_KEYS } from '../../../../../config/eoTabKeys';
-// route + tabKey på location er eksplicit navigation-metadata (§3.7); alle felter i denne sektion bor på EO-oplysningerfanen.
+// route + tabKey på location er eksplicit navigation-metadata (§2.7); alle felter i denne sektion bor på EO-oplysningerfanen.
 
 /** De syv bilagsnumre: rækketekst, feltets descriptor og det schema-feltnavn, advarslen slår op på. */
 type BilagsnummerRad = Readonly<{

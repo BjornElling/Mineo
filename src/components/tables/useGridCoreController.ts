@@ -199,7 +199,7 @@ export const useGridCoreController = (options: UseGridCoreControllerOptions = {}
   }, [controller, gridStateStore, tableKind]);
 
   // Den åbne celleeditor barriereres gennem input-runtimens `ActiveEditorRegistry` og
-  // `CriticalActionCoordinator` (§3.5/§3.6), som `useGridCellSurface` melder cellen ind i.
+  // `CriticalActionCoordinator` (§2.5/§2.6), som `useGridCellSurface` melder cellen ind i.
 
   React.useEffect(() => {
     const table = internalTableRef.current;

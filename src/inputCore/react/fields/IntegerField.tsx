@@ -8,7 +8,7 @@ import type { EditorLocation } from '../../editor/fieldEditorState';
 import NumericTextField from './NumericTextField';
 import { resolveIntegerCharPolicy } from './charLengthPolicy';
 
-// Heltals-felt (§2.4/§3.5): den tynde familie-skal over `NumericTextField` med heltals-
+// Heltals-felt (§2.5): den tynde familie-skal over `NumericTextField` med heltals-
 // tegnfilteret. Parse/format ejes af descriptorens heltals-codec; komponenten modtager KUN sin `field`/`location`
 // + rendering-props – ingen `minValue`/`maxValue`/`onCommit`/`onFieldError` (§2.4). Feltets min/max er en
 // canonical bounds-feltvalidator; røde bounds-fejl kommer fra issue-snapshottet (§1.6).

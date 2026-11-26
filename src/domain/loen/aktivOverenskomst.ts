@@ -14,7 +14,7 @@ export type OverenskomstValg = Readonly<{
  * tilbage til UNLOCKED, så en overenskomstbunden SH/SO- og pensionssats simpelthen ikke blev
  * udledt – uden fejl, uden advarsel, og med et snapshot der meldte `ok`.
  *
- * Reglen er nu udtrykt ét sted: overenskomsten er aktiv, når togglen er slået til OG der er
+ * Reglen er udtrykt ét sted: overenskomsten er aktiv, når togglen er slået til OG der er
  * valgt et ikke-tomt id. Alle forbrugere – satsopslag, SFGG-kilde, validator, dokumenter –
  * skal spørge her i stedet for at spejle prædikatet i hånden.
  *

@@ -104,7 +104,7 @@ const expectMatchesReference = (reference: ReferenceState): void => {
   expect(actual.revision).toBe(reference.revision);
 };
 
-describe('inputkernen – uafhængig referencekontrol (§3.6/§3.7)', () => {
+describe('inputkernen – uafhængig referencekontrol (§2.6/§2.7)', () => {
   it('følger referenceforløbet for settle, no-op, undo, redo og ny gren', () => {
     let reference = initialReferenceState();
 

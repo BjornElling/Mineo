@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 /**
- * §7.4's transaktionsinvarianter EXHAUSTIVT over hver runtime-command-kind.
+ * §4.4's transaktionsinvarianter EXHAUSTIVT over hver runtime-command-kind.
  *
  * **Hvorfor suiten findes.** Runtime-unionen omfatter 12 mutationsarter plus `undo`/`redo`. Spredte
- * adfærdstests – "gør denne command det rigtige ved værdien?" – dækker ikke §7.4's SAMLEDE invariantsuite
+ * adfærdstests – "gør denne command det rigtige ved værdien?" – dækker ikke §4.4's SAMLEDE invariantsuite
  * for hver art: én session-write, ét store-write, én monoton revision, højst ét history-trin, no-op uden
  * nogen af de tre, og rollback ved fejl.
  *
@@ -77,7 +77,7 @@ afterEach(() => {
 const ROW_A = 'cmd_row_a';
 const ROW_B = 'cmd_row_b';
 
-/** Tæller store-writes i et vindue; ét write pr. reel command er §7.4's krav. */
+/** Tæller store-writes i et vindue; ét write pr. reel command er §4.4's krav. */
 const countWrites = (target: SlimInputStore): { count: () => number; stop: () => void } => {
   let writes = 0;
   const unsub = target.subscribe(() => { writes += 1; });
@@ -102,10 +102,10 @@ type CommandCase = Readonly<{
   noop: () => AnyCommand;
   /** En command kataloget skal afvise FØR nogen mutation. `null` når arten ikke har en sådan form. */
   reject: (() => AnyCommand) | null;
-  /** Dispatch-options for `mutate`/`noop` (strukturelle commands kræver en origin, §3.7). */
+  /** Dispatch-options for `mutate`/`noop` (strukturelle commands kræver en origin, §2.7). */
   options?: () => Readonly<{ origin?: ReturnType<typeof testRowOrigin> }>;
   /**
-   * Rydder denne command-art history? Kun hel-sags-replacement gør (§3.7), og det er en POLICY, ikke en
+   * Rydder denne command-art history? Kun hel-sags-replacement gør (§2.7), og det er en POLICY, ikke en
    * bivirkning – derfor er den erklæret pr. case frem for udledt.
    */
   clearsHistory?: true;
@@ -195,7 +195,7 @@ const COMMAND_CASES = {
   },
   transaction: {
     arrange: () => seedRow(),
-    // FLERE feltændringer i ÉT trin: §7.4's "højst ét history-trin" er netop det, en transaktion
+    // FLERE feltændringer i ÉT trin: §4.4's "højst ét history-trin" er netop det, en transaktion
     // findes for – to writes ville være to undo-trin for én brugerhandling.
     mutate: () => cmd(inputTransaction([
       inputTransactionStep(settleField(aargangField.bind(), '2024')),
@@ -236,7 +236,7 @@ const COMMAND_CASES = {
       seedRow();
     },
     mutate: () => cmd(replaceCase(createEmptySettledInput())),
-    // Hel-sags-replacement skriver ALTID (§3.7) – også når indholdet er identisk. "No-op" findes
+    // Hel-sags-replacement skriver ALTID (§2.7) – også når indholdet er identisk. "No-op" findes
     // derfor ikke for arten, og casen bruger en ægte no-op til det ben: efter replacement er
     // `renteberegning` allerede `null`, så en reset til `null` ændrer intet.
     noop: () => cmd(resetSection('renteberegning', null)),
@@ -257,7 +257,7 @@ const COMMAND_CASES = {
   undo: {
     arrange: () => dispatchInput(store, catalog, cmd(settleField(aargangField.bind(), '2020'))),
     mutate: () => cmd({ kind: 'undo' }),
-    // Tom history: undo er en no-op UDEN write (§7.4).
+    // Tom history: undo er en no-op UDEN write (§4.4).
     noop: () => cmd({ kind: 'undo' }),
     reject: null,
     historyNavigation: 'undo',
@@ -276,7 +276,7 @@ const COMMAND_CASES = {
 
 const CASE_KINDS = Object.keys(COMMAND_CASES) as readonly (keyof typeof COMMAND_CASES)[];
 
-describe('§7.4 transaktionsinvarianter – exhaustivt pr. command-kind', () => {
+describe('§4.4 transaktionsinvarianter – exhaustivt pr. command-kind', () => {
   it('registret dækker hver runtime-command-kind (typebundet, så en ny art er en compilerfejl)', () => {
     // Runtime-spejlet af `satisfies`: de 14 arter er navngivet, og listen er ikke tom af tomhed.
     expect(CASE_KINDS).toHaveLength(14);
@@ -313,7 +313,7 @@ describe('§7.4 transaktionsinvarianter – exhaustivt pr. command-kind', () => 
       // HØJST ét history-trin – og præcis nul, hvis arten rydder history efter policy.
       const past = store.getState().history.past.length;
       if (testCase.clearsHistory === true) {
-        expect(past, `${kind}: hel-sags-replacement skal rydde history (§3.7)`).toBe(0);
+        expect(past, `${kind}: hel-sags-replacement skal rydde history (§2.7)`).toBe(0);
       } else if (testCase.historyNavigation !== undefined) {
         // Undo/redo FLYTTER præcis ét frame; de lægger ikke et nyt oven på. Retningen er erklæret,
         // så et undo, der flyttede den anden vej, bliver rød frem for at bestå på totalen.
@@ -389,7 +389,7 @@ describe('§7.4 transaktionsinvarianter – exhaustivt pr. command-kind', () => 
   });
 
   /**
-   * §7.4's `row-delete uden descendants/orphans` som sin egen, artspecifikke assertion: de generiske
+   * §4.4's `row-delete uden descendants/orphans` som sin egen, artspecifikke assertion: de generiske
    * invarianter ovenfor kan ikke se, om en rækkes rejected råtekst gik med rækken.
    */
   it('row-delete efterlader hverken rejected descendants eller orphan-adresser', () => {

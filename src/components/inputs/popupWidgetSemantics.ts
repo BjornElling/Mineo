@@ -3,9 +3,9 @@
  *
  * Både `Container` (sidens fokus-traversering) og grid-navigationen (`tableKeyboardNavigation`) skal
  * frigive aktiveringstaster til en popup-kontrol, så kontrollen selv kan åbne/lukke sin menu.
- * Tidligere havde de to flader hver sin kopi af opslaget, og grid'et brugte desuden en PRIVAT
- * markør-attribut (`data-mineo-table-dropdown`) fra en slettet komponent til at genkende dropdowns
- * i celler. Klassifikationen hører til kontrollens semantik, ikke til den flade den står på –
+ * Opslaget findes kun her, og grid'et genkender ikke dropdowns i celler via en privat markør-attribut
+ * (`data-mineo-table-dropdown` er slettet). Klassifikationen hører til kontrollens semantik, ikke til den
+ * flade den står på –
  * derfor er den her, ved dropdownen selv, og måles udelukkende på ARIA:
  *
  * - `role="combobox"` eller `aria-haspopup` ⇒ popup-kontrol.

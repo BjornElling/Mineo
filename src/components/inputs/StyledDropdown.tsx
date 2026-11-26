@@ -76,7 +76,7 @@ type StyledDropdownCommonProps<TValue extends StyledDropdownValue> = Omit<
    */
   expectedOptionValues?: readonly unknown[];
   /**
-   * Undo/redo-fokusrestore-attributter (§3.7): sættes på det fokuserbare combobox-input, så fokus efter
+   * Undo/redo-fokusrestore-attributter (§2.7): sættes på det fokuserbare combobox-input, så fokus efter
    * undo/redo lander PRÆCIST på denne editorlokation (feltadresse + editorlokation), ikke via `name`.
    * `inputCore/react/fields/ChoiceField` og `GridChoiceCell` leverer dem.
    */
@@ -747,7 +747,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
           'aria-haspopup': 'listbox',
           'aria-expanded': open,
           'aria-controls': open ? listboxId : undefined,
-          // Undo/redo-restore lokaliserer via feltadresse + editorlokation, ikke `name` (§3.2/§3.7).
+          // Undo/redo-restore lokaliserer via feltadresse + editorlokation, ikke `name` (§2.2/§2.7).
           ...(restoreTargetAttributes ?? {}),
           'aria-activedescendant':
             open && highlightedIndex >= 0 && isSelectableVisualIndex(highlightedIndex)

@@ -62,7 +62,7 @@ export const isBaseNumericStepOf = (candidate: number, other: number): boolean =
 /**
  * Formen af én serieart: hvordan et skridt måles, identificeres, retningsbestemmes og anvendes.
  *
- * Samlet i ét objekt frem for seks positionelle parametre, fordi de fem periodearter nu deler alle
+ * Samlet i ét objekt frem for seks positionelle parametre, fordi de fem periodearter deler alle
  * reglerne og kun adskiller sig i tre-fire af felterne. Som stillingsparametre kunne en ny art nemt
  * udelade netop det prædikat, der håndhæver en af invarianterne, og forskellen ville først vise sig som
  * et urimeligt forslag i en halvt indtastet tabel.

@@ -22,7 +22,7 @@ import {
   stamdataSkadedatoField,
 } from './stamdataDescriptors';
 
-// Produkt-descriptors for `forsoergertab`-sektionen (§3.2). Kun top-level skalarer.
+// Produkt-descriptors for `forsoergertab`-sektionen (§2.2). Kun top-level skalarer.
 //
 // **Datogrænser (§1.6):** de dynamiske min/max-grænser er canonical bounds-FELTVALIDATORER på
 // descriptoren. En schema-repræsenterbar dato uden for grænsen committes canonical (kan gemmes i `.eo`) og

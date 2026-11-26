@@ -63,7 +63,7 @@ export type LoenudviklingFieldsProps<
   manualCellWarnings: ReadonlyMap<SerializedFieldAddress, FieldWarning>;
   manualLocationPrefix: string;
   manualPercentLocationPrefix: string;
-  /** Navigation-metadata (§3.7) for de to tabeller – fanen adskiller overfladerne. */
+  /** Navigation-metadata (§2.7) for de to tabeller – fanen adskiller overfladerne. */
   locationNav: Readonly<{ route: string; tabKey: string | null }>;
 
   /** Det aktive beregningsgrundlag; styrer hvilke undergrene der vises. */

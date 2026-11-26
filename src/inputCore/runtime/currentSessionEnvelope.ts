@@ -14,7 +14,7 @@ import {
   type SettledInput,
 } from '../settledInput';
 
-// Input-runtime (§2.1.6/§3.7): ÉN sessions-envelope. Envelopens struktur er current-only, men canonical
+// Input-runtime (§2.7): ÉN sessions-envelope. Envelopens struktur er current-only, men canonical
 // sektionsdata passerer den samme versionerede inbound-kæde som `.eo`-load. Det er afgørende ved deployment
 // midt i en aktiv session: et schema-bump må ikke gøre gårsdagens afsluttede input til tom data.
 // Katalog-afhængig XOR-/eksistens-validering ligger på `InputCatalog` og køres af hydration/dispatch.

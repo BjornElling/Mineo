@@ -103,7 +103,7 @@ export const blockedProjectionForStamdata = (code: string): BlockedProjection =>
   blockedProjectionWithSpecificReason(code, 'Ret fejlen i Stamdata');
 
 /**
- * Blokering ud fra en projektions ISSUE-liste, hvor klassen UDLEDES af issuene (§3.1).
+ * Blokering ud fra en projektions ISSUE-liste, hvor klassen UDLEDES af issuene (`document-output-contract.md` §A5.1).
  *
  * At citere `issues[0].message` ordret, blot fordi der FINDES et issue, giver to fejl på samme tid:
  *

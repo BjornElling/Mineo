@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /**
- * §7.5's kritiske handlinger med VIRKELIGE form- og grid-editorer.
+ * §4.5's kritiske handlinger med VIRKELIGE form- og grid-editorer.
  *
  * **Hvorfor suiten findes.** Coordinator- og save/load-testene bruger SYNTETISKE `ActiveEditor`-objekter, og
  * dokumentlivscyklussens "åben draft"-cases caster instrumenterede resultater ind frem for at åbne en
@@ -12,7 +12,7 @@
  * (serialisering, fail-closed, fault-injection) og bliver stående: de kan injicere fejl, en ægte editor
  * ikke kan fremprovokere. Denne suite beviser INTEGRATIONEN – at de ægte adaptere registrerer sig, at
  * coordinatorens settle faktisk lander deres transaktion, og at BEGGE surfaces opfører sig ens. Det er
- * §7.5's eksplicitte form/grid-paritetskrav, som en unit-test pr. konstruktion ikke kan bære.
+ * §4.5's eksplicitte form/grid-paritetskrav, som en unit-test pr. konstruktion ikke kan bære.
  *
  * **Paritetslisten er ÉN funktion pr. handling, kørt for begge surfaces.** To lister, der tilfældigvis
  * hævdede det samme, ville kunne drifte fra hinanden.
@@ -155,10 +155,10 @@ const rawFor = (kind: SurfaceKind) => kind === 'form'
 const SURFACES: readonly SurfaceKind[] = ['form', 'grid'];
 
 // ─────────────────────────────────────────────────────────────────────────────────────────────────
-// §7.5's handlinger – samme assertions for begge surfaces
+// §4.5's handlinger – samme assertions for begge surfaces
 // ─────────────────────────────────────────────────────────────────────────────────────────────────
 
-describe('§7.5 kritiske handlinger – ægte form- OG grid-editor, samme kontrakt', () => {
+describe('§4.5 kritiske handlinger – ægte form- OG grid-editor, samme kontrakt', () => {
   describe.each(SURFACES)('surface: %s', (surface) => {
     const raw = () => rawFor(surface);
 
@@ -195,7 +195,7 @@ describe('§7.5 kritiske handlinger – ægte form- OG grid-editor, samme kontra
       // registrerer, at `settle()` blev kaldt.
       expect(canonical(field)).not.toBeUndefined();
       expect(mounted.controller().isOpen).toBe(false);
-      // Og tokenet er FRISKT: det hører til revisionen EFTER settle (§3.4/§7.5).
+      // Og tokenet er FRISKT: det hører til revisionen EFTER settle (§2.4/§4.5).
       if (result.status !== 'committed') return;
       expect(result.token.inputRevision).toBe(store.getState().revision);
     });

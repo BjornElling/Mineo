@@ -108,10 +108,8 @@ export const ROW_DELETE_LANE_WIDTH_PX = 28;
  * typisk tabellens container – og ikonet lander i tabellens hjørne i stedet for i rækken),
  * og cellen skal reservere banen med `paddingRight`.
  *
- * Kontrakten var tidligere skrevet i hånden på hvert kaldsted i fire forskellige stavemåder
- * (`sx` med `'28px'`, `sx` med tal, spredt `style` med `28`, spredt `style` med `'28px'`) uden
- * noget værn. Den bor nu ét sted og forbruges via `RowDeleteLaneCell`/`rowDeleteLaneStyle`,
- * så en celle ikke kan glemme halvdelen af den.
+ * Kontrakten bor ét sted og forbruges via `RowDeleteLaneCell`/`rowDeleteLaneStyle`, så den ikke
+ * skrives i hånden på hvert kaldsted, og en celle ikke kan glemme halvdelen af den.
  */
 const ROW_DELETE_LANE_CONTRACT = {
   position: 'relative',

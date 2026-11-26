@@ -13,7 +13,7 @@ import {
   withStamdataDatoReference,
 } from './stamdataDescriptors';
 
-// Produkt-descriptors for `varigemen`-sektionen (§3.2). To top-level skalarer, ingen samlinger.
+// Produkt-descriptors for `varigemen`-sektionen (§2.2). To top-level skalarer, ingen samlinger.
 
 const createEmptyVarigeMenSection = (): unknown => ({});
 

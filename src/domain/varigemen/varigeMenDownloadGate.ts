@@ -1,10 +1,8 @@
 /**
  * Ren download-gate-beslutning for méngodtgørelse-siden (varige mén).
  *
- * Gaten (§A2/§3.4/§5.4): gaten afledes nu udelukkende af den ENE reader-projektion
- * (`buildVarigeMenReaderProjection`), som cellerne/visningen allerede afspejler. Den erstatter det tidligere
- * boolean-baserede input (`hasBlockingFieldErrors`/`hasMissingFields`/`hasBeregningsResultat`), der byggede på
- * `useFormFieldErrors` + rå sektioner. Sandhedstabellen er uændret:
+ * Gaten (§A2, input-architecture.md §2.4) afledes udelukkende af den ENE reader-projektion
+ * (`buildVarigeMenReaderProjection`), som cellerne/visningen allerede afspejler. Sandhedstabellen:
  *
  *  - projektion blokeret af rød(e) feltfejl (format/bounds/rule) → kind `invalid-input`
  *    ("Fejl i indtastning"), eller `specific` hvis der er præcis ÉN rød fejl med en konkret tekst,
@@ -27,10 +25,10 @@ export const evaluateVarigeMenDownloadGate = (
   projection: VarigeMenReaderProjection
 ): DocumentDownloadGateResult => {
   if (projection.status === 'blocked') {
-    // HELE issue-listen sendes til klassifikationen. Gaten valgte før ÉT feltissue med `.find()` og citerede
-    // det – så to samtidige røde felter så ud som én fejl, og tooltippen udpegede det ene som "fejlen".
-    // Rød-før-tom-forrangen (den tidligere `beregningsFejl` → `manglendeFelter`) ligger nu i
-    // `classifyBlockingCauses`, som stadig lader en feltfejl vinde over en `missing`-consumerfejl.
+    // HELE issue-listen sendes til klassifikationen. Valgte gaten ÉT feltissue med `.find()` og citerede det,
+    // ville to samtidige røde felter se ud som én fejl, og tooltippen ville udpege det ene som "fejlen".
+    // Rød-før-tom-forrangen ligger i `classifyBlockingCauses`, som lader en feltfejl vinde over en
+    // `missing`-consumerfejl.
     return blockDocumentDownloadFromCauses(
       'varigemen:field-error',
       toBlockingCauses(projection.issues),

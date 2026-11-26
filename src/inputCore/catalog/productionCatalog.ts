@@ -11,7 +11,7 @@ import { stamdataCollections, stamdataFields } from './stamdataDescriptors';
 import { varigeMenCollections, varigeMenFields } from './varigeMenDescriptors';
 import { createProductionFieldLocations } from './fieldLocationCatalog';
 
-// Produkt-descriptor-kataloget (§3.2). Det ene statiske katalog over alle persisterede
+// Produkt-descriptor-kataloget (§2.2). Det ene statiske katalog over alle persisterede
 // brugerfelter som inputCore-descriptors. Hvert descriptor
 // ejer id, codec, semantisk tomhed, canonical read/write, label, kontroltype (relevans/validators tilføjes
 // pr. domæneområde). Kataloget valideres ÉN gang i `createInputCatalog`; ingen seal/brand/WeakSet.
@@ -45,7 +45,7 @@ export const productionInputCollections = Object.freeze([
 ]);
 
 /**
- * Alle erklærede afledte skrivninger (§3.6). Et afledt felt er ikke brugerinput men en konsekvens af det, og
+ * Alle erklærede afledte skrivninger (§2.6). Et afledt felt er ikke brugerinput men en konsekvens af det, og
  * det materialiseres derfor inde i samme reducerede kandidat som årsagen – ikke af en effect efter render,
  * som ville gøre konsekvensen til en selvstændig autoritativ handling med sit eget undo-trin.
  */

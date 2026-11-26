@@ -24,7 +24,7 @@ import {
   MAX_AMOUNT_RAW_LENGTH,
 } from '../../../utils/amountInputUtils';
 
-// Transient beløbsfelt (§3.1-undtagelse: IKKE sagsdata). Bruges i overlays/dialoger, hvor beløbet kun lever
+// Transient beløbsfelt (§2.1-undtagelse: IKKE sagsdata). Bruges i overlays/dialoger, hvor beløbet kun lever
 // i komponentens egen state – fx løntrin-finderens ekstra grundløn. Deler beløbs-/udtryks-parse-kernen
 // (`parseAmountInput`) og tegnfilteret med de persisterede beløbsfelter, så indtastningsreglerne er ens;
 // men den har hverken feltadresse, issue-snapshot, history eller persistens.

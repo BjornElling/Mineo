@@ -18,7 +18,7 @@ import { satserAargangField } from '../../../inputCore/catalog/satserDescriptors
 import MainLayout from '../../../components/layout/MainLayout';
 import { OpenEditor } from './editorTestUtils';
 
-// Undo/redo-genvej (§1.4/§3.6): shellen driver `useUndoRedoShortcuts`, som kalder den ene
+// Undo/redo-genvej (§1.4/§2.6): shellen driver `useUndoRedoShortcuts`, som kalder den ene
 // write-grænses history via coordinatoren. Mens en editor er åben er genvejen et STILLE no-op (coordinatorens
 // `prepare("undo"|"redo")` returnerer `noop`); uden åben editor kører undo/redo mod history. Vi hævder derfor
 // mod den ægte runtime-history i stedet for det legacy `useUndoRedo`-mock.

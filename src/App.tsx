@@ -105,15 +105,12 @@ const scheduleDeferredModulePreload = () => {
 /**
  * App-shellen som ÉN layout-route.
  *
- * Tidligere byggede `createPageWrapper` en selvstændig `MainLayout`-wrapper pr. route (11
- * memoiserede wrapper-komponenter). Det er nu én `<Route element={<AppShell />}>` med
- * `<Outlet/>`, så layoutet er beskrevet ét sted i stedet for at blive gentaget pr. side.
+ * Én `<Route element={<AppShell />}>` med `<Outlet/>`, så layoutet er beskrevet ét sted i stedet
+ * for at blive gentaget pr. side.
  *
- * Præcisering, så en senere læser ikke tror der lå en remount-fejl: den gamle form
- * remountede IKKE shellen ved navigation. React reconciler samme komponenttype på tværs af
- * søskende-routes, så `MainLayout` (og dermed `Container`s focus-cache og MutationObserver)
- * blev bevaret i begge former – verificeret med en mount-tælling på begge varianter.
- * Gevinsten her er strukturel: ét autoritativt layout-/route-flow, ikke en adfærdsrettelse.
+ * Valget er strukturelt, ikke en remount-rettelse: React reconciler samme komponenttype på tværs af
+ * søskende-routes, så også en wrapper pr. route ville bevare `MainLayout` (og dermed `Container`s
+ * focus-cache og MutationObserver) ved navigation. Gevinsten er ét autoritativt layout-/route-flow.
  *
  * `ErrorBoundary` og `Suspense` ligger inde i shellen, så en fejl eller en indlæsning i én
  * side ikke river layoutet med sig.
@@ -152,7 +149,7 @@ const ThemedApp = ({
   // svarer til. Oversættelsen ejes af `resolveThemeMode` og leveres af contexten.
   const theme = React.useMemo(() => buildTheme(resolvedThemeMode), [resolvedThemeMode]);
 
-  // Hold `EvaluationSourceToken` og det konkrete AppSettings-snapshot samlet (§3.4).
+  // Hold `EvaluationSourceToken` og det konkrete AppSettings-snapshot samlet (§2.4).
   useSettingsRevisionBridge(settings);
 
   React.useEffect(() => scheduleDeferredModulePreload(), []);

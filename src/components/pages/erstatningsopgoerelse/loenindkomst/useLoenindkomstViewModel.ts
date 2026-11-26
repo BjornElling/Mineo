@@ -46,7 +46,7 @@ const sfggCollection = eoSfggAnsaettelsesforholdCollection.template as Collectio
 /**
  * Ansættelsesforholdenes lokation. ÉT sted, fordi både hookens rækkehandlinger og den direkte
  * slette-transaktion nedenfor skal give SAMME destination – ellers ville en undo af "tilføj" og en undo af
- * "slet" navigere forskelligt (§3.7).
+ * "slet" navigere forskelligt (§2.7).
  */
 const EMPLOYMENT_ROW_ORIGIN: CollectionRowOrigin = {
   locationId: 'erstatningsopgoerelse.loenindkomstAnsaettelsesforhold',
@@ -64,7 +64,7 @@ export function useLoenindkomstViewModel({ eoValues, stamdataValues }: Loenindko
   const { settings } = useAppSettings();
   const edit = useInputEditPort();
   // Ansættelsesforholdene bor på lønindkomst-fanen; destinationen følger rækkehandlingen, så en undo af
-  // tilføj/slet ansættelsesforhold navigerer tilbage hertil (§3.7).
+  // tilføj/slet ansættelsesforhold navigerer tilbage hertil (§2.7).
   const rows = useCollectionRows<Employment>(employmentCollection, EMPLOYMENT_ROW_ORIGIN);
   const employments = eoValues.loenindkomstAnsaettelsesforhold;
   const derived = React.useMemo(() => deriveLoenindkomstVm({
@@ -183,7 +183,7 @@ export function useLoenindkomstViewModel({ eoValues, stamdataValues }: Loenindko
       steps.push(inputTransactionStep(deleteRow(sfggCollection, deleteTargetId)));
     }
     // Transaktionen sletter i TO collections, men destinationen er den brugerudløste primære: tabellen over
-    // ansættelsesforhold. SFGG-rækken er en afledt konsekvens, ikke stedet brugeren handlede (§3.7).
+    // ansættelsesforhold. SFGG-rækken er en afledt konsekvens, ikke stedet brugeren handlede (§2.7).
     edit.dispatch(
       structuralInputTransaction(steps),
       buildRowHistoryOrigin(employmentCollection, EMPLOYMENT_ROW_ORIGIN)

@@ -15,7 +15,7 @@ type InvalidPath = UnknownPath;
  * men selve transformen er den samme for alle inbound-kilder.
  */
 export type InboundPersistedSectionResult<K extends PersistedSectionKey> = Readonly<{
-  /** Migrator-output (kontrakt-rækkefølge §3.1a: nullToUndefinedDeep → migrator). Bruges til tabsoptælling. */
+  /** Migrator-output (`schema-evolution.md` §3.1a: nullToUndefinedDeep → migrator). Bruges til tabsoptælling. */
   migratedValue: unknown;
   /** Strippede stier til ukendte felter (gemt data denne version ikke kender). */
   unknownPaths: readonly UnknownPath[];

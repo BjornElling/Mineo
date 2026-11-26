@@ -44,7 +44,7 @@ const SvieSmerteTable = React.memo(({ committedRows, derivedById, saveOrderPath,
     createRowId: createSvieRowId,
     createEmptyRow,
     locationPrefix: 'erstatningsopgoerelse.svieSmertePerioder',
-    // route + tabKey er eksplicit navigation-metadata (§3.7); svie/smerte-perioderne bor på EO-oplysningerfanen.
+    // route + tabKey er eksplicit navigation-metadata (§2.7); svie/smerte-perioderne bor på EO-oplysningerfanen.
     locationNav: { route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER },
   });
   const columns = React.useMemo(() => [

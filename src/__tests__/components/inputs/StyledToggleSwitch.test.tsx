@@ -35,8 +35,8 @@ function renderControlledToggle(
 
     return (
       <StyledToggleSwitch
-        // Navnet er obligatorisk. `withLabel` vælger nu mellem SYNLIG tekst og et rent
-        // accessibility-navn – ikke mellem navn og intet navn, som ikke længere er en mulig tilstand.
+        // Navnet er obligatorisk. `withLabel` vælger mellem SYNLIG tekst og et rent
+        // accessibility-navn – ikke mellem navn og intet navn, som ikke er en mulig tilstand.
         {...(withLabel ? { visibleLabel: 'Test toggle' } : { ariaLabel: 'Test toggle' })}
         checked={checked}
         disabled={disabled}

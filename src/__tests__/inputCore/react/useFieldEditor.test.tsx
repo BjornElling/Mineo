@@ -34,7 +34,7 @@ import {
 import { createTestCatalog, aargangField, testLocation } from '../testCatalog';
 import type { EditorLocation } from '../../../inputCore/editor/fieldEditorState';
 
-// Den fælles felt-editor (§2.3/§3.5, §7.1) mod syntetiske immutable issue-snapshots.
+// Den fælles felt-editor (input-architecture.md §2.5, §4.1) mod syntetiske immutable issue-snapshots.
 // Adapteren parser/persisterer/holder ingen fejlstate – den driver kun state-machinen + engine + runner.
 
 let catalog: InputCatalog;
@@ -96,7 +96,7 @@ const rejectedRaw = <T,>(field: FieldRef<T>): string | undefined =>
 
 const field = aargangField.bind();
 
-describe('useFieldEditor – §7.1 feltkontrakt (form-surface)', () => {
+describe('useFieldEditor – §4.1 feltkontrakt (form-surface)', () => {
   it('viser lukket canonical værdi fra revisionen', () => {
     dispatchInput(store, catalog, settleField(field, '2020'));
     const { result } = renderEditor(field);
@@ -292,7 +292,7 @@ describe('useFieldEditor – programmatisk settle af en leveret værdi (§1.3)',
     expect(registry.getEditing()).toBeNull();
   });
 
-  it('settleValue på en ÅBEN editor efter en autoritativ replacement settler ikke (§3.5)', () => {
+  it('settleValue på en ÅBEN editor efter en autoritativ replacement settler ikke (§2.5)', () => {
     dispatchInput(store, catalog, settleField(field, '2020'));
     const { result } = renderEditor(field);
     act(() => result.current.open());
@@ -400,7 +400,7 @@ describe('useFieldEditor – registrering + kritisk handling', () => {
     expect(result.current.isOpen).toBe(false);
   });
 
-  it('en autoritativ replacement på en nyere revision settler ikke draften (§3.5)', () => {
+  it('en autoritativ replacement på en nyere revision settler ikke draften (§2.5)', () => {
     dispatchInput(store, catalog, settleField(field, '2020'));
     const { result } = renderEditor(field);
     act(() => result.current.open());

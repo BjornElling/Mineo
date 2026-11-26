@@ -36,10 +36,9 @@ export const resolveAslAarsloensmaksimumForSkadedato = (
  * som resten af programmet. Den er valgfri, fordi flere kaldere kun har datoen; udelades den, bruges
  * «skadesår», som er reglens udgangspunkt.
  *
- * Beskeden er nu den, brugeren FAKTISK ser. Den var før uopnåelig, fordi feltet også havde et
- * generisk bounds-loft med samme grænse, og bounds-validatoren kørte først og vandt med «Værdi skal være
- * mellem 1000 og 551000». Det dublerede loft er fjernet fra descriptoren; denne besked er den ene, der
- * navngiver, hvor grænsen kommer fra.
+ * Beskeden er den, brugeren FAKTISK ser, og den ene, der navngiver, hvor grænsen kommer fra. Descriptoren
+ * må derfor ikke også have et generisk bounds-loft med samme grænse: bounds-validatoren kører først og
+ * ville vinde med «Værdi skal være mellem 1000 og 551000».
  */
 export const validateAslAarsloenBySkadesaarMax = (
   aarsloen: number | undefined,

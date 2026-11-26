@@ -26,7 +26,7 @@ type AllowedInputAttributes = Pick<
   | 'tabIndex'
 > & {
   'data-testid'?: string;
-  /** Undo/redo-restore-mål (§3.7): serialiseret feltadresse + editorlokations-id. */
+  /** Undo/redo-restore-mål (§2.7): serialiseret feltadresse + editorlokations-id. */
   'data-mineo-field-address'?: string;
   'data-mineo-editor-location-id'?: string;
 };
@@ -254,7 +254,7 @@ const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBase
       'aria-describedby': describedBy,
       // Feltidentiteten i DOM er restore-target-attributterne (serialiseret feltadresse + editorlokation),
       // som feltfamilien sender med gennem `htmlInputAttributes`. Basen udleder ingen egen identitet af
-      // `name`: én adressemodel, ikke en navnestreng ved siden af (§3.2).
+      // `name`: én adressemodel, ikke en navnestreng ved siden af (§2.2).
       onFocus: handleFocus,
       onBlur: handleBlur,
       onKeyDown: handleKeyDown,

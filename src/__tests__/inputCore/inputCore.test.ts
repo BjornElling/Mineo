@@ -61,7 +61,7 @@ const empty = (): SettledInput => catalog.validateSettledInput({
   rejectedInputs: {},
 });
 
-// Lille runtime-harness: anvend en mutation, valider, og skub history ved reel ændring (som Fase-2-runneren vil).
+// Lille runtime-harness: anvend en mutation, valider, og skub history ved reel ændring (som runtime-runneren).
 type State = Readonly<{ input: SettledInput; history: InputHistory }>;
 const start = (): State => {
   const input = empty();
@@ -341,7 +341,7 @@ describe('Automatisk rydning af tomme tabelrækker (§9)', () => {
   });
 });
 
-describe('Styrende valg: gyldigt bevares, skjult+rødt ryddes (§1.9, §3.6, §7.5)', () => {
+describe('Styrende valg: gyldigt bevares, skjult+rødt ryddes (§1.9, §2.6, form-contract §7.5)', () => {
   // §7.5's todelte regel. Hovedreglen: et valg er ikke en sletteknap – en GYLDIG værdi består, også når
   // valget skjuler feltet. Undtagelsen: bar feltet en aktiv RØD fejl, og skjuler valget det, ryddes feltet
   // tavst, fordi en rød fejl brugeren ikke kan SE, ikke kan rettes – og ellers kunne blokere `.eo`-save
@@ -425,7 +425,7 @@ describe('Styrende valg: gyldigt bevares, skjult+rødt ryddes (§1.9, §3.6, §7
   });
 });
 
-describe('Dynamiske tabeller (§1.11, §3.8, §7.4)', () => {
+describe('Dynamiske tabeller (§1.11, §2.8, §4.4)', () => {
   it('settleFieldInNewRow opretter række og fejlende felt atomisk; overlever som ét snapshot', () => {
     // 'abc' er format-rejected råtekst (kan ikke parses); det er dén repræsentation, rejectedInputs bærer (§1.6).
     const created = apply(start(), settleFieldInNewRow(rentekravRowsRef(), makeRow('r1'), tillaegstidField.bind('r1'), 'abc'));
@@ -453,7 +453,7 @@ describe('Dynamiske tabeller (§1.11, §3.8, §7.4)', () => {
   });
 });
 
-describe('Transaktionsinvarianter (§7.4)', () => {
+describe('Transaktionsinvarianter (§4.4)', () => {
   it('semantisk no-op giver ingen ny revision/history', () => {
     const once = apply(start(), settleField(aargangField.bind(), '2020'));
     const twice = apply(once, settleField(aargangField.bind(), '2020'));
@@ -482,7 +482,7 @@ describe('Transaktionsinvarianter (§7.4)', () => {
   });
 });
 
-describe('Reader skjuler aldrig andre rækkers/felters værdier unødigt (§1.10, §7.3)', () => {
+describe('Reader skjuler aldrig andre rækkers/felters værdier unødigt (§1.10, §4.3)', () => {
   const twoRows = (): State => {
     let state = apply(start(), insertRow(rentekravRowsRef(), makeRow('r1')));
     state = apply(state, insertRow(rentekravRowsRef(), makeRow('r2')));
@@ -519,7 +519,7 @@ describe('Reader skjuler aldrig andre rækkers/felters værdier unødigt (§1.10
   });
 });
 
-describe('Obligatorisk statekæde: gyldig A → ugyldig X → undo → redo (§7.2)', () => {
+describe('Obligatorisk statekæde: gyldig A → ugyldig X → undo → redo (§4.2)', () => {
   it('undo gendanner A; redo gendanner fejltilstanden uden A', () => {
     let state = apply(start(), settleField(aargangField.bind(), '2020'));
     state = apply(state, settleField(aargangField.bind(), 'abc'));
@@ -563,7 +563,7 @@ describe('Obligatorisk statekæde: gyldig A → ugyldig X → undo → redo (§7
   });
 });
 
-describe('Kildesnapshot og history-grænser (§3.4, §3.7)', () => {
+describe('Kildesnapshot og history-grænser (§2.4, §2.7)', () => {
   // Denne test dækker kun input-halvdelen: kernen
   // læser ikke længere settings, så der er intet settingssnapshot at fryse her. Bindingen mellem
   // input, issues og token er derimod fortsat en levende invariant og pinnes videre.
@@ -606,7 +606,7 @@ describe('Kildesnapshot og history-grænser (§3.4, §3.7)', () => {
   });
 });
 
-describe('Katalog valideres én gang ved konstruktion (§3.2)', () => {
+describe('Katalog valideres én gang ved konstruktion (§2.2)', () => {
   it('isolerer kataloget fra efterfølgende mutation af callerens arrays', () => {
     const fields = [...catalogFields(aargangField)];
     const isolatedCatalog = createInputCatalog({ fields, collections: [] });

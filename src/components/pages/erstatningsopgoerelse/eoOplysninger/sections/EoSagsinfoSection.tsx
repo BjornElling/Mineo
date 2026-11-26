@@ -29,7 +29,7 @@ import {
 } from '../../../../../domain/erstatningsopgoerelse/validation/forligOgStatusDatoEfterOpgoerelse';
 import { APP_ROUTES } from '../../../../../config/pageNavigation';
 import { EO_TAB_KEYS } from '../../../../../config/eoTabKeys';
-// route + tabKey på location er eksplicit navigation-metadata (§3.7); alle felter i denne sektion bor på EO-oplysningerfanen.
+// route + tabKey på location er eksplicit navigation-metadata (§2.7); alle felter i denne sektion bor på EO-oplysningerfanen.
 
 /** Sektion 1: Erstatningsopgørelse-info (nummer, periode, status, bekræftelse). */
 export default function EoSagsinfoSection() {

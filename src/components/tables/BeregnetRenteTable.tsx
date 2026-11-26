@@ -51,13 +51,13 @@ import type { AmountValue } from '../../schemas/amountExpressionSchema';
 
 // BeregnetRenteTable: Rækkeinfrastruktur, celleværdier og
 // celleredigering går nu udelukkende gennem inputCore, som StandardLoenTable:
-//  - `useCollectionRows(rentekravRowsCollection)` ejer rækkernes id'er + insert/delete/reorder (§3.8) – ingen
+//  - `useCollectionRows(rentekravRowsCollection)` ejer rækkernes id'er + insert/delete/reorder (§2.8) – ingen
 //    `useSliceRowDrafts`, draftkopi, fingerprint eller persistence-effect.
 //  - hver redigerbar celle er en `Grid*Cell`/`GridChoiceCell` over `useCellEditor`, bro-
 //    forbundet til grid-core-navigationen. En trailing PLACEHOLDER-række promoverer atomisk ved første ikke-tomme
 //    settle (§1.11).
 //  - de committede rækker + rente-resultater kommer fra den reader-afledte projektion (forælderen ejer den, så
-//    både tabellen og download-gaten deler præcis samme sandhed). Der er ingen konkurrerende celle-værdikopi (§3.8).
+//    både tabellen og download-gaten deler præcis samme sandhed). Der er ingen konkurrerende celle-værdikopi (§2.8).
 
 export type RentePdfContext = NonNullable<RentekravRowResult['pdfContext']>;
 export type RentekravPdfContextMap = ReadonlyMap<string, RentePdfContext>;

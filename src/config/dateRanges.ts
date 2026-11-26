@@ -85,7 +85,7 @@ interface UnconstrainedDateRange {
 /**
  * Union af alle dato-range typer
  *
- * Type-systemet sikrer nu at:
+ * Type-systemet sikrer at:
  * - 'DYNAMIC' altid har tilhørende fallback
  * - Statiske ranges ikke har unødvendige fallbacks
  * - Ingen afgrænsning er eksplicit modelleret

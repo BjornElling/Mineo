@@ -73,7 +73,7 @@ const OffentligeYdelserTable = React.memo(({
     createRowId: generateOffentligYdelseRowId,
     createEmptyRow,
     locationPrefix: 'erstatningsopgoerelse.offentligeYdelserRows',
-    // route + tabKey er eksplicit navigation-metadata (§3.7); tabellen bor på Offentlige ydelser-fanen.
+    // route + tabKey er eksplicit navigation-metadata (§2.7); tabellen bor på Offentlige ydelser-fanen.
     locationNav: { route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.OFFENTLIGE_YDELSER },
   });
   const columns = React.useMemo(() => [

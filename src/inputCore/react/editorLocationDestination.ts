@@ -3,7 +3,7 @@ import { isRestoreTargetVisible } from './historyTargetRestoreLoop';
 import { deserializeFieldAddress, type FieldAddress } from '../fieldAddress';
 import type { FieldAddressTemplate } from '../fieldDescriptor';
 
-// En MOUNTED fokusdestination ejes af editorlokationen, ikke af feltets dataadresse (§3.2). Før første mount
+// En MOUNTED fokusdestination ejes af editorlokationen, ikke af feltets dataadresse (§2.2). Før første mount
 // lever den prioriterede route/fane i inputkatalogets statiske, descriptor-keyede feltlokationskatalog.
 //
 // Den afløste model afbildede en feltadresse til route + fane gennem fem

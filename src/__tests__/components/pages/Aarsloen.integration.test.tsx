@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { hydrateSlimInputStoreForTest } from '../../../test/actSafeInputStore';
 //
-// Årsløn-siden (§2.4/§2.5). Integrationstest gennem den RIGTIGE side + den
+// Årsløn-siden. Integrationstest gennem den RIGTIGE side + den
 // ægte produktions-runtime (`ProductionInputRuntimeProvider` mod `slimInputStore`). Beviser den virkelige sti:
 // hydreret sag → reader-projektion → StandardLoenTable over grid-adapteren (afledte kolonner, valideringssummary,
 // række-infrastruktur) + beregningsprincip-blok, uden legacy `usePersistedForm`/`invalidDrafts`.
@@ -141,7 +141,7 @@ describe('Årsløn – siden og løntabellen over grid-adapteren', () => {
   });
 
   it('en committed satsprocent uden for 0–100 skjules af readeren og undertrykker et misvisende resultat (§1.6)', () => {
-    // En gammel .eo kan have en canonical sats > 100; den er nu en rød feltfejl → readeren skjuler værdien, og
+    // En gammel .eo kan have en canonical sats > 100; den er en rød feltfejl → readeren skjuler værdien, og
     // sammentællingen viser "—" i stedet for et misvisende tal (fatal-gate).
     hydrateAarsloen({
       loenperiode: 'maaned',

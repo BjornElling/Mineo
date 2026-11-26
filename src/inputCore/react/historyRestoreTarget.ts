@@ -5,12 +5,12 @@ import type { EditorLocation } from '../editor/fieldEditorState';
 import type { HistoryOrigin } from '../inputHistory';
 import { isRestoreTargetVisible, runHistoryTargetRestoreLoop } from './historyTargetRestoreLoop';
 
-// Undo/redo felt-fokus-restore (§3.7): efter en gennemført undo/redo re-targeteres fokus
-// til det felt/celle, ændringen kom fra. Selve værdi-/draft-gendannelsen sker gennem den restored revision (§3.5) –
+// Undo/redo felt-fokus-restore (§2.7): efter en gennemført undo/redo re-targeteres fokus
+// til det felt/celle, ændringen kom fra. Selve værdi-/draft-gendannelsen sker gennem den restored revision (§2.5) –
 // dette modul flytter KUN fokus (+ scroll + fokus-ring) via den DELTE `runHistoryTargetRestoreLoop`.
 //
 // Målet lokaliseres PRÆCIST via BÅDE feltadressen OG editorlokationen. Begge dele er nødvendige, fordi samme
-// datafelt kan redigeres flere steder (§3.2): fokus skal lande på den editor, der faktisk lavede ændringen –
+// datafelt kan redigeres flere steder (§2.2): fokus skal lande på den editor, der faktisk lavede ændringen –
 // ikke en vilkårlig spejling af samme felt. Adressen alene kan derfor ikke bære identiteten.
 //
 // Attributterne her er DEN ENE feltidentitet i DOM: undo/redo, save-blokeringens fokus og EO's fejllinks slår
@@ -20,7 +20,7 @@ import { isRestoreTargetVisible, runHistoryTargetRestoreLoop } from './historyTa
 export const FIELD_ADDRESS_ATTR = 'data-mineo-field-address';
 /** DOM-attribut for editorlokationens stabile id. Diskriminerer flere editorlokationer for samme felt. */
 export const EDITOR_LOCATION_ATTR = 'data-mineo-editor-location-id';
-/** DOM-attribut for editorlokationens EGEN route (§3.2). Sættes altid; `route` er påkrævet på lokationen. */
+/** DOM-attribut for editorlokationens EGEN route (§2.2). Sættes altid; `route` er påkrævet på lokationen. */
 export const EDITOR_ROUTE_ATTR = 'data-mineo-editor-route';
 /** DOM-attribut for editorlokationens EGEN fane. Tom streng når siden ikke har faner, eller lokationen ikke er navigerbar. */
 export const EDITOR_TAB_ATTR = 'data-mineo-editor-tab';
@@ -31,7 +31,7 @@ export const EDITOR_TAB_ATTR = 'data-mineo-editor-tab';
  * form-/grid-surfacen og spredes på det redigerbare `<input>`. Samlet ÉT sted, så surface og opslag ikke kan
  * drifte fra hinanden.
  *
- * Destinationen står HER – på den konkrete editor – og ikke i et globalt feltadresse→fane-kort (§3.2). Feltets
+ * Destinationen står HER – på den konkrete editor – og ikke i et globalt feltadresse→fane-kort (§2.2). Feltets
  * dataadresse er dataidentitet og DOM-matchnøgle; hvor feltet REDIGERES, ved kun editorlokationen. Et felt kan
  * redigeres på flere sider (fx `faellesAarsloen`, forligsfelterne), og en global afbildning måtte da kompensere
  * med særregler for brugerens aktuelle route og dermed skabe en parallel destinationsmodel.

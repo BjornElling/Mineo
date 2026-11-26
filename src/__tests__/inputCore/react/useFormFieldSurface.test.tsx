@@ -27,7 +27,7 @@ import {
 import { createTestCatalog, aargangField, testLocation } from '../testCatalog';
 import { CONFIRMATION_DIALOG_FOCUS_MARKER } from '../../../inputCore/react/modalFocusTransfer';
 
-// UI-mekanik-laget (§2.4/§3.5, §7.1) mod syntetiske issue-snapshots. Surface-hooken oversætter kun
+// UI-mekanik-laget (input-architecture.md §2.5, §4.1) mod syntetiske issue-snapshots. Surface-hooken oversætter kun
 // DOM-events → editor-controller; den parser/persisterer/holder ingen fejlstate.
 
 let catalog: InputCatalog;
@@ -134,7 +134,7 @@ const pasteEvent = (raw: string): React.ClipboardEvent<HTMLInputElement> => ({
   stopPropagation: () => undefined,
 }) as unknown as React.ClipboardEvent<HTMLInputElement>;
 
-describe('useFormFieldSurface – §7.1 aktivering + settle', () => {
+describe('useFormFieldSurface – §4.1 aktivering + settle', () => {
   it('lukket felt er readOnly og viser canonical fra revisionen', () => {
     dispatchInput(store, catalog, settleField(field, '2020'));
     const { result } = renderSurface(field);

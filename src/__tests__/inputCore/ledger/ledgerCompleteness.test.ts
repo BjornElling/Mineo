@@ -99,7 +99,7 @@ describe('de persisterede schemas er gennemsigtige for den maskinelle udledning'
   });
 });
 
-describe('feltledgerens coverage-register (§6.1)', () => {
+describe('feltledgerens coverage-register (§3.1)', () => {
   it('top-level codec-annotationer matcher nøjagtig de top-level datafelter i de levende schemas', () => {
     for (const section of sections) {
       const derivedTopLevel = sortSet(deriveSectionDataFieldPaths(section).filter((path) => !path.includes('[]')));
@@ -174,7 +174,7 @@ describe('feltledgerens coverage-register (§6.1)', () => {
   });
 });
 
-describe('collectionledgerens coverage-register (§6.2)', () => {
+describe('collectionledgerens coverage-register (§3.2)', () => {
   it('dækker nøjagtig de collections, de levende schemas producerer', () => {
     for (const section of sections) {
       const derived = sortSet(deriveSectionCollectionPaths(section));
@@ -222,8 +222,8 @@ describe('collectionledgerens coverage-register (§6.2)', () => {
   });
 });
 
-describe('consumerledgerens coverage-register (§6.3)', () => {
-  it('afspejler nøjagtig det maskinlåste fase-0-inventar (8 beregninger / 4 sagsfiler / 18 dokumenter)', () => {
+describe('consumerledgerens coverage-register (§3.3)', () => {
+  it('afspejler nøjagtig consumer-inventaret (8 beregninger / 4 sagsfiler / 18 dokumenter)', () => {
     const byType = (type: string) => INPUT_CONSUMER_LEDGER.filter((entry) => entry.type === type);
     expect(byType('beregning')).toHaveLength(EXPECTED_BEREGNING_COUNT);
     expect(byType('casefile')).toHaveLength(EXPECTED_CASEFILE_COUNT);

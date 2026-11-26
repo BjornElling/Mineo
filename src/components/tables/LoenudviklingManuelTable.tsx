@@ -52,7 +52,7 @@ export type LoenudviklingManuelTableProps = Readonly<{
   useSmallFont?: boolean;
   locationPrefix: string;
   /**
-   * route + tabKey er eksplicit navigation-metadata (§3.7). Tabellen renderes i to fane-kontekster
+   * route + tabKey er eksplicit navigation-metadata (§2.7). Tabellen renderes i to fane-kontekster
    * (Lønindkomst under et ansættelsesforhold og EO-oplysninger under "Indtægt før skaden"), så
    * kalderen leverer den korrekte fane – den kan ikke udledes af `locationPrefix`.
    */

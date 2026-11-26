@@ -254,7 +254,7 @@ describe('erstatningsopgørelse → Word-indhold', () => {
   // Ende-til-ende-paritet (led 3, punkt 14): binder KL-lønaftaler-formen fra input → snapshot/model
   // → færdigt Word-produkt, og bekræfter at den kæde-opregulerede løn (segmentets autoritative
   // reguleretLoenOre) når IDENTISK ud i BÅDE Forventet indkomst-linjen (opgoerelse-sektionen) OG
-  // Beregnet regulering-tabellen (regulering-bilaget). Begge forbrugere læser nu samme kilde (U8),
+  // Beregnet regulering-tabellen (regulering-bilaget). Begge forbrugere læser samme kilde,
   // så et tabt/forvansket nedstrøms-led ville få mindst én af værdierne til at forsvinde.
   it('KL-lønaftaler: reguleret løn er identisk i Forventet indkomst og Beregnet regulering (paritet)', async () => {
     const stamdata: StamdataValues = {

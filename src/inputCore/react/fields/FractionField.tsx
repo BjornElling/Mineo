@@ -6,7 +6,7 @@ import type { EditorLocation } from '../../editor/fieldEditorState';
 import NumericTextField from './NumericTextField';
 import { resolveFractionCharPolicy } from './charLengthPolicy';
 
-// Brøk-felt (§2.4/§3.5): familie-skal over `NumericTextField` med brøk-tegnfilteret
+// Brøk-felt (§2.5): familie-skal over `NumericTextField` med brøk-tegnfilteret
 // ("tæller/nævner"). Parse/format/normalisering ejes af descriptorens brøk-codec. Komponenten modtager kun sin
 // `field`/`location`, rendering-props og en valgfri ekstern tværfeltfejl (forlig "begge udfyldt").
 

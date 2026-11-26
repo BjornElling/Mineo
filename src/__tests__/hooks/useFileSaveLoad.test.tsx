@@ -18,7 +18,7 @@ import { FileHandleAccessError } from '../../utils/fileSystemAccess';
 //  - "ugyldige felter blokerer save" → et REJECTED format-råinput settles på et rigtigt felt.
 //  - "åbent felt kan ikke committes" → en åben editor i `activeEditorRegistry`, hvis settle KASTER
 //    (fail-closed `blocked`, §1.4). Bemærk: åben editor blokerer KUN save/navigate – load er
-//    `replace`-policy og settler/blokeres ALDRIG (§1.4), så "hent"-testen hævder nu det modsatte.
+//    `replace`-policy og settler/blokeres ALDRIG (§1.4), så "hent"-testen hævder, at load gennemføres.
 //  - Load-apply er delt i to mockede halvdele: den SYNKRONE
 //    `applyAuthoritativeLoadSnapshot` (kalder den injicerede `applySnapshot`, så den ægte `replaceCase` kører og
 //    hæver `replacementGeneration` – coordinatorens apply-guard, §7) og den asynkrone `synchronizeLoadMetadata`.

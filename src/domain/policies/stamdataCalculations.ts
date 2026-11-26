@@ -50,7 +50,7 @@ export const SKADESTYPE_DATO_LABEL_DEFAULT: SkadestypeDatoLabel = 'Skadedato';
  *   - "Skadedato"       (uden s) – ved Arbejdsulykke og ukendt skadestype
  *   - "Anmeldelsesdato" (med s)  – ved Erhvervssygdom
  *
- * Reglen er feltets `contextualLabel` (§3.2a) og forbruges derigennem af BÅDE den synlige label og enhver
+ * Reglen er feltets `contextualLabel` (§2.2) og forbruges derigennem af BÅDE den synlige label og enhver
  * besked om feltet. Skriv den aldrig som en inline ternary: gjorde fire kaldssteder det tidligere, og et
  * felt, der hed «Anmeldelsesdato» på skærmen, bad brugeren rette «Skadedato».
  */

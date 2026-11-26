@@ -38,7 +38,7 @@ const YEAR_ADMISSION = yearAdmission();
 const WEEK_ADMISSION = weekAdmission();
 const DATE_ADMISSION = dateLikeAdmission();
 
-// Grid-celle-familier (§2.5/§3.5): tynde skaller over `GridTextCell`. Hver vælger kun sit
+// Grid-celle-familier (§2.5): tynde skaller over `GridTextCell`. Hver vælger kun sit
 // tegn-/længdeprædikat + adornment + justering; parse/format/paste og commit-intervaller ejes af descriptorens codec
 // og feltvalidatorer.
 
@@ -195,8 +195,8 @@ export const GridIntegerCell = <T extends string | number | undefined>(
 /**
  * År-celle (col1_maaned): formen `åååå` ejes af feltfamilien, ikke af tabellen.
  *
- * Loftet var her DATO-konstanten (16 tegn), mens formularens `YearField` brugte 4. Begge læser nu det
- * cifferloft, års-codecet selv erklærer.
+ * Cellen og formularens `YearField` læser begge det cifferloft, års-codecet selv erklærer – ikke en
+ * tabel-lokal konstant.
  */
 export const GridYearCell = (
   { gridCell, cell, placeholder = YEAR_FORMAT_PLACEHOLDER, collectionRuleIssue, warning, inputRef }:

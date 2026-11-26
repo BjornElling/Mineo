@@ -10,7 +10,7 @@ import type { StandardLoenTableFieldSet } from '../standardLoen/standardLoenTabl
 // Modulet leverer KUN den nested `collection` – som selv bærer ansættelsesforholdets entity-id – plus de rå
 // celle-descriptorer. Descriptorerne er BEVIDST ubundne: bindingen sker ét sted, i den fælles
 // den rene `bindCollectionCell`-primitive, som editorens `buildCollectionCellSpec` også bruger og som udleder
-// ejer-id'erne af `collection.path` (§3.2).
+// ejer-id'erne af `collection.path` (input-architecture.md §2.2).
 // Derfor kan et feltsæt ikke glemme ejeren, og en celles adresse er altid `field.bind(employmentId, rowId)`.
 //
 // Rekonstruktion og cellefejl-indsamling er generiske over feltsættet og deles med Årsløn – den eneste

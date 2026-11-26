@@ -15,8 +15,8 @@ import {
 } from './dispatchInput';
 
 // Den ENE autoritative store rummer KUN afsluttet input, den monotone revision, history,
-// settingsrevisionen og nødvendig hydration-/systemstatus (§3.7/§4.2). Afledte issues, gates og åbne
-// drafts hører ikke til her (§3.1).
+// settingsrevisionen og nødvendig hydration-/systemstatus (§2.7). Afledte issues, gates og åbne
+// drafts hører ikke til her (§2.1).
 //
 // **Skrivegrænsen er STRUKTUREL, ikke bevogtet.** Zustands `StoreApi` forlader aldrig dette
 // modul: `setState`/`replace` findes ikke på den eksporterede type. Et nyt modul, der importerer storen, kan
@@ -124,7 +124,7 @@ const createSlimInputStore = (): SlimInputStore => {
   return handle;
 };
 
-/** Applikations-singleton. Begge app-entrypoints hydrerer den samme runtime før render (§3.10). */
+/** Applikations-singleton. Begge app-entrypoints hydrerer den samme runtime før render (§2.10). */
 export const slimInputStore = createSlimInputStore();
 
 /**

@@ -11,9 +11,9 @@ import {
 } from './useFieldEditor';
 import type { EditorFocusTarget } from '../runtime/activeEditorRegistry';
 
-// React-laget (§2.5 trin 1 / §3.5): celleeditoren for en grid-celle. En celle er blot et persisteret felt
+// React-laget (§2.5): celleeditoren for en grid-celle. En celle er blot et persisteret felt
 // bundet til sin rækkes entity-id – så en EKSISTERENDE-række-celle er 1:1 `useFieldEditor` uden nogen særregler
-// (samme motor, §7.1). Det eneste grid-specifikke er PLACEHOLDER-promotion (§1.11): en tom, endnu ikke oprettet
+// (samme motor, §4.1). Det eneste grid-specifikke er PLACEHOLDER-promotion (§1.11): en tom, endnu ikke oprettet
 // række, hvis første ikke-tomme settle atomisk skal oprette rækken via `settleFieldInNewRow`. Det udtrykkes som
 // en ren settle-override på den samme editor – ikke en anden editor og ikke en konkurrerende celle-værdikopi.
 
@@ -33,7 +33,7 @@ export type ExistingRowCell<T> = Readonly<{
  * `field` er bundet af KALDEREN – ikke af denne hook. Kun den collection-/tabelgrænse, cellen bor i, kender hele
  * ejerstien: en nested collection (fx EO's løntabel under ét ansættelsesforhold) kræver BÅDE ejerens og rækkens
  * entity-id. Ville hooken selv binde ud fra ét `entityId`, ville en placeholder i en nested collection
- * uundgåeligt få en adresse med for få entity-led (§3.2), og `settleFieldInNewRow`-reducerens
+ * uundgåeligt få en adresse med for få entity-led (§2.2), og `settleFieldInNewRow`-reducerens
  * "feltet tilhører ikke den nye række"-guard ville – i bedste fald – fange det først under brugerhandlingen.
  * Derfor er `FieldRef` den ene cellegrænse for BEGGE cellearter.
  */
@@ -52,7 +52,7 @@ export type PlaceholderCell<T, TEntity> = Readonly<{
 export type CellSpec<T, TEntity = unknown> = ExistingRowCell<T> | PlaceholderCell<T, TEntity>;
 
 /**
- * Den fælles grid-celleeditor. Returnerer den samme controller som et formularfelt (§7.1 – identisk kontrakt),
+ * Den fælles grid-celleeditor. Returnerer den samme controller som et formularfelt (§4.1 – identisk kontrakt),
  * så form- og grid-surfacen kan dele UI-mekanikken i `useFormFieldSurface`.
  *
  * BEGGE cellearter bærer `field`: den fuldt bundne cellereference. For en placeholder er det referencen for den

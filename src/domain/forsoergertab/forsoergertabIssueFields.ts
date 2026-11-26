@@ -31,7 +31,7 @@ import type { EetIssue } from '../erhvervsevnetab/eetTypes';
  * Feltets brugervendte navn i den aktuelle kontekst – i praksis `InputReader.labelOf`.
  *
  * Kataloget slår navnet op frem for at bygge det selv, fordi et felt kan have en kontekstuel label
- * (§3.2a): `stamdata.skadedato` hedder «Anmeldelsesdato» ved en erhvervssygdom, og kun kalderen har den
+ * (§2.2): `stamdata.skadedato` hedder «Anmeldelsesdato» ved en erhvervssygdom, og kun kalderen har den
  * canonical view, det navn kræver.
  */
 export type ForsoergertabFieldLabelResolver = <T>(field: FieldRef<T>) => string;

@@ -88,7 +88,7 @@ const requireReadyAggregate = <TInput>(
           ? source.projection.aggregateProjection.issues
           : undefined,
         // Fallbacken bruges kun ved en TOM issue-liste; ellers udleder klassifikationen klassen af
-        // aggregat-projektionens egne issues (§3.1), som her altid er røde feltissues (kun `optional`-reads).
+        // aggregat-projektionens egne issues (§2.1), som her altid er røde feltissues (kun `optional`-reads).
         'Fejl i indtastning'
       ),
     };
@@ -166,8 +166,8 @@ export const standaloneRenteDocumentDefinition: StandaloneDocumentDefinition<
     };
   },
   /**
-   * Datoerne gives videre CANONICAL: begge rente-generatorer tager nu `ISODateString`, så
-   * konverteringen til dansk format – og dens fail-closed-guard – er faldet væk her.
+   * Datoerne gives videre CANONICAL: begge rente-generatorer tager `ISODateString`, så her er ingen
+   * konvertering til dansk format.
    */
   loadRenderer: async () => {
     const { generateRenteDocument } = await import('../../../document/generators/renteberegning/renteDocument');

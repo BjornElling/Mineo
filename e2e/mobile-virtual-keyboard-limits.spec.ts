@@ -95,7 +95,7 @@ test.describe('indtastning uden brugbar keydown (skærmtastatur)', () => {
     await typeLikeMobileKeyboard(cellDate, '21--------11--------2026');
     await expect(cellDate).toHaveValue('21-11-2026');
 
-    // Kun én editor må være åben ad gangen (§3.5) – luk datocellen, før beløbscellen åbnes.
+    // Kun én editor må være åben ad gangen (input-architecture.md §2.5) – luk datocellen, før beløbscellen åbnes.
     await cellDate.press('Escape');
     await expect(cellDate).toHaveAttribute('readonly', '');
 

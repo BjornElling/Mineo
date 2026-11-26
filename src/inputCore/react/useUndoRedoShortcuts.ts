@@ -4,12 +4,12 @@ import { useCriticalInputActions } from './useInputEvaluation';
 import { hasOpenOverlay } from '../../components/ui/overlayBehavior';
 import type { HistoryOrigin } from '../inputHistory';
 
-// Global undo/redo-genvej (§1.4/§3.6): Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z, Ctrl/Cmd+Y mod den ene
+// Global undo/redo-genvej (§1.4/§2.6): Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z, Ctrl/Cmd+Y mod den ene
 // write-grænses history. Mens en editor er åben er genvejen et stille no-op (§1.4): coordinatorens `prepare`
 // returnerer `noop`, og history røres ikke.
 //
 // Efter en GENNEMFØRT undo/redo returnerer `runtime.history.undo/redo` et `DispatchInputResult`, hvis
-// `.restoredOrigin` er sat, når det gendannede frame bar en origin (§3.7). Shellen leverer `onRestore`, der da
+// `.restoredOrigin` er sat, når det gendannede frame bar en origin (§2.7). Shellen leverer `onRestore`, der da
 // navigerer til origin-lokationens route/fane og re-fokuserer feltet. En no-op eller fejlende restore surfacer
 // ALDRIG en origin (dispatchInput/commitCandidate garanterer det), så `onRestore` kaldes aldrig for en tom restore.
 
@@ -67,7 +67,7 @@ export const useUndoRedoShortcuts = (
         // Vejen er stadig nået, hvis en editor åbnes i vinduet mellem prøven ovenfor og dette svar.
         if (preparation.status !== 'committed') return;
         const result = isUndo ? history.undo() : history.redo();
-        // Kun sat efter en gennemført restore med en origin (§3.7) → naviger/fokusér. Tom/fejlende restore: intet.
+        // Kun sat efter en gennemført restore med en origin (§2.7) → naviger/fokusér. Tom/fejlende restore: intet.
         if (result.restoredOrigin !== undefined) {
           onRestoreRef.current?.(result.restoredOrigin);
         }

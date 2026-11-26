@@ -24,7 +24,7 @@ import {
 import { toISODateString } from '../../../types/branded';
 import type { ErstatningsopgoerelseValues, OevrigeKravRow, StamdataValues } from '../../../schemas/formSchemas';
 
-// Øvrige krav-tabel (§2.5 trin 9): render-røgtest gennem den ægte produktions-runtime + en ren
+// Øvrige krav-tabel: render-røgtest gennem den ægte produktions-runtime + en ren
 // validator-test af descriptorens dato-bounds (§1.6).
 
 const catalog = getProductionInputCatalog();

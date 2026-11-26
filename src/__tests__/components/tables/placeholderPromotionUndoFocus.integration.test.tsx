@@ -29,7 +29,7 @@ import type { RentekravRow } from '../../../schemas/formSchemas/sections/rentebe
 import type { TillaegstidEnhed } from '../../../schemas/formSchemas/enumSchemas';
 
 /**
- * DEN FÆLLES KONTRAKT for placeholder-promotion → undo → fokus (§1.11, §3.7).
+ * DEN FÆLLES KONTRAKT for placeholder-promotion → undo → fokus (§1.11, §2.7).
  *
  * Ingen eksisterende test krydsede hele kæden. `dispatchInput.test.ts` hedder "undo fokuserer den skrevne
  * celle", men hævder kun at `restoredOrigin` returneres uændret; `historyRestoreTarget` tester det eksakte

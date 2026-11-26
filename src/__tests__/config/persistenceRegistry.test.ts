@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { createRenteberegningInitialValues } from '../../domain/renteberegning/renteberegningInitialValues';
 
 /**
- * Den forventede sektionsmængde er skrevet UD i fuld længde med vilje. Registry'et er nu den ENE
+ * Den forventede sektionsmængde er skrevet UD i fuld længde med vilje. Registry'et er den ENE
  * kilde til hvilke persisterede sektioner der findes (`.eo`-load itererer den, og `PersistedSectionKey`
  * udledes af den), så en test der blot sammenlignede registry'et med sig selv ville være vakuøs.
  * En sektion, der forsvinder herfra, ville ellers tavst blive sprunget over ved load – dvs. datatab.

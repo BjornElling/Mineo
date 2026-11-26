@@ -4,7 +4,7 @@ import {
 } from '../../../inputCore/react/placeholderSlots';
 
 /**
- * Placeholder-identitetens LIVSCYKLUS (§1.11, §3.7).
+ * Placeholder-identitetens LIVSCYKLUS (§1.11, §2.7).
  *
  * Den afgørende invariant er ikke "genbrug id'er hvis muligt", men: de synlige placeholder-id'er er en REN
  * FUNKTION af de aktuelt committede rækker. Undo/redo er en tidsmaskine over inputtet, så den samme committede

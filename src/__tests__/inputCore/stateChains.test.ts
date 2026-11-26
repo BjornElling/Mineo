@@ -1,8 +1,8 @@
 /**
- * §7.2's OTTE obligatoriske statekæder som én datadrevet matrix.
+ * §4.2's OTTE obligatoriske statekæder som én datadrevet matrix.
  *
  * **Krav.** Hver af de otte kæder er et komplet forløb med undo/redo – også kæderne med tom værdi,
- * bounds-fejl, skjult gyldig værdi og skjult fejl – og §7.2 kræver, at *hvert trin* hævder alle ni aspekter,
+ * bounds-fejl, skjult gyldig værdi og skjult fejl – og §4.2 kræver, at *hvert trin* hævder alle ni aspekter,
  * ikke kun canonical/rejected.
  *
  * **Hvorfor en matrix og ikke otte håndskrevne tests.** Fejlen, kæderne findes for at fange, opstår i
@@ -12,7 +12,7 @@
  * efter hvert trin og sammenligner med den forventede tilstand – så et aspekt, ingen tænkte på, ikke kan
  * falde ud. Tilføjes et tiende aspekt, kommer det med i alle otte kæder på én gang.
  *
- * **De ni aspekter** (§7.2, ordret): current canonical slot, rejected råtekst, visning, feltissue,
+ * **De ni aspekter** (§4.2, ordret): current canonical slot, rejected råtekst, visning, feltissue,
  * consumerstatus, `.eo`-gate, dokumentgate, revision og history.
  *
  * `visning` måles som `formatSettledFieldText` – feltets egen visningsudledning, altså det brugeren SER –
@@ -86,7 +86,7 @@ const apply = <TField, TEntity>(state: State, command: InputMutationCommand<TFie
   };
 };
 
-/** Undo/redo skaber en NY revision (§10-kriterium 21) og flytter et frame mellem past og future. */
+/** Undo/redo skaber en NY revision (§5 kriterium 21) og flytter et frame mellem past og future. */
 const undo = (state: State): State => {
   const transition = undoInputHistory(state.history, state.input);
   if (!transition.changed) return state;
@@ -112,7 +112,7 @@ const redo = (state: State): State => {
 // ─────────────────────────────────────────────────────────────────────────────────────────────────
 
 /**
- * Alle ni §7.2-aspekter for ÉT felt i ÉN tilstand.
+ * Alle ni §4.2-aspekter for ÉT felt i ÉN tilstand.
  *
  * `revision`/`historyDepth` er relative tal, fordi de er MONOTONI-påstande, ikke absolutte værdier: en
  * kæde skal kunne indsættes med et andet antal opsætningstrin foran uden at hvert forventet tal skal
@@ -234,7 +234,7 @@ type Step = Readonly<{ label: string; run: (state: State) => State; expected: As
  * type-udslettede i sammenligningen.
  */
 type Chain = Readonly<{
-  /** Kædens navn ORDRET fra §7.2, så matricen ikke kan drifte fra sin kilde. */
+  /** Kædens navn ORDRET fra §4.2, så matricen ikke kan drifte fra sin kilde. */
   name: string;
   field: () => ErasedFieldRef;
   dependsOn?: () => readonly ErasedFieldRef[];
@@ -291,7 +291,7 @@ const CHAINS: readonly Chain[] = [
       {
         label: 'ugyldig X',
         run: (state) => apply(state, settleField(aargangField.bind(), 'abc')),
-        // A er VÆK fra current state (§10-kriterium 2), råteksten er der, og `.eo` blokerer på rejected.
+        // A er VÆK fra current state (§5 kriterium 2), råteksten er der, og `.eo` blokerer på rejected.
         expected: aspects(undefined, 'abc', 'abc', 'format', 'save-blokeret', 3, 2, 0),
       },
       {
@@ -359,8 +359,8 @@ const CHAINS: readonly Chain[] = [
     setup: () => apply(start(), settleField(aargangField.bind(), '2020')),
     steps: [
       {
-        // Tomhed giver INGEN rød feltfejl og blokerer IKKE `.eo` (§10-kriterium 11) – men en consumer,
-        // der KRÆVER feltet, får en missing-consumerfejl (§10-kriterium 12). De to ben er forskellige,
+        // Tomhed giver INGEN rød feltfejl og blokerer IKKE `.eo` (§5 kriterium 11) – men en consumer,
+        // der KRÆVER feltet, får en missing-consumerfejl (§5 kriterium 12). De to ben er forskellige,
         // og netop den sondring er det, aspekterne skiller.
         label: 'tom',
         run: (state) => apply(state, clearField(aargangField.bind())),
@@ -385,7 +385,7 @@ const CHAINS: readonly Chain[] = [
     steps: [
       {
         // Bounds er §1.6's ANDEN repræsentation: værdien BLIVER canonical, issuet er rødt, consumeren
-        // blokeres – men `.eo` kan gemmes (§10-kriterium 10). Visningen viser den canonical værdi, ikke
+        // blokeres – men `.eo` kan gemmes (§5 kriterium 10). Visningen viser den canonical værdi, ikke
         // en råtekst, fordi codec'et accepterede den.
         label: 'bounds-fejl B',
         run: (state) => apply(state, settleField(beregningsdatoField.bind(), '01-01-1999')),
@@ -411,7 +411,7 @@ const CHAINS: readonly Chain[] = [
     steps: [
       {
         /**
-         * `enhed = 'uger'` gør tillaegstid irrelevant. Værdien BEVARES (§5-kriterium 14):
+         * `enhed = 'uger'` gør tillaegstid irrelevant. Værdien BEVARES (§5 kriterium 14):
          * canonical, visning og fravær af issue står UÆNDRET på tværs af skjulningen.
          *
          * **Consumerstatus er bevidst `blocked` her.** Readeren udleverer tomværdien for et irrelevant
@@ -456,7 +456,7 @@ const CHAINS: readonly Chain[] = [
       },
       {
         /*
-         * Skjules feltet, RYDDES den fejlende værdi atomisk med det styrende valg (§5-kriterium 14, §7.5
+         * Skjules feltet, RYDDES den fejlende værdi atomisk med det styrende valg (§5 kriterium 14, §7.5
          * pkt. 2) – modsat den GYLDIGE værdi i kæden ovenfor, som bevares. Forskellen er hele reglen: en
          * rød fejl, brugeren ikke kan SE, kan ikke rettes og må derfor ikke blive stående og blokere.
          *
@@ -492,12 +492,12 @@ const CHAINS: readonly Chain[] = [
         expected: aspects(undefined, 'abc', 'abc', 'format', 'save-blokeret', 3, 1, 0),
       },
       {
-        // Row-delete fjerner rækkens rejected descendants ATOMISK (§10-kriterium 19): `.eo` kan gemmes
+        // Row-delete fjerner rækkens rejected descendants ATOMISK (§5 kriterium 19): `.eo` kan gemmes
         // igen, fordi den rå tekst gik med rækken. Adressen findes ikke længere – se `DELETED_ADDRESS`.
         label: 'slet række',
         run: (state) => {
           // `reduceInputCommand` er den rene reducer og tager ingen origin; origin er dispatch-portens
-          // krav (§3.7) og måles i `commandInvariants.test.ts`. Kæderne måler tilstandsovergangen.
+          // krav (§2.7) og måles i `commandInvariants.test.ts`. Kæderne måler tilstandsovergangen.
           const result = reduceInputCommand(
             state.input,
             deleteRow(rentekravRowsRef(), ROW),
@@ -531,8 +531,8 @@ const CHAINS: readonly Chain[] = [
 ];
 
 /**
- * §7.2's kædeliste, ORDRET fra designet. Uden denne binding kunne en kæde blive omdøbt eller falde ud af
- * matricen uden at nogen kontrol blev rød – samme fejlklasse som acceptregistrets §10-binding.
+ * §4.2's kædeliste, ORDRET fra designet. Uden denne binding kunne en kæde blive omdøbt eller falde ud af
+ * matricen uden at nogen kontrol blev rød – samme fejlklasse som acceptregistrets §5-binding.
  */
 const NORMATIVE_CHAIN_NAMES: readonly string[] = [
   'gyldig A → ugyldig X → undo → redo',
@@ -545,7 +545,7 @@ const NORMATIVE_CHAIN_NAMES: readonly string[] = [
   'række med fejl → slet række → undo → redo',
 ];
 
-describe('Obligatoriske statekæder (§7.2) – alle otte, alle ni aspekter pr. trin', () => {
+describe('Obligatoriske statekæder (§4.2) – alle otte, alle ni aspekter pr. trin', () => {
   it('matricen dækker præcis designets otte kæder', () => {
     expect(CHAINS.map((chain) => chain.name)).toEqual(NORMATIVE_CHAIN_NAMES);
   });
@@ -554,11 +554,11 @@ describe('Obligatoriske statekæder (§7.2) – alle otte, alle ni aspekter pr. 
     /**
      * **Hvorfor kædenavnet står i en `describe` og ikke i leaf-testens navn.**
      *
-     * §10-acceptregistret citerer udelukkende LEAF-tests som evidens, og et dynamisk leaf-navn
+     * §5-acceptregistret citerer udelukkende LEAF-tests som evidens, og et dynamisk leaf-navn
      * (`it(chain.name + …)`) kan pr. konstruktion ikke citeres: registrets AST-parser ser kun statiske
      * navnedele, og en interpolation er en per-case-værdi, ingen registerpost kan kende. Kædenavnene er
      * derfor bundet et STÆRKERE sted end et testnavn – i `NORMATIVE_CHAIN_NAMES`, som
-     * completeness-testen nedenfor sammenligner ordret med designets §7.2-liste. Forsvinder en kæde,
+     * completeness-testen nedenfor sammenligner ordret med designets §4.2-liste. Forsvinder en kæde,
      * bliver den test rød med kædens navn; et testnavn ville blot være forsvundet.
      *
      * Registret citerer den ene faste leaf-test, som bærer ALLE otte kæders assertioner.

@@ -10,7 +10,7 @@ import { mergeSx } from '../../../utils/mergeSx';
 import { useFieldLabel } from '../useFieldLabel';
 import { resolveTextCharPolicy } from './charLengthPolicy';
 
-// Flerlinjet tekst-felt (§2.4/§3.5): en TYND skal over `useFormFieldSurface` + `StyledTextAreaBase`.
+// Flerlinjet tekst-felt (§2.5): en TYND skal over `useFormFieldSurface` + `StyledTextAreaBase`.
 // Grid-pendanten til `TextField`, men med en <textarea>. Modtager KUN sin `field`/`location`; al
 // datamodellogik ligger i codec'et, editor-engine og runner.
 
@@ -31,8 +31,9 @@ export type MultilineTextFieldProps = Readonly<{
 const MultilineTextField = React.forwardRef<HTMLDivElement, MultilineTextFieldProps>(
   ({ field, location, width, name, placeholder, disabled, rows, singleStageClick = false, sx, inputRef }, ref) => {
     const accessibleName = useFieldLabel(field);
-    // Længden er erklæret på codec'en (§2.5/§3.4) og håndhæves både som `maxLength` på <textarea>
-    // (tastning) og gennem surfacens paste-splice, hvor elementets eget loft ikke virker (§1.2a).
+    // Længden er erklæret på codec'en (input-field-behavior-contract.md §2.5/§3.4) og håndhæves både som
+    // `maxLength` på <textarea> (tastning) og gennem surfacens paste-splice, hvor elementets eget loft ikke
+    // virker (samme kontrakts §1.2a).
     const { maxLength } = resolveTextCharPolicy(field);
     const surface = useFormFieldSurface(field, location, {
       disabled,

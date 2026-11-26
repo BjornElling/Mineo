@@ -15,7 +15,7 @@ export type RenderRow = CollectionRenderRow;
 /**
  * Fælles række-/placeholderbinding for dynamiske tabeller. Hooken holder kun UI-identiteten for den tomme
  * placeholder; alle eksisterende række-id'er og celleværdier kommer fra inputaggregatet. Cellernes dataidentitet
- * bygges af den fælles `buildCollectionCellSpec` (§3.2), som selv udleder ejer-id'erne af collectionens sti – så
+ * bygges af den fælles `buildCollectionCellSpec` (§2.2), som selv udleder ejer-id'erne af collectionens sti – så
  * en nested tabel ikke kan binde med for få entity-led.
  *
  * Render-modellen har ÉN konstruktion: `buildRenderRows(displayRows)` – de viste rækker i den orden,
@@ -56,12 +56,12 @@ export const useCollectionTable = <TRow extends Readonly<{ id: string }>>({
    */
   minimumVisibleRows?: number;
   /**
-   * Eksplicit navigation-metadata for cellernes editorlokationer (§3.7): route + fane for den side/fane, tabellen
+   * Eksplicit navigation-metadata for cellernes editorlokationer (§2.7): route + fane for den side/fane, tabellen
    * bor på. Kalderen leverer den, fordi tabellen ikke kan udlede route af `locationPrefix`.
    *
    * PÅKRÆVET – både feltet og `route`. Var de valgfrie, kunne en ny tabel lydløst få rækkehandlinger uden
    * destination: dataene ville blive gendannet ved undo, men brugeren ville blive efterladt på en vilkårlig side
-   * (§3.7). `tabKey: null` udtrykker eksplicit "siden har ingen faner"; udeladelse er ikke lovlig.
+   * (§2.7). `tabKey: null` udtrykker eksplicit "siden har ingen faner"; udeladelse er ikke lovlig.
    */
   locationNav: Readonly<{ route: string; tabKey: string | null }>;
 }>) => {
@@ -69,7 +69,7 @@ export const useCollectionTable = <TRow extends Readonly<{ id: string }>>({
   // KUN rækkekommandoerne: rækkerne kommer fra slice-projektionens `committedRows` (den kanoniske read-grænse),
   // så tabellen må ikke også abonnere på collectionens aggregat-id-liste – det ville være to reaktive
   // rækkekilder for samme collection. Kommandoerne bærer tabellens origin, så undo/redo af en rækkehandling
-  // navigerer til den rette side/fane (§3.7).
+  // navigerer til den rette side/fane (§2.7).
   const rows = useCollectionRowCommands<TRow>(collection, {
     locationId: locationPrefix,
     route: locationNav.route,
@@ -92,7 +92,7 @@ export const useCollectionTable = <TRow extends Readonly<{ id: string }>>({
   // En committet række uden afsluttet input fungerer selv som den trailing indtastningsrække.
   const hasEmptyEntryRow = committedRows.some((row) => isRowEmpty(row.id));
   const placeholderCount = Math.max(hasEmptyEntryRow ? 0 : 1, minimumVisibleRows - committedRows.length);
-  // Den ENE placeholder-identitets-livscyklus (§1.11/§3.7): puljen BEVARER et promoveret id, så det kan
+  // Den ENE placeholder-identitets-livscyklus (§1.11/§2.7): puljen BEVARER et promoveret id, så det kan
   // genindtræde, hvis rækken forsvinder ved et undo – ellers findes der intet element, fokusrestoren kan
   // matche på, og fokus forlader lydløst tabellen.
   const placeholderIds = usePlaceholderSlotIds(committedIdSet, placeholderCount, createRowId);
@@ -107,7 +107,7 @@ export const useCollectionTable = <TRow extends Readonly<{ id: string }>>({
    * sorteret». Det er bevidst RÆKKEFØLGEN alene: placeholder-identiteten udledes af MÆNGDEN af
    * committede id'er ovenfor, aldrig af den viste orden. Ellers kunne en sortering flytte den
    * tomme rækkes identitet, og en history-origin fra før sorteringen ville ikke længere kunne
-   * finde sit element (§1.11/§3.7).
+   * finde sit element (§1.11/§2.7).
    */
   const buildRenderRows = React.useCallback(
     (displayRows: readonly TRow[] = committedRows): readonly RenderRow[] => [
@@ -121,7 +121,7 @@ export const useCollectionTable = <TRow extends Readonly<{ id: string }>>({
     [committedRows]
   );
 
-  // Én cellebindingsmodel for alle tabeller (§3.2): ejer-id'erne udledes af collectionens sti, ikke af en prop.
+  // Én cellebindingsmodel for alle tabeller (§2.2): ejer-id'erne udledes af collectionens sti, ikke af en prop.
   const buildCellSpec: <T>(
     renderRow: RenderRow,
     descriptor: FieldDescriptor<T>,

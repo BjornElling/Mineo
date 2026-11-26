@@ -18,13 +18,13 @@ import { isFocusTransferIntoConfirmationDialog } from './modalFocusTransfer';
 import type { FieldCodec } from '../fieldCodec';
 import { isTranslatedSignKey, normalizeSignCharactersForCodec } from './fields/signPolicy';
 
-// React-laget (§2.3/§3.5): den ENE UI-mekanik-lag for et persisteret single-`<input>` formularfelt.
-// Den parrer `useFieldEditor`-controlleren (som ejer draft/settle/cancel/clear/commit + dispatch, §3.6) med
+// React-laget (§2.5): den ENE UI-mekanik-lag for et persisteret single-`<input>` formularfelt.
+// Den parrer `useFieldEditor`-controlleren (som ejer draft/settle/cancel/clear/commit + dispatch, §2.6) med
 // den rene DOM-glue, der IKKE hører til datamodellen: to-trins-aktivering, keydown-skelet, paste-splice,
 // caret-genetablering og blur-settle. Denne hook parser ALDRIG, persisterer ALDRIG og holder ingen fejlstate;
 // al den logik ligger i codec'et, editor-engine og runner (§2.4).
 //
-// Én sandhed for "redigeres nu": editorens `isOpen`. Der er INGEN konkurrerende to-trins-open-flag (§3.5 –
+// Én sandhed for "redigeres nu": editorens `isOpen`. Der er INGEN konkurrerende to-trins-open-flag (§2.5 –
 // intet lukket draftkopi/epoch/resync). `readOnly = !isOpen` styrer det redigerbare element.
 
 /** Én-tegns tastfilter delegeret til codec'et: må denne tast åbne editoren som første tegn (§1.3)? */
@@ -73,7 +73,7 @@ export type FormFieldSurfaceConfig = Readonly<{
 }>;
 
 export type FormFieldSurface<T> = Readonly<{
-  /** Draften i åben tilstand, ellers lukket-visning fra den afsluttede revision (§3.5). Bindes til `<input>`. */
+  /** Draften i åben tilstand, ellers lukket-visning fra den afsluttede revision (§2.5). Bindes til `<input>`. */
   displayText: string;
   /** Genindsættelig tekst fra den afsluttede værdi, fx et fuldt beløbsudtryk. */
   copyText: string;
@@ -86,7 +86,7 @@ export type FormFieldSurface<T> = Readonly<{
   readOnly: boolean;
   /**
    * DOM-attributter, det redigerbare `<input>` SKAL bære, så undo/redo-fokusrestoren kan lokalisere præcis denne
-   * editorlokation (§3.7). Feltkomponenten spreder dem på inputtet (via `htmlInputAttributes`). Alle felt-
+   * editorlokation (§2.7). Feltkomponenten spreder dem på inputtet (via `htmlInputAttributes`). Alle felt-
    * kommitterende feltfamilier skal videreføre dem – en arkitekturtest håndhæver det.
    */
   restoreTargetAttributes: RestoreTargetAttributes;
@@ -129,7 +129,7 @@ export const useFormFieldSurface = <T>(
   const controller = useFieldEditor(field, location, focusTarget);
   const { isOpen } = controller;
 
-  // Undo/redo-fokusrestore-mål (§3.7): serialiseret feltadresse + editorlokation. Memoiseret pr. felt/lokation,
+  // Undo/redo-fokusrestore-mål (§2.7): serialiseret feltadresse + editorlokation. Memoiseret pr. felt/lokation,
   // så attribut-objektet er referentielt stabilt mellem renders.
   // Memoiseret på lokationens PRIMITIVE felter: kaldssteder konstruerer typisk en frisk `loc(...)` pr. render.
   const restoreTargetAttributes = React.useMemo(

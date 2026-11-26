@@ -387,8 +387,8 @@ export const LEGACY_MODULE_PATH_SELFTEST = {
 /**
  * Den slettede legacy-inputarkitektur må ikke genopstå.
  *
- * Der findes ÉN autoritativ inputtilstand (§3.1), ÉN editor (§3.5) og ÉN
- * write-grænse (§3.6). Den gamle store-/editor-/fejl-/command-klynge er slettet – ikke deaktiveret. Denne regel
+ * Der findes ÉN autoritativ inputtilstand (input-architecture.md §2.1), ÉN editor (§2.5) og ÉN
+ * write-grænse (§2.6). Den gamle store-/editor-/fejl-/command-klynge er slettet – ikke deaktiveret. Denne regel
  * forbyder ethvert import af dens moduler, så en ny feature ikke kan genindføre en parallel inputvej (heller
  * ikke ved at genskabe en fil med samme navn). Der er BEVIDST ingen allowlist: en undtagelse ville være en
  * anden samtidig sandhed.
@@ -430,7 +430,7 @@ export const deletedLegacyInputArchitectureImport = forbidImports({
   allow: [],
   forbidden: (ref) => DELETED_LEGACY_INPUT_MODULES.test(ref.moduleSpecifier),
   message: (ref) =>
-    `Import af slettet legacy-inputarkitektur (${ref.moduleSpecifier}). Brug greenfield-inputCore: `
+    `Import af slettet legacy-inputarkitektur (${ref.moduleSpecifier}). Brug inputCore: `
     + 'reader/projektion til læsning, `dispatch`/`useFieldEditor` til skrivning.',
   violatingFixtures: [
     { relativePath: 'src/foo.ts', code: "import { x } from '../stores/formPersistenceStore';" },

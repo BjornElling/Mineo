@@ -234,7 +234,7 @@ const StyledTextAreaBase = React.forwardRef<HTMLDivElement, StyledTextAreaBasePr
                 'aria-describedby': describedBy,
                 // Feltidentiteten i DOM er restore-target-attributterne (serialiseret feltadresse +
                 // editorlokation), som feltfamilien sender med gennem `htmlTextAreaAttributes` – samme
-                // model som StyledTextFieldBase. Basen udleder ingen egen identitet af `name` (§3.2).
+                // model som StyledTextFieldBase. Basen udleder ingen egen identitet af `name` (§2.2).
                 onFocus: handleFocus,
                 onBlur: handleBlur,
                 onKeyDown: handleKeyDown,
