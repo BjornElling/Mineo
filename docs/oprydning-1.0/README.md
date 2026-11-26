@@ -90,6 +90,20 @@ nær linje 349; `aarsloen-contract.md` §2a (tre standardværdier fra Indstillin
   (`git grep -n "\[\[project_\|\[\[feedback_"`). Memory er ikke en del af repoet: skriv begrundelsen ind eller
   henvis til et bevaret dokument, før memoryen ryddes.
 
+### Arbejdsstykke 2b – Forældede designhenvisninger og «nu»-historik i koden
+Fundet efter del 2: kode og tests henviser stadig til det slettede `draft-commit-greenfield-design.md`'s
+nummerering. Afbildning til `docs/architecture/input-architecture.md`: §1.x uændret; gamle §3.N → §2.N;
+§6.N → §3.N; §7.N → §4.N; «§10-kriterium N» → §5 kriterium N (samme numre); «fase N exitkriterie» → det
+tilsvarende §5-kriterium (fx «ingen compatibility-facade» = 29). Gamle §2 (review), §4, §5, §8 og «§2.N trin»
+(migrationsplanen) findes ikke mere → fjern henvisningen, behold begrundelsen. Pas på: «§3.2» o.l. kan også
+pege på en navngiven kontrakt på en nabolinje – tjek konteksten.
+- [ ] Ca. 700 træf i ca. 300 filer: `git grep -nE "§(2\.[0-9]+ trin|[3678]\.[0-9]+|10)|§[0-9.]+-kriteri|[Ee]xitkriteri|[Ff]ase[- ][0-6]\b|fase-0|[Gg]reenfield" -- src e2e scripts ":!src/contracts"`.
+- [ ] «nu»-historik: `git grep -nE "(bor|ligger|er) nu |[Tt]idligere (havde|brugte|lå|var)" -- src e2e scripts ":!src/contracts"`
+      (ca. 60 reelle; «current er nu …» i testforløb er tilstand, ikke historik).
+- [ ] `src/inputCore/ledger/*Ledger.ts` kalder sig «Midlertidigt fase-0-inventar»; registrene er varige
+      (`input-architecture.md` §3) – ret.
+- [ ] Gates som i stykke 2; commit.
+
 ### Arbejdsstykke 3 – Kontrakter, gruppe G1–G2 (stort)
 Instruks: `kontrakt-regler.md`. Én agent pr. gruppe, højst to ad gangen.
 - [ ] G1: `input-field-behavior-contract.md`, `mineo-field-pattern.md`, `form-contract.md`, `keyboard-navigation.md`.
