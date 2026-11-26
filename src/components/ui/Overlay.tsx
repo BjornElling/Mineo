@@ -2,21 +2,21 @@ import React from 'react';
 import { Box, IconButton, Typography } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import { CONTENT_SCALE_CSS_VARIABLE } from '../../utils/uiScale';
+import { hasOpenOverlay } from './overlayBehavior';
 
 /**
  * Overlay-komponent til at vise midlertidige beskeder.
  * Vises øverst til højre. Auto-close-varigheden afhænger af typen:
  * success 3 s, info 4 s, warning 5 s. Error auto-lukker aldrig.
  *
- * **Fejlbeskeden kan lukkes uden mus.** Den blev tidligere KUN lukket ved et klik på selve
- * boksen, med museteksten «Klik for at lukke» som eneste vejledning: der var ingen synlig lukkeknap,
- * Escape gjorde intet, og boksen lå uden for tab-rækkefølgen. Den blev derfor stående og dækkede en
- * del af skærmen, indtil brugeren fandt den med musen. Nu gælder tre ting for den blivende
- * fejlvariant:
+ * **Fejlbeskeden kan lukkes uden mus.** Den blivende fejlvariant auto-lukker aldrig og ville ellers
+ * dække en del af skærmen, indtil brugeren fandt den med musen. Derfor har den:
  *
- *  - en synlig, fokusérbar lukkeknap,
- *  - Escape lukker,
+ *  - en synlig, navngivet lukkeknap og klik-til-luk på selve boksen,
+ *  - Escape som tastaturvej – men kun når intet andet har brugt tasten (se lytteren nedenfor),
  *  - `role="alert"`, så en skærmlæser oplyser beskeden, når den kommer.
+ *
+ * Lukkeknappen står uden for sidens Tab-ring (`keyboard-navigation.md` §Escape).
  *
  * De auto-lukkende varianter (success/info/warning) beholder deres adfærd: de forsvinder af sig selv
  * og har derfor ikke brug for en lukkeaffordance. De bærer `role="status"`, som er den høflige
@@ -86,11 +86,14 @@ const Overlay = React.memo(({ message, type = 'success', onClose }: OverlayProps
 
   // Escape lukker den blivende fejlbesked. Kun den: de auto-lukkende varianter forsvinder selv, og en
   // Escape-lytter på dem ville stjæle tasten fra en åben dialog eller en igangværende feltredigering.
+  // Én Escape = én handling: har et felt, en celle eller en dropdown allerede brugt tasten
+  // (`defaultPrevented`), eller står et overlay åbent, er tasten deres, og boksen lukker først på næste tryk.
   const isDismissible = duration === null;
   React.useEffect(() => {
     if (!isDismissible) return undefined;
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
+      if (event.defaultPrevented || hasOpenOverlay()) return;
       event.preventDefault();
       dismiss();
     };
@@ -201,7 +204,6 @@ const Overlay = React.memo(({ message, type = 'success', onClose }: OverlayProps
         <IconButton
           type="button"
           aria-label="Luk besked"
-          data-mineo-focusable-button="true"
           size="small"
           // Boksen ejer selv et klik-til-luk; uden dette ville knappens klik boble op og kalde
           // `dismiss` to gange. Den anden ville være en no-op, men afhængigheden af det ville være

@@ -29,7 +29,7 @@ const AarsloenSatserSection = React.memo(() => {
   const renderSats = (sats: OverenskomstSatsField) => {
     const binding = bindings[sats];
     return binding.kind === 'bruger'
-      ? <PercentField field={fields[sats]} location={locations[sats]} name={sats} placeholder="0" sx={{ width: '100px' }} />
+      ? <PercentField field={fields[sats]} location={locations[sats]} name={sats} sx={{ width: '100px' }} />
       : <DerivedPercentField value={values[sats]} accessibleName={fields[sats].descriptor.label} name={sats} placeholder="" infoTooltipText={resolveAarsloenLaastSatsTooltip(binding, values)} sx={{ width: '100px' }} />;
   };
 
@@ -41,7 +41,7 @@ const AarsloenSatserSection = React.memo(() => {
         <Box sx={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Typography className="row--text" sx={{ minWidth: '160px' }}>Feriegodtgørelse/-tillæg:</Typography>
-            <PercentField field={fields.feriePct} location={locations.feriePct} name="feriePct" {...(feriePctRuleIssue === undefined ? {} : { crossFieldIssue: feriePctRuleIssue })} {...(ferieWarning === undefined ? {} : { warning: ferieWarning })} placeholder="0" sx={{ width: '100px' }} />
+            <PercentField field={fields.feriePct} location={locations.feriePct} name="feriePct" {...(feriePctRuleIssue === undefined ? {} : { crossFieldIssue: feriePctRuleIssue })} {...(ferieWarning === undefined ? {} : { warning: ferieWarning })} sx={{ width: '100px' }} />
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Typography className="row--text" sx={{ minWidth: '60px' }}>Fritvalg:</Typography>
@@ -60,7 +60,7 @@ const AarsloenSatserSection = React.memo(() => {
             <Typography className="row--text" sx={{ minWidth: '160px' }}>Store Bededagstillæg:</Typography>
             {harOverenskomst
               ? <DerivedPercentField value={values.storeBededagPct} accessibleName="Store Bededagstillæg" name="storeBededagPct" placeholder="" sx={{ width: '100px' }} />
-              : <PercentField field={fields.storeBededagPct} location={locations.storeBededagPct} name="storeBededagPct" placeholder="0" sx={{ width: '100px' }} />
+              : <PercentField field={fields.storeBededagPct} location={locations.storeBededagPct} name="storeBededagPct" sx={{ width: '100px' }} />
             }
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>

@@ -255,7 +255,6 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
   const renderSatsField = (satsField: OverenskomstSatsField) => {
     const shared = {
       name: `${af.id}:${satsField}`,
-      placeholder: '0',
       sx: LOCKED_SATS_FIELD_SX,
     } as const;
     const lockedTooltip = resolveLockedOverenskomstSatsTooltip(
@@ -566,7 +565,6 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                   field={field(eoEmploymentFields.feriePct)}
                   location={location('feriePct')}
                   name={`${af.id}:feriePct`}
-                  placeholder="0"
                   {...(feriePctIssue === undefined ? {} : { crossFieldIssue: feriePctIssue })}
                   {...(feriePctWarning === undefined ? {} : { warning: feriePctWarning })}
                   sx={{ width: '100px' }}
@@ -602,7 +600,6 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                   value={af.storeBededagPct}
                   accessibleName="Store Bededagstillæg"
                   name={`${af.id}:storeBededagPct`}
-                  placeholder="0"
                   sx={LOCKED_SATS_FIELD_SX}
                 />
               </Box>

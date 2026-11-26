@@ -54,6 +54,12 @@ const origin = (): HistoryOrigin => ({
   tabKey: null,
 });
 
+const pressKey = (init: KeyboardEventInit): KeyboardEvent => {
+  const event = new KeyboardEvent('keydown', { ...init, bubbles: true, cancelable: true });
+  act(() => { window.dispatchEvent(event); });
+  return event;
+};
+
 const pressUndo = () => {
   act(() => {
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
@@ -120,6 +126,71 @@ describe('useUndoRedoShortcuts – overlayet ejer tastaturet', () => {
     pressUndo();
 
     await waitFor(() => expect(onRestore).toHaveBeenCalledTimes(1));
+  });
+
+  it.each([
+    ['Ctrl+Y', { key: 'y', ctrlKey: true }],
+    ['Ctrl+Shift+Z', { key: 'Z', ctrlKey: true, shiftKey: true }],
+  ] as const)('%s gentager INTET og spærrer ikke tasten, mens et overlay er åbent', async (_name, init) => {
+    seedTwoUndoableChanges();
+    const onRestore = vi.fn();
+    render(<InputRuntimeProvider binding={makeBinding()}><Harness onRestore={onRestore} /></InputRuntimeProvider>);
+    pressUndo();
+    await waitFor(() => expect(onRestore).toHaveBeenCalledTimes(1));
+
+    const closeOverlay = withOpenOverlay();
+    const revisionBeforeKeypress = store.getState().revision;
+    const event = pressKey(init);
+    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+    expect(store.getState().revision).toBe(revisionBeforeKeypress);
+    expect(event.defaultPrevented).toBe(false);
+
+    // Modprøven: samme tast gentager, så snart overlayet er lukket.
+    closeOverlay();
+    pressKey(init);
+    await waitFor(() => expect(onRestore).toHaveBeenCalledTimes(2));
+    expect(store.getState().revision).toBeGreaterThan(revisionBeforeKeypress);
+  });
+});
+
+/**
+ * Mens en felteditor er åben, er programmets fortrydelse uvirksom, og tasten tilhører browserens egen
+ * tekstfortrydelse (`keyboard-navigation.md` §Globale genveje, følgeregel). Prøven måler begge halvdele:
+ * sagen ændres ikke, og hændelsen er ikke spærret.
+ */
+describe('useUndoRedoShortcuts – åben felteditor', () => {
+  it.each([
+    ['Ctrl+Z', { key: 'z', ctrlKey: true }],
+    ['Ctrl+Y', { key: 'y', ctrlKey: true }],
+    ['Ctrl+Shift+Z', { key: 'Z', ctrlKey: true, shiftKey: true }],
+  ] as const)('%s ændrer ikke sagen og spærrer ikke tasten', async (_name, init) => {
+    dispatchInput(store, catalog, settleField(aargangField.bind(), '2020'), { now: 1, origin: origin() });
+    dispatchInput(store, catalog, settleField(aargangField.bind(), '2021'), { now: 2, origin: origin() });
+    dispatchInput(store, catalog, settleField(aargangField.bind(), '2022'), { now: 3, origin: origin() });
+    const onRestore = vi.fn();
+    render(<InputRuntimeProvider binding={makeBinding()}><Harness onRestore={onRestore} /></InputRuntimeProvider>);
+    // Ét undo først, så redo har noget at gentage.
+    pressUndo();
+    await waitFor(() => expect(onRestore).toHaveBeenCalledTimes(1));
+
+    const unregister = registry.register({
+      id: 'aabent-felt',
+      isEditing: () => true,
+      hasDraftChanges: () => true,
+      settle: vi.fn(),
+      discard: vi.fn(),
+    });
+    const revisionBeforeKeypress = store.getState().revision;
+    const event = pressKey(init);
+    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+    expect(store.getState().revision).toBe(revisionBeforeKeypress);
+    expect(event.defaultPrevented).toBe(false);
+    expect(onRestore).toHaveBeenCalledTimes(1);
+
+    // Modprøven: lukket editor ⇒ samme tast virker.
+    unregister();
+    pressKey(init);
+    await waitFor(() => expect(onRestore).toHaveBeenCalledTimes(2));
   });
 });
 

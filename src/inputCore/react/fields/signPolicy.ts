@@ -5,26 +5,15 @@ import { normalizeMinusCharacters } from '../../../utils/draftNormalization';
 /**
  * Den ENE vej fra et felts descriptor til dens fortegns-politik.
  *
- * **Fundet, denne modul lukker.** `allowNegative` var erklæret på hvert numerisk codec i produktionskataloget
- * – 30+ steder – og honoreret af INGENTING. Hver feltkomponent hardkodede i stedet sit eget svar:
- *
- *   - `PercentField`        → `allowNegative: true`   (men ALLE procent-descriptorer er `false`)
- *   - `GridPercentCell`     → `allowNegative: false`  (samme familie, modsat svar)
- *   - `IntegerField`        → `allowNegative: true`   (alle heltals-descriptorer er `false`)
- *   - `GridIntegerCell`     → `allowNegative: true`   (månedscellen 1..12)
- *   - `AmountField`         → `allowNegative: true`
- *
- * Uden en vej fra det sted, politikken ER erklæret, til det sted, den skal virke, kan to flader af samme
+ * Politikken erklæres på codec'en og læses HER af både formular og grid fra
+ * `field.descriptor.codec.signPolicy`. Ingen feltkomponent må vælge selv: ellers kan to flader af samme
  * feltfamilie svare forskelligt uden at noget bliver rødt – fx et minustegn som første tegn i et procentfelt.
+ * Et nyt descriptor-felt får dermed automatisk samme adfærd på begge flader.
  *
- * Politikken læses HER af begge flader fra `field.descriptor.codec.signPolicy`. En ny numerisk
- * feltkomponent kan ikke vælge selv – og et nyt descriptor-felt får automatisk den rigtige adfærd på
- * både formular og grid.
- *
- * **Hvad dette IKKE ændrer (§1.6).** Et fortegn er stadig en BOUNDS-regel, ikke et formatbrud:
- * `parseForSettle` er fortegns-blind, paste bevarer et indsat minus, og bounds-validatoren ejer stadig den
- * røde fejl for en negativ værdi, der NÅR frem – fx fra en indlæst `.eo`-fil. Politikken styrer udelukkende,
- * hvad der kan TASTES, så et ulovligt fortegn ikke kan opstå ved indtastning i første omgang.
+ * **Afgrænsning.** Et fortegn er en BOUNDS-regel, ikke et formatbrud: `parseForSettle` er fortegns-blind, og
+ * bounds-validatoren ejer den røde fejl for en negativ værdi, der NÅR frem – fx fra en indlæst `.eo`-fil.
+ * Politikken styrer, hvad der kan tastes og indsættes: i et felt uden negative værdier springes et minus
+ * over, også ved paste (`input-field-behavior-contract.md` §1.2a, `form-contract.md` §8.2).
  */
 
 /**

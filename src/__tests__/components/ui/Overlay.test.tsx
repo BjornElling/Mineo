@@ -62,7 +62,7 @@ describe('Overlay', () => {
 });
 
 // Fejlbeskeden bliver stående, indtil brugeren lukker den, og den skal kunne lukkes uden mus: med en
-// synlig lukkeknap, med Escape og fra tab-rækkefølgen – ikke kun med et museklik på selve boksen.
+// synlig lukkeknap og med Escape – ikke kun med et museklik på selve boksen.
 describe('Overlay: fejlbeskeden kan lukkes uden mus', () => {
   beforeEach(() => { vi.useFakeTimers(); });
   afterEach(() => {
@@ -91,6 +91,43 @@ describe('Overlay: fejlbeskeden kan lukkes uden mus', () => {
     const onClose = vi.fn();
     render(<Overlay message="Fejl" type="error" onClose={onClose} />);
 
+    fireEvent.keyDown(document, { key: 'Escape' });
+    flushDismiss();
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('lukker IKKE, når et felt allerede har brugt Escape – næste tryk lukker', () => {
+    // Én Escape = én handling: feltets annullering kalder `preventDefault()`, før hændelsen når document.
+    const onClose = vi.fn();
+    render(
+      <>
+        <input aria-label="felt" onKeyDown={(e) => { if (e.key === 'Escape') e.preventDefault(); }} />
+        <Overlay message="Fejl" type="error" onClose={onClose} />
+      </>
+    );
+
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'felt' }), { key: 'Escape' });
+    flushDismiss();
+    expect(onClose).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    flushDismiss();
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('lukker IKKE, mens et overlay står åbent – tasten er overlayets', () => {
+    const onClose = vi.fn();
+    render(<Overlay message="Fejl" type="error" onClose={onClose} />);
+    const overlayRoot = document.createElement('div');
+    overlayRoot.setAttribute('data-mineo-overlay-root', 'true');
+    document.body.appendChild(overlayRoot);
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    flushDismiss();
+    expect(onClose).not.toHaveBeenCalled();
+
+    // Modprøven: lukket overlay ⇒ samme tast lukker boksen.
+    overlayRoot.remove();
     fireEvent.keyDown(document, { key: 'Escape' });
     flushDismiss();
     expect(onClose).toHaveBeenCalledTimes(1);

@@ -53,6 +53,7 @@ import {
   COMMENT_TEXT_MAX_LENGTH,
   SHORT_TEXT_MAX_LENGTH,
   UNBOUNDED_DAY_COUNT_MAX_DIGITS,
+  digitsRequiredFor,
 } from './fieldLengthLimits';
 import type {
   CanonicalView,
@@ -284,21 +285,23 @@ const amountField = (
   });
 
 /**
- * EO's heltalsfelter er alle «antal dage»-felter uden noget øvre domænemaksimum. Cifferloftet er derfor
- * den fælles grænse for netop den kategori (§1.2) – ikke et tal skrevet i hånden pr. felt.
+ * EO's heltalsfelter er alle «antal dage»-felter. Uden et øvre domænemaksimum er cifferloftet den fælles grænse
+ * for kategorien (§1.2); har feltet et maksimum, afledes loftet af det (`digitsRequiredFor`) – aldrig et tal
+ * skrevet i hånden pr. felt.
  */
 const integerField = (
   field: string,
   label: string,
   validators: readonly FieldValidator<number | undefined>[] = [integerBoundsValidator(`eo.${field}.bounds`, 0, undefined)],
   relevance?: RelevanceRule<number | undefined>,
+  maxDigits: number = UNBOUNDED_DAY_COUNT_MAX_DIGITS,
 ): FieldDescriptor<number | undefined> =>
   defineStructuralField<number | undefined>({
     id: `eo.${field}`,
     template: { section: S, path: [], field },
     codec: createIntegerFieldCodec({
       allowNegative: false,
-      maxDigits: UNBOUNDED_DAY_COUNT_MAX_DIGITS,
+      maxDigits,
     }),
     emptyValue: undefined,
     isEmpty: isUndefined,
@@ -800,6 +803,8 @@ export const eoTafBeregningsperiodeTilField = dateField(
  * derfor i `beregningsgrundlagFradragRules.ts` (SFGG: i validatoren mod referenceperiodens dage).
  */
 const DAGANTAL_MAX = 366;
+/** Cifferloftet følger loftet (§2.8): det fjerde ciffer kan ikke tastes. */
+const DAGANTAL_MAX_DIGITS = digitsRequiredFor(DAGANTAL_MAX);
 const dagAntalValidators = (field: string): readonly FieldValidator<number | undefined>[] => [
   integerBoundsValidator(`eo.${field}.bounds`, 0, undefined),
   (value) => value === undefined || value <= DAGANTAL_MAX
@@ -817,6 +822,7 @@ export const eoUspecificeredeFerieFridageField = integerField(
   'uspecificeredeFerieFridage', 'Løse ferie-/feriefridage',
   dagAntalValidators('uspecificeredeFerieFridage'),
   whenEo(beregningsperiodeFerieRelevant),
+  DAGANTAL_MAX_DIGITS,
 );
 export const eoOevrigtFravaerUdenLoenField = requiredJaNejField(
   'oevrigtFravaerUdenLoen', 'Øvrigt fravær uden løn', 'Nej', whenEo(beregningsperiodeInputRelevant),
@@ -825,6 +831,7 @@ export const eoOevrigeFravaersdageField = integerField(
   'oevrigeFravaersdage', 'Antal fraværsdage (mandag-fredag)',
   dagAntalValidators('oevrigeFravaersdage'),
   whenEo(oevrigtFravaerRelevant),
+  DAGANTAL_MAX_DIGITS,
 );
 export const eoOevrigeFravaersdageBeskrivelseField = optionalTextField(
   'oevrigeFravaersdageBeskrivelse', 'Årsag til fravær', SHORT_TEXT_MAX_LENGTH, false, whenEo(oevrigtFravaerRelevant),
@@ -1250,7 +1257,7 @@ export const eoSfggReferenceperiodeTilField = defineStructuralField<ISODateStrin
 // validatoren, ville det spærre uden rød ring – også bag «Manuelt angivet», hvor feltet ikke vises.
 export const eoSfggReferenceperiodeFravaersdageUdenLoenField = sfggField<number | undefined>(
   'sfggReferenceperiodeFravaersdageUdenLoen', 'Ferie- og fraværsdage uden løn i referenceperioden',
-  createIntegerFieldCodec({ allowNegative: false, maxDigits: UNBOUNDED_DAY_COUNT_MAX_DIGITS }),
+  createIntegerFieldCodec({ allowNegative: false, maxDigits: DAGANTAL_MAX_DIGITS }),
   undefined, isUndefined, 'text',
   dagAntalValidators('sfggAnsaettelsesforhold.sfggReferenceperiodeFravaersdageUdenLoen'),
   sfggRelevance('referenceperiode'),

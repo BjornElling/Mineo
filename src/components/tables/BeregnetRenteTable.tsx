@@ -173,7 +173,6 @@ const BeregnetRenteRow = React.memo(
                   gridCell={gc(COL.tillaegstid)}
                   cell={buildCellSpec<number | undefined>(renderRow, rentekravTillaegstidField, COL.tillaegstid)}
                   // Politikken læses af descriptoren; `tillaegstid` er 0..99 og altså ikke-negativ.
-                  // Callsitet hardkodede før `true` i strid med feltets egen erklæring.
                   admission={TILLAEGSTID_ADMISSION}
                   placeholder="0"
                   textAlign="center"

@@ -3,7 +3,7 @@ import type { SxProps, Theme } from '@mui/material/styles';
 import { percentAdmission } from '../../../components/inputs/draftAdmission';
 import { INPUT_UNIT_SUFFIX } from '../../../utils/inputUnit';
 import InputUnitAdornment from '../../../components/inputs/InputUnitAdornment';
-import { DEFAULT_PERCENT_PLACEHOLDER } from '../../../utils/percentInputUtils';
+import { DEFAULT_PERCENT_PLACEHOLDER, TWO_DECIMAL_PERCENT_PLACEHOLDER } from '../../../utils/percentInputUtils';
 import type { FieldRef } from '../../fieldDescriptor';
 import type { EditorLocation } from '../../editor/fieldEditorState';
 import type { FieldIssue } from '../../inputIssue';
@@ -42,7 +42,7 @@ const PercentField = React.forwardRef<HTMLDivElement, PercentFieldProps>(
       location,
       name,
       width = 100,
-      placeholder = DEFAULT_PERCENT_PLACEHOLDER,
+      placeholder,
       disabled,
       singleStageClick = false,
       crossFieldIssue,
@@ -60,6 +60,9 @@ const PercentField = React.forwardRef<HTMLDivElement, PercentFieldProps>(
       () => percentAdmission({ allowNegative, allowDecimals, maxIntegerDigits }),
       [allowDecimals, allowNegative, maxIntegerDigits]
     );
+    // Pladsholderen viser feltets format – samme valg som grid-cellen (`form-contract.md` §8.1).
+    const resolvedPlaceholder = placeholder
+      ?? (allowDecimals ? TWO_DECIMAL_PERCENT_PLACEHOLDER : DEFAULT_PERCENT_PLACEHOLDER);
 
     // Adornmentet mutes, når draften er tom. Muted-flaget kommer fra `NumericTextField`s
     // ÉNE editor-controller via render-prop – vi opretter aldrig en anden surface/controller for samme felt.
@@ -71,7 +74,7 @@ const PercentField = React.forwardRef<HTMLDivElement, PercentFieldProps>(
         admission={admission}
         name={name}
         width={width}
-        placeholder={placeholder}
+        placeholder={resolvedPlaceholder}
         disabled={disabled}
         singleStageClick={singleStageClick}
         textAlign="right"
@@ -101,7 +104,7 @@ export const DerivedPercentField = React.forwardRef<HTMLDivElement, Readonly<{
   /** Hvorfor feltet er låst, vist ved hover. */
   infoTooltipText?: string;
   sx?: SxProps<Theme>;
-}>>(({ value, name, placeholder = DEFAULT_PERCENT_PLACEHOLDER, accessibleName = 'Beregnet procent', infoTooltipText, sx }, ref) => (
+}>>(({ value, name, placeholder = TWO_DECIMAL_PERCENT_PLACEHOLDER, accessibleName = 'Beregnet procent', infoTooltipText, sx }, ref) => (
   <StyledTextFieldBase
     ref={ref}
     accessibleName={accessibleName}

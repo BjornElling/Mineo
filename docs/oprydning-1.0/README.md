@@ -19,6 +19,14 @@ Programmet er funktionelt færdigt; fremover kommer kun fejlrettelser og afgræn
 med opdatering af dette dokument og en commit, før det næste påbegyndes. Start højst 3–4 subagenter ad gangen:
 13 samtidige agenter opbrugte 5-timers-kvoten tre gange og efterlod halvfærdigt arbejde.
 
+**Fund rettes straks (udvikleren, 2026-11-26):** Hovedagenten har ansvaret for, at ethvert fund – fra fundfilerne
+og fra eget arbejde – behandles i det arbejdsstykke, hvor det opstår, og ikke udskydes til senere stykker.
+- Egentlige fejl (forældede kommentarer, døde markører, manglende tests, kode der strider mod en klar afgørelse uden
+  at ændre det, brugeren ser) retter hovedagenten selv.
+- Er noget uklart, eller vil rettelsen ændre UI/UX eller beregningslogik, forelægges det udvikleren straks med en
+  anbefaling. Svaret skrives ind i den kontrakt, der ejer emnet, og rettelsen gennemføres i samme stykke.
+- §5 rummer kun det, der venter på udviklerens svar; et stykke er først afsluttet, når dets fund er lukket.
+
 ## 2. Regler
 
 **Varigt indhold** – det, en fremtidig udvikler eller programmeringsassistent skal vide for at ændre programmet
@@ -102,7 +110,9 @@ nær linje 349; `aarsloen-contract.md` §2a (tre standardværdier fra Indstillin
 
 ### Arbejdsstykke 3 – Kontrakter, gruppe G1–G2 (stort)
 Instruks: `kontrakt-regler.md`. Én agent pr. gruppe, højst to ad gangen.
-- [ ] G1: `input-field-behavior-contract.md`, `mineo-field-pattern.md`, `form-contract.md`, `keyboard-navigation.md`.
+- [x] G1: `input-field-behavior-contract.md`, `mineo-field-pattern.md`, `form-contract.md`, `keyboard-navigation.md`.
+      Fundfil `fund-G1.md`: alle fund lukket (fire forelagt og afgjort, resten rettet); seks udtrækspunkter
+      overladt til G2–G5 (står i fundfilens (a) – G2–G5 skal tage dem).
 - [ ] G2: `eo-snapshot-contract.md`, `eet-snapshot-contract.md`, `forsoergertab-snapshot-contract.md`,
       `snapshot-contract.md`, `indskudte-loentillaeg-contract.md`, `feriepenge-begreber-contract.md`.
 - [ ] Gennemse fundfilerne; flyt konflikter til §5; commit.
@@ -159,3 +169,7 @@ Afklaret (behandl ikke igen):
   (0 %-sats udelades, 0 kr. i tabellen bevares, tomt antal ferie-/SH-dage trykkes som 0); låst af
   `aarsloenDocumentIndependent.test.ts`. M-13/M-19 var generelle mønstre, som afgørelserne undtager. Kontraktfasen
   (G5) skriver `udtraek-2` A5–A7 ind i `aarsloen-contract.md`.
+- G1 (2026-11-26), gennemført og skrevet ind i kontrakterne: dagfelter med loft 366 tager tre cifre (IFB §2.8);
+  procentfelter med decimaler viser `0,00` også på formularer (FC §8.1); fejlboksen tager kun en Escape, som intet
+  andet har brugt, og lukkeknappen står uden for Tab-ringen (KN §Escape); toggles med et spørgsmål som tekst
+  beholder et kort navn i Inspektion og fejltekster (MFP §Lag A).

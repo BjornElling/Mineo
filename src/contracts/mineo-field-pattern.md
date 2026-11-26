@@ -3,7 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Tværgående komponent-/adapterkontrakt  
 **Prioritet:** Supplement til `form-contract.md`; ejer feltdescriptors, codecs, felt-editor og surface-adaptere.
-**Senest verificeret mod kode:** 2026-11-11
+**Senest verificeret mod kode:** 2026-11-26
 
 Denne kontrakt fastlægger ét fælles feltmønster for formularfelter og tabelceller. Mønstret ER den
 implementerede arkitektur; der findes ingen parallel inputmodel ved siden af den – se §10 og
@@ -36,11 +36,22 @@ kan bindes til feltroden for at bevare to-trins-aktiveringen.
 **Tilgængeligt navn er en del af UI-base-kontrakten.** Enhver faktisk fokusérbar tekst-, tal-, dato- eller
 valgkontrol skal have et tilgængeligt navn på selve DOM-kontrollen. For persisted `FieldRef`-felter kommer navnet
 fra `useFieldLabel` og dermed descriptorens label; det må ikke kopieres fra placeholder, `name` eller en fri streng
-på kaldsstedet. `StyledTextFieldBase`, `StyledTextAreaBase` og `StyledDropdown` kræver derfor navnet som en
-typet prop og skriver det på den faktiske input/combobox. Formularskallerne leverer det fra `FieldRef`, så nye
-felter i en eksisterende familie automatisk følger reglen. Grid-celler bruger descriptorens label, også for en
-placeholder-række hvor en endnu ikke eksisterende entity ikke kan læses af `InputReader`. Transiente eller
-indstillingskontroller uden `FieldRef` skal levere en eksplicit dansk label.
+på kaldsstedet. `StyledTextFieldBase` og `StyledTextAreaBase` kræver derfor navnet som den typede prop
+`accessibleName`, `StyledDropdown` som `ariaLabel`, og skriver det på den faktiske input/combobox.
+Formularskallerne leverer det fra `FieldRef`, så nye felter i en eksisterende familie automatisk følger reglen.
+Grid-celler bruger descriptorens label, også for en placeholder-række, hvor en endnu ikke eksisterende entity
+ikke kan læses af `InputReader`. Transiente eller indstillingskontroller uden `FieldRef` leverer en eksplicit
+dansk label. En kontrol, der står i en etiketteret række (`LabeledControlRow`), får navnet fra rækkens synlige
+tekst gennem `labelledBy`.
+
+Descriptorens `label` er feltets synlige navn: det samme navn bruges som tilgængeligt navn og i de fejltekster,
+der henviser til feltet, så skærm, skærmlæser og «Fejl og advarsler» siger det samme.
+
+**Undtagelse (udviklerens afgørelse): toggles, hvis synlige tekst er et helt spørgsmål.** På EO oplysninger står
+fem Ja/Nej-toggles med en sætning som tekst, fx «Truffet afgørelse om varige mén på 5 % eller derover». Deres
+descriptor bærer et kort navn («Varige mén-afgørelse», «Midlertidigt EET-afgørelse», «Endeligt EET-afgørelse»,
+«Verserende klage (mén)», «Verserende klage (EET)»), som Inspektion og fejltekster bruger. Det tilgængelige navn kommer fra skærmteksten
+gennem `labelledBy`, så skærmlæseren siger det samme som skærmen. Ret ikke de korte navne til sætningerne.
 
 ### Lag B – fælles felt-editor
 
@@ -62,7 +73,7 @@ inputtransaktion og må ikke kende et konkret domæne eller have surface-specifi
 Hver inputfamilie har ét `FieldCodec<T>` (`src/inputCore/fieldCodec.ts`):
 
 ```ts
-// udsnit; codec'en bærer også decimalPolicy? og options?.
+// udsnit; codec'en bærer også decimalPolicy?, maxDigits?, maxLength?, preservesLineBreaks? og options?.
 type FieldCodec<T> = Readonly<{
   family: FieldCodecFamily;
   parseForSettle(raw: string): FieldResolution<T>;
@@ -96,32 +107,19 @@ Krav:
 7. En korrekt formateret tal-, år- eller ugeværdi, som kan valideres af det persisterede Zod-schema, bliver canonical
    input. Feltets aktive min/max samt kronologiske og tværgående domænegrænser hører til rene validatorer/projektioner
    og må ikke samtidig implementeres som rejection i settle-policyen.
-8. Feltet har en effektiv blokering mod tegn og længde, der ikke passer feltet. Et tegn uden for feltets
-   tegnsæt og et tegn ud over feltets maksimale antal tegn, cifre eller decimaler kommer ikke ind i feltet.
-   Blokeringen omfatter tegnsæt og længde, ikke talværdi: en korrekt formateret værdi inden for længdegrænsen,
-   der bryder feltets min/max, bliver canonical og får sit afledte bounds-issue efter regel 7. Blokeringen
-   gælder kun brugerens indtastning i feltet – ikke afledte eller beregnede værdier, som frit må have flere
-   cifre end det inputfelt, de stammer fra.
+8. Feltet blokerer tegn og længde, der ikke passer feltet, men ikke talværdi; brugeradfærden – også for paste,
+   der behandles tegn for tegn som tastning – ejes af `input-field-behavior-contract.md` §1.2–§1.2a. En
+   korrekt formateret værdi, der bryder feltets min/max, bliver canonical og får sit afledte bounds-issue efter
+   regel 7, og et formatmæssigt ugyldigt resultat bevares som rejected råtekst.
 
    **Grænsen erklæres ét sted og håndhæves ad tre veje.** Politikken er DATA på codecet
    (`signPolicy`, `decimalPolicy`, `maxLength`) eller udledt af det gennem den delte
    `charLengthPolicy.ts`; den må ikke være et lokalt valg på kaldsstedet. Håndhævelsen sker i
    tegnfilteret (tastning), i `codec.normalizePaste` + `spliceDraftWithPaste` (paste) og i
-   `codec.parseForSettle` (settle). Fordelingen er ikke frivillig: formular- og tabelfladen SKAL læse
-   samme erklæring, for da de konfigurerede hver sit filter i hånden, blev de uenige om samme felt –
-   tabelcellen blokerede den 3. decimal, formularen gjorde ikke, og ingen grid-celle havde et
-   længdeloft overhovedet.
-9. Paste er ikke en selvstændig indgang. Paste behandles tegn for tegn som almindelig tastning fra samme
-   startposition, med identisk afgrænsning: et tegn, som codecet ville afvise ved tastning, springes over, men
-   paste fortsætter med næste tegn. Præcision-, ciffer- og længdegrænser håndhæves undervejs; overskydende tegn
-   springes over. Et paste, der afkortes af feltets længdegrænse, er derfor det forventede resultat – præcis de
-   samme tegn ville være blevet afvist ved tastning. Et resultat, der stadig er formatmæssigt ugyldigt, bevares
-   som rejected råtekst ved settle i stedet for tavst at blive ændret til en anden gyldig værdi. Samme regel
-   bruges på formular- og tabeloverfladen.
-10. Dato-paste bruger samme tegn-for-tegn-regel. Separatorer normaliseres efter datofeltets formatregel, gentagne
-    separatorer afvises, og paste fortsætter. Cifre ud over dag-/måned-/årgrænsen kommer ikke ind i feltet.
-    Kronologiske min/max-datobounds er derimod talværdi og må ikke afskære hverken tastning eller paste; de
-    forbliver afledte issues efter settle, mens formatmæssigt ugyldige kalenderdatoer bevares som rejected råtekst.
+   `codec.parseForSettle` (settle). Formular- og tabelfladen SKAL læse samme erklæring: konfigurerer de
+   hver sit filter i hånden, bliver de uenige om samme felt.
+9. Kronologiske min/max-datobounds er talværdi og afskærer hverken tastning eller paste; de forbliver afledte
+   issues efter settle, mens formatmæssigt ugyldige kalenderdatoer bevares som rejected råtekst.
 
 ### Lag D – surface-adaptere
 
@@ -138,8 +136,8 @@ De må ikke parse, skrive persistence, eje history, oprette fingerprints eller h
 ## 3. Feltdescriptor, reference og adresse
 
 ```ts
-// src/inputCore/fieldDescriptor.ts – udsnit; descriptoren bærer også id, template,
-// emptyValue, isEmpty, readCanonical, writeCanonical, relevance?, validators? og bind.
+// src/inputCore/fieldDescriptor.ts – udsnit; descriptoren bærer også id, template, contextualLabel?,
+// emptyValue, isEmpty, readCanonical, writeCanonical, relevance?, validators?, dateBounds? og bind.
 type FieldDescriptor<T> = Readonly<{
   codec: FieldCodec<T>;
   label: string;
@@ -161,9 +159,12 @@ Regler:
 3. Adressen beskriver data strukturelt og versioneres/migreres som persistenceformat.
 4. Label og kontroltype kommer fra descriptoren, aldrig fra parsing af en key eller fri streng.
 5. Rækkeidentitet er datanøglen; kolonneindeks må ikke indgå i persistent feltidentitet.
-6. Transiente UI-hjælpefelter bruger samme codec/editor, men har ingen persisted `FieldRef` og deltager ikke i history.
-7. Felt- og collection-bindings registreres i ét forseglet `InputCatalog`; dynamiske refs skal både matche templaten
-   og pege på entities, der findes i det konkrete input-snapshot.
+6. Transiente UI-hjælpefelter (`components/inputs/transient/`) har ingen persisted `FieldRef`, deltager ikke i
+   history og bruger hverken `FieldCodec` eller felt-editoren. De har deres egen draft-hook (`useTransientDraft`),
+   men genbruger samme parse-kerner, tegnfiltre og bounds-beskeder som de persisterede felter
+   (`form-contract.md` §12).
+7. Felt- og collection-bindings samles i ét statisk, immutable `InputCatalog`; dynamiske refs skal både matche
+   templaten og pege på entities, der findes i det konkrete input-snapshot.
 8. History-origin kombinerer feltets `FieldAddress` med den konkrete editors fokusmål. Fokusmålet er
    overflademetadata, ikke en del af datafeltets descriptor; samme felt kan derfor have flere gyldige
    editorlokationer uden parallel dataidentitet.
@@ -171,7 +172,8 @@ Regler:
    `FieldHistoryOrigin` bærer en PÅKRÆVET `field: FieldAddress`, mens `CollectionHistoryOrigin` slet
    ikke har feltet, men i stedet en påkrævet `collection` og en påkrævet destination. En strukturel
    rækkehandling har ikke ét felt – men et feltcommit må heller ikke kunne sendes uden adresse, og
-   netop den fejl gør unionen urepræsenterbar. Route og fane følger altid med.
+   netop den fejl gør unionen urepræsenterbar. En rækkehandling bærer altid route og fane; et feltcommit
+   bærer dem, når editorlokationen kender dem.
 
 ## 4. Settle-kontrakt
 

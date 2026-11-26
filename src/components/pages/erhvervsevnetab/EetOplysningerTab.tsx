@@ -211,7 +211,6 @@ const EetOplysningerTab = ({ projection }: EetOplysningerTabProps) => {
               field={ealEetPctRef}
               location={LOCATIONS.ealEetPct}
               name="ealEetPct"
-              placeholder="0"
               warning={resolveEetUnder15Warning(values.ealEetPct)}
             />
           </Box>

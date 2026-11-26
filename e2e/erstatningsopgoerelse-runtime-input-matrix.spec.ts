@@ -74,7 +74,7 @@ test.describe('Erstatningsopgørelse – runtime-matrix på tværs af faner', ()
     // Hvert besøg genopbygger kontrollen fra den senest afsluttede revision.
     await page.getByRole('tab', { name: 'EO oplysninger', exact: true }).click();
     await page.getByRole('checkbox', { name: 'Øvrigt fravær uden løn', exact: true }).check();
-    for (const raw of ['1000', '']) {
+    for (const raw of ['367', '']) {
       await page.getByRole('tab', { name: 'EO oplysninger', exact: true }).click();
       const absence = page.locator("input[name='oevrigeFravaersdage']");
       await setFieldValueAndSettle(absence, raw);

@@ -4,13 +4,15 @@
 **Type:** Tværgående kontrakt
 **Gælder for:** Hele Mineo applikationen
 **Målgrænser:** `Container`, fælles felt-editor og grid-navigation
-**Senest verificeret mod kode:** 2026-11-24
+**Senest verificeret mod kode:** 2026-11-26
 
 ---
 
 ## Overordnet princip
 
-Mineo bruger **Container-styret keyboard navigation**, hvor `Container.tsx` ejer og håndhæver al fokus-traversering på en side.
+Mineo bruger **Container-styret keyboard navigation**: `Container` ejer og håndhæver al fokus-traversering på en
+side. Komponenten er `src/components/layout/Container.tsx`; selve navigationen bor i
+`src/components/layout/containerNavigation/` (`useContainerKeyboardNavigation.ts`, `useFocusableInventory.ts`).
 
 Alle tastatur-navigation skal:
 - Være **forudsigelig** og **konsistent**
@@ -36,12 +38,16 @@ Alle tastatur-navigation skal:
 **Undtagelser:**
 - Popup-widgets der er åbne (aria-expanded="true") – Container intercepter IKKE Tab, så widget selv kan håndtere det
 
-**Knapper er OPT-IN, og afgrænsningen er en truffet beslutning.** Container-navigationen medtager kun
-knapper, der bærer `data-mineo-focusable-button="true"` (`CONTAINER_FOCUSABLE_SELECTOR` i
-`gridCore/tableFocusHelpers.ts`). En knap uden markøren kan derfor kun betjenes med mus. Udenfor står de almindelige handlingsknapper
-(`FloatingActionButton`: Tilføj, Flyt op, Flyt ned, Slet), «Tilbage til toppen»
-(`ScrollToTopButton`) og info-ikonet (`InfoTooltipIcon`). Eksterne links (`ExternalLink`) står også
-udenfor; de er ikke knapper og har `tabIndex={-1}` (M-08). En knap uden markøren er fortsat mus-kun.
+**Knapper er OPT-IN (udviklerens afgørelse).** Container-navigationen medtager kun knapper, der bærer
+`data-mineo-focusable-button="true"` (`CONTAINER_FOCUSABLE_SELECTOR` i
+`src/components/tables/gridCore/tableFocusHelpers.ts`). Udenfor står de almindelige handlingsknapper
+(`FloatingActionButton`: Tilføj, Flyt op, Flyt ned, Slet), «Tilbage til toppen» (`ScrollToTopButton`) og
+info-ikonet (`InfoTooltipIcon`, et fokusérbart ikon, der ikke er en del af Containerens inventar). Eksterne links
+(`ExternalLink`) står også udenfor og har `tabIndex={-1}`.
+
+**Tab-ringen findes til hurtig indtastning på én side.** Sidemenuen – herunder filhandlingerne `Gem`, `Hent` og
+`Slet alt` – ligger bevidst uden for Containerens ring; navigation mellem sider og filhandlinger sker med mus.
+Sidemenuen skal ikke ind i ringen.
 
 `PageTabs` og `SideTab` er den eksplicitte undtagelse: de er native tastaturkontroller og bærer
 `data-mineo-tab-navigation="true"`, men står stadig uden for Containerens indholds-inventar. På en
@@ -122,22 +128,23 @@ Konsekvens:
 
 **Lukket editor:** Escape ændrer ikke sagsinput.
 
-Popup-/overlay-Escape følger §Overlay-adfærd ovenfor: Escape lukker det ØVERSTE overlay. Hvis en
+Popup-/overlay-Escape følger §Overlay-adfærd nedenfor: Escape lukker det ØVERSTE overlay. Hvis en
 teksteditor er åben inde i en popup, skal editorens cancel håndteres før popupen eventuelt lukkes; én
 Escape-handling må ikke både committe og lukke.
 
-**En kontrol må kun SLUGE Escape, når den faktisk annullerer noget.** Reglen ovenfor har en praktisk
-konsekvens, som to flader brød: en lukket dropdown kaldte `preventDefault()` + `stopPropagation()` på en
-Escape, den ikke havde noget at gøre med, og et transient felt gjorde det samme, selv når draften var
-uændret. I begge tilfælde kunne den omgivende dialog eller overlay derfor ikke lukkes med Escape, når
-fokus stod i et af dens felter. Kontrollen skal lade tasten passere, når der intet er at annullere, så
-den næste ansvarlige flade får den. Tilsvarende må en overlay-lytter i CAPTURE-fasen ikke nå Escape før
-felterne inde i overlayet; lukningen hører i boble-fasen.
+**En kontrol må kun SLUGE Escape, når den faktisk annullerer noget.** En lukket dropdown og et transient felt
+med uændret draft har intet at annullere og skal lade tasten passere, så den næste ansvarlige flade får den;
+ellers kan den omgivende dialog eller overlay ikke lukkes med Escape, når fokus står i et af dens felter.
+Tilsvarende må en overlay-lytter i CAPTURE-fasen ikke nå Escape før felterne inde i overlayet; lukningen hører
+i boble-fasen.
 
 **En besked, der BLIVER STÅENDE, indtil brugeren fjerner den, skal kunne lukkes med Escape** – og have
-en synlig, navngivet lukkeknap. Det gælder `Overlay`s fejlvariant (den røde boks efter et mislykket
-Gem/Hent), som aldrig auto-lukker. Uden begge dele var den ren muse-affordance: den dækkede en del af
-skærmen, indtil brugeren fandt den med musen, vejledt af museteksten «Klik for at lukke».
+en synlig, navngivet lukkeknap («Luk besked»). Det gælder `Overlay`s fejlvariant (den røde boks efter et
+mislykket Gem/Hent), som aldrig auto-lukker; uden begge dele kunne den kun fjernes med musen. Escape er
+tastaturvejen; lukkeknappen står uden for sidens Tab-ring. Boksen tager kun en Escape, som intet andet har
+brugt: har et felt, en celle eller en dropdown annulleret med tasten (`defaultPrevented`), eller står et overlay
+åbent, lukker boksen først på næste tryk (udviklerens afgørelse). Testet i
+`src/__tests__/components/ui/Overlay.test.tsx`.
 
 Beskeder, der lukker AF SIG SELV (success/info/warning), må derimod **ikke** lytte på Escape. De har
 intet at annullere, og en lytter ville stjæle tasten fra en åben dialog eller en igangværende
@@ -146,20 +153,15 @@ fejl er `role="alert"` (afbryder og oplyses straks), en selvlukkende besked er `
 
 **Hver ny besked starter sin EGEN nedtælling og sin egen indtoning** – også når den har samme type og
 samme tekst som den forrige. Det er samme regel som for «peg på dette felt»-markeringen nedenfor:
-udløser brugeren det samme to gange, skal der komme et synligt svar begge gange.
+udløser brugeren det samme to gange, skal der komme et synligt svar begge gange. Deler to beskeder i træk
+nedtælling, arver den anden resttiden og kan lukke sig selv usynligt – netop for den bruger, der trykkede igen,
+fordi svaret ikke nåede at blive læst.
 
-`Overlay`s timere startedes af en effekt, der kun afhang af beskedens TYPE, så to advarsler i træk
-delte den førstes nedtælling: den anden arvede resttiden, og ankom den under udtoningen, blev den
-tegnet gennemsigtig og lukkede sig selv umiddelbart efter – altså helt usynligt. Det ramte præcis den
-bruger, der trykkede igen, fordi han ikke nåede at læse svaret første gang, og kombinationen er
-selvforstærkende: jo mere man prøver, jo mindre svarer programmet.
-
-Identiteten skal derfor komme fra KILDEN (shellen giver hver besked en monotont voksende nøgle og
-bruger den som React-`key`), ikke fra en sammenligning af type eller tekst inde i komponenten – en
-sådan sammenligning kan ikke skelne «samme besked igen» fra «en re-render af den samme besked». Den
-udgående beskeds forsinkede `onClose` må desuden kun rydde SIN egen besked, ellers lukker fade-ud'et
-fra den forrige den nye. Dækningen ligger i
-`components/layout/MainLayout.shortcutsAndMessages.test.tsx` og er mutationstestet.
+Identiteten kommer derfor fra KILDEN (shellen giver hver besked en monotont voksende nøgle og bruger den som
+React-`key`), ikke fra en sammenligning af type eller tekst inde i komponenten – en sådan sammenligning kan ikke
+skelne «samme besked igen» fra «en re-render af den samme besked». Den udgående beskeds forsinkede `onClose` må
+kun rydde SIN egen besked, ellers lukker fade-ud'et fra den forrige den nye. Dækningen ligger i
+`src/__tests__/components/layout/MainLayout.shortcutsAndMessages.test.tsx`.
 
 ---
 
@@ -172,15 +174,15 @@ først ved den normale settle-grænse.
 For en valg-kontrol gælder det samme skel: Delete/Backspace rydder valget på en **lukket** dropdown (når
 feltet må være tomt), mens en **åben** menu ejer tastaturet og hverken rydder eller lukker på ryddetasten
 – Escape er vejen ud. Om et felt overhovedet må ryddes, udledes af feltets codec (`requiredChoice` kan
-ikke), ikke af en prop på kaldsstedet.
+ikke). Et kaldssted kan skærpe reglen, så et valgfelt ikke kan ryddes, men aldrig løsne den.
 
 ### Enter og mellemrum på toggles og afkrydsningsfelter
 
 En toggle og et afkrydsningsfelt aktiveres af BÅDE Enter og mellemrum, og de forbruger tasten: Enter
 flytter altså **ikke** fokus videre fra dem, som den ellers gør (`Enter` ovenfor). Det er en bevidst
-fjerde undtagelse ved siden af popup, textarea og radio – uden den ville ét Enter både skifte værdien og
-springe til næste felt. Radioknapper følger derimod hovedreglen: Enter aktiverer den fokuserede option
-gennem Container, og mellemrum gennem browserens egen radio-semantik.
+undtagelse ved siden af undtagelserne under `Enter` – uden den ville ét Enter både skifte værdien og springe til
+næste felt. For radioknapper aktiverer Enter den fokuserede option gennem Container uden at flytte fokus
+(undtagelse 3 under `Enter`), og mellemrum gennem browserens egen radio-semantik.
 
 ### Dropdown-typeahead
 
@@ -263,22 +265,20 @@ eget regelsæt under §Popup-widget detection, og fokus bliver bevidst på combo
 ### Tastaturet bliver i vinduet
 
 Så længe et overlay er åbent, ejer overlayet tastaturet. `Tab`/`Shift+Tab` cirkulerer inde i vinduet:
-fra sidste element til første og omvendt (udviklerbeslutning 2026-08-15). Fokus må aldrig nå siden
-bagved.
+fra sidste element til første og omvendt (udviklerens afgørelse). Fokus må aldrig nå siden bagved.
 
-Fangsten leveres af MUI's `FocusTrap` – gratis i en `Dialog`, eksplicit monteret i et håndrullet
-overlay. Skriv ikke en fjerde fokusmekanisme i hånden.
+Fangsten leveres af MUI's `FocusTrap` – indbygget i en `Dialog` og eksplicit monteret i et håndrullet overlay
+(`LicenseModal`). Løntrin-finderen er den ene dokumenterede undtagelse med sin egen tab-sekvens (§Overlay note:
+Løntrin-finder). Skriv ikke en ny fokusmekanisme i hånden.
 
 **En fangst er ikke nok i sig selv.** `Container` ejer `Tab` for hele siden, og dens undtagelse er
-DOM-indeslutning: en portaleret dialog ligger under `document.body` og slipper igennem, mens et
-INLINE monteret overlay er en ægte efterkommer af containeren og derfor IKKE gør. Sidens navigation
-overtog dermed `Tab` inde i licensvinduet og kørte forbi trap'ens vagtposter, selv om trap'en var
-korrekt monteret – målt i chrome-desktop, hvor otte Tab i træk alle landede uden for dialogen.
+DOM-indeslutning: en portaleret dialog ligger under `document.body` og slipper igennem, mens et INLINE monteret
+overlay er en ægte efterkommer af containeren. Uden mere ville sidens navigation overtage `Tab` inde i et inline
+overlay og køre forbi trap'ens vagtposter.
 
-Derfor er «er der et overlay åbent?» noget overlayet **siger**, ikke noget der udledes af, hvor
-komponenten tilfældigvis er monteret: overlayet sætter `data-mineo-overlay-root="true"` på sin
-rod-node, og `Container` giver slip, så længe markøren findes. Monteringsformen må aldrig igen være
-det, der afgør adfærden.
+Derfor er «er der et overlay åbent?» noget overlayet **siger**, ikke noget der udledes af, hvor komponenten er
+monteret: overlayet sætter `data-mineo-overlay-root="true"` på sin rod-node, og `Container` giver slip, så længe
+markøren findes. Monteringsformen må ikke afgøre adfærden.
 
 ### Lukkeveje – alle fire, altid
 
@@ -287,12 +287,12 @@ det, der afgør adfærden.
 | `Escape` | Lukker det ØVERSTE overlay. Et åbent felt inde i overlayet annullerer dog sin egen redigering først (§Escape: én Escape = én handling). |
 | Backdrop-klik | Lukker. |
 | Luk-/annuller-knap | Lukker. Knappen skal have et tilgængeligt navn. |
-| Browserens/musens **tilbage-knap** | Lukker overlayet og bliver på siden (brugerkrav 2026-08-15). |
+| Browserens/musens **tilbage-knap** | Lukker overlayet og bliver på siden (udviklerens krav). |
 
-Tilbage-knappen var ikke understøttet nogen steder: et tryk navigerede SIDEN væk under det åbne
-vindue, så brugeren mistede både vinduet og sin plads. Et åbent overlay skubber derfor ét
-`history`-trin, som tilbage-knappen forbruger. Lukkes overlayet ad en anden vej, ryddes trinnet op
-igen – ellers ville næste tilbage-tryk ramme et dødt trin og se ud, som om knappen ikke virkede.
+Ellers ville tilbage-knappen navigere SIDEN væk under det åbne vindue, så brugeren mistede både vinduet og sin
+plads. Et åbent overlay skubber derfor ét `history`-trin, som tilbage-knappen forbruger. Lukkes overlayet ad en
+anden vej, ryddes trinnet op igen – ellers ville næste tilbage-tryk ramme et dødt trin og se ud, som om knappen
+ikke virkede.
 
 ### Globale genveje er UVIRKSOMME, mens et overlay er åbent
 
@@ -305,29 +305,28 @@ Fraværet af `preventDefault()` er en del af reglen, ikke en detalje. Spærrer g
 bruge den, mister brugeren også browserens egen adfærd, og tasten bliver et sort hul.
 
 Prøven på en ny global genvej er derfor: **kan den udløses, mens et overlay står åbent – og hvad
-sker der så?** Dækningen ligger i `inputCore/react/useUndoRedoShortcuts.test.tsx` (undo/redo) og
-`components/layout/MainLayout.shortcutsAndMessages.test.tsx` (`Ctrl+S`), begge mutationstestede, samt
-i `e2e/shell-shortcuts-and-not-found.spec.ts` for den fulde rejse i en rigtig browser.
+sker der så?** Dækningen ligger i `src/__tests__/inputCore/react/useUndoRedoShortcuts.test.tsx` (undo og redo
+under åbent overlay og åben felteditor, begge uden `preventDefault()`) og
+`src/__tests__/components/layout/MainLayout.shortcutsAndMessages.test.tsx` (`Ctrl+S`) samt i
+`e2e/shell-shortcuts-and-not-found.spec.ts` for undo-rejsen i en rigtig browser.
 
-**Følgeregel: en genvej, der ikke handler, må heller ikke SPÆRRE tasten.** Mens en felteditor er åben,
-er programmets fortrydelse bevidst uvirksom (§1.4) – Ctrl+Z har præcis én funktion, at føre den seneste
-AFSLUTTEDE feltændring tilbage. Browserens egen tekstfortrydelse skal fortsat virke. Prøven for en åben
-editor skal være synkron (`ActiveEditorRegistry.getEditing()`), fordi `prepare()` er asynkron og hændelsen
-allerede er returneret, når dens `noop` foreligger. Virkningen kan kun måles i en rigtig browser; jsdom har
-ingen tekstfortrydelse.
+**Følgeregel: en genvej, der ikke handler, må heller ikke SPÆRRE tasten.** Mens en felteditor er åben, er
+programmets fortrydelse bevidst uvirksom (`form-contract.md` §6) – Ctrl+Z har præcis én funktion, at føre den
+seneste AFSLUTTEDE feltændring tilbage. Ctrl+Z i et åbent felt er derfor browserens egen tekstfortrydelse, og
+programmet spærrer ikke tasten. Prøven for en åben editor er synkron (`ActiveEditorRegistry.getEditing()`), fordi
+`prepare()` er asynkron og hændelsen allerede er returneret, når dens `noop` foreligger. Virkningen kan kun måles
+i en rigtig browser; jsdom har ingen tekstfortrydelse.
 
-### `Ctrl+S` annonceres ikke i brugerfladen (normativ, udviklerens afgørelse 2026-08-25)
+### `Ctrl+S` annonceres ikke i brugerfladen (udviklerens afgørelse)
 
-Genvejen `Ctrl+S` for `Gem` er bevidst **skjult**: den nævnes hverken i sidemenuens tooltip, på
-Om-siden eller andre steder på skærmen. Den er der for dem, der prøver den – ikke som en oplyst
-funktion. Ingen kodeændring; den nuværende tavshed ER afgørelsen, og den skrives her, så en «hjælpsom»
-`Gem (Ctrl+S)`-tooltip ikke sniger sig ind senere som en formodet forbedring.
+Genvejen `Ctrl+S` for `Gem` er bevidst **skjult**: den nævnes hverken i sidemenuens tooltip, på Om-siden eller
+andre steder på skærmen. Den er der for dem, der prøver den – ikke som en oplyst funktion. En «hjælpsom»
+`Gem (Ctrl+S)`-tooltip er derfor ikke en forbedring.
 
-Afgørelsen skal læses sammen med reglen om, at `Hent` og `Slet alt` bevidst **ingen** genveje har
-(BB-051, afvist 2026-08-19: Tab-ringen og genvejene findes for hurtig indtastning på én side, ikke for
-navigation eller filhåndtering). `Ctrl+S` er dermed den eneste tastaturvej til nogen af de tre
-filhandlinger, og den asymmetri er accepteret: den er en bekvemmelighed for den vante bruger, ikke en
-kontrol, brugerfladen lover.
+`Hent` og `Slet alt` har bevidst **ingen** genveje: tab-ringen og genvejene findes for hurtig indtastning på én
+side, ikke for navigation eller filhåndtering (afvist ønske). `Ctrl+S` er dermed den eneste genvej til de tre
+filhandlinger, og den asymmetri er accepteret: den er en bekvemmelighed for den vante bruger, ikke en kontrol,
+brugerfladen lover.
 
 ### Lag på lag
 
@@ -341,9 +340,9 @@ Hele regelsættet aftages gennem `src/hooks/useOverlayBehavior.ts`, som selv bru
 `useDialogFocusRestore` til restoren. Håndhævet af `layout/overlay-uses-shared-behavior`.
 
 **Tab-fangst skal måles i e2e, ikke i JSDOM.** JSDOM implementerer ikke browserens tab-traversering,
-så en JSDOM-test kan kun se, at en `FocusTrap` er MONTERET – ikke om den faktisk holder fokus. Præcis
-det skete: en grøn JSDOM-test dækkede over, at fokus i alle rigtige browsere vandrede ud af vinduet.
-Dækningen ligger i `e2e/overlay-behaviour.spec.ts`.
+så en JSDOM-test kan kun se, at en `FocusTrap` er MONTERET – ikke om den faktisk holder fokus; en grøn
+JSDOM-test kan dække over, at fokus i rigtige browsere vandrer ud af vinduet. Dækningen ligger i
+`e2e/overlay-behaviour.spec.ts`.
 
 ---
 
@@ -376,8 +375,8 @@ eget luk-element (X, annuller) er ikke et gyldigt restore-mål: det forsvinder s
 
 **Én implementering.** Restoren ejes af `src/hooks/useDialogFocusRestore.ts`. En popup må ikke føre
 sin egen restore-vej – hverken et `focus()`-kald i en lukkehandler eller en kopi af
-tilstands-bogføringen. Fire forhold gør den naive form utilstrækkelig, og de er alle afdækket i
-konkrete browserfejl: WebKits manglende klik-fokus (se ovenfor), at fokus ved `Escape` kan stå på
+tilstands-bogføringen. Fire forhold gør den naive form utilstrækkelig: WebKits manglende klik-fokus (se ovenfor),
+at fokus ved `Escape` kan stå på
 popupens egen container frem for `body`, at MUI's transition slutter **før** portalen unmountes,
 så fokus falder til `body` *efter* en for tidlig genoprettelse, og at **MUI's `Dialog` selv genopretter
 fokus** til det element, der var aktivt ved åbningen. Reglen er håndhævet af
@@ -388,18 +387,15 @@ overskriver derfor målet uden at noget fejler. Den kender ikke målprioriteten 
 netop når triggeren undertrykker sit eget fokus (`onMouseDown` + `preventDefault()`) – da er et FELT
 aktivt ved åbningen, og fokus vender tilbage dertil i stedet for til den åbnende kontrol.
 
-Dette er den farligste af de to fejlformer, fordi INTET ser forkert ud: hooken er kaldt, kontrakten
-ser overholdt ud, og den konkurrerende vej er ikke kode i filen – den er MUI's default. Reglen
-`layout/popup-focus-restore-single-source` er blind for den, fordi den skærer på `focus()`-kald.
-Den lukkes derfor af sin egen regel, `layout/mui-dialog-disables-own-focus-restore`, som flager en
-`<Dialog>` uden `disableRestoreFocus` i en fil, der selv aftager `useDialogFocusRestore`. Kravet stod
-her i forvejen; tre dialoger overtrådte det alligevel, fordi intet målte det.
+Fejlformen er farlig, fordi intet ser forkert ud: hooken er kaldt, og den konkurrerende vej er ikke kode i
+filen – den er MUI's default. Reglen `layout/popup-focus-restore-single-source` skærer på `focus()`-kald og kan
+ikke se den. Den lukkes derfor af sin egen regel, `layout/mui-dialog-disables-own-focus-restore`, som flager en
+`<Dialog>` uden `disableRestoreFocus` i en fil, der selv aftager `useDialogFocusRestore`.
 
 **Fokus-FANGST og fokus-RESTORE er to forskellige ansvar.** Restoren (hvor fokus lander EFTER
 lukningen) ejes af `useDialogFocusRestore`. Fangsten (at Tab bliver INDE i vinduet, mens det er
-åbent) kommer fra MUI's `FocusTrap` – den samme primitiv, `Dialog` selv bruger. En håndrullet popup
-arver den ikke automatisk og skal montere den eksplicit; `aria-modal="true"` alene fanger ingenting.
-Skriv ikke en tredje fokusmekanisme i hånden.
+åbent) kommer fra MUI's `FocusTrap` (§Overlay-adfærd). En håndrullet popup arver den ikke automatisk og skal
+montere den eksplicit; `aria-modal="true"` alene fanger ingenting.
 
 **Triggerens tastaturtilgængelighed.** En popup-åbnende kontrol skal som udgangspunkt kunne
 fokuseres med `Tab` og aktiveres med både `Enter` og mellemrum gennem native knapsemantik
@@ -422,7 +418,7 @@ Normativt krav:
 - Klassifikationen "er dette en popup-kontrol, og er den åben?" har **ÉT sted**:
   `src/components/inputs/popupWidgetSemantics.ts` med de fire eksporter `getPopupWidgetHost`,
   `isPopupWidgetExpanded`, `isPopupWidget` og `isInClosedPopupWidget`. Modulet måler kontrollens
-  ARIA-semantik (`role="combobox"`, `aria-haspopup`, `aria-expanded`, og `aria-controls` kun sammen med
+  ARIA-semantik (`role="combobox"`, `aria-haspopup`, `aria-expanded` og `aria-controls` kun sammen med
   åben tilstand). Alle navigationsflader – Container OG grid-navigationen – aftager den.
 - For en widget, der bærer expanded-tilstanden på en søsker eller wrapper frem for på sig selv, afgøres
   åbenhed af, om det `aria-controls`-udpegede element **faktisk er synligt** (`hidden`, `aria-hidden`,
@@ -430,7 +426,8 @@ Normativt krav:
   ikke selv har `aria-expanded`.
 - En navigationsflade må **IKKE** klassificere popup-kontroller på et komponentnavn, en privat
   markør-attribut eller sin egen kopi af ARIA-opslaget. En sådan klassifikation kan blive inert, når
-  kontrollen udskiftes, uden at nogen type eller test fejler – det skete konkret. Håndhævet af AST-reglen `input/popup-semantics-single-source`.
+  kontrollen udskiftes, uden at nogen type eller test fejler. Håndhævet af AST-reglen
+  `input/popup-semantics-single-source`.
 - Klassifikationen skal være **den samme på tværs af eventtyper**. En popup-kontrol må ikke behandles som
   popup i keydown-vejen og som en almindelig celle i pointer-/klik-/dobbeltklik-vejen; grid'et fører derfor
   heller ingen to-trins-redigeringsbogføring for den.
@@ -475,10 +472,12 @@ både `Lønindkomst` og `EO-oplysninger`) bruger en eksplicit, hardcoded tab-sek
 
 `Ansættelse -> Beløb -> Dato -> Beregn -> resultatlinjerne`
 
-Resultatlinjerne er kun med i sekvensen, når de kan sættes ind (finderen er åbnet med et indsætningsmål, og løntrinnet er
-ikke «55+»).
+Resultatlinjerne er kun med i sekvensen, når de kan sættes ind: finderen er åbnet med et indsætningsmål,
+løntrinnet er ikke «55+», og indsættelsen er ikke spærret, fordi opslagets løntype afviger fra sagens
+(`input-field-behavior-contract.md` §8).
 
-Dette er bevidst og normativt for den popup, fordi generisk focus-trap tidligere gav ustabil adfærd med dropdown-popover og fokuslæk til siden bagved.
+Den eksplicitte sekvens er bevidst og normativ for denne popup: en generisk focus-trap giver ustabil adfærd med
+dropdown-popoveren og fokuslæk til siden bagved.
 
 Krav:
 - `Tab`/`Shift+Tab` skal altid cirkulere inden for popup-sekvensen.
@@ -487,7 +486,7 @@ Krav:
 - `ArrowUp`/`ArrowDown` må kun overtage intern popup-navigation, når dropdown-menu ikke er åben og editor ikke er åben.
 - `Enter`/mellemrum (eller klik) på en resultatlinje sætter løntrin – og gruppen, når linjen kun har én – ind i ét
   fortryd-trin og lukker popuppen. **Undtagelse fra §Popup-fokus-restore:** fokus lander da i fladens «Gruppe»-felt, ikke
-  på `Find løntrin` (udviklerens ønske, BB-310). `useLoentrinFinder` peger restore-målet om på gruppefeltet før lukningen,
+  på `Find løntrin` (udviklerens ønske). `useLoentrinFinder` peger restore-målet om på gruppefeltet før lukningen,
   så det stadig er den ene restore-vej, der flytter fokus.
 
 Overlayets interne focus-trap ejes af overlay-komponenten selv. `Container` må kun undlade at interferere med popup/portal-subtrees. Overlayet er ansvarligt for at stoppe fokuslæk til siden bagved.
@@ -510,25 +509,25 @@ Kontrakten fastlægger den observerbare adfærd, ikke den præcise interne mekan
 
 Det betyder:
 
-- Der må gerne refaktoreres i `Container.tsx`, så længe adfærden ovenfor bevares.
+- Der må gerne refaktoreres i `Container` og `containerNavigation/`, så længe adfærden ovenfor bevares.
 - CSS-selectors, fokus-hjælpefunktioner og konkrete `focus(...)`-kald er implementeringsdetaljer.
-- Hvilke elementer der indgår i tab-sekvensen, skal fortsat være eksplicit og auditérbart defineret, men ikke nødvendigvis via den samme selector-strategi som i dag.
+- Hvilke elementer der indgår i tab-sekvensen, skal fortsat være eksplicit og auditérbart defineret, men ikke nødvendigvis via en bestemt selector-strategi.
 - Sideintegrerede handlingsknapper må kun indgå i den normale feltsekvens ved eksplicit opt-in.
 - `Indsæt dags dato`, `Find løntrin`, synlige dokumentdownload-knapper, `Vælg mappe` på Indstillinger,
   Renteberegnings `Slet alle indtastninger`, `MIT-licensen` og `Installér hjælpeprogram` på Om-siden,
-  reparationslinkene i «Fejl og advarsler»-boksene og `Stamdata`-linket i «Mangler (angiv i Stamdata)» /
-  «Ugyldig værdi (ret i Stamdata)» har dette opt-in. De skal kunne fokuseres med Tab og aktiveres med
-  native knapadfærd (`Enter` og mellemrum).
+  handlingerne i `InlineActionButton`, genindlæsningsknappen i `LazyChunkRecoveryNotice`, reparationslinkene i
+  «Fejl og advarsler»-boksene og `Stamdata`-linket i «Mangler (angiv i Stamdata)» / «Ugyldig værdi (ret i
+  Stamdata)» har dette opt-in. De skal kunne fokuseres med Tab og aktiveres med native knapadfærd (`Enter` og
+  mellemrum).
 - Et internt tekstlink, der udfører en handling (navigerer til et felt, åbner en dialog), renderes
   altid som `TextLinkButton` (`components/inputs/TextLinkButton.tsx`), der fastlåser markøren og den
-  native knap (BB-463/BB-464). AST-reglen `a11y/text-link-button-single-source` forbyder at sammensætte
+  native knap. AST-reglen `a11y/text-link-button-single-source` forbyder at sammensætte
   `icon-text-link` i hånden uden for den og link-primitiverne.
   Skjulte eller native deaktiverede knapper indgår ikke i sekvensen.
 - Rækkens `Slet rækken`-ikon står bevidst uden for navigationen.
 - **Opt-in'et er en forudsætning for `Enter`, ikke kun for Tab.** Uden markøren er knappen ikke i
-  fokusinventaret, og `Enter` falder igennem til den generiske «flyt til næste felt»-vej frem for at
-  ramme knap-undtagelsen. Mellemrum virker alligevel gennem native knapsemantik, så en manglende
-  markør viser sig **kun** på `Enter` – præcis den asymmetri der ramte de to Om-side-knapper.
+  fokusinventaret: `Enter` aktiverer den ikke, men flytter fokus til sidens første mål (`Shift+Enter`: sidste).
+  Mellemrum virker alligevel gennem native knapsemantik, så en manglende markør viser sig **kun** på `Enter`.
 
 ---
 
@@ -568,7 +567,7 @@ triggeren blev fjernet, og at restoren holder sig væk når en anden kontrol med
 (Escape fra Løntrin-finder returnerer fokus til `Find løntrin`).
 Enkeltkilde-grænsen er håndhævet af `layout/popup-focus-restore-single-source`.
 
-**Escape-adfærden (§Editor åben) dækkes ikke af Container-testene, men af felt-editoren:**
+**Escape-adfærden (§Escape) dækkes ikke af Container-testene, men af felt-editoren:**
 `src/__tests__/inputCore/editor/fieldEditor.test.ts` og
 `src/__tests__/inputCore/react/useFieldEditor.test.tsx`
 
@@ -585,7 +584,7 @@ inspektion (kan ikke verificeres i JSDOM) står kun:
   samt `StyledDropdown`.
 - Fokus-ring-æstetik (klar og tydelig) samt platform-/browser-specifik caret-placering.
 
-Dette udføres ad hoc ved ændringer i `Container.tsx`, i felt-familien eller i præsentationsskallerne
+Dette udføres ad hoc ved ændringer i Container-navigationen, i felt-familien eller i præsentationsskallerne
 (`StyledTextFieldBase`, `StyledTextAreaBase`). Al observerbar navigations-adfærd er dækket af de
 automatiske tests ovenfor; der findes ingen separat checklist-fil.
 
@@ -627,8 +626,7 @@ ikke genindføres. Håndhævet af `input/single-field-identity-in-dom`,
 
 Når programmet fører brugeren hen til et felt – et fejl-/advarselslink, et blokeret Gem, undo/redo,
 en afvist handling der peger på den celle, der mangler – markeres målet visuelt med den delte
-blinkmarkering. Markeringen er RENT visuel: den ændrer ingen værdi, sætter ingen feltfejl (§1.7) og
-blokerer intet. Den siger «her», ikke «dette er forkert», og bruges derfor både til en ægte fejl og
+blinkmarkering. Markeringen er RENT visuel: den ændrer ingen værdi, sætter ingen feltfejl og blokerer intet. Den siger «her», ikke «dette er forkert», og bruges derfor både til en ægte fejl og
 til en manglende indtastning, der endnu ikke er en fejl.
 
 **Markeringen er TRANSIENT og skal komme igen hver gang.** Udløser brugeren den samme handling to
@@ -637,11 +635,9 @@ En markering, der kun virker første gang, læses som at programmet ignorerer br
 
 **Derfor sættes klassen kun af `blinkFieldAttention`** (`inputCore/react/fieldAttentionBlink.ts`),
 som ejer genstarten: fjern klassen, tving reflow, sæt den igen. Ingen flade må sætte
-blink-klassen deklarativt ud fra React-state. Det er ikke en stilpræference – det er den konkrete
-fejlmekanisme: en state-sat klasse skrives med SAMME værdi ved andet forsøg, React bailer ud af
-re-renderen, og der sker intet synligt. Ingen test fejler, og fejlen ser ud som om programmet ikke
-reagerer. Præcis det skete i løntabellen, hvor en afvist «Omregning til fuldt år» kun blinkede ved
-første klik. Håndhævet af `layout/attention-blink-applied-by-helper`.
+blink-klassen deklarativt ud fra React-state: en state-sat klasse skrives med SAMME værdi ved andet forsøg,
+React bailer ud af re-renderen, og der sker intet synligt – ingen test fejler, og programmet ser ud, som om det
+ikke reagerer. Håndhævet af `layout/attention-blink-applied-by-helper`.
 
 **Markeringen står ikke ved.** Den løber sin animation (0,5 s × 3) og forsvinder. En flade må ikke
 forsøge at gøre den vedvarende ved at holde klassen sat: klassens animation er alligevel spillet af
@@ -654,7 +650,7 @@ tone i markeringens levetid; det er et tilgængelighedshensyn i ét sted, ikke e
 
 ## Se også
 
-- `src/components/layout/Container.tsx` – Implementation
+- `src/components/layout/Container.tsx` og `src/components/layout/containerNavigation/` – Implementation
 - `src/hooks/useDialogFocusRestore.ts` – Den ene popup-fokus-restore-vej
 - `src/__tests__/hooks/useDialogFocusRestore.test.tsx` – Automatiske tests (popup-fokus-restore)
 - `src/__tests__/components/layout/Container.test.tsx` – Automatiske tests

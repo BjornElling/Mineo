@@ -3,7 +3,7 @@
 **Version:** 1.0
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
-**Senest verificeret mod kode:** 2026-11-22
+**Senest verificeret mod kode:** 2026-11-26
 
 **Formål:** At fastlægge én ensartet model for input, redigering, validering og beregningsgrænser i Mineo.
 
@@ -106,10 +106,10 @@ Regler:
 
 ## 4. Feltdescriptor og identitet
 
-Hvert persisteret felt har én typed `FieldRef<T>` = `{ address, descriptor }`, hvor `FieldDescriptor<T>`
-(`src/inputCore/fieldDescriptor.ts`) forbinder:
+Hvert persisteret felt har én typed `FieldRef<T>` = `{ address, descriptor }`, hvor `address` er feltets
+strukturelle `FieldAddress`, og `FieldDescriptor<T>` (`src/inputCore/fieldDescriptor.ts`) forbinder:
 
-- en strukturel `FieldAddress`,
+- en adresseskabelon (`template`), som adressen skal matche,
 - feltets codec,
 - brugervendt label,
 - kontroltype,
@@ -212,15 +212,21 @@ Keyboard-navigation ejes af `keyboard-navigation.md`.
 1. Initial values materialiseres gennem sektionens Zod-schema og bruges kun ved oprettelse eller reelt fravær.
 2. En eksisterende afsluttet værdi må aldrig overskrives af initial values ved navigation, rerender eller
    settings-ændring.
-3. Synlighed og beregningsrelevans udledes af samme domæneprædikat.
+3. Synlighed og beregningsrelevans udledes af samme domæneprædikat, descriptorens `relevance`. Et skjult felt er
+   ikke udfyldt nogen steder i programmet: det påvirker hverken beregning eller fejl. Et felt, der kun giver
+   mening i én beregningstilstand, skjules eller gøres relevant gennem `relevance` – og før et felt skjules, findes
+   alle læsere af dets værdi. Den eneste bevidste undtagelse er erstatningsopgørelsens komprimerede
+   beregningsgrundlag fra 2. opgørelse («Skjul beregning efter første opgørelse»), som skjules på fladen, men
+   fortsat bærer beregningen (`eo-snapshot-contract.md` §14).
 4. Skjult canonical input bevares gennem F5 og `.eo`, medmindre brugeren eksplicit sletter det.
 5. **Hovedregel: et brugervalg sletter aldrig brugerens indtastninger.** Kun kontroller, der over for
    brugeren er udtrykkeligt navngivet som slettende – `Slet alt`, `Slet række`, Delete/Backspace på et
    fokuseret felt – fjerner indtastet data. Et valg, der gør et andet felt irrelevant (fx Afgørelsestype
-   `Endelig` → `Midlertidig`, `Tillæg angives som` procent → beløb, en skiftet Lønperiode), ændrer derfor
+   `Endelig` → `Midlertidig`, `Tillæg angives som` procent → beløb, et skift af «Løn indtastes som» på Årsløn
+   og i erstatningsopgørelsens ansættelsesforhold), ændrer derfor
    **kun vurderingen** af det felt: en **gyldig** værdi består uændret, feltets issues genudledes rent fra
    det nye snapshot, og skiftes valget tilbage, kommer værdien uændret til syne igen. Et valg må ikke være
-   en skjult sletteknap.
+   en skjult sletteknap. Skiftet sker uden dialog og uden særskilt markering af de skjulte værdier.
 
    **Undtagelse – den usynlige røde fejl:** bar feltet en **aktiv rød feltfejl**, og gør valget feltet
    irrelevant (= skjult, punkt 3), ryddes feltet **tavst** i samme transaktion som valget – én typed
@@ -228,10 +234,10 @@ Keyboard-navigation ejes af `keyboard-navigation.md`.
    en canonical out-of-bounds-/rule-værdi.
 
    Det samme gælder **enhver anden ændring**, der gør et felt irrelevant – en indtastning, en rydning, en
-   ny eller slettet række. Relevans kan følge et tekstfelt («Svie/smerte-krav i tidligere
+   ny eller slettet række. Relevans kan følge et tekstfelt («Svie/smerte opgjort i tidligere
    erstatningsopgørelser» følger «Nummer») eller en tabels indhold (TAF's «Løse ferie-/feriefridage» følger
-   beregningsenheden, som udledes af lønindkomstens rækker). Uden rydningen efterlod indtastningen råtekst
-   i et skjult felt, og relevans-invarianten afviste tilstanden. En indlæst `.eo`-fil og en ny sag ryddes
+   beregningsenheden, som udledes af lønindkomstens rækker). Uden rydningen ville råtekst blive stående i et
+   skjult felt, og relevans-invarianten ville afvise tilstanden. En indlæst `.eo`-fil og en ny sag ryddes
    aldrig: de har ingen før-tilstand at sammenligne med.
 
    Begrundelsen er ikke, at reglen ophører med at gælde for det skjulte felt; den er, at **en rød fejl,
@@ -242,7 +248,7 @@ Keyboard-navigation ejes af `keyboard-navigation.md`.
    Afgrænsningen er snæver med vilje. Rydningen rammer netop overgangen **synlig + rød → skjult** – ikke
    gyldige værdier, og ikke skjulte værdier i almindelighed.
 
-   **Ubestemt relevans rydder ikke (BB-433).** Bygger relevansreglens «skjult» på et felt med afvist råtekst,
+   **Ubestemt relevans rydder ikke.** Bygger relevansreglens «skjult» på et felt med afvist råtekst,
    er feltet ikke fravalgt, men midlertidigt ubestemt: den afviste værdi har tomt canonical slot, så reglen
    kunne ikke kende brugerens reelle valg (fx en beregningsslutdato `31-02-2018`, så det ikke kan afgøres, om
    TAF opgøres i dage eller måneder). Feltet er skjult, tavst og læses som tomt som et irrelevant felt, men
@@ -257,10 +263,10 @@ Keyboard-navigation ejes af `keyboard-navigation.md`.
    vises den samme værdi. Sammen med punkt 5 giver det én konsistent regel: skjult og gyldigt bevares;
    skjult og rødt ryddes.
 
-   Derfor bærer et irrelevant felt **aldrig** et aktivt issue (§1.9, §10). Det er ikke en undertrykkelse af
+   Derfor bærer et irrelevant felt **aldrig** et aktivt issue (§10). Det er ikke en undertrykkelse af
    en fejl, der stadig findes: det skjulte felt er tavst, **fordi** det er ryddet. De to halvdele –
    rydningen i punkt 5 og tavsheden her – skal derfor ændres sammen, aldrig hver for sig. Håndhæves af
-   relevans-invarianten i `validateSettledInput`, som afviser en færdig tilstand med rejected råtekst i et
+   relevans-invarianten i `InputCatalog.validateSettledInput`, som afviser en færdig tilstand med rejected råtekst i et
    irrelevant felt (et ubestemt felt, punkt 5, er tilladt).
 
 7. **Relevans er en læsegrænse.** `InputReader` udleverer altid feltets `emptyValue`, når descriptorens
@@ -300,17 +306,19 @@ En placeholder er **formvejledning og intet andet**. Den viser den forventede v�
 - en manglende-værdi- eller statusbesked, eller
 - noget, der ændrer sig med tilstand eller kalender.
 
-Grænser hører i feltets issue og tooltip (§8 ovenfor), manglende værdi i issue-/feedbackmekanikken. To
-konkurrerende beskrivelser af samme felt er netop det, der lod en årstalsafhængig tekst (`åååå (≤2026)`) leve i
-visningslaget uden at nogen kontrakt fejlede, og lod en `Indtastning mangler`-besked overtage formvejledningens
-kanal.
+Grænser hører i feltets issue og tooltip (§8 ovenfor), manglende værdi i issue-/feedbackmekanikken. En
+placeholder, der også bærer en grænse eller en status, er en konkurrerende beskrivelse af samme felt, som ingen
+kontrakt kan holde sand.
 
 Den rene form ejes af den semantiske **feltfamilie**, ikke af den tabel eller side, feltet står på:
 `src/utils/fieldFormatPlaceholders.ts` (år, uge, dato, måned, dag), `src/utils/amountInputUtils.ts`
 (`DEFAULT_AMOUNT_PLACEHOLDER`, `INTEGER_AMOUNT_PLACEHOLDER`) og `src/utils/percentInputUtils.ts`
-(`DEFAULT_PERCENT_PLACEHOLDER` og `TWO_DECIMAL_PERCENT_PLACEHOLDER` – begge, da procentfamilien har to
-formrepræsentationer efter feltets decimalpolitik, jf. §8.3). En
-callsite må kun override en placeholder, når feltets domæne har en reelt anden FORMATREPRÆSENTATION – fx
+(`DEFAULT_PERCENT_PLACEHOLDER` og `TWO_DECIMAL_PERCENT_PLACEHOLDER` – procentfamilien har to
+formrepræsentationer; formularfeltet og tabelcellen vælger begge efter feltets decimalpolitik, så et procentfelt
+med decimaler viser `0,00` og et uden viser `0`, jf. §8.3; en låst, afledt procentvisning viser `0,00`, fordi den
+altid viser to decimaler). Pladsholderen i en tom
+reguleringscelle er formen plus feltets enhed (`0,00 %`, `0,00 kr.`); et bart enhedstegn er ikke en
+formvejledning. En callsite må kun override en placeholder, når feltets domæne har en reelt anden FORMATREPRÆSENTATION – fx
 månedens `mm` i en periodekolonne – aldrig for at vise bounds, validering eller status.
 
 ### 8.2 Fortegns-politikken ejes af feltets codec
@@ -321,10 +329,9 @@ Politikken erklæres på codecet som `FieldCodec.signPolicy`, som codec-factory'
 gennem `fieldAllowsNegative(field)` / `codecAllowsNegative(codec)`.
 
 En feltkomponent, en tabelcelle eller en side må **ikke** sende en hardkodet `allowNegative`-literal til et
-tegnfilter – heller ikke en korrekt en. En literal er en anden samtidig sandhed om feltet, og præcis den lod
-`PercentField` svare `true`, mens `GridPercentCell` svarede `false` for de SAMME descriptorer, så et minustegn
-kunne tastes i et felt, der ikke må være negativt. Håndhævet af
-`input/sign-policy-from-descriptor`.
+tegnfilter – heller ikke en korrekt en. En literal er en anden samtidig sandhed om feltet: formularfelt og
+tabelcelle kan da svare forskelligt for samme descriptor, så et minustegn kan tastes i et felt, der ikke må være
+negativt. Håndhævet af `input/sign-policy-from-descriptor`.
 
 Politikken gælder almindelig tastning og paste. Paste skal først følge codecets almindelige tegnfilter: et minus,
 som feltet ville afvise ved tastning, springes over, mens paste fortsætter. En negativ værdi, der allerede kommer
@@ -332,12 +339,14 @@ fra en tolerant `.eo`-load, er en anden vej end brugerens tastning og committes 
 frem for at få fortegnet stille fjernet.
 
 Beløbsfelter er den ene bevidste nuance: `-` er også subtraktion i et udtryk (`5000-200`), så et ikke-negativt
-beløbsfelt tillader tegnet og blokerer kun det **unære** minus.
+beløbsfelt tillader tegnet og blokerer kun det **unære** minus. Et negativt udtryksresultat fanges af feltets
+grænse som en canonical rød fejl (`input-field-behavior-contract.md` §2.2).
 
 Typografiske minustegn (U+2212 minus, U+2013 tankestreg, U+2014 em-dash og U+2011 hård bindestreg) er i
 enhver familie med en `signPolicy` det SAMME tegn som `-`: de normaliseres til ASCII `-` FØR tegnfilteret ved
-tastning, paste og første tast, på både formularfelt og tabelcelle (`normalizeSignCharactersForCodec`, BB-430).
-Reglerne ovenfor gælder derefter uændret – også at et unært minus springes over i et felt uden negative værdier.
+tastning, paste og første tast, på både formularfelt og tabelcelle (`normalizeSignCharactersForCodec`).
+Reglerne ovenfor gælder derefter uændret – også at et unært minus springes over i et felt uden negative værdier,
+uden varsel (`input-field-behavior-contract.md` §1.2a).
 
 ### 8.2a Længdepolitikken ejes af feltets codec
 
@@ -348,7 +357,7 @@ en feltkomponent eller tabelcelle må ikke bære sin egen længdeliteral, af sam
 egen `allowNegative`-literal.
 
 Blokeringen omfatter ikke **talværdi**. Et felts min/max, kronologi og øvrige domænegrænser er rene
-validatorer/projektioner efter §7 i `mineo-field-pattern.md`: en korrekt formateret værdi inden for
+validatorer/projektioner efter `mineo-field-pattern.md` §2 (Lag C, krav 7): en korrekt formateret værdi inden for
 længdegrænsen bliver canonical og får sit røde bounds-issue. Beløbsudtryk er nuancen – udtrykkets enkelte
 talled længdebegrænses tegn for tegn, mens et beregnet resultat uden for feltets beløbsgrænse først kan fanges
 ved settle og derfor bliver et canonical issue.
@@ -362,20 +371,18 @@ visningen.
 
 ### 8.3 Decimalpolitikken ejes af feltets codec
 
-Om et beløbs- eller procentfelt accepterer dansk decimalkomma, erklæres på codecet som
-`FieldCodec.decimalPolicy`, afledt af `allowDecimals`. Formularfelt og grid-celle læser begge politikken gennem `fieldAllowsDecimals(field)`; de må
-ikke have egne defaults eller callsite-flags. Et decimalfelt skal tillade en åben draft som `12,` og først
-afgøre den afsluttede værdi ved blur/Enter gennem det fælles feltcodec.
+Om et beløbs- eller procentfelt har decimaler, erklæres på codecet som `FieldCodec.decimalPolicy`, afledt af
+`allowDecimals`. Formularfelt og grid-celle læser begge politikken gennem `fieldAllowsDecimals(field)`; de må
+ikke have egne defaults eller callsite-flags. Politikken er en **settle- og visningsregel, ikke en tegnregel**:
+alle beløbs- og procentfelter tager imod dansk decimalkomma og højst to decimaler, og et decimalløst
+(`integerOnly`) felt afrunder ved settle (`input-field-behavior-contract.md` §1.2). Et decimalfelt tillader en
+åben draft som `12,` og afgør først den afsluttede værdi ved blur/Enter gennem det fælles feltcodec.
 
-Grid-procentfelternes universelle hovedregel er to decimaler: placeholderen er `0,00`, højst to decimaler kan
-tastes, og afsluttede værdier vises med to decimaler. EET-sidens procentfelter er den eneste aktuelle undtagelse:
-de erklærer `integerOnly` i deres codecs, viser placeholderen `0` og blokerer decimalkomma. Undtagelsen skyldes
-EET-felternes særskilte heltals-/5 %-regel og må ikke implementeres som et lokalt komponentflag.
-
-Grid-beløbsfelternes universelle hovedregel er ligeledes to decimaler: placeholderen er `0,00`, højst to
-decimaler kan tastes i hvert talled i et beløbsudtryk, og afsluttede værdier vises med to decimaler. Der er ingen
-aktuelle heltalsundtagelser blandt grid-beløbsfelterne. En eventuel undtagelse skal erklære `integerOnly` i sit
-beløbscodec; grid-cellen må ikke have et lokalt precision-flag.
+Procent- og beløbsfelternes hovedregel er to decimaler: afsluttede værdier vises med to decimaler, og
+placeholderen er `0,00` – i formularfelt og tabelcelle ens. Undtagelserne erklærer `integerOnly` i deres codecs og
+vises uden decimaler (placeholderen er `0`): EET-procenterne – «EET % (hvis afviger fra ASL)» og afgørelsestabellens
+EET- og kapitaliseringsprocent, der følger EET's heltals-/5 %-regel – og beløbsfelterne for ASL- og EAL-årsløn,
+der angives i hele kroner. En undtagelse må aldrig implementeres som et lokalt komponent- eller precision-flag.
 
 ## 9. Dynamiske tabeller
 
@@ -391,19 +398,29 @@ livscyklus. Den ejer ikke en parallel `draftRows`-kopi af celleværdier.
 - Sletning af en række fjerner række og alle descendant-rejections i samme transaktion.
 - Orphan-state skal være urepræsenterbar; reconcile-effects er forbudt som slutarkitektur.
 - Add, delete og reorder bruger samme command-runner som feltændringer.
+- Hvor en række har to tomhedsprædikater (fx persistensens og reglernes), holdes de op mod hinanden på værdien 0
+  og på et defaultet valg, så de ikke kan blive uenige om, hvorvidt rækken er udfyldt.
+- Kolonnesortering har to tilstande (stigende/faldende) og ingen tredje, der genskaber indtastningsrækkefølgen.
+  Den sorterede rækkefølge bliver sagens rækkefølge – også i `.eo` og efter F5 – og kan ikke fortrydes
+  (`undo-redo-contract.md` §1). En række kan derfor flytte sig, mens den udfyldes. Talkolonner, også afledte
+  (antal dage, dagsbeløb), sorterer på talværdien, ikke på den formaterede tekst.
 
-De to lønfelter `Løn`/`Løn (2)` og ydelsesfelterne `Ydelse`/`Tillæg` har fortsat identisk domænebetydning inden
-for hvert par og summeres uden særbehandling. Ydelsesparrets forskellige navne er bevidste (en social ydelse har typisk
-én ydelse og få tilknyttede tillæg) og bruges ens på skærm, i «Fejl og advarsler» og i bilaget (BB-361).
+De to lønfelter `Løn`/`Løn (2)` og ydelsesfelterne `Ydelse`/`Tillæg` har identisk domænebetydning inden for hvert
+par og summeres uden særbehandling. Navnene er bevidste og bruges ens på skærm, i «Fejl og advarsler» og i
+bilaget: «Løn» og «Løn (2)» omdøbes ikke, og kun «Løn (2)» har et info-ikon; ydelsesparrets forskellige navne
+afspejler, at en social ydelse typisk har én ydelse og få tilknyttede tillæg.
 
 ## 10. Validering og issues
 
 Issues afledes rent fra `InputReader`, feltmetadata, domænevalidatorer og relevante AppSettings:
 
-- `invalid` fra rejected input,
-- `missing` fra consumerens requirement,
-- `range`/`bounds` fra canonical værdi og konkrete grænser,
-- `schema`/`rule` fra domænevalidatoren.
+- feltfejl med årsagen `format` fra rejected input,
+- feltfejl med årsagen `bounds` fra canonical værdi og konkrete grænser,
+- feltfejl med årsagen `schema` eller `rule` fra feltets validatorer og domænevalidatoren,
+- consumerfejl med årsagen `missing` (eller `rule`) fra consumerens krav.
+
+Typerne er `FieldIssue` og `ConsumerIssue` i `src/inputCore/inputIssue.ts`. Kernen har ingen warning-variant;
+advarsler dannes i domænernes egne typer og blokerer aldrig.
 
 Mounted komponenter rapporterer ikke afledelige fejl til en central store. Samme issue-model driver feltmarkering,
 tooltip, kontrolvisning, save-gate og dokument-gate med deres respektive policy.
@@ -434,9 +451,10 @@ Særligt for dokument-download:
 ## 12. Der findes kun én inputmodel
 
 Der findes ingen parallel inputklynge ved siden af den model, denne kontrakt beskriver – hverken som kopi, som
-"midlertidig" undtagelse eller under et nyt navn. To AST-regler håndhæver det, og de rammer hver sin flade:
+"midlertidig" undtagelse eller under et nyt navn. De slettede mekanismer nedenfor må ikke genindføres. To
+AST-regler håndhæver det, og de rammer hver sin flade:
 
-- **`input/deleted-legacy-architecture-import`** forbyder *importstier* til den fjernede klynge, uden allowlist.
+- **`input/deleted-legacy-architecture-import`** forbyder *importstier* til de slettede moduler, uden allowlist.
   Blandt dem: `FormPersistenceContext`, `usePersistedForm`, `useDraftField`, `useStyledFieldAdapter`,
   `inputRuntimeStore`, `formPersistenceStore`, mappestierne `src/hooks/tableInput` og `src/rowDrafts/`
   (som dækker `useTableInputCore` og `useRowDrafts`) og de otte
@@ -446,23 +464,24 @@ Der findes ingen parallel inputklynge ved siden af den model, denne kontrakt bes
   `executeLegacyInputTransaction`, `useDraftLifecycle`, `legacyGridTransactionBridge`, `useSliceRowDrafts`,
   `useFormFieldErrorReporter`, `onFieldError`, `InputWriteAuthority` og `claimInputWriteAuthority`.
 
-De persisterede felter tegnes i dag af felt-familien i `src/inputCore/react/fields/` (`TextField`, `DateField`,
-`AmountField`, `IntegerField`, `PercentField`, `ChoiceField` m.fl. samt grid-varianterne). De deler de bevarede
-præsentationsskaller `StyledTextFieldBase` og `StyledTextAreaBase`, og kontrollerne `StyledDropdown`,
-`StyledCheckbox`, `StyledRadioButton` og `StyledToggleSwitch` er fortsat i brug – `Styled*`-præfikset i sig selv
-er altså ikke forbudt, kun de otte felt-komponenter ovenfor.
+De persisterede felter tegnes af felt-familien i `src/inputCore/react/fields/` (`TextField`, `DateField`,
+`AmountField`, `IntegerField`, `PercentField`, `ChoiceField` m.fl. samt grid-varianterne). De deler
+præsentationsskallerne `StyledTextFieldBase` og `StyledTextAreaBase` og kontrollerne `StyledDropdown`,
+`StyledCheckbox`, `StyledRadioButton` og `StyledToggleSwitch` – `Styled*`-præfikset i sig selv er altså ikke
+forbudt, kun de otte felt-komponenter ovenfor.
 
-**`fieldErrors` er ikke et forbudt navn.** Den centrale skrivbare feltfejl-bus er væk (`src/types/fieldErrors`,
-`useFormFieldErrorReporter`, `onFieldError`, tabeltrackerne), men `fieldErrors` lever videre som et helt
-almindeligt feltnavn i domænesnapshots – fx `EetSnapshot.fieldErrors` og `EOInspektionSnapshot.fieldErrors`.
-AST-værnet undtager derfor navnet bevidst.
+**`fieldErrors` er ikke et forbudt navn.** Der findes ingen central skrivbar feltfejl-bus (`src/types/fieldErrors`,
+`useFormFieldErrorReporter`, `onFieldError` og tabeltrackerne er slettet), men `fieldErrors` er et almindeligt
+feltnavn i domænesnapshots – fx `EetSnapshot.fieldErrors` og `EOInspektionSnapshot.fieldErrors`. AST-værnet
+undtager derfor navnet bevidst.
 
 Den ENE dokumenterede undtagelse fra den autoritative inputtilstand er `components/inputs/transient/`: tre flader
 (løntrin-finder-overlay, sygedagpenge-hjælperrække, rapport-dialog) bygget på `TransientTextInput`,
 `TransientAmountInput`, `TransientDateInput` og den delte `useTransientDraft`. De redigerer ikke sagsdata og har
 hverken feltadresse, issue-snapshot, history eller persistens, men genbruger de samme parse-kerner, tegnfiltre og
 bounds-beskeder som de persisterede felter. `input/transient-cannot-write-case-data` håndhæver, at de ikke kan
-skrive sagsdata.
+skrive sagsdata. En afvist indtastning i et transient felt bliver stående synligt med rød ring, præcis som i et
+persisteret felt. Hjælpernes brugeradfærd står i `input-field-behavior-contract.md` §3.6 og §8.
 
 ## 13. Runtime-verifikation af mount og settle
 

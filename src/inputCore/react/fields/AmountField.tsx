@@ -19,8 +19,8 @@ import { resolveAmountCharPolicy } from './charLengthPolicy';
 /**
  * Feltbredde for HELTALS-beløb i millionklassen – dimensioneret så syv cifre med tusindtalsseparatorer
  * står helt inde i feltet SAMMEN med den altid synlige " kr."-enhed. Bruges til felter med
- * `allowDecimals={false}`; der er ingen decimalhale at gøre plads til, fordi codec'en hverken tager imod
- * eller viser et komma i sådan et felt.
+ * `allowDecimals={false}`; der er ingen decimalhale at gøre plads til, fordi sådan et felt aldrig viser et
+ * komma (et tastet komma tages imod og afrundes ved settle).
  *
  * Målt, ikke skønnet, på Montserrat 400 / 14px (temaets `MuiInputBase`-skrift) ud fra fontens egne
  * advance-bredder: det bredeste ciffer er `8`, så `8.888.888 kr.` er værste tilfælde med 89,1 px tekst.

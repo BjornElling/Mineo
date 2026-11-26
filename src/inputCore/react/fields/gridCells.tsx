@@ -134,9 +134,8 @@ export const GridPercentCell = (
   { gridCell, cell, placeholder, collectionRuleIssue, warning, inputRef }:
     BaseCellProps<number | undefined>
 ): React.ReactElement => {
-  // Politikken læses nu af descriptoren. Cellen svarede før hardkodet `false` – tilfældigvis RIGTIGT
-  // for alle nuværende procent-descriptorer, men uden nogen forbindelse til det, de erklærede. Netop derfor
-  // kunne formular-pendanten svare `true` på samme felter, uden at noget blev rødt.
+  // Politikken læses af descriptoren gennem samme kilde som `PercentField`, så formular og celle ikke kan svare
+  // forskelligt på samme felt.
   const { allowNegative, allowDecimals, maxIntegerDigits, maxDraftLength } =
     resolvePercentCharPolicy(cell.field);
   const resolvedPlaceholder = placeholder
