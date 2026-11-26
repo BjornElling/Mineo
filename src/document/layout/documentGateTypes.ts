@@ -60,8 +60,9 @@ export const DOWNLOAD_BLOCKED_INVALID_INPUT_MESSAGE = FIELD_ISSUE_GENERIC_TOOLTI
  * Teksten for en blokering, hvis årsager siden allerede viser i sin fejl-/advarselsboks. Den bor i gaten,
  * hvor beslutningen hører, ikke i en ternary på siden.
  *
- * Teksten nævner det dokument, knappen henter. Klassen bruges KUN af Erstatningsopgørelse, fordi det er den
- * eneste flade med en fejlboks, der blokerer download – men fladen har fire knapper, og uden navnet ville de
+ * Teksten nævner det dokument, knappen henter. Klassen bruges KUN af Erstatningsopgørelse
+ * (`document-output-contract.md` §A5.1), fordi det er den eneste flade med en fejlboks, der blokerer
+ * download – men fladen har fire knapper, og uden navnet ville de
  * tre TAF-dokumenter sige «Opgørelse kan ikke hentes …» om sig selv. Uden navn er det opgørelsen.
  */
 export const buildDownloadBlockedByPageErrorsMessage = (documentName = 'Opgørelse'): string =>
@@ -129,7 +130,7 @@ export type DocumentBlockingCause =
   | Readonly<{ scope: 'aggregate'; kind: DocumentBlockingCauseClass; message: string }>
   /** Et tomt påkrævet felt (`missing`-consumerfejl). */
   | Readonly<{ scope: 'missing'; issue: ConsumerIssue }>
-  /** Input er komplet og gyldigt, men beregningen kunne ikke dannes. */
+  /** Input er komplet og gyldigt, men beregningen kunne ikke dannes (`document-output-contract.md` §A5.1). */
   | Readonly<{ scope: 'unavailable-calculation'; message: string }>;
 
 /**
@@ -192,7 +193,8 @@ const causeMessage = (cause: DocumentBlockingCause): string =>
  *
  * Trin 1 genbruger `resolveFieldIssueTooltip` frem for at gentage allowlisten `bounds|rule`. Den funktion
  * ejer allerede afgørelsen "har dette issue en konkret tekst værd at vise" – inklusive et `format`-issue med
- * en codec-leveret `detail.tooltip`, som en håndskrevet reason-test taber. Sondringen bor dermed ÉT sted, delt af feltets eget tooltip og knappens, hvilket er den paritet `error-contract.md` §4 kræver.
+ * en codec-leveret `detail.tooltip`, som en håndskrevet reason-test taber. Sondringen bor dermed ÉT sted,
+ * delt af feltets eget tooltip og knappens, hvilket er den paritet `error-contract.md` §4 kræver.
  */
 export const classifyBlockingCauses = (
   code: string,
@@ -308,7 +310,8 @@ export const resolveDocumentGateTooltip = (reason: DocumentDownloadGateReason): 
  * felt bliver ofte udfyldt i samme arbejdsgang, mens en afvist værdi kræver, at brugeren finder og retter
  * den. Det er samme forrang, de enkelte gates i forvejen bruger internt (rød feltfejl før manglende felt).
  *
- * `specific` er SIDST, ikke først. Et citat er kun tilladt for præcis én felt-/rækkefejl, og i enhver
+ * `specific` er SIDST, ikke først (`document-output-contract.md` §A5.1). Et citat er kun tilladt for præcis
+ * én felt-/rækkefejl, og i enhver
  * blokering, hvor en af de tre andre klasser også gælder, er deres tekst den rigtige: en side med en
  * fejlboks skal henvise til boksen, og en blokering med flere røde felter skal ikke fremhæve ét af dem.
  */

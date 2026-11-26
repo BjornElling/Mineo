@@ -110,7 +110,7 @@ export const blockedProjectionForStamdata = (code: string): BlockedProjection =>
  *  1. En `missing`-consumerfejl citeres ("Feltet Skadedato er ikke udfyldt") frem for at give den
  *     universelle "Indtastning mangler", som issuets egen klasse foreskriver.
  *  2. Et vilkårligt FØRSTE issue fremhæves, også når projektionen bærer flere – så brugeren kan tro,
- *     den citerede fejl er den eneste.
+ *     den citerede fejl er den eneste (`document-output-contract.md` §A5.1).
  *
  * `fallbackMessage` bruges kun, når listen er tom (eller kun rummer aggregat-årsager uden besked).
  */
