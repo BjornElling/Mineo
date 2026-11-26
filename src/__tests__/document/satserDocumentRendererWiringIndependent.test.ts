@@ -83,7 +83,7 @@ const satser: SatserDocumentInput['satser'] = {
   },
 };
 
-describe('DOC-001: Satser-definitionens renderer-wiring', () => {
+describe('Satser-definitionens renderer-wiring', () => {
   it('videresender typed sats-snapshot og stamdata ved aktivt brevhoved', async () => {
     const session = fakeSession();
     const input: SatserDocumentInput = { year: 2024, satser, stamdata };

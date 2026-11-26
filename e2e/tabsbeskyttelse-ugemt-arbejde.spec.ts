@@ -2,9 +2,8 @@ import { readFileSync } from 'node:fs';
 import type { Page } from '@playwright/test';
 import { expect, login, openPage, setVerbatimFieldValueAndSettle, test } from './support/mineoTest';
 
-// Brugerblik M-46/M-47: beskyttelsen mod tab skal have samme levetid som det synlige arbejde.
-// BB-395: «ugemt» overlever F5. BB-396: åben, ændret tekst beskyttes ved exit. BB-397: Hent spørger før den
-// eneste åbne indtastning erstattes.
+// Beskyttelsen mod tab skal have samme levetid som det synlige arbejde: «ugemt» overlever F5, åben,
+// ændret tekst beskyttes ved exit, og Hent spørger, før den eneste åbne indtastning erstattes.
 
 /** Forsøger at forlade siden og returnerer, om browseren spurgte. Dialogen afvises, så siden bliver. */
 const leaveAttemptIsGuarded = async (page: Page): Promise<boolean> => {
@@ -35,7 +34,7 @@ const pickFileForHent = async (page: Page, content: string): Promise<void> => {
 };
 
 test.describe('Beskyttelse mod tab af ugemt arbejde', () => {
-  test('BB-395: en ugemt sag advarer stadig efter genindlæsning', async ({ page, runtimeErrors }) => {
+  test('en ugemt sag advarer stadig efter genindlæsning', async ({ page, runtimeErrors }) => {
     await login(page);
     await openPage(page, 'Stamdata');
     const journal = page.getByRole('textbox', { name: 'Journalnr.' });
@@ -53,7 +52,7 @@ test.describe('Beskyttelse mod tab af ugemt arbejde', () => {
     expect(runtimeErrors).toEqual([]);
   });
 
-  test('BB-396: en ændret, endnu ikke afsluttet indtastning advarer ved exit', async ({ page, runtimeErrors }) => {
+  test('en ændret, endnu ikke afsluttet indtastning advarer ved exit', async ({ page, runtimeErrors }) => {
     await login(page);
     await openPage(page, 'Stamdata');
     const journal = page.getByRole('textbox', { name: 'Journalnr.' });
@@ -65,7 +64,7 @@ test.describe('Beskyttelse mod tab af ugemt arbejde', () => {
     expect(runtimeErrors).toEqual([]);
   });
 
-  test('BB-397: Hent spørger, før den eneste åbne indtastning erstattes', async ({ page, runtimeErrors }) => {
+  test('Hent spørger, før den eneste åbne indtastning erstattes', async ({ page, runtimeErrors }) => {
     await login(page);
     await openPage(page, 'Stamdata');
     const journal = page.getByRole('textbox', { name: 'Journalnr.' });

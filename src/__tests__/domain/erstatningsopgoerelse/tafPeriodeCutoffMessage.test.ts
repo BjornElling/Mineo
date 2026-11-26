@@ -4,7 +4,7 @@ import { toISODateString } from '../../../types/branded';
 
 const iso = (value: string) => toISODateString(value);
 
-// BB-244: periodens linje i «Fejl og advarsler» nævner hver afskæring én gang.
+// Periodens linje i «Fejl og advarsler» nævner hver afskæring én gang.
 describe('buildTafPeriodeCutoffErrorMessage', () => {
   it('siger «hele perioden», når også fra-datoen ligger efter afskæringen', () => {
     expect(buildTafPeriodeCutoffErrorMessage({

@@ -9,7 +9,7 @@ import {
 // dokumenterne og «Fejl og advarsler», som ikke må trække en UI-komponent med sig (samme deling som
 // `standardLoenTableHeaderNodes.ts`).
 
-// Samme forklaring som «Løn (2)» på lønindkomsten (BB-361); tankestregen er en-dash med mellemrum omkring.
+// Samme forklaring som «Løn (2)» på lønindkomsten; tankestregen er en-dash med mellemrum omkring.
 const TILLAEG_TOOLTIP_TEXT = 'Opdelingen af ydelser er rent visuel – værdierne lægges sammen i beregningen';
 
 export const getOffentligeYdelserTableHeaderNodes = (): readonly React.ReactNode[] =>

@@ -5,9 +5,8 @@ import { toISODateString } from '../../../types/branded';
 const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
 
 /**
- * Forsørgertabets tabelvalg kommer udelukkende fra kapitaliseringskildens `forsoergertabTabelvalg`. De tre
- * tilfælde herunder blokerede tidligere, fordi tabellerne manglede i registret eller kun kunne vælges via en
- * hardcodet liste i domænekoden.
+ * Forsørgertabets tabelvalg kommer udelukkende fra kapitaliseringskildens `forsoergertabTabelvalg` – ikke
+ * fra en hardcodet liste i domænekoden. De tre tilfælde herunder kræver, at tabellerne findes i registret.
  */
 describe('forsørgertab – tabelvalg fra kapitaliseringskilden', () => {
   it('bruger tabel N i BEK 1403/2011 for en skade fra 2004-2007 kapitaliseret i 2012', () => {

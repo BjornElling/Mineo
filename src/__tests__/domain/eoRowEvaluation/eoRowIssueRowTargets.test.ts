@@ -3,7 +3,7 @@ import { focusOnSenesteTil, resolveSenestSluttendePeriodeId } from '../../../dom
 import { eoOffentligeYdelserFraDatoField, eoTafPeriodeTilField } from '../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
 import { toISODateString } from '../../../types/branded';
 
-// Fejllinks skal ramme den række, beskeden handler om – ikke blot tabellens første række (samme fejltype som BB-413).
+// Fejllinks skal ramme den række, beskeden handler om – ikke blot tabellens første række.
 describe('EO-fejllinks til den rigtige række', () => {
   it('peger «ikke rejst krav for hele EO-perioden» på den senest sluttende periode', () => {
     const perioder = [

@@ -95,10 +95,10 @@ export default function IndtaegtFoerSkadenSection() {
     beregningsgrundlagAdvarsler,
   } = useEoOplysningerVm();
 
-  // Gruppefeltets input – fokus lander her, når et resultat fra løntrin-finderen er sat ind (BB-310).
+  // Gruppefeltets input – fokus lander her, når et resultat fra løntrin-finderen er sat ind.
   const gruppeInputRef = useRef<HTMLInputElement | null>(null);
   // «Beregnes ud fra» bestemmer TAF-enheden og dermed enheden for sygeferiegodtgørelsens fraværsdage på
-  // Lønindkomst; et skift af et indtastet antal bekræftes først (BB-449).
+  // Lønindkomst; et skift af et indtastet antal bekræftes først.
   const sfggEnhedsskift = useSfggEnhedsskiftBekraeftelse(values);
 
   if (!erTabtArbejdsfortjenesteSektionAktiv(values)) return null;
@@ -117,7 +117,7 @@ export default function IndtaegtFoerSkadenSection() {
   });
 
   // Beregningsgrundlagets regler, der afhænger af perioden og de andre fradrag (overlap med en TAF-periode,
-  // mindst én arbejdsdag tilbage), projekteres fra domænet og gives til feltet her (BB-258, BB-262, BB-264).
+  // mindst én arbejdsdag tilbage), projekteres fra domænet og gives til feltet her.
   // Feltets eget issue har forrang i feltet selv (§1.8).
   const crossFieldIssueFor = <T,>(field: FieldRef<T>) => {
     const issue = tafCellIssues.get(serializeFieldAddress(field.address));
@@ -127,7 +127,7 @@ export default function IndtaegtFoerSkadenSection() {
     const issue = eoErrors.get(serializeFieldAddress(field.address));
     return issue === undefined ? {} : { crossFieldIssue: issue };
   };
-  // Lønudviklingens projekterede regel og gule ring på feltets egen adresse (BB-305).
+  // Lønudviklingens projekterede regel og gule ring på feltets egen adresse.
   const loenudviklingFeedbackFor = <T,>(field: FieldRef<T>) => {
     const key = serializeFieldAddress(field.address);
     const issue = activeFieldIssue(loenudviklingIssues, key);
@@ -191,9 +191,9 @@ export default function IndtaegtFoerSkadenSection() {
     loentrinFinder.openFinder({
       overenskomstId: eoLoenudvikling.overenskomstId,
       offentligLoenType: eoLoenudvikling.offentligLoenType,
-      // Samme nøgle som knappens registrering: fokus vender tilbage hertil, og indtastningen huskes (BB-310).
+      // Samme nøgle som knappens registrering: fokus vender tilbage hertil, og indtastningen huskes.
       key: EO_OPLYSNINGER_LOENTRIN_FINDER_KEY,
-      // Løntrinnet skal passe til lønnen på reguleringsdatoen, og et valgt resultat sættes ind (BB-310).
+      // Løntrinnet skal passe til lønnen på reguleringsdatoen, og et valgt resultat sættes ind.
       ...(loenudviklingBaseDateISO === undefined ? {} : { reguleringsdato: loenudviklingBaseDateISO }),
       insert: {
         loentrin: loenudviklingBinding.offentligLoenTrin,
@@ -275,7 +275,7 @@ export default function IndtaegtFoerSkadenSection() {
 
                 {/*
                   Ferie og løse dage fradrages kun, når TAF opgøres i arbejdsdage; i måneder skjules de uden en
-                  forklarende linje (BB-263, som BB-247). Værdierne bevares og kommer tilbage med enheden.
+                  forklarende linje (som TAF-tabellens løse dage). Værdierne bevares og kommer tilbage med enheden.
                 */}
                 {visBeregningsperiodeFerie && (
                   <>
@@ -407,7 +407,7 @@ export default function IndtaegtFoerSkadenSection() {
                     }
                     width={300}
                     // Teksten indsættes i papirets sætning «På baggrund af … lægges en månedsløn til grund»;
-                    // pladsholderen viser formen, så den ikke selv begynder med «baseret på» (BB-272).
+                    // pladsholderen viser formen, så den ikke selv begynder med «baseret på».
                     placeholder="fx lønsedler for 2017"
                   />
                 </Box>
@@ -457,7 +457,7 @@ export default function IndtaegtFoerSkadenSection() {
                   </Box>
                 </Box> : null}
 
-                {/* Aldrig krav på tillægget ved angivet dagsløn (BB-267, `indskudte-loentillaeg-contract.md` §2b). */}
+                {/* Aldrig krav på tillægget ved angivet dagsløn (`indskudte-loentillaeg-contract.md` §2b). */}
                 {erStoreBededagstillaegRelevant({
                   beregnesUdFra: values.beregnesUdFra, loenPaaHelligdage: eoLoenudvikling.loenPaaHelligdage,
                   reguleringsform: eoLoenudvikling.loenudviklingBeregningsgrundlag, reguleringsdato: undefined,

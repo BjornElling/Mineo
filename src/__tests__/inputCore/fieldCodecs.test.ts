@@ -36,7 +36,7 @@ describe('fieldCodecs', () => {
   it('afviser kun format; et velformet år uden for min/max committes canonical (§1.6)', () => {
     const year = createYearFieldCodec({ minYear: 2000, maxYear: 2030, twoDigitYearPolicy: 'infer' });
     expect(year.parseForSettle('x')).toMatchObject({ status: 'rejected', reason: 'format' });
-    // Out-of-bounds er efter kravændringen 2026-07-18 canonical (bounds-vurderes af en feltvalidator, ikke codecet).
+    // Out-of-bounds er canonical (bounds-vurderes af en feltvalidator, ikke codecet).
     expect(year.parseForSettle('1990')).toEqual({ status: 'valid', value: 1990 });
     expect(year.normalizePaste?.('1990')).toBe('1990');
 
@@ -128,8 +128,8 @@ describe('fieldCodecs', () => {
    * kontrasten til `allowDecimals: true` sikrer, at den måler netop flaget og ikke blot "formatterer uden
    * komma altid".
    *
-   * BB-118 flyttede den ANDEN side af flaget: admission tager nu imod kommaet, og settle afrunder det væk.
-   * Visning og settle måles derfor hver for sig nedenfor – de svarer ikke længere ens på flaget.
+   * Den ANDEN side af flaget ligger ved settle: admission tager imod kommaet, og settle afrunder det væk.
+   * Visning og settle måles derfor hver for sig nedenfor – de svarer ikke ens på flaget.
    */
   it('binder beløbs-VISNING til allowDecimals, så et komma-frit felt heller ikke viser komma', () => {
     const shared = { allowNegative: false, minValue: 1000, maxValue: 9999999 } as const;
@@ -143,9 +143,9 @@ describe('fieldCodecs', () => {
     expect(withDecimals.format(value)).toBe('450.000,00');
     expect(withDecimals.formatForEdit(value)).toBe('450.000,00');
 
-    // BB-118: kommaet åbner editoren i BEGGE felter. `allowDecimals` er flyttet fra tegnfilteret til
-    // settle, så feltet tager imod decimalen og afrunder den væk – ellers ville «400.000,00» miste sit
-    // komma under tastningen og blive til 4.000.000. VISNINGEN ovenfor er uændret decimalløs.
+    // Kommaet åbner editoren i BEGGE felter. `allowDecimals` virker ved settle, ikke i tegnfilteret, så
+    // feltet tager imod decimalen og afrunder den væk – ellers ville «400.000,00» miste sit komma under
+    // tastningen og blive til 4.000.000. VISNINGEN ovenfor er decimalløs.
     expect(integerOnly.acceptsInitialKey(',')).toBe(true);
     expect(withDecimals.acceptsInitialKey(',')).toBe(true);
     // Settle er nu det sted, decimalpolitikken håndhæves: heltalsfeltet afrunder, decimalfeltet bevarer.
@@ -184,7 +184,7 @@ describe('fieldCodecs', () => {
     expect(withDecimals.decimalPolicy).toBe('decimal');
     expect(withDecimals.acceptsInitialKey(',')).toBe(true);
     expect(integerOnly.decimalPolicy).toBe('integerOnly');
-    // BB-118: kommaet åbner editoren i ALLE procentfelter; `decimalPolicy` aflæses nu ved settle,
+    // Kommaet åbner editoren i ALLE procentfelter; `decimalPolicy` aflæses ved settle,
     // ikke af tegnfilteret. Politikken måles derfor på parse-resultatet frem for på admission.
     expect(integerOnly.acceptsInitialKey(',')).toBe(true);
     expect(integerOnly.parseForSettle('50,25')).toEqual({ status: 'valid', value: 50 });
@@ -192,8 +192,8 @@ describe('fieldCodecs', () => {
   });
 
   /**
-   * BB-200: et decimal-procentfelt viste altid to decimaler, så et indtastet `50` stod som «50,00» og
-   * læstes som en præcisionsangivelse, brugeren ikke havde givet. `trimTrailingDecimals` er en REN
+   * Viser et decimal-procentfelt altid to decimaler, står et indtastet `50` som «50,00» og læses som en
+   * præcisionsangivelse, brugeren ikke har givet. `trimTrailingDecimals` er en REN
    * visningsændring: indtastning, canonicalisering og præcision er de samme, kun `format`/`formatForEdit`
    * skifter. Flaget er sat pr. felt (forligsprocenten), ikke globalt.
    */
@@ -299,13 +299,13 @@ describe('fieldCodecs', () => {
 
       expect(resolveFieldIssueTooltip(asIssue('53/2021'))).toBe('Uge skal være mellem 1 og 52 i 2021');
       expect(resolveFieldIssueTooltip(asIssue('xx'))).toBe(FIELD_ISSUE_GENERIC_TOOLTIP);
-      // Readeren gør den konkrete tekst til issuets besked, så «Fejl og advarsler» siger det samme (BB-296).
+      // Readeren gør den konkrete tekst til issuets besked, så «Fejl og advarsler» siger det samme.
       expect(asIssue('53/2021').message)
         .toBe('Der er udfyldt en ugyldig værdi i feltet \'Uge\'');
     });
 
     /**
-     * BB-440: `1/0` fik før samme generiske besked som det ufuldstændige `1/`. Division med 0 er den ene
+     * `1/0` får ikke samme generiske besked som det ufuldstændige `1/`. Division med 0 er den ene
      * udtryksfejl, der får en konkret forklaring; de øvrige formfejl forbliver generiske.
      */
     it('beløbets division med 0 bærer den fælles konkrete besked', () => {

@@ -23,7 +23,7 @@ describe('buildEoOevrigeKravRows visibility', () => {
     ]);
   });
 
-  // BB-233: forbeholdene står i TAF-afsnittet; øvrige krav bærer dem ikke længere.
+  // Forbeholdene står i TAF-afsnittet; øvrige krav bærer dem ikke.
   it('viser ingen forbeholdslinjer under øvrige krav – heller ikke ved kontanthjælp og verserende EET-klage', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.vedroererPeriodeFra = iso('2024-01-01');

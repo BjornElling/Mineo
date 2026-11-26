@@ -38,7 +38,7 @@ export type MappedToggleFieldProps<TValue> = Readonly<{
   commit?: ToggleCommitOverride<NoInfer<TValue>>;
   /**
    * Ikke-blokerende advarsel: gul ring om switchen og teksten som tooltip – samme signal som tekstfelternes gule
-   * kant. Bruges, når valget er gyldigt, men ikke giver det, brugeren bad om (BB-358).
+   * kant. Bruges, når valget er gyldigt, men ikke giver det, brugeren bad om.
    */
   warning?: FieldWarning;
 }> &

@@ -11,20 +11,20 @@ import { TAF_LOSE_FERIEDAGE_LABEL } from './tafRowRules';
  * Hvor meget af beregningsperioden, fradragene efterlader – og de regler, der vogter over det.
  *
  * Beregningsgrundlaget deler periodens løn med de måneder eller arbejdsdage, der er tilbage efter fradragene.
- * Ingen regel sikrede, at der VAR noget tilbage: 300 fraværsdage i 12 måneder (14,4 måneder), løse dage lig
- * periodens sidste arbejdsdag eller ferie over hele perioden efterlod en nævner på 0, og beregningen endte i en
- * intern undtagelse uden et ord om feltet (BB-258). Én dag under randen gav omvendt en dagsindkomst på hele
- * periodens løn uden bemærkning (BB-259).
+ * Reglerne her sikrer, at der ER noget tilbage: 300 fraværsdage i 12 måneder (14,4 måneder), løse dage lig
+ * periodens sidste arbejdsdag eller ferie over hele perioden efterlader ellers en nævner på 0, og beregningen ender i
+ * en intern undtagelse uden et ord om feltet. Én dag under randen giver omvendt en dagsindkomst på hele
+ * periodens løn, hvilket advarslen nedenfor fanger.
  *
  * Modulet regner med motorens egne funktioner (`calculateTafAntalMaanederPraecis`,
  * `calculateTafArbejdsdageBreakdown`), så grænsen og beregningen ikke kan være uenige om, hvornår intet er
  * tilbage. Inputtet er readerens værdier: et skjult eller rødt felt er allerede tomt og tæller som 0.
  */
 
-/** En eller begge af periodens datoer mangler – fælles for rækken og validatoren (BB-265). */
+/** En eller begge af periodens datoer mangler – fælles for rækken og validatoren. */
 export const BEREGNINGSPERIODE_MANGLER_MESSAGE = 'Der mangler indtastninger i perioden til beregning af før-løn';
 
-/** Ingen lønrække eller ydelse over 0 kr. i beregningsperioden – fælles for rækken og validatoren (BB-258). */
+/** Ingen lønrække eller ydelse over 0 kr. i beregningsperioden – fælles for rækken og validatoren. */
 export const INGEN_INDKOMST_I_BEREGNINGSPERIODEN_MESSAGE = 'Ingen indkomst i beregningsperioden';
 
 export type BeregningsgrundlagFradragInput = Pick<
@@ -111,7 +111,7 @@ export const resolveBeregningsgrundlagFradrag = (
   };
 };
 
-// ── Spærrende regler: der skal være noget tilbage (BB-258) ──────────────────────────────────────
+// ── Spærrende regler: der skal være noget tilbage ──────────────────────────────────────────────
 
 /**
  * Det største antal fraværsdage, der efterlader en del af en måned. `ceil(M / 0,048) − 1` er formlen, men den
@@ -195,11 +195,11 @@ export const evaluateBeregningsgrundlagFradragFejl = (
   };
 };
 
-// ── Ikke-spærrende advarsel: næsten intet tilbage (BB-259) ──────────────────────────────────────
+// ── Ikke-spærrende advarsel: næsten intet tilbage ──────────────────────────────────────────────
 
 /**
  * Under en fjerdedel af perioden tilbage er næsten altid en tastefejl – fx 250 for 25 – og skærmen viser ikke
- * resultatet (BB-226), så kun papiret ville afsløre den. Grænsen er udviklerens (2026-10-02, BB-259).
+ * resultatet, så kun papiret ville afsløre den. Grænsen er bevidst valgt.
  */
 export const BEREGNINGSGRUNDLAG_ADVARSEL_ANDEL = 0.25;
 

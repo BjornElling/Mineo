@@ -315,7 +315,7 @@ describe('sygedagpengeInsertRows', () => {
   });
 });
 
-describe('findOverlappingSygedagpengeRows (BB-359 valg B)', () => {
+describe('findOverlappingSygedagpengeRows', () => {
   const row = (id: string, fra: string, til: string, ydelsestype: string) => ({
     id,
     fraDato: toISODateString(fra),
@@ -341,7 +341,7 @@ describe('findOverlappingSygedagpengeRows (BB-359 valg B)', () => {
     );
   });
 
-  it('ser bort fra et overlap, der kun er en weekend, men ikke fra en fælles hverdag (BB-456)', () => {
+  it('ser bort fra et overlap, der kun er en weekend, men ikke fra en fælles hverdag', () => {
     const rows = [row('a', '2026-05-22', '2026-05-23', 'sygedagpenge')];
     // Fredag-lørdag mod lørdag-tirsdag: kun lørdagen er fælles, og den regnes ikke.
     expect(findOverlappingSygedagpengeRows(rows, toISODateString('2026-05-23'), toISODateString('2026-05-26'))).toEqual([]);

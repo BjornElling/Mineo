@@ -10,15 +10,13 @@ import type { Page } from '@playwright/test';
 
 /**
  * Løbende ydelser skal kunne EFTERREGNES af modparten. Denne spec måler de oplysninger, en tabel med
- * delperioder skylder sin læser, og som fladen manglede:
+ * delperioder skylder sin læser:
  *
- * - overlapperiodens skæringsdato og difference (BB-152) og det tavse fravær, når differencen er 0 kr.
- *   (BB-153),
- * - at et interval aldrig slutter før det begynder, og at beregningsdatoen ikke kaldes et ophør
- *   (BB-154, BB-155),
- * - at tabellens rækker kan regnes efter (BB-156) og ikke deles på grænser, der intet ændrer (BB-165),
- * - at en EET-procent uden for lovens trin advares ved SIT EGET felt frem for tre faner væk (BB-158),
- *   og at «efter beregningsdatoen» siger årsagen én gang i stedet for tre (BB-159).
+ * - overlapperiodens skæringsdato og difference og det tavse fravær, når differencen er 0 kr.,
+ * - at et interval aldrig slutter før det begynder, og at beregningsdatoen ikke kaldes et ophør,
+ * - at tabellens rækker kan regnes efter og ikke deles på grænser, der intet ændrer,
+ * - at en EET-procent uden for lovens trin advares ved SIT EGET felt frem for tre faner væk,
+ *   og at «efter beregningsdatoen» siger årsagen én gang i stedet for tre.
  */
 
 const SKADEDATO = '01-06-2018';
@@ -107,13 +105,12 @@ test.describe('Løbende ydelser – specifikationen kan efterregnes', () => {
 
     await eetTab(page, 'Løbende ydelser').click();
 
-    // BB-152: skæringsdatoen og de 30 % - 25 % = 5 %, som overlapperioden faktisk er regnet med.
+    // Skæringsdatoen og de 30 % - 25 % = 5 %, som overlapperioden faktisk er regnet med.
     await expect(page.getByText(
       '01-01-2022 – 30-06-2022: Den løbende EET er 30 %. Tidligere afgørelser dækker 25 %. Denne afgørelse giver derfor 5 % yderligere.',
     )).toBeVisible();
 
-    // Kolonnenavnet står ved tabellen. Afrundingsnoten for «Ydelse/md.» er fjernet som overflødig
-    // (udviklerafgørelse 2026-11-20).
+    // Kolonnenavnet står ved tabellen. «Ydelse/md.» har bevidst ingen afrundingsnote.
     await expect(page.getByRole('columnheader', { name: 'Grundydelse pr. år' }).first()).toBeVisible();
     await expect(page.getByText(/Ydelse\/md\. beregnes som grundydelsen/)).toHaveCount(0);
 
@@ -128,7 +125,7 @@ test.describe('Løbende ydelser – specifikationen kan efterregnes', () => {
 
     await eetTab(page, 'Løbende ydelser').click();
 
-    // BB-153: fraværet skal læses som en oplysning, ikke som et hul i beregningen.
+    // Fraværet skal læses som en oplysning, ikke som et hul i beregningen.
     await expect(page.getByText(
       '01-01-2022 – 30-06-2022: Den løbende EET er 25 %. Tidligere afgørelser dækker 25 %. Denne afgørelse giver derfor intet yderligere krav for perioden.',
     )).toBeVisible();
@@ -142,7 +139,7 @@ test.describe('Løbende ydelser – specifikationen kan efterregnes', () => {
 
     await eetTab(page, 'Løbende ydelser').click();
 
-    // BB-155: ydelsen ophører ikke ved beregningsdatoen – den er kun det punkt, kravet er gjort op til.
+    // Ydelsen ophører ikke ved beregningsdatoen – den er kun det punkt, kravet er gjort op til.
     await expect(page.getByText('Løbende ydelse opgjort til og med').first()).toBeVisible();
     await expect(page.getByText('Løbende ydelse ophører')).toHaveCount(0);
 
@@ -156,12 +153,12 @@ test.describe('Løbende ydelser – specifikationen kan efterregnes', () => {
 
     await eetTab(page, 'Løbende ydelser').click();
 
-    // BB-154: én linje der siger hvorfor, frem for et interval der slutter før det begynder.
-    // BB-410: årsagen er virkningsdatoen – afgørelsen selv kan være truffet før beregningsdatoen.
+    // Én linje der siger hvorfor, frem for et interval der slutter før det begynder.
+    // Årsagen er virkningsdatoen – afgørelsen selv kan være truffet før beregningsdatoen.
     await expect(page.getByText('Virkningsdatoen (01-01-2022) ligger efter beregningsdatoen (01-01-2021).')).toBeVisible();
     await expect(page.getByText('Afgørelsen giver ingen løbende ydelse i den valgte periode.')).toBeVisible();
 
-    // BB-159: én linje navngiver årsagen, i stedet for tre linjer om de tre datoer.
+    // Én linje navngiver årsagen, i stedet for tre linjer om de tre datoer.
     await expect(page.getByText('En eller flere datoer i ASL-afgørelserne ligger efter beregningsdatoen (01-01-2021).')).toBeVisible();
     await expect(page.getByText('Der er angivet en afgørelsesdato efter beregningsdatoen')).toHaveCount(0);
 
@@ -183,9 +180,9 @@ test.describe('Løbende ydelser – specifikationen kan efterregnes', () => {
     );
     await fillAfgoerelse(page, 0, { afgoerelsesdato: '01-06-2025', virkningsdato: '01-01-2025', eetPct: '25' });
 
-    // BB-158: cellen stod neutral, og advarslen fandtes kun i en boks på en anden fane. Værdien er
-    // fortsat lovlig at REGNE på – den er en advarsel, ikke en rød fejl.
-    // BB-173: advarslen navngiver grænsen og påstår ikke noget om beregningens lovlighed.
+    // Advarslen står ved cellen selv, ikke kun i en boks på en anden fane. Værdien er
+    // lovlig at REGNE på – den er en advarsel, ikke en rød fejl.
+    // Advarslen navngiver grænsen og påstår ikke noget om beregningens lovlighed.
     const eetCell = afgoerelseRow(page, 0).locator('input').nth(2);
     await expect(eetCell).toHaveAttribute('aria-invalid', 'false');
     await eetCell.hover();

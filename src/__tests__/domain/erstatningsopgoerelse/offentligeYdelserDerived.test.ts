@@ -167,7 +167,7 @@ describe('deriveOffentligeYdelserRow', () => {
     expect(result.ydelsePerDag).toBe(100);
   });
 
-  it('viser fald-tilbage-dagene for en arbejdsdagsydelse i en ren weekend – samme dage som beregningen (BB-365)', () => {
+  it('viser fald-tilbage-dagene for en arbejdsdagsydelse i en ren weekend – samme dage som beregningen', () => {
     const result = deriveOffentligeYdelserRow({
       ...baseRow,
       fraDato: toISODateString('2026-06-06'),
@@ -179,7 +179,7 @@ describe('deriveOffentligeYdelserRow', () => {
     expect(result).toEqual({ periodiseringLabel: 'Arbejdsdage', antalDage: 2, ydelsePerDag: 1500, ingenArbejdsdage: true });
   });
 
-  it('forstår en ydelsestype gemt med sin label (BB-364)', () => {
+  it('forstår en ydelsestype gemt med sin label', () => {
     const result = deriveOffentligeYdelserRow({
       ...baseRow,
       fraDato: toISODateString('2024-01-01'),

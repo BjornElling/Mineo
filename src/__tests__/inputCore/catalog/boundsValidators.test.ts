@@ -17,7 +17,7 @@ const amountField = { descriptor: { id: 'test.amount' } } as unknown as FieldRef
 const view = { readCanonical: () => undefined } as unknown as CanonicalView;
 const amount = (value: number): AmountValue => ({ kind: 'number', value });
 
-describe('amountBoundsValidator – eksklusiv nedre grænse (NY-12c-4)', () => {
+describe('amountBoundsValidator – eksklusiv nedre grænse', () => {
   it('et felt, der accepterer 0, beholder «0 kr. eller højere»', () => {
     const validate = amountBoundsValidator('test.amount.bounds', 0, undefined);
     expect(validate(amount(0), amountField, view)).toBeUndefined();
@@ -47,8 +47,8 @@ describe('amountBoundsValidator – eksklusiv nedre grænse (NY-12c-4)', () => {
   });
 
   /**
-   * Feltniveauet: hvad brugeren faktisk ser er det ENE aktive issue efter §1.8's prioritet. Før rettelsen
-   * havde felterne både en inklusiv grænse på 0 og en «> 0»-regel; ved -100 vandt bounds-beskeden.
+   * Feltniveauet: hvad brugeren faktisk ser er det ENE aktive issue efter §1.8's prioritet. Havde felterne
+   * både en inklusiv grænse på 0 og en «> 0»-regel, ville bounds-beskeden vinde ved -100.
    */
   it.each([
     ['Øvrige erstatningskrav → Beløb', eoOevrigeKravBeloebField],

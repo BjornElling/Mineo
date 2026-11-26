@@ -171,7 +171,7 @@ describe('manual regulering message', () => {
     ];
 
     const rows = buildEoIndkomstRows(values, undefined, {});
-    // Én linje pr. lønrække (BB-291), med link til rækkens beløbscelle.
+    // Én linje pr. lønrække, med link til rækkens beløbscelle.
     const row = rows.find((r) => r.id === `loenindkomst.${af.id}.loenoplysninger.row-1.udenBeloeb`);
 
     expect(row).toBeDefined();

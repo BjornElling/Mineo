@@ -17,7 +17,6 @@ const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
 /**
  * Round-trip- og normaliserings-tests for rentekrav-tabelmodellen.
  *
- * Disse funktioner var tidligere kun indirekte dækket via UI- og schema-tests.
  * Save/load-korrekthed afhænger af, at draft↔committed-konverteringen er tabsfri
  * for gyldigt input og fail-closed for ugyldigt – det hævdes her direkte.
  */

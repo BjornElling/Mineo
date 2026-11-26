@@ -21,10 +21,10 @@ import * as React from 'react';
  *
  * Sekvensen er APPEND-ONLY og doven: `at(index)` mønter id'et, første gang indekset bruges, og returnerer
  * derefter altid det samme. Der findes INGEN operation, der fjerner et id – det er hele pointen, og det er
- * udtrykt i typen frem for i en regel, man kan glemme. Et tidligere `state.ids.length = cursor`-trim gjorde
- * netop dét: efter et undo helt tilbage faldt de senere slots bag markøren og blev kastet væk, og et
- * efterfølgende redo møntede et NYT id til den plads. Fra da af pegede alle history-origins fra den oprindelige
- * session på et id, tabellen aldrig ville vise igen.
+ * udtrykt i typen frem for i en regel, man kan glemme. Et `state.ids.length = cursor`-trim ville gøre netop
+ * dét: efter et undo helt tilbage falder de senere slots bag markøren og kastes væk, og et efterfølgende redo
+ * mønter et NYT id til den plads. Derefter peger alle history-origins fra den oprindelige session på et id,
+ * tabellen aldrig vil vise igen.
  *
  * Sekvensen vokser ikke ubegrænset: der møntes kun et nyt id, når alle tidligere medlemmer er committede, så
  * dens længde er højst «flest samtidigt committede rækker» + `slotCount`.

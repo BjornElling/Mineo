@@ -14,7 +14,7 @@ import type { AarsloenTillaegsgrundlag } from '../../../schemas/formSchemas/sect
 import { useAarsloenVm } from './aarsloenContext';
 
 /**
- * «Fuld løn under ferie» og «Løn på helligdage» står dér, hvor de læses (BB-353): i Overenskomst her i Lønforhold
+ * «Fuld løn under ferie» og «Løn på helligdage» står dér, hvor de læses: i Overenskomst her i Lønforhold
  * (satsopslaget), ellers i Beregningsprincipper under omregningen (helårsomregningen). Placeringen afhænger kun af
  * tillægsgrundlaget øverst på siden – siden udfyldes oppefra og ned, og intet længere nede må få et nyt valg til at
  * dukke op ovenfor.
@@ -63,7 +63,7 @@ export const AarsloenLoenPaaHelligdageRow = React.memo(() => {
 AarsloenLoenPaaHelligdageRow.displayName = 'AarsloenLoenPaaHelligdageRow';
 
 /**
- * Lønforhold: tillægsgrundlaget og de valg, satserne hviler på (BB-347/BB-348).
+ * Lønforhold: tillægsgrundlaget og de valg, satserne hviler på.
  *
  * Rækkefølgen følger Lønindkomst-kortet: overenskomsten står før det, den låser. Boksens rækker afhænger kun af
  * valg i boksen selv, ovenfor – aldrig af noget længere nede på siden (se rækkerne ovenfor).

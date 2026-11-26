@@ -44,7 +44,7 @@ const errorBox = (page: Page) => page.locator('.content-box').filter({ hasText: 
 const hentKnap = (page: Page) =>
   page.locator('.row--label-right-hover').filter({ hasText: 'Hent opgørelse' }).getByRole('button');
 
-// Flade 12e (BB-247–BB-257): TAF-periodens tabeller. Løse feriedage skjules i måneder, afledte kolonner
+// TAF-periodens tabeller. Løse feriedage skjules i måneder, afledte kolonner
 // beskriver deres ramme i info-tooltips, og rækkereglerne når cellen.
 test.describe('Erstatningsopgørelse – TAF-perioden', () => {
   test('skjuler løse feriedage i måneder og viser dem i arbejdsdage', async ({ page, runtimeErrors, externalRequests }, testInfo) => {

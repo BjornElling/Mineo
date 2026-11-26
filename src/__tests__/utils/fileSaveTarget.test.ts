@@ -257,18 +257,18 @@ describe('resolveSaveTarget', () => {
   });
 
   /**
-   * BB-049: `Gem` skrev den ene sag ind i den anden sags fil, når Mineo var åben i to faner.
+   * `Gem` må aldrig skrive den ene sag ind i den anden sags fil, når Mineo er åben i to faner.
    *
    * Mekanismen er en rækkevidde-forskel: sagsdata og `lastSavedFilename` ligger i sessionStorage
    * (fanens eget), mens filhåndtaget ligger i IndexedDB (fælles for hele browseren) og derfor altid
    * peger på den SIDST rørte fil. Fane A's stamdatagrundlag er uændret, og håndtaget er gyldigt – så
-   * begge de dengang eksisterende betingelser var opfyldt, og håndtaget blev genbrugt tavst.
+   * uden identitetsprøven ville håndtaget blive genbrugt tavst.
    *
-   * Prøverne herunder er skruet sammen, så de kan SKELNE den nye identitetsprøve fra den
+   * Prøverne herunder er skruet sammen, så de kan SKELNE identitetsprøven fra den
    * konkurrerende stamdata-prøve: basis er sat og uændret, og verifikationen ville sige `valid: true`,
    * hvis den blev kaldt. Bliver identitetsprøven fjernet, genbruges håndtaget, og begge fejler.
    */
-  describe('håndtagets identitet (BB-049)', () => {
+  describe('håndtagets identitet', () => {
     const setupForeignHandleScenario = (): { stored: FileSystemFileHandle; picked: FileSystemFileHandle } => {
       // Fane A mener at arbejde på sin egen fil …
       sessionStorage.setItem('mineo_ui_lastSavedFilename', 'Hansen 12-03-2024.eo');

@@ -54,8 +54,8 @@ describe('faellesAarsloen-descriptors – årsafhængigt ASL-maksimum', () => {
 
     const read = evaluate(input).reader.read(faellesAarsloenAslAarsloenField.bind());
 
-    // BB-125: skadesårsloftet er ikke længere en bounds-grænse. Det ejes alene af domænereglen
-    // `validateAslAarsloenBySkadesaarMax`, så overskridelsen kommer nu som `reason: 'rule'` med
+    // Skadesårsloftet er ikke en bounds-grænse. Det ejes alene af domænereglen
+    // `validateAslAarsloenBySkadesaarMax`, så overskridelsen kommer som `reason: 'rule'` med
     // regelens egen besked – og uden `detail.maxValue`, som kun en bounds-grænse bærer.
     // Bounds er reduceret til det faste repræsentationsloft 1.000–9.999.999.
     expect(read).toMatchObject({
@@ -111,7 +111,7 @@ describe('faellesAarsloen-descriptors – årsafhængigt ASL-maksimum', () => {
     let input = settle(empty(), erhvervsevnetabBeregningsdatoField.bind(), '01-01-2025');
     input = settle(input, faellesAarsloenEalAarsloenField.bind(), '999');
 
-    // Her rammes MINIMUM (999), som stadig er en bounds-grænse – kun formateringen er ny (BB-125):
+    // Her rammes MINIMUM (999), som er en bounds-grænse;
     // grænserne vises dansk med tusindtalsseparator og feltets enhed.
     expect(evaluate(input).reader.read(faellesAarsloenEalAarsloenField.bind())).toMatchObject({
       status: 'error',

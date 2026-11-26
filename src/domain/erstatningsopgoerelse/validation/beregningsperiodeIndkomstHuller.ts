@@ -6,12 +6,12 @@ import { buildBeregningsperiodeRange, buildIncomeSourceRanges } from '../helpers
 import type { TafCalculationValues } from '../engines/tafCalculationInput';
 
 /**
- * Perioder i beregningsperioden, hvor der hverken er en lønrække eller en offentlig ydelse (BB-260).
+ * Perioder i beregningsperioden, hvor der hverken er en lønrække eller en offentlig ydelse.
  *
  * Beregningsperiodens løn deles med alle periodens måneder eller arbejdsdage. En for tidlig fra-dato eller et
- * glemt år lønsedler halverede derfor månedslønnen uden et spor på skærmen. Huller kan være rigtige, men den
+ * glemt år lønsedler halverer derfor månedslønnen uden et spor på skærmen. Huller kan være rigtige, men den
  * almindeligste lovlige form – dagpenge i en periode – registreres under Offentlige ydelser og tæller som
- * indkomst; den giver derfor ingen advarsel. Udviklerafgørelse 2026-10-02: en gul, ikke-blokerende advarsel
+ * indkomst; den giver derfor ingen advarsel. Bevidst valg: en gul, ikke-blokerende advarsel
  * alene for HELT tomme huller.
  *
  * Et hul uden en eneste arbejdsdag (fx en weekend mellem to dagrækker) er ingen mangel og tælles ikke. Er der

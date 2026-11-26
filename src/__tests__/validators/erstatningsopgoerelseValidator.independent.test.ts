@@ -143,7 +143,7 @@ describe('uafhængige validator-inputs', () => {
       });
     });
 
-    // Én mangel, én linje: rækken i «Fejl og advarsler» siger det samme (BB-265).
+    // Én mangel, én linje: rækken i «Fejl og advarsler» siger det samme.
     it('rapporterer manglende top-level-datoer for Beregningsperiode som én fejl på fra-datoen', () => {
       const values = parseLiteral({
         ...VALIDATOR_LITERAL,
@@ -165,7 +165,7 @@ describe('uafhængige validator-inputs', () => {
       });
     });
 
-    // Nulreglen ejes af feltet selv, så cellen bliver rød (BB-232); validatoren melder den ikke oveni.
+    // Nulreglen ejes af feltet selv, så cellen bliver rød; validatoren melder den ikke oveni.
     it('overlader nul i øvrige krav til feltets egen regel', () => {
       const values = parseLiteral({
         ...VALIDATOR_LITERAL,

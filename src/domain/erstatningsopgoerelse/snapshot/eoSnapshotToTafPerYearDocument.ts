@@ -35,7 +35,7 @@ export const tafBeregningsgrundlagAngivetLoenMangler = (model: EoModel): boolean
 
 /**
  * En blokering, hvis besked ER det, brugeren skal læse – fordi den siger tilstanden, ikke en mangel. `specific`
- * får gaten til at citere den frem for den universelle «Indtastning mangler» (BB-371).
+ * får gaten til at citere den frem for den universelle «Indtastning mangler».
  */
 export type EoDocumentProjectionBlocked = Readonly<{
   kind: 'blocked';
@@ -45,9 +45,9 @@ export type EoDocumentProjectionBlocked = Readonly<{
 }>;
 
 /**
- * De tre TAF-dokumenters blokering, når der intet er at fordele, fordi der ikke er TAF i EO-perioden. Før sagde
- * knapperne «Indtastning mangler», også når TAF var et bevidst «Nej» – brugeren ledte efter et tomt felt, der ikke
- * fandtes (BB-371). Ordene er bilagsvalgenes for samme tilstand.
+ * De tre TAF-dokumenters blokering, når der intet er at fordele, fordi der ikke er TAF i EO-perioden. «Indtastning
+ * mangler» ville også stå, når TAF er et bevidst «Nej», og sende brugeren efter et tomt felt, der ikke findes.
+ * Ordene er bilagsvalgenes for samme tilstand.
  */
 export const buildIngenTafIEoPeriodenBlocked = (snapshot: EoSnapshot): EoDocumentProjectionBlocked => ({
   kind: 'blocked',

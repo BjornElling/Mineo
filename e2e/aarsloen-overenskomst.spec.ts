@@ -5,7 +5,7 @@ test.describe('Årsløn med overenskomstens satser på én dato', () => {
     await login(page);
     await openPage(page, 'Årslønsberegning');
 
-    // I Procent uden helårsomregning læses ferie- og helligdagsvalget ikke og vises derfor ikke (BB-353); med
+    // I Procent uden helårsomregning læses ferie- og helligdagsvalget ikke og vises derfor ikke; med
     // omregning står det under Beregningsprincipper, aldrig ovenfor i Lønforhold (siden udfyldes oppefra og ned).
     await expect(page.getByRole('checkbox', { name: 'Fuld løn under ferie:', exact: true })).toHaveCount(0);
     await expect(page.getByRole('combobox', { name: 'Løn på helligdage', exact: true })).toHaveCount(0);
@@ -23,7 +23,7 @@ test.describe('Årsløn med overenskomstens satser på én dato', () => {
     const total = page.locator('.row--label-right-hover').filter({ hasText: 'Sammentælling af løn fra tabellen:' });
     const download = total.getByRole('button');
     await expect(download).toBeDisabled();
-    // Alle blokerende mangler står i «Fejl og advarsler» (BB-350); tillæggene er låste og tomme (BB-351).
+    // Alle blokerende mangler står i «Fejl og advarsler»; tillæggene er låste og tomme.
     const fejlboks = page.locator('.content-box').filter({ hasText: 'Fejl og advarsler' });
     await expect(fejlboks).toContainText('Overenskomst mangler');
     await expect(fejlboks).toContainText('Reguleringsdato mangler');

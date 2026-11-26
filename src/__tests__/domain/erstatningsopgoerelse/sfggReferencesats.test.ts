@@ -37,7 +37,7 @@ describe('sfggReferencesats', () => {
     expect(isSfggNoEligibleDaysNotCalculable(notCalculableSfggReferencesats('no_calendar_days'))).toBe(true);
     expect(isSfggNoEligibleDaysNotCalculable(notCalculableSfggReferencesats('no_workdays'))).toBe(true);
     expect(isSfggNoEligibleDaysNotCalculable(notCalculableSfggReferencesats('missing_rate'))).toBe(false);
-    // En referenceperiode uden dage er ikke det samme som ingen dage i erstatningsperioden (BB-320, BB-323).
+    // En referenceperiode uden dage er ikke det samme som ingen dage i erstatningsperioden.
     expect(isSfggNoEligibleDaysNotCalculable(notCalculableSfggReferencesats('no_reference_days'))).toBe(false);
   });
 
@@ -89,7 +89,7 @@ describe('sfggReferencesats', () => {
     });
   });
 
-  it('spærrer med en navngiven fejl, når lønnen i referenceperioden samlet er negativ (BB-290)', () => {
+  it('spærrer med en navngiven fejl, når lønnen i referenceperioden samlet er negativ', () => {
     const employment = createSfggEmployment();
     const referenceRow = {
       ...createSfggIngenRow(employment.id),
@@ -166,7 +166,7 @@ describe('sfggReferencesats', () => {
     });
   });
 
-  // Fanges før motoren af referenceperiode-reglerne (BB-319); motoren må alligevel aldrig regne en sats på 0 kr.
+  // Fanges før motoren af referenceperiode-reglerne; motoren må alligevel aldrig regne en sats på 0 kr.
   it('regner ingen sats på 0,00 kr., når der ingen løn er i referenceperioden', () => {
     const employment = createSfggEmployment();
     expect(resolveSfggBaseRate(

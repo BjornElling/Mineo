@@ -114,9 +114,9 @@ type OffentligeYdelserHelpersSessionState = z.infer<typeof offentligeYdelserHelp
 
 type Props = Readonly<{
   values: ErstatningsopgoerelseValues;
-  /** Gul ring på midlertidigt-EET-togglen, når den intet henter i TAF-perioden (BB-358). */
+  /** Gul ring på midlertidigt-EET-togglen, når den intet henter i TAF-perioden. */
   midlertidigtEetToggleWarning?: FieldWarning | undefined;
-  /** Henter kildeskiftet et fradrag? Ellers siger bekræftelsen, at intet erstatter de slettede rækker (BB-457). */
+  /** Henter kildeskiftet et fradrag? Ellers siger bekræftelsen, at intet erstatter de slettede rækker. */
   midlertidigtEetSkiftGiverFradrag?: boolean;
 }>;
 
@@ -142,8 +142,8 @@ const OffentligeYdelserTab = React.memo(({ values, midlertidigtEetToggleWarning,
   const [sygedagpengeTilDato, setSygedagpengeTilDato] = React.useState<ISODateString | undefined>(undefined);
   const [sygedagpengeFraError, setSygedagpengeFraError] = React.useState<string | undefined>(undefined);
   const [sygedagpengeTilError, setSygedagpengeTilError] = React.useState<string | undefined>(undefined);
-  // Hjælperens besked gælder den periode, den blev dannet for. Rettes en af datoerne, er beskeden ikke længere sand og
-  // vises ikke – før stod «… ingen sygedagpenge-dage …» tilbage over en rettet periode med en aktiv «Indsæt» (BB-455).
+  // Hjælperens besked gælder den periode, den blev dannet for. Rettes en af datoerne, er beskeden ikke sand og
+  // vises ikke; ellers står «… ingen sygedagpenge-dage …» tilbage over en rettet periode med en aktiv «Indsæt».
   const [sygedagpengeInsertOutcome, setSygedagpengeInsertOutcome] = React.useState<Readonly<{
     message: string;
     fraDato: ISODateString;
@@ -221,8 +221,7 @@ const OffentligeYdelserTab = React.memo(({ values, midlertidigtEetToggleWarning,
     return map;
   }, [formatAntalDage, rows]);
 
-  // Identisk række, negativt beløb og et usandsynligt højt beløb: gul ring og en linje i «Fejl og advarsler»
-  // (BB-289/BB-290/BB-297).
+  // Identisk række, negativt beløb og et usandsynligt højt beløb: gul ring og en linje i «Fejl og advarsler».
   const cellWarnings = React.useMemo(
     () => buildFieldWarningMap(resolveOffentligeYdelserRowWarnings(rows, values)),
     [rows, values]
@@ -302,7 +301,7 @@ const OffentligeYdelserTab = React.memo(({ values, midlertidigtEetToggleWarning,
 
     setSygedagpengeInsertOutcome(null);
     // Står der allerede sygedagpenge for nogle af dagene, bekræfter brugeren først – ellers trækkes de samme dage fra
-    // to gange uden et ord (BB-359 valg B).
+    // to gange uden et ord.
     const overlap = findOverlappingSygedagpengeRows(rows, sygedagpengeFraDato, sygedagpengeTilDato);
     if (overlap.length > 0) {
       setPendingSygedagpengeInsert({ rows: generatedRows, message: formatSygedagpengeOverlapBesked(overlap) });
@@ -325,7 +324,7 @@ const OffentligeYdelserTab = React.memo(({ values, midlertidigtEetToggleWarning,
 
   /**
    * Hjælperens omvendte periode markerer BEGGE felter med tabellens to tekster – en kronologifejl kan rettes fra begge
-   * sider, og to datopar på samme fane må ikke sige det samme forskelligt (BB-366). Felternes egne fejl (format og
+   * sider, og to datopar på samme fane må ikke sige det samme forskelligt. Felternes egne fejl (format og
    * satsdækning) har forrang; kronologien udledes af de to afsluttede datoer.
    */
   const sygedagpengeInsertError = sygedagpengeInsertOutcome !== null
@@ -442,7 +441,7 @@ const OffentligeYdelserTab = React.memo(({ values, midlertidigtEetToggleWarning,
   }, [commitMidlertidigtEetToggle]);
 
   // Ved TAF «Nej»/«Skjul» bruges intet fra fanen: felterne er ikke relevante (descriptorerne), og fanen siger det i
-  // stedet for at vise en tabel, der ingen virkning har (BB-360). Rækkerne står urørte og vises igen ved «Ja».
+  // stedet for at vise en tabel, der ingen virkning har. Rækkerne står urørte og vises igen ved «Ja».
   if (!erTabtArbejdsfortjenesteSektionAktiv(values)) {
     return (
       <ContentBox className="content-box">
@@ -579,7 +578,7 @@ const OffentligeYdelserTab = React.memo(({ values, midlertidigtEetToggleWarning,
       <ContentBox className="content-box">
         <Typography className="section-header">
           Kommentarer
-          {/* Hvor kommentaren står, kunne før kun ses ved at læse papiret igennem (BB-363). */}
+          {/* Tooltippet siger, hvor kommentaren står; ellers kan det kun ses ved at læse papiret igennem. */}
           <InfoTooltipIcon title="Kommentaren trykkes i bilaget «Offentlige ydelser». Trykkes bilaget ikke, står den i opgørelsen under «Indtægter i erstatningsperioden»." />
         </Typography>
         <MultilineTextField

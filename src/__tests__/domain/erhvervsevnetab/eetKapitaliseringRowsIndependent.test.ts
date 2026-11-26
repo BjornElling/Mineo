@@ -116,7 +116,7 @@ describe('buildKapitaliseringAfgoerelseRows – defensive visningsfacitter', () 
 });
 
 describe('genoptagelse og overskrifter', () => {
-  it('navngiver den nye faktordato ved genoptagelse fra 1. juli 2024 (BB-415)', () => {
+  it('navngiver den nye faktordato ved genoptagelse fra 1. juli 2024', () => {
     const rows = buildKapitaliseringAfgoerelseRows(
       { ...baseAfgoerelse(), genoptagetMedNyFaktordato: true },
       { koen: undefined, koenRowMode: 'always' }
@@ -126,7 +126,7 @@ describe('genoptagelse og overskrifter', () => {
     }));
   });
 
-  it('skiller to afgørelser med samme dato og procent ved virkningsdatoen (BB-411)', () => {
+  it('skiller to afgørelser med samme dato og procent ved virkningsdatoen', () => {
     const a = { ...baseAfgoerelse(), virkningsdato: toISODateString('2019-06-01'), eetPct: 60 };
     const b = { ...baseAfgoerelse(), virkningsdato: toISODateString('2020-10-01'), eetPct: 60 };
     const c = { ...baseAfgoerelse(), eetPct: 30 };

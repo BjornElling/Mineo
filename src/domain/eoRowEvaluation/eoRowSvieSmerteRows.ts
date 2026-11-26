@@ -78,8 +78,8 @@ export const buildEoSvieSmerteRows = (
   const perioder = periodeErSynlig ? (values.svieSmertePerioder ?? []) : [];
   // Periode-blokering (komplethed, dato-grænser, overlap, rækkefølge) afgøres af den delte,
   // autoritative validering i domænets validerings-lag (`svieSmertePeriodeValidation`) – ÉN
-  // sandhedskilde. Denne builder RENDERER kun resultatet; dens `error`-rækker gater PDF-download
-  // (jf. B9). Overlap afvises altid (også samme tilstand), jf. periodisering-contract §7.
+  // sandhedskilde. Denne builder RENDERER kun resultatet; dens `error`-rækker gater PDF-download.
+  // Overlap afvises altid (også samme tilstand), jf. periodisering-contract §7.
   const periodeEvaluations = evaluateSvieSmertePerioder(perioder, {
     skadedatoISO: context.skadedatoISO,
     erErhvervssygdom: context.erErhvervssygdom,
@@ -239,13 +239,13 @@ export const buildEoSvieSmerteRows = (
     issue: topLevelFieldIssue(errors, 'erstatningsopgoerelse', 'svieSmerteSatserAar'),
     emptyState: 'ok',
   });
-  // Et afvist årstal læses som tomt, men er ikke en mangel: rækken viser da feltets egen fejl (M-58, samme værn som
-  // BB-447/BB-452). Uden værnet erstattede «er ikke angivet» den tekst, der siger, hvad der er galt.
+  // Et afvist årstal læses som tomt, men er ikke en mangel: rækken viser da feltets egen fejl (samme værn som
+  // ved de øvrige afviste datoer og årstal). Uden værnet erstatter «er ikke angivet» den tekst, der siger, hvad der
+  // er galt.
   const satserAarMangler = harPerioder && !isNonEmptyString(satserAarValue) && satserAarResolved.status !== 'error';
   const satserAarParsed = Number.parseInt(satserAarValue?.trim() ?? '', 10);
   const hasValidSatserAar = Number.isInteger(satserAarParsed);
-  // Satsåret er lovbestemt og uafhængigt af, hvornår sygeperioderne ligger (udviklerafgørelse 2026-09-23,
-  // `eo-snapshot-contract.md` §16): kravet anses for rejst én måned efter «Opgørelse lavet den», og der kan
+  // Satsåret er lovbestemt og uafhængigt af, hvornår sygeperioderne ligger (`eo-snapshot-contract.md` §16): kravet anses for rejst én måned efter «Opgørelse lavet den», og der kan
   // kræves den sats, der gælder dér. Brugeren vælger selv året; programmet advarer alene – ikke-blokerende –
   // når et senere års HØJERE sats kunne være anvendt. Det bedste år er det nyeste fuldt dækkede satsår, der
   // ikke ligger efter kravets tidspunkt, så advarslen også virker ved årsskiftet, før næste års satser findes.
@@ -257,7 +257,7 @@ export const buildEoSvieSmerteRows = (
   const shouldShowSatsYearSuggestionWarning =
     // Advarslen deler synlighedsprædikat med det felt, den handler om. Uden det blev den stående,
     // når «Tidligere beregnet S/S til max.» fjernede satsårsfeltet – en opfordring til at gøre
-    // noget, der ikke kan gøres, med et link, der ikke markerede noget (BB-222). Et skjult felt er
+    // noget, der ikke kan gøres, med et link, der ikke markerede noget. Et skjult felt er
     // ikke udfyldt og må ikke kunne påvirke hverken beregning eller fejlmeddelelser.
     erSvieSmertePeriodeInputRelevant(values) &&
     satserAarResolved.status !== 'error' &&
@@ -389,7 +389,7 @@ export const buildEoSvieSmerteRows = (
     // maksimum. Advarslen må derfor kun aktiveres, når linkets konkrete fokusmål er synligt.
     // BEVIDST: `> 0` – ikke `!== undefined`. Et indtastet 0 behandles som tomt, fordi brugeren i
     // 2. opgørelse er i tvivl, når 1. opgørelse ikke rummede et svie/smerte-krav, og derfor ved en
-    // fejl taster 0. Begge tilstande skal give samme advarsel (BB-220). Dokumentet spejler prøven,
+    // fejl taster 0. Begge tilstande skal give samme advarsel. Dokumentet spejler prøven,
     // så skærm og papir ikke kan blive uenige om, hvorvidt beløbet er angivet.
     const tidligereTotalMangler =
       erSvieSmerteTidligereTotalRelevant(values) &&
@@ -398,7 +398,7 @@ export const buildEoSvieSmerteRows = (
       tidligereTotalMangler && tidligereTotalResolved.status === 'ok';
 
     // Teksten kommer fra samme kilde som den gule ring ved feltet, så boks og felt ikke kan drive
-    // fra hinanden (BB-219, samme lære som BB-207).
+    // fra hinanden.
     const overMaxTekst = resolveSvieSmerteTidligereTotalOverMaxWarning(values);
     const visTidligereTotalOverMaxAdvarsel =
       overMaxTekst !== null && tidligereTotalResolved.status === 'ok';
@@ -608,7 +608,7 @@ export const buildEoSvieSmerteRows = (
   });
 
   // Alle perioder ligger uden for EO-perioden: kravet bliver 0 kr., og intet sagde det. Samme advarsel som TAF's
-  // `taf.perioder.clampedAway` (BB-374); kataloget lader den erstatte «Ikke rejst svie/smerte-krav for hele perioden».
+  // `taf.perioder.clampedAway`; kataloget lader den erstatte «Ikke rejst svie/smerte-krav for hele perioden».
   const svieSmertePerioderClampedAway =
     values.kravPaaSvieSmerteGodtgoerelse === 'Ja'
     && harPerioder
@@ -794,13 +794,13 @@ export const buildEoSvieSmerteRows = (
     }
 
     // Afkrydsningen og et indtastet tidligere beløb, der æder hele rammen, er samme tilstand og får
-    // samme grund – det prædikat, dokumentets «… er nået i tidligere erstatningsopgørelse.» læser (NY-12b-1).
+    // samme grund – det prædikat, dokumentets «… er nået i tidligere erstatningsopgørelse.» læser.
     if (erSvieSmerteMaksimumOpbrugt(values, canonicalOutput?.svieSmerte.maksimumOpbrugtFoerPerioden ?? false)) {
       return { displayValue: 'Tidligere beregnet til max', status: 'ok' as EoRowStatus };
     }
 
     // Ingen dag i EO-perioden: der er intet ophør at begrunde. Samme regel som `taf.ophoerSkyldes`, der
-    // ikke emitteres, når ingen TAF ligger i EO-perioden (NY-12b-3).
+    // ikke emitteres, når ingen TAF ligger i EO-perioden.
     if (svieSmertePerioderClampedAway) return undefined;
 
     if (svieSmerteOphoer.erstatningsperiodensOphoer && values.vedroererPeriodeTil) {
@@ -817,7 +817,7 @@ export const buildEoSvieSmerteRows = (
       return { displayValue: 'Ménafgørelse', status: 'ok' as EoRowStatus };
     }
 
-    // «Nået», ikke «skåret ned»: tidligere + aktuelt LIG loftet har også nået maksimum (NY-12b-1).
+    // «Nået», ikke «skåret ned»: tidligere + aktuelt LIG loftet har også nået maksimum.
     if (canonicalOutput?.svieSmerte.maksimumNaaet) {
       return { displayValue: 'Nået max i denne periode', status: 'ok' as EoRowStatus };
     }
@@ -827,7 +827,7 @@ export const buildEoSvieSmerteRows = (
     }
 
     // Dækningsadvarslen venter, mens en dato, den hviler på, er afvist: periodernes egne datoer og en aktiv
-    // ménafgørelses dato, der kunne flytte kravets slutning (NY-12b-4, BB-426). Kalenderfejlen står med sit link.
+    // ménafgørelses dato, der kunne flytte kravets slutning. Kalenderfejlen står med sit link.
     const daekningKanIkkeVurderes = kanDaekningIkkeVurderesPgaAfvistInput(errors, [
       ...perioder.flatMap((periode) => [
         eoSvieSmertePeriodeFraField.bind(periode.id),

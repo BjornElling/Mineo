@@ -233,7 +233,7 @@ describe('StyledDropdown', () => {
     expect(screen.getByRole('option', { name: 'Blokeret' })).toHaveAttribute('aria-disabled', 'true');
   });
 
-  it('viser en deaktiveret options egen tekst trods getOptionLabel og lader den aldrig vælge noget (BB-435)', async () => {
+  it('viser en deaktiveret options egen tekst trods getOptionLabel og lader den aldrig vælge noget', async () => {
     // Overenskomstvælgerens «ingen match»-linje: et valgfrit felt med getOptionLabel, hvor den eneste option er
     // deaktiveret, og den gemte værdi ikke længere står blandt options. Linjen skal kunne LÆSES (før blev den
     // tom, fordi getOptionLabel-grenen viste den tomme typeahead-label), men hverken klik, piletaster, Enter,

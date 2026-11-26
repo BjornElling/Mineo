@@ -49,10 +49,8 @@ export type ConsumerIssue = Readonly<{
  *
  * §1.7's regel – *en warning blokerer aldrig beregning, dokument eller `.eo`* – er fortsat normativ, men
  * den håndhæves DÉR, hvor advarsler faktisk dannes: i domænernes egne typer (`EetIssue.severity`,
- * `EoRowStatus`, `IntegrityIssue.severity`). Kernen bar tidligere en generisk `Warning` plus en
- * `ProjectionCollector.warn` og et `ProjectionResult.warnings`-felt. Ingen af de tre havde en
- * producent eller læser i produktionen: warnings nåede aldrig
- * kernen, og `warnings`-feltet blev kun ført videre af `mapReadyProjection` til ingen.
+ * `EoRowStatus`, `IntegrityIssue.severity`). En generisk `Warning`, `ProjectionCollector.warn` og et
+ * `ProjectionResult.warnings`-felt er slettet: ingen af de tre havde en producent eller læser i produktionen.
  *
  * En kanal, intet skriver til og intet læser fra, er ikke en capability men en gren, ingen tilstand kan
  * nå – og den ville have inviteret næste læser til at tro, at kernen ejede advarselsmodellen. Den er
@@ -88,7 +86,7 @@ export const compareFieldIssues = (left: FieldIssue, right: FieldIssue): number 
 /**
  * Bygger den konkrete danske besked for et rejected (format) feltinput uden at reparse råteksten (§1.8).
  * Bounds-/range-beskeder hører til canonical feltvalidatorer (`FieldIssueSpec.message`), ikke hertil, fordi en
- * out-of-bounds-værdi efter kravændringen 2026-07-18 er canonical og ikke rejected råtekst (§1.6).
+ * out-of-bounds-værdi er canonical og ikke rejected råtekst (§1.6).
  *
  * Labelen citeres i anførselstegn, fordi den fulde besked læses i "Fejl og advarsler" UDEN feltet foran sig, og
  * mange labels indeholder selv punktummer og bindestreger ("Hvis genopt. - tidl. kap.dato"), som ellers løber
@@ -108,10 +106,10 @@ export const quoteFieldLabel = (label: string): string => `'${label}'`;
  *
  * Navngiver beskeden allerede feltet, udelades præfikset. Det gælder også feltnavnets kerne foran en forklarende
  * parentes: «Antal feriedage (mandag-fredag) i de indtastede perioder» står i beskeden som «Antal feriedage kan
- * højst være …», og præfikset gav før linjen «Antal feriedage (…) i de indtastede perioder: Antal feriedage …».
+ * højst være …»; ellers ville præfikset give linjen «Antal feriedage (…) i de indtastede perioder: Antal feriedage …».
  *
  * Ét sted for alle oversigter (årsløn, EET-faner, EO's import af midlertidigt EET), så en feltfejl læses ens,
- * uanset hvilken side den vises på (BB-406/BB-407, mønster M-50).
+ * uanset hvilken side den vises på.
  */
 export const prefixFieldLabel = (label: string, message: string): string => {
   const kerne = label.split(' (')[0]?.trim() ?? label;
@@ -141,9 +139,9 @@ const REASONS_WITH_SPECIFIC_TOOLTIP: ReadonlySet<FieldIssueReason> = new Set<Fie
 ]);
 
 /**
- * Feltets TOOLTIP-tekst – det ENE sted, `reason` oversættes til hover-tekst (brugerkrav 2026-07-30).
+ * Feltets TOOLTIP-tekst – det ENE sted, `reason` oversættes til hover-tekst.
  *
- * Tooltippet og "Fejl og advarsler" viste tidligere samme streng, fordi begge læste `issue.message`. Boksen
+ * Tooltippet og "Fejl og advarsler" viser ikke nødvendigvis samme streng (`issue.message`). Boksen
  * læses uden feltet foran sig og skal blive ved med at vise den fulde besked; tooltippet står ved markøren i et
  * felt, brugeren netop har rørt, og behøver kun at sige at DETTE felt er forkert – medmindre beskeden forklarer
  * hvad rettelsen er (`bounds`/`rule`).
@@ -165,7 +163,7 @@ export const resolveFieldIssueTooltip = (issue: FieldIssue): string => {
  * Feltfejlens tekst i en oversigtslinje, der selv navngiver feltet («Løn – …»): tooltippens konkrete tekst, eller
  * «ugyldig værdi», når tooltippen kun ville sige «Fejl i indtastning».
  *
- * Ét sted for EO's og Årslønnens tabellinjer, så en konkret årsag – fx division med 0 (BB-440) – når frem i alle
+ * Ét sted for EO's og Årslønnens tabellinjer, så en konkret årsag – fx division med 0 – når frem i alle
  * oversigter frem for kun i den ene.
  */
 export const resolveFieldIssueSummaryText = (issue: FieldIssue): string => {

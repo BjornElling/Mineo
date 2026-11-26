@@ -17,11 +17,10 @@ export type TextLinkButtonProps = Readonly<{
  * Det ENE tekstlink, der udfører en handling i Mineo (navigerer til et felt, åbner en dialog) – i
  * modsætning til `ExternalLink`, der åbner en ekstern side og bevidst står uden for Tab-rækkefølgen.
  *
- * Hvorfor en fælles komponent (BB-463/BB-464, TVAERGAAENDE M-08): linkene fandtes som håndsammensatte
- * `<Typography component="button">` på seks flader og som et `<span onClick>` i Stamdata-rækken. Ingen af
- * dem bar Containerens opt-in-markør `data-mineo-focusable-button`, så den app-ejede Tab-ring sprang dem
- * over, og Enter på et fokuseret link faldt igennem til «flyt til næste felt» og landede i sidens første
- * felt frem for at følge linket. Markøren, `type="button"` og den native knap er derfor fastlåst her, så
+ * Hvorfor en fælles komponent: håndsammensatte links (`<Typography component="button">`, `<span onClick>`)
+ * glemmer let Containerens opt-in-markør `data-mineo-focusable-button`. Uden den springer den app-ejede
+ * Tab-ring dem over, og Enter på et fokuseret link falder igennem til «flyt til næste felt» og lander i
+ * sidens første felt frem for at følge linket. Markøren, `type="button"` og den native knap er derfor fastlåst her, så
  * et nyt link ikke kan glemme dem (håndhævet af AST-reglen `a11y/text-link-button-single-source`).
  *
  * Native `<button>` frem for `<span role="button">`: knappen giver aktivering med både Enter og mellemrum

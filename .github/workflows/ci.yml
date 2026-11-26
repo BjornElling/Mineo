@@ -146,9 +146,9 @@ jobs:
     # minimumsviewporter kun det, der er tagget `@viewporter`. CI kører dermed nøjagtig samme
     # dækning som en lokal `npm run test:e2e`.
     #
-    # Basisbanen er delt i fire shards. Den bærer hele suiten og var med én worker alene ~14 min –
-    # resten af matrixen er færdig på 1-3 min. Hver shard kører stadig én test ad gangen, så
-    # stabiliteten er den samme som før; kun væguret er delt op.
+    # Basisbanen er delt i fire shards. Den bærer hele suiten og er med én worker langt den
+    # langsomste del af matrixen. Hver shard kører stadig én test ad gangen, så stabiliteten er
+    # uændret; kun væguret er delt op.
     strategy:
       fail-fast: false
       matrix:
@@ -179,7 +179,7 @@ jobs:
           # dedikerede projekter i `playwright.config.ts` og indgår derfor ikke i de seks lane-projekter.
           - project: webkit-filindlaesning
             browser: webkit
-          - project: firefox-fallback-audit
+          - project: firefox-fallback-filvaelger
             browser: firefox
           - project: chromium-service-worker
             browser: chromium

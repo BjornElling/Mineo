@@ -80,7 +80,7 @@ export const buildSammentaellingDisplayTables = (model: SammentaellingModel): Sa
     ? ` (- ${formatCount(tafLoseFerieTilLabel)} løse ferie-/feriefridage)`
     : '';
 
-  // Ental ved én dag: «1 SH-dag», ikke «1 SH-dage» (BB-386).
+  // Ental ved én dag: «1 SH-dag», ikke «1 SH-dage».
   const formatDage = (value: number | null | undefined, ental: string, flertal: string): string => {
     const text = formatCount(value);
     return `${text} ${text === '1' ? ental : flertal}`;
@@ -517,7 +517,7 @@ export const buildEOInspektionSammentaellingModel = (args: {
     const entries: SammentaellingDisplayRow[] = [];
 
     // Samme gate som kontroltabellens ansættelsesforholdskolonner: uden dem findes tabelsiden ikke, og en
-    // ansættelsesforholdsrække ville da stå med et beregnet beløb over for en tom tabel (BB-388).
+    // ansættelsesforholdsrække ville da stå med et beregnet beløb over for en tom tabel.
     const employers = harKontrolTabelAnsaettelsesforholdKolonner(values) ? income.employers : [];
     employers.forEach((entry, index) => {
       const baseLabel = index === 0 ? 'Ansættelsesforhold' : `Ansættelsesforhold ${index + 1}`;

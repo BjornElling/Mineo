@@ -178,8 +178,8 @@ describe('indexedDbStore', () => {
   });
 
   describe('utilgængelig IndexedDB er en egen tilstand, ikke en fejl', () => {
-    // Tidligere var `typeof indexedDB`-guarden gentaget 9 steder med INKONSISTENTE
-    // returværdier (false/null/true). Nu er der ét svar, som kalderen oversætter.
+    // Tilgængeligheden har ét svar, som kalderen oversætter – ikke en `typeof indexedDB`-guard pr.
+    // kaldested med inkonsistente returværdier (false/null/true).
     it('rapporterer unavailable frem for error når indexedDB mangler', async () => {
       Object.defineProperty(globalThis, 'indexedDB', { value: undefined, configurable: true, writable: true });
 

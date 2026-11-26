@@ -32,12 +32,11 @@ import { defineRule, forbidImports, type Finding } from '../ruleKit';
 /**
  * PRIMÆRVÆRNET er STRUKTUREN, ikke denne regel.
  *
- * Skrivegrænsen var tidligere et brandet vidne (`InputWriteAuthority`) oven på en fortsat OFFENTLIG
- * Zustand-`StoreApi`. Det var den forkerte rækkefølge: capabilityen `setState` blev ved med at være
- * tilgængelig, og et AST-værn skulle holde den lukket. Værnet kunne omgås af et alias, en aliaseret
- * type-assertion eller et direkte `store.setState(...)` – præcis de tre huller, reviewet påviste.
+ * Et brandet vidne (`InputWriteAuthority`) oven på en OFFENTLIG Zustand-`StoreApi` er den forkerte
+ * rækkefølge: capabilityen `setState` forbliver tilgængelig, og et AST-værn, der skal holde den lukket, kan
+ * omgås af et alias, en aliaseret type-assertion eller et direkte `store.setState(...)`.
  *
- * Rettelsen er at fjerne muligheden i stedet for at bevogte den: `SlimInputStore` er rent læsbar,
+ * Derfor fjernes muligheden i stedet for at blive bevogtet: `SlimInputStore` er rent læsbar,
  * mens runneren alene har de registrerede mutatorer. Zustands `StoreApi` forlader aldrig
  * `slimInputStore.ts`.
  *
@@ -323,13 +322,11 @@ export const rawSectionAccessBoundary = defineRule({
 /**
  * Enhver EO-inputflade skal føre sit input gennem inputkernens autoritative editorvej.
  *
- * Reglen afløser `erstatningsopgoerelseSurfaceGuard.test.ts`, som var en RÅ TEKST-guard i begge ender: den
- * fandt inputflader med regex over kildeteksten og godkendte arkitekturvejen med `source.includes(...)`. En
- * håndrullet inputflade kunne derfor passere alene ved at NÆVNE fx `useFieldEditor` i en kommentar – en
- * in-memory probe med `// useFieldEditor` foran en `<Input field={x} onChange={…} />` blev accepteret
- *. Det er samme fejlklasse, blot i et lokalt værn frem for i harnesset.
+ * En RÅ TEKST-guard i begge ender (regex for at finde inputflader, `source.includes(...)` for at godkende
+ * arkitekturvejen) lader en håndrullet inputflade passere alene ved at NÆVNE fx `useFieldEditor` i en
+ * kommentar, fx `// useFieldEditor` foran en `<Input field={x} onChange={…} />`.
  *
- * Begge ender er nu AST:
+ * Begge ender er derfor AST:
  *  - FLADEN genkendes på JSX-attributter (`field`/`location`/`onCommit`/`onDraftChange`), der er noder.
  *  - VEJEN bevises af en faktisk IMPORT fra et autoritativt inputmodul eller af et kald til en af
  *    inputvejens hooks – ikke af at navnet forekommer i filteksten.
@@ -587,13 +584,10 @@ export const transientCannotWriteCaseData = forbidImports({
  * længere. Den historik er bevidst dokumentation og skal blive ([[project_dansk_prosa_guard_markers]]);
  * en grep-baseret gate ville tvinge en oprydning af netop den prosa, der gør sletningerne forståelige.
  *
- * **`blocksSave` blev fejlagtigt udeladt og er nu tilbage på listen.**
- *
- * Begrundelsen for at udelade det – "levende navn i `eoInputIssues.ts`" – var faktuelt forkert. Navnet
- * fandtes kun i KOMMENTARER, som netop forklarede, at booleanen ER slettet, og `error-contract.md` §1.1
- * forbyder normativt et `blocksSave`-flag. Klassifikationen var lavet efter tekstsøgning frem for efter
- * den normative model, og en tekstsøgning kan ikke skelne "navnet bruges" fra "navnet omtales".
- * Gaten måler identifiers, så de forklarende kommentarer bevares uændret.
+ * **`blocksSave` står på listen.** Navnet forekommer kun i KOMMENTARER, som forklarer, at booleanen ER
+ * slettet, og `error-contract.md` §1.1 forbyder normativt et `blocksSave`-flag. Klassificér efter den
+ * normative model, ikke efter tekstsøgning – en tekstsøgning kan ikke skelne "navnet bruges" fra "navnet
+ * omtales". Gaten måler identifiers, så de forklarende kommentarer bevares uændret.
  *
  * **`fieldErrors` er fortsat UDELADT – og her holder begrundelsen.** Navnet er et LEVENDE feltnavn i
  * snapshot-/projektionskontrakterne (`eoErrors`/`stamdataErrors`-familien, download-gates), altså en
@@ -627,16 +621,14 @@ export const FORBIDDEN_LEGACY_IDENTIFIERS: readonly string[] = [
   'useCellInvalidDraftChannel',
   'onFieldError',
   // `error-contract.md` §2 og `form-contract.md` §12 navngiver BEGGE denne hook som del af den slettede,
-  // forbudte feltfejl-bus – men kun `onFieldError` stod her. To normative kontrakter erklærede altså et
-  // forbud, gaten ikke håndhævede (fundet ved kontraktverifikationen 2026-08-07). Kontrakterne havde ret;
-  // det var listen, der var ufuldstændig.
+  // forbudte feltfejl-bus; forbuddet håndhæves her sammen med `onFieldError`.
   'useFormFieldErrorReporter',
   'visibleDocumentFailureMessage',
   'resolveOverenskomstNameOnlyDisplay',
   'normalizeGridRows',
   'reconcileGridRowIdentityForRestore',
   'undoAliasRowIdsByRowId',
-  // Undo/redo-restorens blur-commit-undertrykkelse (slettet 2026-08-14). Modulet satte et globalt flag
+  // Undo/redo-restorens blur-commit-undertrykkelse (slettet). Modulet satte et globalt flag
   // omkring den programmatiske `target.focus()` for at hindre, at et blur committede en forældet draft –
   // men `isRestoreFocusInProgress` havde nul læsere, så undertrykkelsen var en no-op, OG tilstanden kan
   // ikke opstå: undo/redo er `noop` ved åben editor, så restore-løkken nås aldrig med en draft åben.
@@ -695,8 +687,7 @@ export const forbiddenLegacyIdentifier = defineRule({
     // Strengliterale (fx i et manifest eller en fejlbesked) er heller ikke identifiers.
     { relativePath: 'src/x.ts', code: 'const names = ["useRowDrafts", "invalidDrafts"];' },
     // Levende vokabular må ikke rammes: `fieldErrors` er det nuværende feltnavn i
-    // snapshot-/projektionskontrakterne. (`blocksSave` stod tidligere i denne fixture som "levende" –
-    // det var netop en fejlklassifikation; navnet er forbudt.)
+    // snapshot-/projektionskontrakterne. (`blocksSave` er IKKE levende vokabular; navnet er forbudt.)
     { relativePath: 'src/x.ts', code: 'const { fieldErrors } = snapshot;' },
     // En KOMMENTAR om den slettede boolean skal fortsat bevares.
     { relativePath: 'src/x.ts', code: '// INGEN blocksSave-booleans: konsekvensen udledes strukturelt.\nexport const x = 1;' },
@@ -1247,13 +1238,10 @@ export const issueSnapshotCapabilityBoundary = defineRule({
  * straks blive skrevet tilbage af den samme effect, fordi det styrende valg stadig er aktivt. Afledte
  * værdier hører derfor i en ren domæneprojektion og materialiseres aldrig som input.
  *
- * Dette værn erstatter et tekstbaseret forbud, der var GRØNT AF TOMHED: dets fire mønstre
- * (`setValues(`, `setFormValues(`, `replaceFormValues(`, `onAnsaettelsesforholdChange(`) var alle
- * legacy-funktionsnavne, som ikke længere fandtes nogen steder i kildegrafen, og dets allowlist-markør
- * fandtes heller ikke i den fil, den fritog. Reglen kunne derfor ikke fejle – heller ikke på den effect,
- * den var skrevet for at bevogte.
+ * Et tekstbaseret forbud mod legacy-funktionsnavne (`setValues(`, `setFormValues(`, `replaceFormValues(`,
+ * `onAnsaettelsesforholdChange(`) ville være GRØNT AF TOMHED, fordi ingen af dem findes i kildegrafen.
  *
- * Reglen måler nu den AKTUELLE skrivevej: et `edit.dispatch(...)`/`dispatchInput(...)`-kald inde i et
+ * Reglen måler derfor den AKTUELLE skrivevej: et `edit.dispatch(...)`/`dispatchInput(...)`-kald inde i et
  * `useEffect`-vindue. Det er den ene vej, en effect faktisk KAN skrive sagsinput ad, efter at hele den
  * parallelle legacy-inputklynge er slettet.
  */
@@ -1389,7 +1377,7 @@ const SIGN_SENSITIVE_KEY_FILTERS = new Set<string>([
 /**
  * Er `allowNegative` sat til en LITERAL (`true`/`false`) i dette objekt-argument?
  *
- * En literal er netop den fejlform, fundet handlede om: komponenten svarer på feltets vegne. En variabel,
+ * En literal er netop den fejlform, reglen forhindrer: komponenten svarer på feltets vegne. En variabel,
  * en property-adgang eller et kald er tilladt – de kan bære politikken fra descriptoren.
  */
 const hasLiteralAllowNegative = (argument: ts.Expression): ts.Node | undefined => {

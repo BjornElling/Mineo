@@ -49,7 +49,7 @@ describe('buildEoStamdataRows – Skadelidtes navn og afslutningsformen', () => 
 
   it('blokerer med en navngiven årsag, når navnet mangler og opgørelsen afsluttes med en underskrift-linje', () => {
     // Uden reglen skrev dokumentet ordret `*skadelidtes navn*` under underskriftslinjen, mens download
-    // var tilladt og den eneste advarsel handlede om brevhovedet (BB-214).
+    // var tilladt og den eneste advarsel handlede om brevhovedet.
     expect(rowsFor('', 'Underskrift-linje')).toMatchObject({
       displayValue: 'Fejl (Skadelidtes navn skal angives, når opgørelsen afsluttes med en underskrift-linje)',
       status: 'error',

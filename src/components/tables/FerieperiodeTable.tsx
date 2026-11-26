@@ -31,12 +31,12 @@ export type FerieperiodeTableProps = Readonly<{
   saveOrderPath?: TableSaveOrderPath;
   /**
    * Rækkereglerne, der ikke kan ligge på descriptoren – overlap og feriens vindue (projekteret fra domænet,
-   * se `tafRowCellIssues.ts`). Leveres pr. celle på feltets EGEN adresse (BB-248, BB-251).
+   * se `tafRowCellIssues.ts`). Leveres pr. celle på feltets EGEN adresse.
    */
   cellIssues?: FieldIssueSet;
 }>;
 
-/** Kolonnens forklaring følger den periodeafgrænsning, som også styrer det viste dagstal (BB-249, BB-344). */
+/** Kolonnens forklaring følger den periodeafgrænsning, som også styrer det viste dagstal. */
 const FERIEDAGE_OVERSKRIFT: Readonly<Record<FerieperiodeTableProps['kind'], Readonly<{
   label: string;
   periodeTooltip: string;

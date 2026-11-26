@@ -109,7 +109,7 @@ describe('Differencekravets grænser ved to år til folkepension', () => {
 
   it.each([
     ['2020-07-01', '2020-06-30', 24, 1.245],
-    // 30 resterende julidage / 31 plus 23 hele måneder – uafrundet (udviklerens afgørelse 2026-11-19).
+    // 30 resterende julidage / 31 plus 23 hele måneder – uafrundet (bevidst valg).
     ['2020-07-02', '2020-07-01', 23 + 30 / 31, 1.243],
     ['2022-04-16', '2022-04-15', 2.5, 0.13],
     ['2022-06-30', '2022-06-29', 1 / 30, 0.002],
@@ -181,7 +181,7 @@ describe('Differencekravets grænser ved to år til folkepension', () => {
     expect(rest.fradragBeloebOre).toBe(fromKroner(3 * toKroner(rest.maanedligYdelseOre)));
   });
 
-  // Udviklerafgørelse 2026-11-13: midlertidige ydelser, som en senere endelig afgørelse gør endelige,
+  // Bevidst valg: midlertidige ydelser, som en senere endelig afgørelse gør endelige,
   // behandles som endelige i hele perioden. Er den endelige afgørelse omfattet af toårsreglen, fratrækkes
   // de kun til dagen før toårsgrænsen (30-06-2020); kapitalbeløbet dækker de sidste to år.
   describe('midlertidige ydelser gjort endelige af en endelig afgørelse omfattet af toårsreglen', () => {

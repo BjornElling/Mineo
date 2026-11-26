@@ -30,7 +30,7 @@ const formatPercentUpToTwoDecimals = (value: number): string => formatPercent(va
 type EoRowDisplay = Readonly<{ displayValue: string; status: EoRowStatus }>;
 
 /**
- * Lægger en dato-efter-opgørelsen-advarsel (BB-242, NY-12a-3, NY-12a-5) på en ellers gyldig række. En rød
+ * Lægger en dato-efter-opgørelsen-advarsel på en ellers gyldig række. En rød
  * eller manglende værdi har sin egen, vigtigere besked og bevares uændret.
  */
 const medAdvarselPaaGyldigRaekke = (display: EoRowDisplay, message: string | undefined): EoRowDisplay =>
@@ -85,7 +85,7 @@ export const buildEoErstatningsopgoerelseRows = (
    * Er præcis den ene halvdel udfyldt, navngiver rækken den MANGLENDE – og peger fokus på den.
    *
    * Før sagde beskeden «'Vedrører perioden' er ikke angivet» om en periode, hvis fra-dato stod på
-   * skærmen, og linket markerede netop den udfyldte halvdel (BB-205). Brugeren så altså en besked, der
+   * skærmen, og linket markerede netop den udfyldte halvdel. Brugeren så altså en besked, der
    * benægtede det, han kunne læse, og en anvisning, der pegede på den halvdel, der var i orden. Er begge
    * tomme, er den generiske tekst korrekt og bevares.
    */
@@ -100,7 +100,7 @@ export const buildEoErstatningsopgoerelseRows = (
    *
    * Uden rækken forsvandt hele boksen «Fejl og advarsler», og det er programmets måde at sige «alt er i
    * orden». Her betød det «du har ikke rejst noget krav» – de to så ens ud, og en glemt indstilling gav en
-   * komplet, underskriftsklar opgørelse på 0,00 kr., der kunne sendes (BB-215). Advarslen blokerer ikke:
+   * komplet, underskriftsklar opgørelse på 0,00 kr., der kunne sendes. Advarslen blokerer ikke:
    * en bevidst nulopgørelse er et legitimt produkt, nullet skal blot være et valg og ikke et fravær.
    */
   const ingenKravRejst =
@@ -110,8 +110,8 @@ export const buildEoErstatningsopgoerelseRows = (
 
   const erFoersteOpgoerelse = erDetteFoersteErstatningsopgoerelse(values.eoNummer);
 
-  // En valgt status dateret efter «Opgørelse lavet den» er en gul, ikke-blokerende advarsel (NY-12a-5),
-  // lagt på en ellers gyldig række ligesom AES-datoernes (BB-242).
+  // En valgt status dateret efter «Opgørelse lavet den» er en gul, ikke-blokerende advarsel,
+  // lagt på en ellers gyldig række ligesom AES-datoernes.
   const medStatusDatoEfterOpgoerelse = (
     felt: StatusDatoEfterOpgoerelseFelt,
     display: EoRowDisplay
@@ -229,7 +229,7 @@ export const buildEoForligRows = (
   const forligDatoRow: EoRowModel = {
     id: 'forlig.dato',
     label: 'Evt. dato for forlig',
-    // En forligsdato efter «Opgørelse lavet den» er en gul, ikke-blokerende advarsel (NY-12a-3).
+    // En forligsdato efter «Opgørelse lavet den» er en gul, ikke-blokerende advarsel.
     ...medAdvarselPaaGyldigRaekke(
       resolveEoRowDisplay({
         value: danishForligDato,
@@ -451,13 +451,13 @@ export const buildEoAesRows = (
   })();
 
   // En afgørelses- eller differencekravsdato efter «Opgørelse lavet den» er en gul, ikke-blokerende
-  // advarsel (BB-242). Den lægges kun på en ellers gyldig række: en rød dato eller en manglende dato har
+  // advarsel. Den lægges kun på en ellers gyldig række: en rød dato eller en manglende dato har
   // sin egen, vigtigere besked.
   const medDatoEfterOpgoerelse = (felt: AesDatoEfterOpgoerelseFelt, display: EoRowDisplay): EoRowDisplay =>
     medAdvarselPaaGyldigRaekke(display, resolveAesDatoEfterOpgoerelseMessage(felt, values));
 
   // Rækkernes labels er feltets synlige navn fra descriptoren, så «Fejl og advarsler», oplæsningen og
-  // skærmen navngiver feltet ens (BB-243).
+  // skærmen navngiver feltet ens.
   return [
     {
       id: 'aes.varigeMenAfgorelse',
@@ -550,7 +550,7 @@ export const buildEoAesRows = (
       label: 'Verserende klage over EET',
       // Feltet vises kun, når mindst én EET-afgørelse er truffet. Uden gaten kunne rækken gå rød
       // på et tomt felt, som slet ikke er på skærmen – en fejl, brugeren hverken kan se eller
-      // rette (BB-222's regel). `emptyState` følger derfor synligheden.
+      // rette. `emptyState` følger derfor synligheden.
       ...resolveEoRowDisplay({
         value: values.verserendeKlageEet,
         issue: topLevelFieldIssue(errors, 'erstatningsopgoerelse', 'verserendeKlageEet'),

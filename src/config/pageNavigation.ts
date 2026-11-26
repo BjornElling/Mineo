@@ -92,10 +92,7 @@ export type AppSystemPageKey = keyof typeof APP_SYSTEM_PAGE_DEFINITIONS;
  * Samlet rute-inventar: sagssider + systemsider.
  *
  * `App.tsx` deriverer sine `<Route>`-elementer HERFRA i stedet for at gentage
- * pathstrengene. Før stod de 8 sagssider listet både her og i `App.tsx` (med hardkodede
- * strenge, uden at importere `APP_ROUTES`), mens de 3 systemsider kun fandtes i `App.tsx` –
- * altså to lister med to forskellige nøglebegreber, som kunne drifte fra hinanden uden at
- * nogen test bemærkede det.
+ * pathstrengene, så der ikke findes to rutelister, der kan drifte fra hinanden.
  */
 export const ALL_APP_PAGE_ROUTES: readonly string[] = Object.freeze([
   ...Object.values(APP_PAGE_DEFINITIONS).map((definition) => definition.route),
@@ -106,12 +103,11 @@ export const ALL_APP_PAGE_ROUTES: readonly string[] = Object.freeze([
  * De sider sidemenuen kan navigere til – altså alle routes MINUS `/open`, som er PWA-
  * filåbnings-landingen og bevidst ikke står i menuen.
  *
- * Findes fordi sidemenuen indtil nu bar sit EGET inventar: `SideMenu.tsx` hardkodede de otte
- * sagssider og de to systemsider som bare strenge og importerede slet ikke dette modul. Det var
- * dermed en TREDJE liste ved siden af kataloget og `App.tsx` – den ene `App.tsx`-guarden ikke
+ * Findes, så sidemenuen ikke bærer sit EGET inventar: hardkodede `SideMenu.tsx` siderne som bare
+ * strenge, var det en TREDJE liste ved siden af kataloget og `App.tsx` – én, `App.tsx`-guarden ikke
  * kigger på – så en omdøbt route gav en lydløst død menupost i stedet for en fejl.
  *
- * Typen er værnet: menuens poster er nu nøglet på `MenuPageKey`, så en omdøbt eller slettet side
+ * Typen er værnet: menuens poster er nøglet på `MenuPageKey`, så en omdøbt eller slettet side
  * bliver en COMPILE-fejl i menuen. Det slår en AST-regel her, fordi grænsen kan udtrykkes som en
  * type – men bemærk dens loft: typen fanger drift i NØGLERNE, ikke at menuen faktisk viser alle
  * sider. Completeness dækkes derfor af `SideMenu.test.tsx`.

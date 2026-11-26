@@ -15,8 +15,8 @@ import { toISODateString } from '../types/branded';
  *
  * Antag ikke flere. **Særligt ferietillæg** er IKKE et tillæg i dette program: det er et rent
  * fremtidigt udviklingsprojekt, og der må ikke indregnes særligt ferietillæg nogen steder.
- * Dets satstrappe blev fjernet herfra 2026-07-31, fordi data, der kun venter på at blive koblet
- * ind, læses som en forudsætning om, at tillægget skal bruges. Se kontraktens §6.
+ * Dets satstrappe må ikke stå her: data, der kun venter på at blive koblet ind, læses som en
+ * forudsætning om, at tillægget skal bruges. Se kontraktens §6.
  */
 
 const iso = (date: string): ISODateString => toISODateString(date);

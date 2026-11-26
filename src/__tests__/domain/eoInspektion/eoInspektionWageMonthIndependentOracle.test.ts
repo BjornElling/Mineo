@@ -43,7 +43,7 @@ const createMonthModeValues = (): ErstatningsopgoerelseValues => {
   return values;
 };
 
-describe('CALC-006 – uafhængigt inspection-facit for månedsløn', () => {
+describe('uafhængigt inspection-facit for månedsløn', () => {
   it('fordeler en månedsløn på alle kalenderdage med intakte lønkolonner og kontrolsum', () => {
     const model = buildEOInspektionModel(createMonthModeValues(), { tafRanges: [] });
     const januaryFirstIndex = model.tableData.dates.indexOf(iso('2024-01-01'));

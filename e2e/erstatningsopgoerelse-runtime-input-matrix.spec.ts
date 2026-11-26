@@ -14,7 +14,7 @@ const setDate = setVerbatimFieldValueAndSettle;
 const visiblePanel = (page: Page) => page.locator('[role="tabpanel"]:visible');
 
 /**
- * Afprøver den tidligere fejlklasse gennem den faktiske fanemounting.
+ * Afprøver fanemountingen med en delvist udfyldt sag.
  *
  * TAF- og beregningsgrundlagsfelterne er udfyldt, mens de øvrige EO-oplysninger bevidst står tomme.
  * Hver fane monteres først ved besøg, så samme sag skal kunne åbnes i alle faner uden en skjult
@@ -52,7 +52,7 @@ test.describe('Erstatningsopgørelse – runtime-matrix på tværs af faner', ()
     const beregningPanel = visiblePanel(page);
     await expect(beregningPanel.getByText('Fejl og advarsler', { exact: true })).toBeVisible();
     // Den delvise ydelsesrække melder sin egen fejl. Indtil den er rettet, kan perioden ikke kaldes uden indkomst,
-    // så «Ingen indkomst i beregningsperioden» undertrykkes (BB-442).
+    // så «Ingen indkomst i beregningsperioden» undertrykkes.
     await expect(beregningPanel).toContainText('Ydelsestype er ikke valgt');
     await expect(beregningPanel).not.toContainText('Ingen indkomst i beregningsperioden');
     await page.screenshot({ path: testInfo.outputPath('delvis-eo-beregning.png') });
@@ -88,7 +88,7 @@ test.describe('Erstatningsopgørelse – runtime-matrix på tværs af faner', ()
         const beregnet = await row.getByRole('cell').nth(1).innerText();
         await expect(row.getByRole('cell').nth(2)).toHaveText(beregnet);
         const mark = row.getByRole('cell').last().locator('svg');
-        // En række uden tal har intet mærke (BB-386); en række med tal er grøn – aldrig rød.
+        // En række uden tal har intet mærke; en række med tal er grøn – aldrig rød.
         if (beregnet.trim() === '-') await expect(mark).toHaveCount(0);
         else await expect(mark).toHaveCSS('color', 'rgb(16, 185, 129)');
       }

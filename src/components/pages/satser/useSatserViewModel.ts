@@ -46,7 +46,7 @@ export function useSatserViewModel() {
     aargangLocation,
     effectiveYear,
     satser,
-    /** Konkret besked om satskategorier, Mineo endnu ikke har for året (BB-392); `null` ved fuld dækning. */
+    /** Konkret besked om satskategorier, Mineo endnu ikke har for året; `null` ved fuld dækning. */
     missingCoverageNote,
     download,
     /** Sidetitlen bærer årstallet, men KUN for et gyldigt valgt år. */

@@ -36,8 +36,8 @@ import { toISODateString } from '../../../types/branded';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 import { withSfggIngenForEmployments } from '../../utils/sfggTestSupport';
 
-// «Skjul beregning efter første opgørelse» skjuler kun et gyldigt beregningsgrundlag (udviklerafgørelse
-// 2026-10-24). Testene går gennem den rigtige reader, så gyldigheden læser samme rækker og feltissues, som
+// «Skjul beregning efter første opgørelse» skjuler kun et gyldigt beregningsgrundlag.
+// Testene går gennem den rigtige reader, så gyldigheden læser samme rækker og feltissues, som
 // «Fejl og advarsler» og download-gaten gør.
 
 type Ansaettelse = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
@@ -213,7 +213,7 @@ describe('kanIndkomstBeregningenSkjules', () => {
       .toBe(true);
   });
 
-  it('BB-431: en rimelighedsadvarsel holder ikke grundlaget åbent', () => {
+  it('en rimelighedsadvarsel holder ikke grundlaget åbent', () => {
     expect(kanSkjules(sag({ beregnesUdFra: 'Angivet dagsløn', dagsloenenUdgoer: amount(30000) }))).toBe(true);
   });
 
@@ -224,7 +224,7 @@ describe('kanIndkomstBeregningenSkjules', () => {
   });
 });
 
-describe('BB-431 – et skjult grundlag giver ingen rimelighedsadvarsler på Beregning', () => {
+describe('et skjult grundlag giver ingen rimelighedsadvarsler på Beregning', () => {
   /** Beregning-fanens rækker: `indkomstBeregningSkjult` er `kanIndkomstBeregningenSkjules` uden for et besøg. */
   const beregningsAdvarsler = (eo: ErstatningsopgoerelseValues): string[] => {
     const projection = project(eo);

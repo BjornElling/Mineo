@@ -38,7 +38,7 @@ const LAASTE_UDEN_OPSLAG: OverenskomstSatsBindings = {
 };
 
 /**
- * Årslønnens satsbindinger – ét sted for felternes låsning, descriptorernes relevans og projektionen (BB-351).
+ * Årslønnens satsbindinger – ét sted for felternes låsning, descriptorernes relevans og projektionen.
  *
  * I Overenskomst står de tre tillæg låste og tomme, indtil både overenskomst og en gyldig dato kendes. Først
  * da åbnes de felter, overenskomsten ikke har en sats for. Ellers kunne brugeren taste et tal, som datoen et
@@ -53,7 +53,7 @@ export const resolveAarsloenSatsBindings = (values: AarsloenSatsValg): Overensko
 };
 
 /**
- * Er overenskomstens satser ukendte (BB-402)? Det er de i Overenskomst, så længe overenskomst eller gyldig
+ * Er overenskomstens satser ukendte? Det er de i Overenskomst, så længe overenskomst eller gyldig
  * reguleringsdato mangler, eller programmet ingen satser har for overenskomsten på datoen (`utilgaengelig`).
  *
  * Felterne står da låste og tomme, og projektionen giver `undefined` – som den fælles løntabel ellers regnede som
@@ -62,14 +62,14 @@ export const resolveAarsloenSatsBindings = (values: AarsloenSatsValg): Overensko
  */
 export const erAarsloenOverenskomstSatserUkendte = (values: AarsloenSatsValg): boolean => {
   if (values.tillaegAngivesSom !== 'overenskomst') return false;
-  // Uden gyldig dato er også Store Bededagstillæg ukendt (BB-349), selv ved en offentlig overenskomst.
+  // Uden gyldig dato er også Store Bededagstillæg ukendt, selv ved en offentlig overenskomst.
   if (resolveAarsloenSatsdato(values.reguleringsdato) === undefined) return true;
   return Object.values(resolveAarsloenSatsBindings(values)).some((binding) => binding.kind === 'utilgaengelig');
 };
 
 /**
  * Forklaringen ved et låst felt. Uden overenskomst eller gyldig dato er det DET, der mangler – ikke
- * overenskomstens satsdækning (BB-349).
+ * overenskomstens satsdækning.
  */
 export const resolveAarsloenLaastSatsTooltip = (
   binding: OverenskomstSatsBinding,
@@ -87,7 +87,7 @@ export const resolveAarsloenLaastSatsTooltip = (
 
 export const AARSLOEN_MANGLENDE_DATO_TOOLTIP = 'Angiv en gyldig reguleringsdato for at hente overenskomstens satser';
 
-/** Dokumentets kildeangivelse for satserne (BB-355). `null` uden for Overenskomst. */
+/** Dokumentets kildeangivelse for satserne. `null` uden for Overenskomst. */
 export type AarsloenSatsKilde = Readonly<{ overenskomst: string; dato: string }>;
 
 export const resolveAarsloenSatsKilde = (values: AarsloenSatsValg): AarsloenSatsKilde | null => {
@@ -98,7 +98,7 @@ export const resolveAarsloenSatsKilde = (values: AarsloenSatsValg): AarsloenSats
 
 /**
  * Kun projektion: brugerens manuelle satser bevares til skift tilbage og til save/load. Uden gyldig dato er
- * Store Bededagstillæg ukendt – ikke 0 % (BB-349).
+ * Store Bededagstillæg ukendt – ikke 0 %.
  */
 export const applyAarsloenOverenskomstSatser = (values: AarsloenValues): AarsloenValues => {
   if (values.tillaegAngivesSom !== 'overenskomst') return values;

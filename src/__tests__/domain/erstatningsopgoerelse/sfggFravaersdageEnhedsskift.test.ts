@@ -10,7 +10,7 @@ import {
 } from '../../../domain/erstatningsopgoerelse/sfggFravaersdageEnhedsskift';
 import { toISODateString } from '../../../types/branded';
 
-// BB-449 (M-68): et valg, der skifter enheden for et indtastet antal fraværsdage uden løn, skal kunne opdages, før
+// Et valg, der skifter enheden for et indtastet antal fraværsdage uden løn, skal kunne opdages, før
 // valget committes – også når valget står på et ANDET kort end tallet.
 
 type Employment = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];

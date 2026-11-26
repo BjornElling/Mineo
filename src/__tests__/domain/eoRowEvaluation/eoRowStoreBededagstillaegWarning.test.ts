@@ -7,7 +7,7 @@
  * ikke-blokerende snapshot-invarianter, som intet UI læser. Værnet måler derfor advarslen gennem
  * RÆKKE-kanalen – den samme kilde, boksen faktisk viser – og ikke gennem validatoren.
  *
- * Advarslen dækker begge lønudviklingsflader (udviklerbeslutning 2026-09-13): ansættelsesforholdene ved
+ * Advarslen dækker begge lønudviklingsflader (bevidst valg): ansættelsesforholdene ved
  * «Beregningsperiode» og EO-oplysningernes angivne løn ved «Angivet månedsløn»/«Angivet dagsløn».
  */
 import { buildEoIndkomstRows } from '../../../domain/eoRowEvaluation/eoRowIndkomstRows';

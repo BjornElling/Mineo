@@ -18,10 +18,10 @@ describe('sumMaanedsbroekForInterval', () => {
   });
 
   // Ækvivalens-lås: den kanoniske helper grupperer pr. måned og dividerer én gang (Σ count/x),
-  // mens den tidligere indkomst-mellemregning summerede 1/x pr. dag (Σ 1/x). De to summer kan
+  // mens den naive formel summerer 1/x pr. dag (Σ 1/x). De to summer kan
   // afvige i sidste ULP pga. floating point, men skal være identiske efter den 2-decimal-afrunding
   // begge kaldere anvender.
-  it('matcher den tidligere Σ 1/dage-i-måned-formel efter 2-decimal-afrunding', () => {
+  it('matcher Σ 1/dage-i-måned-formlen efter 2-decimal-afrunding', () => {
     const daysInMonth = (year: number, month: number): number =>
       new Date(Date.UTC(year, month, 0)).getUTCDate();
     const prefixStart = d(iso('2018-01-01'));

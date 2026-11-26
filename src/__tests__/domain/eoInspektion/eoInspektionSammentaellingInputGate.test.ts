@@ -1,15 +1,15 @@
 /**
- * Brugerfund 2026-09-17: et overlap mellem beregningsperioden og TAF-perioden gav BÅDE den
- * rigtige, røde række OG en falsk `control:sammentaelling_mismatch`.
+ * Et overlap mellem beregningsperioden og TAF-perioden skal give den røde række – og ikke også en
+ * falsk `control:sammentaelling_mismatch`.
  *
- * Kontrollens to sider hvilede på hver sit inputkrav: den beregnede side krævede et gyldigt,
- * ikke-overlappende input, mens tabelsiden talte arbejdsdage uanset. Resultatet var et «beregnet=-,
- * tabel=263», som kontrolmodellen læste som en uoverensstemmelse – og den er en SYSTEMFEJL, der
- * routes til `reportSystemIssue` og åbner notitsen «Teknisk fejl registreret». Brugeren blev
- * dermed sendt efter en kodefejl i stedet for efter sin egen dato.
+ * Kontrollens to sider skal hvile på samme inputkrav. Kræver den beregnede side et gyldigt,
+ * ikke-overlappende input, mens tabelsiden tæller arbejdsdage uanset, bliver resultatet «beregnet=-,
+ * tabel=263», som kontrolmodellen læser som en uoverensstemmelse – og den er en SYSTEMFEJL, der
+ * routes til `reportSystemIssue` og åbner notitsen «Teknisk fejl registreret». Brugeren sendes
+ * dermed efter en kodefejl i stedet for efter sin egen dato.
  *
- * Testen pinner begge halvdele af rettelsen: uoverensstemmelsen er væk, OG den ægte fejl står
- * uændret som en blokerende rød række.
+ * Testen pinner begge halvdele: ingen uoverensstemmelse, OG den ægte fejl står uændret som en
+ * blokerende rød række.
  */
 import { EMPTY_FIELD_ISSUE_SET } from '../../../inputCore/inputIssue';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';

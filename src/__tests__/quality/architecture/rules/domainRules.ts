@@ -324,12 +324,11 @@ export const moneyOreTypeAssertion = forbidTypeAssertions({
  * Hvilket persisteret domæne hvert descriptor-katalog giver adgang til.
  *
  * **Reglen måler IMPORTS, ikke kald.** En udgave, der måler string-literal-argumenter,
- * til sektions-hooks (`usePersistedForm('aarsloen')` …). Dødt-værn-detektoren afslørede, at ALLE de
- * hooks er væk efter greenfield-cutoveren: `usePersistedSection`/`commitSection` har nul forekomster,
- * og de øvrige lever kun som historik-kommentarer i page-filerne. Reglen kontrollerede altså en
- * adgangsform, produktionen ikke længere har – grøn af tomhed, mens den fremstod som §9/§10-dækning.
+ * til sektions-hooks (`usePersistedForm('aarsloen')` …), ville være grøn af tomhed: de hooks er slettet
+ * (`usePersistedSection`/`commitSection` har nul forekomster), så den kontrollerede en adgangsform,
+ * produktionen ikke har.
  *
- * Greenfield kobler en side til et domæne ét sted: ved at importere domænets FELTDESCRIPTORER fra
+ * Arkitekturen kobler en side til et domæne ét sted: ved at importere domænets FELTDESCRIPTORER fra
  * `src/inputCore/catalog/`. Descriptoren bærer selv sin `section`, og uden en descriptor kan siden
  * hverken læse eller skrive sektionen. Import af kataloget ER derfor koblingen – og i modsætning til
  * literal-argumenter kan den ikke omgås ved at føre sektionsnavnet gennem en variabel.
@@ -599,12 +598,11 @@ type SectionAccess = Readonly<{
 /**
  * TRANSITIV domænekobling.
  *
- * Reglen målte tidligere kun DIREKTE descriptor-imports i page-filen. Det var en reel blindhed: den
- * greenfield-arkitektur, planen selv foreskriver, lader siden importere en domæne-PROJEKTION, som
- * importerer descriptor-katalogerne. `Erhvervsevnetab.tsx` → `erhvervsevnetabReaderProjection.ts` →
- * fire sektioners kataloger var derfor helt usynlig for grænsen, mens reglen fremstod som dækning.
+ * Måles kun DIREKTE descriptor-imports i page-filen, er reglen blind: arkitekturen lader siden importere
+ * en domæne-PROJEKTION, som importerer descriptor-katalogerne (`Erhvervsevnetab.tsx` →
+ * `erhvervsevnetabReaderProjection.ts` → fire sektioners kataloger).
  *
- * Nu følger målingen importgrafen. En kobling gennem en projektion er stadig en kobling – det er
+ * Derfor følger målingen importgrafen. En kobling gennem en projektion er stadig en kobling – det er
  * netop hvad §9/§10's autorisationstabel handler om – men diagnostikken viser KÆDEN, så et fund kan
  * læses: "siden kobler til `satser` gennem `xReaderProjection`".
  *

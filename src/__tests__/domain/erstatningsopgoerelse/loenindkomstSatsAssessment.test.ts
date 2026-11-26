@@ -14,7 +14,7 @@ import type { AmountValue } from '../../../schemas/amountExpressionSchema';
  * ÉN sats-vurdering driver både feltmarkeringen og rækken i «Fejl og advarsler».
  *
  * Feriegodtgørelsen er påkrævet, når kortet har lønoplysninger i procent-tilstand – UANSET reguleringsform
- * (BB-274). Testene måler kravet for ALLE reguleringsformer plus den tomme form, og de måler de to undtagelser:
+ *. Testene måler kravet for ALLE reguleringsformer plus den tomme form, og de måler de to undtagelser:
  * Beløb-tilstand og et kort uden lønoplysninger.
  */
 
@@ -84,7 +84,7 @@ describe('assessLoenindkomstSatser', () => {
     expect(assessLoenindkomstSatser(employment(), { ...BP, feriePctHarFeltfejl: true })).toEqual([]);
   });
 
-  // Udviklerafgørelse 2026-11-04: under 12 % er satsen et FERIETILLÆG. Erstatningsopgørelsen kræver beregningsteknisk
+  // Under 12 % er satsen et FERIETILLÆG. Erstatningsopgørelsen kræver beregningsteknisk
   // feriegodtgørelse også ved løn under ferie, men et ferietillæg kan i sjældne tilfælde være rigtigt – derfor gult.
   it.each([0, 1, 2.95, 11.99])('giver en gul advarsel om et ferietillæg på %s %% ved løn under ferie', (feriePct) => {
     const findings = assessLoenindkomstSatser(employment({ feriePct, fuldLoenUnderFerie: 'Ja' }), BP);

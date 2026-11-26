@@ -5,9 +5,8 @@ import {
 } from '../../utils/deductionFormatting';
 
 /**
- * BB-129/BB-130: et fortegn påstår en retning, og et nul har ingen. Fradragslinjerne satte minusset som en
- * fast del af skabelonen, så «Kapitalbeløb (efter ASL) - 0 kr.» stod på samme skærm som «Kapitalbeløb
- * 0 kr.» for samme værdi.
+ * Et fortegn påstår en retning, og et nul har ingen. Er minusset en fast del af skabelonen, står
+ * «Kapitalbeløb (efter ASL) - 0 kr.» på samme skærm som «Kapitalbeløb 0 kr.» for samme værdi.
  */
 describe('deductionFormatting', () => {
   describe('formatDeductionKr', () => {
@@ -37,7 +36,7 @@ describe('deductionFormatting', () => {
   /**
    * `formatDeduction` findes for de linjer, der formaterer selv (fx trimmet valuta med hårdt mellemrum).
    * Målte vagten altid mod sin egen formatter, kunne dokumentet skrive «- 0 kr.», hvor skærmen skriver
-   * «0 kr.» – BB-130's selvmodsigelse flyttet ét lag ned.
+   * «0 kr.» – samme selvmodsigelse flyttet ét lag ned.
    */
   describe('formatDeduction', () => {
     it('bruger kalderens egen formatering, men programmets fortegnsregel', () => {

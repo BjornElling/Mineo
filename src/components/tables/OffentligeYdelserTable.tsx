@@ -30,8 +30,8 @@ import { buildOffentligeYdelserAutofillModel } from './autofill/offentligeYdelse
 import { getOffentligeYdelserTableHeaderNodes } from './offentligeYdelserTableHeaderNodes';
 
 /**
- * Afledte kolonner. Talværdien sorteres, teksten vises: sortering på den formaterede tekst gav 1, 10, 2 dage og
- * 20,00, 6.000,00, 90,00 kr. (BB-454). Afrundingen i visningen er monoton, så den uafrundede værdi giver aldrig en
+ * Afledte kolonner. Talværdien sorteres, teksten vises: sortering på den formaterede tekst ville give 1, 10, 2
+ * dage og 20,00, 6.000,00, 90,00 kr. Afrundingen i visningen er monoton, så den uafrundede værdi giver aldrig en
  * anden rækkefølge end den viste.
  */
 export type OffentligeYdelserDerivedRow = Readonly<{

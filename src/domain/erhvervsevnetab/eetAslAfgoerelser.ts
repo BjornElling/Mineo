@@ -75,9 +75,9 @@ export const TIDL_KAP_DATO_WITHOUT_KAPITALISERING_MESSAGE = 'Kun relevant ved ti
 export const KAP_PCT_NOT_ALLOWED_BY_AFGOERELSE_TYPE_MESSAGE =
   'Kapitaliseringsprocent må kun udfyldes ved endelig eller delvist endelig afgørelsestype.';
 /**
- * Samme regel, samme sætningsform. De tre kapitaliseringsceller står side om side, og en af dem sagde
- * reglen baglæns («må ikke udfyldes ved midlertidig …»), så brugeren skulle læse to formuleringer og
- * selv se, at det var den samme regel (BB-148).
+ * Samme regel, samme sætningsform. De tre kapitaliseringsceller står side om side; siger én af dem reglen
+ * baglæns («må ikke udfyldes ved midlertidig …»), skal brugeren læse to formuleringer og selv se, at det er
+ * den samme regel.
  */
 export const TIDL_KAP_DATO_NOT_ALLOWED_BY_AFGOERELSE_TYPE_MESSAGE =
   'Tidligere kapitaliseringsdato må kun udfyldes ved endelig eller delvist endelig afgørelsestype.';
@@ -87,10 +87,9 @@ export const TIDL_KAP_DATO_NOT_ALLOWED_BY_AFGOERELSE_TYPE_MESSAGE =
  *
  * Ved en endelig afgørelse ≤ 2 år før folkepensionsalderen kapitaliseres hele det resterende EET.
  * Brugeren SKAL angive begge felter: kapitaliseringsdatoen er som udgangspunkt
- * afgørelsesdatoen, og kapitaliseringsprocenten er hele det endnu ikke kapitaliserede EET
- * (udviklerafgørelse 2026-11-13). Den tidligere ordning, hvor felterne skulle stå tomme og motoren
- * udledte dem (BB-168), er afløst: kapitaliseringen skal fremgå af afgørelsestabellen som enhver anden
- * kapitalisering. En SENERE kapitaliseringsdato er tilladt og lægges til grund i beregningen; den får
+ * afgørelsesdatoen, og kapitaliseringsprocenten er hele det endnu ikke kapitaliserede EET. Felterne
+ * må ikke stå tomme og udledes af motoren: kapitaliseringen skal fremgå af afgørelsestabellen som
+ * enhver anden kapitalisering. En SENERE kapitaliseringsdato er tilladt og lægges til grund i beregningen; den får
  * kun en gul feltadvarsel (`KAP_DATO_EFTER_AFGOERELSESDATO_UNDER_TO_AAR_WARNING`). Tomme felter meldes
  * som mangler i den relevante beregning, aldrig som røde celler. Sig hvad brugeren skal GØRE.
  */
@@ -101,19 +100,18 @@ export const KAP_PCT_UNDER_TO_AAR_MESSAGE =
 
 const assertNeverAfgoerelsestype = (_value: never): undefined => undefined;
 
-/** Kolonneoverskriftens forklaring af reglen nedenfor (udviklerens ordlyd 2026-10-29). */
+/** Kolonneoverskriftens forklaring af reglen nedenfor (fastlagt ordlyd). */
 export const ASL_VIRKNINGSDATO_INFO = 'Udfyldes kun, hvis den er forskellig fra afgørelsesdatoen.';
 
 /**
  * Afgørelsens virkningsdato: den indtastede, ellers afgørelsesdatoen. Feltet er frivilligt – en afgørelse uden særskilt
- * virkningsdato har virkning fra afgørelsesdatoen, som på EO oplysninger (udviklerafgørelse 2026-10-29, BB-368).
+ * virkningsdato har virkning fra afgørelsesdatoen, som på EO oplysninger.
  *
  * En indtastet virkningsdato lig afgørelsesdatoen er derfor præcis det samme som en tom – ingen regel må behandle de
- * to forskelligt eller advare om den ene (udviklerafgørelse 2026-10-29).
+ * to forskelligt eller advare om den ene.
  *
- * Alle beregninger og regler, der bruger virkningsdatoen, går gennem denne vej. Før sprang løbende ydelser,
- * kapitalisering, differencekrav og EO-importen en afgørelse uden virkningsdato tavst over: beløbet forsvandt uden et
- * ord. Kun visningsadvarsler om selve cellen læser den rå værdi, så en tom celle aldrig markeres for sin egen tomhed.
+ * Alle beregninger og regler, der bruger virkningsdatoen, går gennem denne vej; ellers kan en afgørelse uden
+ * virkningsdato springes tavst over, og beløbet forsvinder uden et ord. Kun visningsadvarsler om selve cellen læser den rå værdi, så en tom celle aldrig markeres for sin egen tomhed.
  */
 export const resolveAslVirkningsdato = (
   row: Pick<AslAfgoerelseRow, 'afgoerelsesDato' | 'virkningsDato'>
@@ -597,17 +595,16 @@ export const NON_ENDELIG_AFTER_ENDELIG_WARNING_ID = 'warn-non-endelig-after-ende
 /**
  * Advarslen når afgørelsestabellen indeholder en ikke-endelig afgørelse EFTER en endelig.
  *
- * Reglen hører til TABELLEN, ikke til den motor, der først fik brug for den. Den lå oprindeligt
- * alene i løbende ydelser, så EET efter EAL kunne lade en midlertidig afgørelse fra 2022 på 30 %
- * fortrænge en endelig fra 2020 på 50 % – en forskel på 813.240 kr. i det trykte krav – helt uden
- * en «Fejl og advarsler»-boks, mens de to nabofaner advarede i samme sag (BB-178, mønster M-30).
+ * Reglen hører til TABELLEN, ikke til en enkelt motor. Ligger den kun i én motor, kan EET efter EAL
+ * lade en midlertidig afgørelse fra 2022 på 30 % fortrænge en endelig fra 2020 på 50 % – store beløb
+ * i det trykte krav – helt uden en «Fejl og advarsler»-boks, mens nabofanerne advarer i samme sag.
  *
  * Udvælgelsen er bevidst uændret: mangler en særskilt EET-procent efter EAL, lægges den SENESTE
  * procent efter ASL til grund uden skelen til afgørelsestypen, fordi erstatningsansvarsloven ikke
  * kender et midlertidigt erhvervsevnetab. Advarslen fortæller alene, at der er mere end én
  * afgørelse at vælge imellem, så brugeren kan se, hvilken der bar tallet.
  *
- * Læg nye forbrugere til her frem for at kopiere prædikatet – det er præcis den drift, M-30 fanger.
+ * Læg nye forbrugere til her frem for at kopiere prædikatet – ellers driver fanerne fra hinanden.
  */
 export type NonEndeligAfterEndeligRow = Readonly<{
   afgoerelsesdato: ISODateString;
@@ -697,7 +694,7 @@ export const INCOMPLETE_ROW_ISSUE_IDS = {
  * Beskeden om en påbegyndt afgørelsesrække uden sin EET-procent.
  *
  * Konstant og ikke en inline-streng, fordi EET efter EAL bruger den SAMME besked, når dens
- * ASL-fallback løber tør netop fordi en afgørelsesrækkes procentcelle er tom (BB-181). Fire faner
+ * ASL-fallback løber tør netop fordi en afgørelsesrækkes procentcelle er tom. Fire faner
  * skal sige det samme om det samme forhold og pege på den samme celle; drifter ordlyden, får
  * brugeren to beskrivelser af én mangel og kan ikke se, at det er samme rettelse.
  */
@@ -709,7 +706,7 @@ export const MISSING_EET_PCT_MESSAGE = 'Der er en afgørelse uden EET %';
  * Udstillet særskilt, fordi EET efter EAL skal kunne skelne to tilstande, der begge efterlader
  * fanen uden en procent: en HALVFÆRDIG afgørelsesrække (denne) og slet ingen afgørelser. Kun den
  * første må pege på afgørelsestabellen; den anden hører ved EAL-feltet, fordi en sag kan være
- * omfattet af erstatningsansvarsloven alene (BB-181).
+ * omfattet af erstatningsansvarsloven alene.
  */
 export const hasStartedRowMissingEetPct = (rows: readonly AslAfgoerelseRow[]): boolean =>
   rows

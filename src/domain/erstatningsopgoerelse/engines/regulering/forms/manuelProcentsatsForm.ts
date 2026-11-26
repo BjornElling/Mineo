@@ -50,7 +50,7 @@ const byggResultat = (
     throw new Error('Loenudvikling kan ikke beregnes: reguleringsdato mangler');
   }
 
-  // R2 – samme delte akkumulerings-serie som formen emitterer som forløb og præsentationen læser
+  // Samme delte akkumulerings-serie som formen emitterer som forløb og præsentationen læser
   // (buildManuelProcentsatsEntries): bygges ÉN gang her og bæres både som segment-basis og som
   // autoritativt forløb, så det viste indeks = den motoren afleder deltaPct fra.
   const entries = buildManuelProcentsatsEntries({

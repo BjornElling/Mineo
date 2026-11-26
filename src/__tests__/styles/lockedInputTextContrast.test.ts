@@ -2,8 +2,8 @@ import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-// BB-436: en låst sats (fx Store Bededagstillæg 0,45 % eller en SH/SO-sats fastsat af overenskomsten) indgår i
-// beregningen og skal kunne læses. I mørkt tema var den låste tekst 0,16 hvid – ca. 1,7:1 mod feltets baggrund.
+// En låst sats (fx Store Bededagstillæg 0,45 % eller en SH/SO-sats fastsat af overenskomsten) indgår i
+// beregningen og skal kunne læses.
 // Testen læser tokenerne fra `layout.css` og hævder, at den låste tekst i begge temaer når mindst 3:1 (WCAG's
 // grænse for ikke-tekst og stor tekst) – og at den låste baggrund stadig adskiller sig fra den almindelige.
 
@@ -72,7 +72,7 @@ const lockedTextContrast = (tokens: Map<string, string>, pageBackground: Rgba): 
 };
 
 describe('layout.css – låst felttekst', () => {
-  it('er læselig i mørkt tema (BB-436)', () => {
+  it('er læselig i mørkt tema', () => {
     const pageBackground = parseColor(resolveToken(dark, '--color-background-white'));
     expect(lockedTextContrast(dark, pageBackground)).toBeGreaterThanOrEqual(3);
   });

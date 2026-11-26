@@ -74,7 +74,7 @@ const LoenindkomstTab = React.memo(({
   };
 
   // Ved TAF «Nej»/«Skjul» bruges intet fra fanen: ansættelsesforholdenes felter er ikke relevante (descriptorerne), og
-  // fanen siger det i stedet for at vise kort, der ingen virkning har (BB-360). Kortene står urørte og vises igen ved «Ja».
+  // fanen siger det i stedet for at vise kort, der ingen virkning har. Kortene står urørte og vises igen ved «Ja».
   if (!erTabtArbejdsfortjenesteSektionAktiv(eoValues)) {
     return (
       <ContentBox className="content-box">
@@ -170,7 +170,7 @@ const LoenindkomstTab = React.memo(({
         onCalculate={loentrinFinder.handleCalculate}
       />
 
-      {/* Et valg på et kort kan skifte fraværsdagenes enhed på alle kort (BB-449). */}
+      {/* Et valg på et kort kan skifte fraværsdagenes enhed på alle kort. */}
       <ConfirmationDialog
         {...sfggEnhedsskift.dialogProps}
         title={SFGG_ENHEDSSKIFT_DIALOG_TITLE}

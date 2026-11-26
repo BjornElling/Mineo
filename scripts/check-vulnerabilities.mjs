@@ -5,9 +5,8 @@
  *
  * Baggrund: `npm audit` slår advisories op over netværket hos npm-registret, og registret
  * svarer med jævne mellemrum 503. Kaldt direkte i release-gaten kan kommandoen derfor vælte
- * hele `verify:release:core` uden at der er noget galt med projektet – præcis det skete
- * 2026-09-04, hvor «503 Service Unavailable ... /security/advisories/bulk» stoppede kørslen
- * i det allerførste trin.
+ * hele `verify:release:core` uden at der er noget galt med projektet (fx «503 Service
+ * Unavailable ... /security/advisories/bulk» i det allerførste trin).
  *
  * Kontrollen skelner derfor mellem to udfald, som `npm audit`s exitkode blander sammen:
  *   1. Registret svarede, og der ER sårbarheder → gaten fejler (det er kontrollens formål).

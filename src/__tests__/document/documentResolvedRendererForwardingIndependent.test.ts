@@ -38,7 +38,7 @@ const fakeSession = (): DocumentGenerationSession => ({
   render: async () => new Blob(),
 });
 
-describe('DOC-001/DOC-003 – resolved renderer-forwarding', () => {
+describe('Resolved renderer-forwarding', () => {
   it('videresender den typed projektion og brevhovedbeslutningen samt returnerer artifactet uændret', async () => {
     const request: TestRequest = { rowId: 'række-7' };
     const projectedInput: TestInput = Object.freeze({ marker: 'frisk-projektion', amount: 731 });

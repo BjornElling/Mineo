@@ -58,7 +58,7 @@ const expectedDocumentText = [
   '94,94 kr.',
 ] as const;
 
-describe('CALC-003/DOC-003 – rentemotorens output gennem PDF og Word', () => {
+describe('Rentemotorens output gennem PDF og Word', () => {
   it('fører et uafhængigt flerperiodisk facit gennem begge dokumentgeneratorer', async () => {
     const result = computeRentekravRow(row, iso('2024-07-02'), referenceRates, surchargeRates);
 

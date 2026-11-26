@@ -50,16 +50,16 @@ export type LoentrinFinderTarget = Readonly<{
    * Den åbnende kontrols nøgle – den samme, knappen er registreret under (`registerTrigger`). Den bærer både
    * fokus-restoren og den huskede indtastning, så en genåbning på samme nøgle starter dér, brugeren slap.
    *
-   * Påkrævet, så de to flader er opsat ens (BB-310, udviklerafgørelse 2026-10-30): Lønindkomst nøgler pr.
-   * ansættelsesforhold (`af.id`), EO oplysninger med sin ene nøgle (`EO_OPLYSNINGER_LOENTRIN_FINDER_KEY`). Før
-   * var nøglen valgfri, EO huskede intet, og EO's åbning brugte en anden nøgle end knappens registrering.
+   * Påkrævet, så de to flader er opsat ens: Lønindkomst nøgler pr. ansættelsesforhold (`af.id`), EO oplysninger
+   * med sin ene nøgle (`EO_OPLYSNINGER_LOENTRIN_FINDER_KEY`). Var nøglen valgfri, kunne en flade glemme at huske
+   * indtastningen eller åbne med en anden nøgle end knappens registrering.
    */
   key: string;
-  /** Reguleringsdatoen – den dato, løntrinnet skal passe til. Datofeltet starter på den (BB-310). */
+  /** Reguleringsdatoen – den dato, løntrinnet skal passe til. Datofeltet starter på den. */
   reguleringsdato?: ISODateString;
   /**
    * Hvor et valgt resultat sættes ind: kortets løntrin og gruppe, og gruppefeltets input, som fokus lander på
-   * bagefter (udviklerens ønske 2026-10-23, BB-310).
+   * bagefter.
    */
   insert?: Readonly<{
     loentrin: BoundField<number | undefined>;
@@ -73,7 +73,7 @@ export type UseLoentrinFinderResult = Readonly<{
   /** Id'et finderen er åben for, eller `null`. Kun relevant for flader med flere åbnende kontroller. */
   openForKey: string | null;
   ansaettelse: OffentligLoenTypeLabel;
-  /** Ændrer opslagets oplysninger. En reel ændring fjerner resultaterne fra de tidligere oplysninger (BB-444). */
+  /** Ændrer opslagets oplysninger. En reel ændring fjerner resultaterne fra de tidligere oplysninger. */
   setAnsaettelse: (next: OffentligLoenTypeLabel) => void;
   beloeb: AmountValue | undefined;
   setBeloeb: (next: AmountValue | undefined) => void;
@@ -84,12 +84,12 @@ export type UseLoentrinFinderResult = Readonly<{
   handleAmountFieldError: (errorMsg: string | undefined) => void;
   handleDateFieldError: (errorMsg: string | undefined) => void;
   results: ReadonlyArray<LoentrinFinderResult>;
-  /** Datoen for satstabellen bag resultaterne, og om den er programmets nyeste (BB-310). */
+  /** Datoen for satstabellen bag resultaterne, og om den er programmets nyeste. */
   satsDato: ISODateString | undefined;
   erNyesteSatser: boolean;
   /** Kan et resultat sættes ind i fladen (er finderen åbnet med et indsætningsmål)? */
   kanIndsaette: boolean;
-  /** Hvorfor resultaterne ikke kan sættes ind, når de er fundet med en anden løntype end sagens (BB-445). */
+  /** Hvorfor resultaterne ikke kan sættes ind, når de er fundet med en anden løntype end sagens. */
   indsaetSpaerretGrund: string | undefined;
   /** Sætter løntrin – og gruppen, når resultatet kun har én – ind og peger fokus-restoren på gruppefeltet. */
   insertResult: (result: LoentrinFinderResult) => boolean;
@@ -209,10 +209,10 @@ export const useLoentrinFinder = (): UseLoentrinFinderResult => {
     const persistedEntry = readSessionState()[key];
 
     setTarget(nextTarget);
-    // Sagens løntype vinder over den huskede: kun et opslag med sagens løntype kan sættes ind (BB-445).
+    // Sagens løntype vinder over den huskede: kun et opslag med sagens løntype kan sættes ind.
     setAnsaettelse(nextTarget.offentligLoenType ?? persistedEntry?.ansaettelse ?? DEFAULT_ANSAETTELSE);
     setBeloeb(persistedEntry?.beloeb);
-    // Den gemte indtastning vinder; ellers reguleringsdatoen, som svaret skal passe til (BB-310).
+    // Den gemte indtastning vinder; ellers reguleringsdatoen, som svaret skal passe til.
     setDato((persistedEntry?.dato as ISODateString | undefined) ?? nextTarget.reguleringsdato);
     setOpenForKey(key);
   }, [readSessionState, resetTransientState]);
@@ -225,7 +225,7 @@ export const useLoentrinFinder = (): UseLoentrinFinderResult => {
 
   // Resultatlisten gælder kun for de oplysninger, den blev beregnet ud fra. Ændres løntype, beløb eller dato,
   // eller afvises en ny indtastning, fjernes listen, så et gammelt svar ikke kan sættes ind under nye
-  // forudsætninger (BB-444) – samme regel som sygedagpengehjælperen, der danner sine rækker ved klikket.
+  // forudsætninger – samme regel som sygedagpengehjælperen, der danner sine rækker ved klikket.
   const clearResults = React.useCallback(() => {
     setResults([]);
     setSatsDato(undefined);
@@ -248,8 +248,8 @@ export const useLoentrinFinder = (): UseLoentrinFinderResult => {
   }, [dato, clearResults]);
 
   // Feltets egen afvisning (format- eller intervalfejl) vises straks med rød ring, som i sygedagpengehjælperen.
-  // Før lå den kun i en skjult tilstand, der først blev vist efter «Beregn», så en afvist dato stod uden
-  // markering (BB-459). `undefined` kommer ved et gyldigt commit og rydder både feltfejlen og en tidligere
+  // Lå den kun i en skjult tilstand, der først vises efter «Beregn», ville en afvist dato stå uden
+  // markering. `undefined` kommer ved et gyldigt commit og rydder både feltfejlen og en tidligere
   // «skal udfyldes»-besked fra «Beregn».
   const handleAmountFieldError = React.useCallback((errorMsg: string | undefined) => {
     setAmountFieldError(errorMsg);
@@ -292,7 +292,7 @@ export const useLoentrinFinder = (): UseLoentrinFinderResult => {
   const insertTarget = target?.insert;
   // Indsættelsen må aldrig ændre brugerens valg af «Ansættelse» på sagen. Er resultaterne fundet med en anden
   // løntype end sagens, spærres indsættelsen med en forklaring i stedet for at sætte et trin ind under en løntype,
-  // brugeren ikke søgte med (BB-445, udviklerens afgørelse 2026-11-24).
+  // brugeren ikke søgte med (bevidst valg).
   const sagensLoenType = target?.offentligLoenType;
   const indsaetSpaerretGrund = sagensLoenType !== undefined && sagensLoenType !== ansaettelse
     ? buildLoentrinFinderLoenTypeSpaerring(sagensLoenType)

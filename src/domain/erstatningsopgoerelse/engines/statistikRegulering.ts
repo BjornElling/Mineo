@@ -4,12 +4,11 @@ import { createDate } from '../../../utils/dateUtils';
 import { getStatistiskLoenudvikling, type StatistiskLoenudviklingId } from '../../../data/statistiskeRates';
 import { detectDecimalPlaces } from '../helpers/eoSharedUtils';
 
-// R2 – det autoritative statistik-visnings-forløb: modellens kvartals-indeksserie, keyet på
+// Det autoritative statistik-visnings-forløb: modellens kvartals-indeksserie, keyet på
 // kvartalets ISO-startdato. Dette er præcis den liste motorens statistikForm.byggSegmenter
-// afleder deltaPct fra (basisindeks + carry-forward pr. segment), og som præsentationen tre
-// steder (kilde-satstabel, base-indeks, periode-indeks) byggede uafhængigt. Ved at motoren
-// emitterer listen og præsentationen læser den, er "vist tal = beregnet tal" garanteret ved
-// konstruktion (jf. reviewkandidat #23).
+// afleder deltaPct fra (basisindeks + carry-forward pr. segment), og som præsentationen læser
+// (kilde-satstabel, base-indeks, periode-indeks) i stedet for at bygge den uafhængigt. Dermed er
+// "vist tal = beregnet tal" garanteret ved konstruktion.
 export type StatistikIndexEntry = Readonly<{
   startIso: ISODateString;
   kvartal: string;
@@ -18,8 +17,8 @@ export type StatistikIndexEntry = Readonly<{
 
 /**
  * Bygger statistikmodellens kvartals-indeksserie som en stigende ISO-sorteret entry-liste.
- * Deler ét sted den kvartal→startdato-parsing + sortering motor og præsentation tidligere
- * gentog; den stigende sortering matcher `findLatestByDateInSortedList`s carry-forward-invariant.
+ * Ét sted for den kvartal→startdato-parsing + sortering, motor og præsentation begge
+ * bruger; den stigende sortering matcher `findLatestByDateInSortedList`s carry-forward-invariant.
  * Returnerer tom liste hvis modellen mangler eller ingen kvartaler kan parses (kaldstedet
  * afgør fallback/null – jf. de eksisterende guards i motor og præsentation).
  */

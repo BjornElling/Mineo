@@ -13,8 +13,7 @@ export const MISSING_BEREGNINGSDATO_ISSUE: EetIssue = Object.freeze({
 /**
  * Én advarsel for «en dato ligger efter beregningsdatoen», delt af løbende ydelser og differencekrav.
  *
- * Tidligere var det tre id'er – ét pr. datotype – som gav tre linjer i boksen om samme ene årsag
- * (BB-159). Id'et bor her og ikke i en af de to beregninger, så ingen af dem ejer den anden.
+ * Ét id frem for ét pr. datotype, som ville give tre linjer i boksen om samme ene årsag. Id'et bor her og ikke i en af de to beregninger, så ingen af dem ejer den anden.
  */
 export const EET_DATO_EFTER_BEREGNINGSDATO_WARNING_ID = 'warn-dato-after-beregningsdato';
 

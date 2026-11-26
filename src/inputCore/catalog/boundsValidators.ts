@@ -7,10 +7,10 @@ import { resolveFieldLabel } from '../fieldDescriptor';
 import type { FieldCodec } from '../fieldCodec';
 import { quoteFieldLabel } from '../inputIssue';
 
-// Kravændringen 2026-07-18 (§1.6): en schema-repræsenterbar værdi uden for feltets aktive min/max er IKKE
-// længere rejected råtekst – den committes canonical og bærer et afledt `bounds`-issue fra en feltvalidator.
-// Tidligere afviste codecet værdien som `range`; disse helpers flytter min/max-vurderingen til den canonical
-// feltvalidator OG genbruger de eksisterende message-buildere, så den røde beskedtekst er byte-uændret.
+// §1.6: en schema-repræsenterbar værdi uden for feltets aktive min/max er IKKE rejected råtekst – den
+// committes canonical og bærer et afledt `bounds`-issue fra en feltvalidator. Disse helpers lægger
+// min/max-vurderingen i den canonical feltvalidator og genbruger de fælles message-buildere, så den røde
+// beskedtekst er den samme overalt.
 
 const boundsDetail = (
   min: number | undefined,
@@ -70,9 +70,9 @@ export const canonicalStringCodecValidator = (
 };
 
 /**
- * Canonical bounds-validator for et heltalsfelt (tidligere codec-`range` via `getIntegerRangeErrorMessage`).
+ * Canonical bounds-validator for et heltalsfelt (besked via `getIntegerRangeErrorMessage`).
  *
- * `unit` navngiver hvad tallet TÆLLER (BB-125). «Værdi skal være mellem 1 og 10» siger ikke, at der er tale
+ * `unit` navngiver hvad tallet TÆLLER. «Værdi skal være mellem 1 og 10» siger ikke, at der er tale
  * om år; kun feltet ved det, så enheden leveres af descriptoren.
  */
 export const integerBoundsValidator = (
@@ -101,7 +101,7 @@ export const integerStringBoundsValidator = (
   return { reason: 'bounds', code, message, detail: boundsDetail(minValue, maxValue) };
 };
 
-/** Canonical bounds-validator for et procentfelt (tidligere codec-`range` via `buildPercentRangeErrorMessage`). */
+/** Canonical bounds-validator for et procentfelt (besked via `buildPercentRangeErrorMessage`). */
 export const percentBoundsValidator = (
   code: string,
   bounds: Readonly<{
@@ -128,12 +128,12 @@ export const percentBoundsValidator = (
 export type AmountExclusiveMin = Readonly<{ minExclusive: true; subject?: string }>;
 
 /**
- * Canonical bounds-validator for et beløbsfelt (tidligere codec-`range` via direkte min/max-sammenligning).
+ * Canonical bounds-validator for et beløbsfelt (direkte min/max-sammenligning).
  *
- * **Eksklusiv nedre grænse (NY-12c-4).** Et felt, hvor 0 kr. ikke er et svar, erklærer det HER med
+ * **Eksklusiv nedre grænse.** Et felt, hvor 0 kr. ikke er et svar, erklærer det HER med
  * `exclusiveMin` – ikke som en separat «> 0»-regel ved siden af en inklusiv grænse på 0. Med to
- * erklæringer ramte et negativt resultat (`100-200` → -100) begge, og §1.8's prioritet (bounds før rule)
- * lod den inklusive besked «Værdi skal være 0 kr. eller højere» vinde – en påstand om, at 0 er tilladt, i
+ * erklæringer rammer et negativt resultat (`100-200` → -100) begge, og §1.8's prioritet (bounds før rule)
+ * lader den inklusive besked «Værdi skal være 0 kr. eller højere» vinde – en påstand om, at 0 er tilladt, i
  * et felt, hvor 0 netop afvises. Én erklæring giver én udledt besked, der er sand for både 0 og negativt.
  */
 export const amountBoundsValidator = (
@@ -146,7 +146,7 @@ export const amountBoundsValidator = (
   if (numeric === undefined) return undefined;
   const minExclusive = exclusiveMin?.minExclusive === true;
   // Et negativt beløb bryder også en eksklusiv grænse, selv i et felt, hvis codec tillader minus (de
-  // manuelle grundlønninger, BB-308): «større end 0» er den grænse, brugeren skal ramme.
+  // manuelle grundlønninger): «større end 0» er den grænse, brugeren skal ramme.
   const satisfiesMin = minValue === undefined || (minExclusive ? numeric > minValue : numeric >= minValue);
   if (satisfiesMin && (maxValue === undefined || numeric <= maxValue)) {
     return undefined;
@@ -155,7 +155,7 @@ export const amountBoundsValidator = (
     reason: 'bounds',
     code,
     // Et beløbsfelts grænser er kroner; enheden står i beskeden af samme grund som tusindseparatoren
-    // (BB-125): «mellem 1000 og 551000» kan ikke læses i en fart og siger ikke, hvad tallet er.
+    // «mellem 1000 og 551000» kan ikke læses i en fart og siger ikke, hvad tallet er.
     message: getIntegerRangeErrorMessage(numeric, minValue, maxValue, {
       unit: 'kr.',
       ...(minExclusive ? { minExclusive: true, subject: exclusiveMin?.subject ?? 'Beløbet' } : {}),
@@ -176,7 +176,7 @@ export const positiveAmountBoundsValidator = (
     ? { minExclusive: true }
     : { minExclusive: true, subject });
 
-/** Canonical bounds-validator for et årstalsfelt (tidligere codec-`range` via `getYearRangeErrorMessage`). */
+/** Canonical bounds-validator for et årstalsfelt (besked via `getYearRangeErrorMessage`). */
 export const yearBoundsValidator = (
   code: string,
   minYear: YearBound,
@@ -192,7 +192,7 @@ export const yearBoundsValidator = (
 
 /**
  * Canonical bounds-validator for et string-backed årstalsfelt (tabellens "År"-kolonne): den canonical værdi er
- * årets streng. Tidligere afviste codec-`range` årstal uden for [minYear, maxYear]; nu er de canonical.
+ * årets streng. Årstal uden for [minYear, maxYear] er canonical og bærer et `bounds`-issue.
  */
 export const yearStringBoundsValidator = (
   code: string,

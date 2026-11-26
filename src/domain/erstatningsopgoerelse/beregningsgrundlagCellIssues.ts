@@ -21,9 +21,9 @@ import {
 
 // Beregningsgrundlagets regler, som ikke kan ligge på descriptoren, projekteret til de konkrete felter.
 //
-// Fire regler spærrede opgørelsen uden en eneste rød celle (BB-264, M-20): ferie uden for beregningsperioden,
-// overlappende ferie, for mange løse dage og for mange fraværsdage. Tre lovlige indtastninger førte desuden
-// beregningen ud i en intern undtagelse, fordi intet var tilbage at dele lønnen med (BB-258). Reglerne afhænger
+// Fire regler skal have en rød celle, ikke kun spærre: ferie uden for beregningsperioden, overlappende ferie,
+// for mange løse dage og for mange fraværsdage. Uden dem ville lovlige indtastninger desuden kunne føre
+// beregningen ud i en intern undtagelse, fordi intet er tilbage at dele lønnen med. Reglerne afhænger
 // af perioden, af de andre fradrag og af enheden, og projekteres derfor herfra som TAF-afsnittets
 // (`tafRowCellIssues.ts`): domænet binder feltadressen, UI'et giver issuet til feltet, og issuet blokerer TAF-
 // grenen som enhver rød feltfejl. Værdierne er readerens, så et skjult eller rødt felt allerede er tomt.
@@ -42,7 +42,7 @@ const danish = (iso: ISODateString): string => isoToDanish(iso) ?? iso;
 
 /**
  * En ferie i beregningsperioden skal ligge i beregningsperioden: kun dér fradrages den. Hver dato prøves for
- * sig og bærer sin egen besked – samme form som TAF-afsnittets ferievindue (BB-248).
+ * sig og bærer sin egen besked – samme form som TAF-afsnittets ferievindue.
  */
 const collectFerieVindueIssues = (values: ErstatningsopgoerelseValues): readonly FieldIssue[] => {
   const { tafBeregningsperiodeFra: fra, tafBeregningsperiodeTil: til } = values;

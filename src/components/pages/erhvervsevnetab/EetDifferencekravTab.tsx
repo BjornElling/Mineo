@@ -138,10 +138,9 @@ const EetDifferencekravTab = ({ onGoToEetOplysninger, projection, download }: Pr
           <Typography className="section-header">Beregning</Typography>
 
           {/*
-            Kort form `dd-mm-åååå` som fanens øvrige etiketterede datorækker – og som dokumentet
-            allerede brugte. Rækken stod i langform ved siden af «Kapitaliseringsdato 01-06-2022» i
-            proformaboksen, altså samme dag skrevet på to måder i samme kolonne på samme skærm, og
-            dokumentet var samtidig uenig med skærmen om netop denne række (BB-199). Overskrifter og
+            Kort form `dd-mm-åååå` som fanens øvrige etiketterede datorækker og dokumentet. En langform
+            ville stå ved siden af «Kapitaliseringsdato 01-06-2022» i proformaboksen – samme dag skrevet
+            på to måder i samme kolonne på samme skærm – og være uenig med dokumentet. Overskrifter og
             indlejrede prosadatoer beholder deres egne former.
           */}
           <Box className="row--label-right-hover">
@@ -194,7 +193,7 @@ const EetDifferencekravTab = ({ onGoToEetOplysninger, projection, download }: Pr
                   rækken (jf. page-component-contract.md §"Bilagsvalg og andre betingede
                   afkrydsningsfelter"). Et valg der forsvinder, efterlader brugeren i tvivl om, hvorvidt
                   muligheden findes – og et valg, der står afkrydset og aktivt for et bilag uden
-                  indhold, lover en side, papiret ikke har (BB-188).
+                  indhold, lover en side, papiret ikke har.
                 */}
                 <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                   <CheckboxField
@@ -230,7 +229,7 @@ const EetDifferencekravTab = ({ onGoToEetOplysninger, projection, download }: Pr
                 id={controlId}
                 labelledBy={labelledBy}
                 // Togglen styrer en ekstra side I løbende-ydelsesbilaget og kan derfor kun betjenes,
-                // når det bilag både findes og er valgt (BB-188).
+                // når det bilag både findes og er valgt.
                 unavailableReason={
                   bilagAvailability.visUdvidetSpecifikationLoebendeYdelserBilag.enabled
                     ? null
@@ -265,7 +264,7 @@ const EetDifferencekravTab = ({ onGoToEetOplysninger, projection, download }: Pr
           )}
         </LabeledControlRow>
 
-        {/* Samme navn som bilagsvalget, boksen, specifikationen og dokumentet (BB-191). */}
+        {/* Samme navn som bilagsvalget, boksen, specifikationen og dokumentet. */}
         <LabeledControlRow label={INDREGN_FORHOEJET_PENSIONSALDER_LABEL}>
           {({ labelledBy, controlId }) => (
             <ToggleField
@@ -395,7 +394,7 @@ const EetDifferencekravTab = ({ onGoToEetOplysninger, projection, download }: Pr
                   <HoverRow text="De tilbageværende løbende ydelser frem til folkepensionsalderen fratrækkes." />
                   <Box className="row--label-right-hover">
                     <Typography className="row--text">
-                      {/* Fem decimaler som Løbende ydelser (BB-162), så linjen kan efterregnes (BB-424). */}
+                      {/* Fem decimaler som Løbende ydelser, så linjen kan efterregnes. */}
                       {`${formatDocumentMaanederTrimmed(computation.resterendeLoebendeYdelser.tilbageraevendeMaaneder)} mdr. x ${formatKr(toKroner(computation.resterendeLoebendeYdelser.maanedligYdelseOre))}/md. =`}
                     </Typography>
                     <Box className="row--label-right-hover__content">
@@ -429,7 +428,7 @@ const EetDifferencekravTab = ({ onGoToEetOplysninger, projection, download }: Pr
               {computation.merErstatningPensionsalder.events.map((event) => (
                 <Box key={`${event.rowId}-${event.forhoejelsesdato}`} className="row--label-right-hover">
                   <Typography className="row--text">
-                    {/* Kun forhøjelsen, som i dokumentet (udviklerafgørelse 2026-11-20). */}
+                    {/* Kun forhøjelsen, som i dokumentet (bevidst valg). */}
                     {`${buildMerErstatningForhoejelseTitel({
                       forhoejelsesdatoFormatted: formatISOToDanish(event.forhoejelsesdato),
                       gammelAlderLabel: event.gammelAlderLabel,
@@ -443,7 +442,7 @@ const EetDifferencekravTab = ({ onGoToEetOplysninger, projection, download }: Pr
               ))}
               {/*
                 Summen er det beløb, der faktisk fratrækkes differencekravet, og den vises derfor de
-                samme tre steder: her, i boksen nedenfor og i dokumentets bilag (BB-201).
+                samme tre steder: her, i boksen nedenfor og i dokumentets bilag.
               */}
               {computation.merErstatningPensionsalder.events.length > 1 && (
                 <Box className="row--label-right-hover">

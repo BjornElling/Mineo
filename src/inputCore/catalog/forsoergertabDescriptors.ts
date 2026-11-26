@@ -58,13 +58,12 @@ const dateField = (
   });
 
 /**
- * Virkningsdatoens navn – ÉT sted (BB-120).
+ * Virkningsdatoens navn – ÉT sted.
  *
- * Feltet hed før «Startdato for ASL-ydelse» på skærmen og i dokumentet, mens grænsebeskeden sagde
- * «Virkningsdato kan senest være …» – et ord, der ikke fandtes nogen steder på skærmen, så brugeren fik en
- * fejl om et felt, han ikke kunne finde. Udvikleren har afgjort (2026-08-28), at det juridisk formelle
- * «virkningsdato» er det navn, der skal bruges konsekvent. Både labelen, `maxBoundFieldLabel` og
- * beregningsdatoens `origin`-tekst læser denne konstant, så de tre ikke kan drifte fra hinanden igen.
+ * Bevidst valg: det juridisk formelle «virkningsdato» bruges konsekvent på skærmen, i dokumentet og i
+ * grænsebeskeder; ellers får brugeren en fejl om et felt, han ikke kan finde. Både labelen,
+ * `maxBoundFieldLabel` og beregningsdatoens `origin`-tekst læser denne konstant, så de tre ikke kan drifte
+ * fra hinanden.
  */
 const VIRKNINGSDATO_LABEL = 'Virkningsdato';
 
@@ -75,10 +74,9 @@ export const forsoergertabEfterladteFodselsdatoField = dateField(
     min: () => dateRanges_forsoergertab.efterladteFodselsdato.min,
     max: () => dateRanges_forsoergertab.efterladteFodselsdato.max,
     /**
-     * Den efterladte skal være født senest på virkningsdatoen (BB-403, udviklerens afgørelse 2026-11-18,
-     * også for gemte sager; samme dag er tilladt som Stamdatas fødselsdato/skadedato-regel).
+     * Den efterladte skal være født senest på virkningsdatoen (bevidst valg, også for gemte sager; samme dag er tilladt som Stamdatas fødselsdato/skadedato-regel).
      *
-     * Uden grænsen kunne hele ASL-perioden ligge før modtagerens fødsel og alligevel trækkes fra som
+     * Uden grænsen kan hele ASL-perioden ligge før modtagerens fødsel og alligevel trækkes fra som
      * udbetalte ydelser. Motorens aldersopslag fanger det ikke, når hele perioden er udbetalt eller
      * folkepensionsalderen er nået – så slås der ingen kapitalfaktor op.
      */
@@ -138,12 +136,12 @@ export const forsoergertabVirkningsdatoField = dateField('virkningsdato', VIRKNI
   // Beregningsdatoen sænker loftet: ydelsen kan ikke starte efter den dato, der beregnes til.
   narrowMax: (context) => context.view.readCanonical(forsoergertabBeregningsdatoField.bind()),
   /**
-   * Loftet navngiver den dato, det kommer fra (BB-127).
+   * Loftet navngiver den dato, det kommer fra.
    *
-   * Er beregningsdatoen den bindende grænse, sagde beskeden før blot «Dato skal være mellem 10-06-2020 og
-   * 01-07-2025» – to bare datoer uden afsender, hvor brugeren selv skulle gætte, at `01-07-2025` var den
-   * beregningsdato, han netop havde skrevet lige ovenfor. Modparten i parret (Beregningsdato) navngav til
-   * gengæld SIN grænse. Nu er de to hinandens spejlbillede, hver set fra sit eget felts synsvinkel.
+   * Er beregningsdatoen den bindende grænse, ville en bar besked som «Dato skal være mellem 10-06-2020 og
+   * 01-07-2025» lade brugeren selv gætte, at `01-07-2025` er den beregningsdato, han netop har skrevet lige
+   * ovenfor. Modparten i parret (Beregningsdato) navngiver SIN grænse; de to er hinandens spejlbillede, hver
+   * set fra sit eget felts synsvinkel.
    */
   special: (context) => {
     const beregningsdato = context.view.readCanonical(forsoergertabBeregningsdatoField.bind());
@@ -168,7 +166,7 @@ export const forsoergertabKoenField = defineStructuralField<Koen | undefined>({
   emptyValue: undefined,
   isEmpty: isUndefined,
   // Labelen er navneautoriteten for feltets fejltekster og oplæsning, så den skal bære samme ordlyd som
-  // rækken på skærmen og i dokumentet (BB-134/BB-137).
+  // rækken på skærmen og i dokumentet.
   label: FORSOERGERTAB_SKADELIDTES_KOEN_LABEL,
   controlKind: 'choice',
   createEmptySection: createEmptyForsoergertabSection,
@@ -190,7 +188,7 @@ export const forsoergertabTilkendtForPeriodeAarField = defineStructuralField<num
   label: 'Tilkendt for periode',
   controlKind: 'text',
   createEmptySection: createEmptyForsoergertabSection,
-  // Enheden står i beskeden (BB-125): «Værdi skal være mellem 1 og 10» siger ikke, at der tælles ÅR.
+  // Enheden står i beskeden: «Værdi skal være mellem 1 og 10» siger ikke, at der tælles ÅR.
   validators: [integerBoundsValidator(
     'forsoergertab.tilkendtForPeriodeAar.bounds', TILKENDT_PERIODE_MIN_AAR, TILKENDT_PERIODE_MAX_AAR, 'år'
   )],

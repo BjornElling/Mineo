@@ -190,7 +190,7 @@ const computeLobendeYdelser = (
       maaneder = firstPartial + fullMonths + lastPartial;
     }
 
-    // Månedsbrøken afrundes ikke i beregningen; den vises med fem decimaler (udviklerens afgørelse 2026-11-19).
+    // Månedsbrøken afrundes ikke i beregningen; den vises med fem decimaler.
     const ydelseIAlt = round0(maanedligYdelse * maaneder);
 
     rows.push({
@@ -336,12 +336,11 @@ export const computeForsoergertabAslYdelser = (input: Input): ForsoergertabAslRe
   );
   const aslLobendeYdelserTotal = lobendeYdelser.reduce((sum, r) => sum + r.ydelseIAlt, 0);
 
-  // TÆLLEMETODE: dagbaseret optjening (udviklerens afgørelse 2026-09-04, brugerblik-spørgsmål fra flade 10).
+  // TÆLLEMETODE: dagbaseret optjening (bevidst valg).
   // De allerede udbetalte måneder ER summen af tabellens egne månedstal – ikke en parallel optælling af
-  // hele kalendermåneder. Fladens to halvdele havde før hver sin læsning: tabellen værdiansatte dag for dag
-  // (fx 60,7323 mdr.), mens kapitalfaktoren talte hele kalendermåneder inklusive begge ender (62 mdr.), så
-  // de samme udbetalinger gav to forskellige tal i samme opgørelse. Ved at læse tabellens sum kan de to
-  // ikke længere drifte: ændres periodiseringen, følger den resterende periode med.
+  // hele kalendermåneder. Ellers værdiansætter tabellen dag for dag (fx 60,7323 mdr.), mens kapitalfaktoren
+  // tæller hele kalendermåneder inklusive begge ender (62 mdr.), så de samme udbetalinger giver to
+  // forskellige tal i samme opgørelse. Ved at læse tabellens sum kan de to ikke drifte: ændres periodiseringen, følger den resterende periode med.
   // Ingen afrunding af månedsbrøken – kun fjernelse af regnestøj før afskæringen til hele år og måneder og
   // sammenligningen med 0 nedenfor (se `fjernMaanedsbroekRegnestoej`).
   const alleredeUdbetaltMaaneder = fjernMaanedsbroekRegnestoej(lobendeYdelser.reduce((sum, r) => sum + r.maaneder, 0));

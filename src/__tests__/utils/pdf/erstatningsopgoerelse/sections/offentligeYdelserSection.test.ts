@@ -496,7 +496,7 @@ describe('renderMidlertidigtEetSection TAF-clamping', () => {
   });
 });
 
-describe('BB-367: bilaget «Midlertidigt EET»', () => {
+describe('bilaget «Midlertidigt EET»', () => {
   const periode = (fra: string, til: string, beloeb: number) => ({
     fra: iso(fra),
     til: iso(til),
@@ -544,7 +544,7 @@ describe('BB-367: bilaget «Midlertidigt EET»', () => {
     expect(texts).toEqual(expect.arrayContaining(['I alt', '2.500 kr.']));
   });
 
-  it('skiller to afgørelser med samme dato og procent ved virkningsdatoen (BB-411)', () => {
+  it('skiller to afgørelser med samme dato og procent ved virkningsdatoen', () => {
     const { overskrifter } = render([
       { afgoerelsesdato: iso('2024-08-01'), virkningsdato: iso('2024-01-01'), tilbageholdtForgaenger: null, eetPct: 30, rows: [], perioder: [periode('2024-01-01', '2024-01-31', 1000)] },
       { afgoerelsesdato: iso('2024-08-01'), virkningsdato: iso('2024-07-01'), tilbageholdtForgaenger: null, eetPct: 30, rows: [], perioder: [periode('2024-07-01', '2024-07-31', 1000)] },
@@ -553,7 +553,7 @@ describe('BB-367: bilaget «Midlertidigt EET»', () => {
     expect(overskrifter[1]).toMatch(/\(30 %\) – virkning fra 01-07-2024$/);
   });
 
-  it('forklarer en tilbageholdt forgænger, der ellers forsvinder tavst fra bilaget (BB-409)', () => {
+  it('forklarer en tilbageholdt forgænger, der ellers forsvinder tavst fra bilaget', () => {
     const { overskrifter, noter } = render([
       { afgoerelsesdato: iso('2024-08-01'), virkningsdato: iso('2024-05-01'), tilbageholdtForgaenger: iso('2024-06-01'), eetPct: 30, rows: [], perioder: [periode('2024-05-01', '2024-05-31', 1000)] },
     ]);
@@ -567,7 +567,7 @@ describe('BB-367: bilaget «Midlertidigt EET»', () => {
   });
 });
 
-describe('BB-363: kommentaren står altid ét sted', () => {
+describe('kommentaren står altid ét sted', () => {
   const values = (rows: ReturnType<typeof createErstatningsopgoerelseInitialValues>['offentligeYdelserRows']) => ({
     ...createErstatningsopgoerelseInitialValues(),
     kravPaaTabtArbejdsfortjeneste: 'Ja' as const,

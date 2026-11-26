@@ -40,21 +40,19 @@ export const useUndoRedoShortcuts = (
       if (!isUndo && !isRedo) return;
 
       // Så længe et overlay er åbent, ejer overlayet tastaturet (`keyboard-navigation.md`
-      // §Overlay-adfærd). Lytteren sidder på `window` og ramte derfor uanset hvad der lå ovenpå:
-      // et Ctrl+Z bag en åben «Slet alt»-bekræftelse ryddede feltet BAG dialogen, mens dialogen
-      // blev stående og spurgte uændret om noget andet. Brugeren svarede altså på et spørgsmål om
-      // en sag, der ikke længere var den, han kiggede på – og fortrydelsens egen markering af
-      // feltet foregik bag dialogen, hvor den ikke kunne ses.
+      // §Overlay-adfærd). Lytteren sidder på `window` og rammer derfor uanset hvad der ligger ovenpå:
+      // uden denne prøve rydder et Ctrl+Z bag en åben «Slet alt»-bekræftelse feltet BAG dialogen, mens
+      // dialogen bliver stående og spørger uændret om noget andet – og fortrydelsens egen markering af
+      // feltet foregår bag dialogen, hvor den ikke kan ses.
       //
       // Ingen `preventDefault()` her: tasten er ikke vores, mens overlayet ejer den.
       if (hasOpenOverlay()) return;
 
       // Er en felteditor åben, rører programmets fortrydelse IKKE history (§1.4) – det er en truffen
       // beslutning: Ctrl+Z har præcis ÉN funktion, at føre den seneste AFSLUTTEDE feltændring tilbage,
-      // og må ikke også kunne ændre tegn i et åbent felt. Men så skal tasten heller ikke SPÆRRES:
-      // `preventDefault()` lå her ubetinget, så browserens egen tekstfortrydelse blev slået ihjel
-      // samtidig. Brugeren stod dermed med et felt fuldt af tekst og en tast, der hverken gjorde det
-      // ene eller det andet – en tast, der spærres uden at bruges, er et sort hul.
+      // og må ikke også kunne ændre tegn i et åbent felt. Men så skal tasten heller ikke SPÆRRES: et
+      // ubetinget `preventDefault()` her ville slå browserens egen tekstfortrydelse ihjel samtidig – en
+      // tast, der spærres uden at bruges, er et sort hul.
       //
       // Prøven skal være SYNKRON. `prepare()` er asynkron, og når dens `noop` foreligger, er
       // keydown-hændelsen længe returneret, og `preventDefault()` kan ikke længere undlades. Derfor

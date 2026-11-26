@@ -56,7 +56,7 @@ const withDocumentUnavailable = async <T>(run: () => Promise<T>): Promise<T> => 
   }
 };
 
-describe('CALC-002 – uafhængigt Metode A-facit gennem Årsløn-dokumentgrænsen', () => {
+describe('Uafhængigt Metode A-facit gennem Årsløn-dokumentgrænsen', () => {
   it('fører SH-dage, feriedagsfradrag og håndberegnede beløb til PDF og Word', async () => {
     const calculation = computeAarsloenBeregning({ values, omregningAktiveret: true });
 

@@ -14,12 +14,12 @@ describe('resolveInsertTodayDisabledReason', () => {
     })).toBeUndefined();
   });
 
-  it('navngiver satsdækningens slutdato, når dags dato er efter den (BB-068)', () => {
+  it('navngiver satsdækningens slutdato, når dags dato er efter den', () => {
     expect(resolveInsertTodayDisabledReason({ today, max: toISODateString('2025-12-31') }))
       .toBe('Der kan kun foretages beregninger frem til 31. december 2025');
   });
 
-  it('navngiver den første nedre grænse, dags dato er før (BB-405)', () => {
+  it('navngiver den første nedre grænse, dags dato er før', () => {
     expect(resolveInsertTodayDisabledReason({
       today,
       max,

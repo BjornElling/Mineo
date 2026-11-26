@@ -51,7 +51,7 @@ export type UseTransientDraftConfig<T> = Readonly<{
   /**
    * Tegn-ækvivalens på vejen ind i draften, anvendt FØR `admission` – på draft-ændringer og på åbningstasten.
    * Beløbsfeltet giver her den samme sign-policy-normalisering som de persisterede felter (typografisk
-   * minus → '-', BB-430), så transient og persisteret beløbsindtastning opfører sig ens.
+   * minus → '-'), så transient og persisteret beløbsindtastning opfører sig ens.
    */
   normalizeInput?: (text: string) => string;
 }>;
@@ -93,8 +93,8 @@ export const useTransientDraft = <T>(config: UseTransientDraftConfig<T>): Transi
   // Resync fra den committede værdi, men ALDRIG mens brugeren redigerer.
   const lastFormattedRef = React.useRef(formatted);
   // Et afvist settle rydder kalderens værdi (XOR-reglen), og den ændring kommer i SAMME batch som afvisningen.
-  // Den første render derefter må ikke resynce: ellers overskrev den tomme værdi den afviste tekst, så en ugyldig
-  // dato, der erstattede en gyldig, stod blank (BB-458/BB-459), mens samme dato i et tomt felt blev stående.
+  // Den første render derefter må ikke resynce: ellers overskriver den tomme værdi den afviste tekst, så en ugyldig
+  // dato, der erstatter en gyldig, står blank, mens samme dato i et tomt felt bliver stående.
   const rejectedSettlePendingRef = React.useRef(false);
   if (rejectedSettlePendingRef.current) {
     rejectedSettlePendingRef.current = false;

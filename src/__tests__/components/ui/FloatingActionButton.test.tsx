@@ -4,8 +4,8 @@ import userEvent from '@testing-library/user-event';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import FloatingActionButton from '../../../components/ui/FloatingActionButton';
 
-// BB-434/BB-437: kortenes flydende handlinger flytter sig, når de virker, så andet klik i et dobbeltklik
-// ramte en anden knap eller et andet kort. Andet klik i samme dobbeltklik (`detail >= 2`) er derfor tavst.
+// Kortenes flydende handlinger flytter sig, når de virker, så andet klik i et dobbeltklik ville
+// ramme en anden knap eller et andet kort. Andet klik i samme dobbeltklik (`detail >= 2`) er derfor tavst.
 
 const renderButton = () => {
   const onClick = vi.fn();

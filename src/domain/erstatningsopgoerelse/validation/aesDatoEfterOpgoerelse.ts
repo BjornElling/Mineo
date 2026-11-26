@@ -7,14 +7,14 @@ import {
 } from '../helpers/eoInputRelevance';
 
 /**
- * En afgørelses- eller differencekravsdato efter «Opgørelse lavet den» (BB-242).
+ * En afgørelses- eller differencekravsdato efter «Opgørelse lavet den».
  *
  * Papiret bruger opgørelsens dato som sin status-dato («Der er den 1. februar 2025 ikke truffet afgørelse
  * om …»), så en afgørelse dateret EFTER den er en begivenhed, dokumentet ikke kan kende. Den sandsynlige
  * årsag er en tastefejl i året eller en «Opgørelse lavet den», der ikke er rettet frem, da sagen blev
  * genoptaget.
  *
- * IKKE-blokerende (udviklerafgørelse 2026-09-24): afgørelsen trykkes uændret – den er en relevant
+ * Bevidst IKKE-blokerende: afgørelsen trykkes uændret – den er en relevant
  * orientering – og hverken beløb eller download påvirkes. Reglen spørger kun, om datoen er tastet rigtigt.
  * Samme tekst står som gul ring ved feltet og i «Fejl og advarsler».
  *
@@ -38,7 +38,7 @@ type AesDatoValues = Pick<
   | 'differencekravDato'
 >;
 
-/** Feltets dato – kun når feltet er synligt (et skjult felt er pr. definition ikke udfyldt, BB-222). */
+/** Feltets dato – kun når feltet er synligt (et skjult felt er pr. definition ikke udfyldt). */
 const resolveSynligDato = (felt: AesDatoEfterOpgoerelseFelt, values: AesDatoValues): ISODateString | undefined => {
   switch (felt) {
     case 'menAfgoerelseDato':

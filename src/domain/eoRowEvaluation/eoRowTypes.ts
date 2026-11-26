@@ -225,7 +225,7 @@ export type EoRowModel = {
   summaryText?: string;
   /**
    * Identificerer flere rækker, som bevidst skal vises som én fælles fejl-/advarselslinje.
-   * Rækker vises hver for sig som standard. Overlap og de to sammenhørende BB-322-felter opt-in, fordi
+   * Rækker vises hver for sig som standard. Overlap og referenceperiodens to sammenhørende datofelter (sygeferiegodtgørelse) opt-in, fordi
    * alle berørte celler samtidig har en rød markering med konkret tooltip; andre fejl foldes ikke på tekstlig lighed.
    */
   summaryDeduplicationGroup?: EoRowSummaryDeduplicationGroup;

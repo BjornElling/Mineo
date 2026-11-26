@@ -69,12 +69,11 @@ export type IncomePeriodResult = Readonly<{
 /**
  * En indtægtskilde (ansættelsesforhold eller ydelsestype), hvis rækker i perioden SAMLET er negative.
  *
- * Negative rækker regnes med og modregnes i kildens øvrige indtægt (udviklerafgørelse 2026-10-19, BB-290). Er
+ * Negative rækker regnes med og modregnes i kildens øvrige indtægt (bevidst valg). Er
  * kildens samlede indtægt i perioden negativ, er der ingen positiv indtægt at modregne i, og motorerne
  * (lønudviklingens basisløn, indkomstgrundlaget, fradragets sum) forudsætter en ikke-negativ indtægt pr. kilde.
  * Kilden indgår derfor IKKE i `employers`/`benefits`, men meldes her, så validatoren kan spærre med en
- * navngiven fejl i stedet for, at kilden forsvinder tavst (udviklerafgørelse 2026-10-19: en samlet negativ kilde
- * spærrer i begge perioder).
+ * navngiven fejl i stedet for, at kilden forsvinder tavst. En samlet negativ kilde spærrer i begge perioder.
  */
 export type IncomeNegativeSource = Readonly<
   | { kind: 'employer'; id: string; index: number; name: string; amount: number }
@@ -98,9 +97,8 @@ const isEffectivelyZero = (amount: number): boolean => Math.abs(amount) < INCOME
  * arbejdsstednavn, ellers kortets egen overskrift på Lønindkomst, «Ansættelsesforhold N» (1-indekseret
  * position i `loenindkomstAnsaettelsesforhold`).
  *
- * Før havde fire moduler reserven «Arbejdssted», ét «Arbejdssted N», ét «Lønindkomst» og to
- * «Ansættelsesforhold N» – så samme unavngivne ansættelsesforhold hed to ting i ét dokument, og to
- * unavngivne hed begge «Arbejdssted» (BB-279). `index` er positionen i HELE listen, aldrig i en filtreret
+ * Én fælles reserve er nødvendig: med en reserve pr. modul kan samme unavngivne ansættelsesforhold hedde to
+ * ting i ét dokument, og to unavngivne kan hedde det samme. `index` er positionen i HELE listen, aldrig i en filtreret
  * delmængde – ellers flytter nummeret sig væk fra skærmens.
  */
 export const resolveAnsaettelsesforholdNavn = (
@@ -109,7 +107,7 @@ export const resolveAnsaettelsesforholdNavn = (
   /**
    * Alle ansættelsesforholds arbejdsstednavne i skærmens rækkefølge. Rammer navnet et andet ansættelsesforholds
    * navn – også dets standardnavn «Ansættelsesforhold N» – bruges Lønindkomsts kortoverskrift, så to ens
-   * overskrifter kan skelnes (BB-411-mønstret, BB-466). Udelades kun, hvor listen ikke er kendt.
+   * overskrifter kan skelnes. Udelades kun, hvor listen ikke er kendt.
    */
   alleNavne?: readonly (string | undefined)[]
 ): string => {
@@ -126,7 +124,7 @@ export const resolveAnsaettelsesforholdNavn = (
 /**
  * ENESTE kortoverskrift for et ansættelsesforhold på Lønindkomst: «Ansættelsesforhold N» og, når et arbejdsstednavn
  * er indtastet, «Ansættelsesforhold N (navn)». Kortet og sletedialogen deler den, så dialogen nævner præcis det kort,
- * brugeren klikkede på – også når to kort har samme navn (BB-438). `index` er positionen i hele listen.
+ * brugeren klikkede på – også når to kort har samme navn. `index` er positionen i hele listen.
  */
 export const formatAnsaettelsesforholdKortOverskrift = (navn: string | undefined, index: number): string => {
   const trimmet = (navn ?? '').trim();
@@ -241,7 +239,7 @@ const parseOffentligInterval = (row: OffentligeYdelserRow): DateInterval | null 
  * Alle indtastede TAF-perioder efter trin 1 og 2 i `buildTafRanges` – altså UDEN den stille clamping til
  * EO-perioden. Bruges kun af sygeferiegodtgørelsens 4-månedersgrænse ved skader før 2015: retten gælder
  * sammenlagt 4 måneder fra skaden, uanset hvor mange opgørelser forløbet er delt på, så perioder før denne
- * opgørelses periode skal tælles med (udviklerafgørelse 2026-10-24, BB-320). Kravet selv regnes fortsat kun
+ * opgørelses periode skal tælles med (bevidst valg). Kravet selv regnes fortsat kun
  * for opgørelsens periode.
  */
 export const buildTafRangesUdenEoPeriode = (
@@ -444,7 +442,7 @@ export type IncomeRowRangeShares = Readonly<{
 /**
  * Hver løn- og ydelsesrækkes andel i perioderne – rækkerne bag `buildIncomeForRanges`' summer.
  *
- * Beregningen summerer netop disse andele, og bilagets linje om delvist medregnede perioder (BB-293) læser dem
+ * Beregningen summerer netop disse andele, og bilagets linje om delvist medregnede perioder læser dem
  * herfra. Der er derfor kun én fordelingsregel: linjen kan ikke vise et andet antal dage eller et andet beløb, end
  * beregningen bruger. Kun rækker med mindst én dag i perioderne kommer med.
  */
@@ -597,7 +595,7 @@ const buildIncomeRowSharesForMergedRanges = (
         throw new Error(`Offentlig ydelse-række ${row.id} har ikke-finite beløb.`);
       }
     }
-    // Negative ydelser regnes med som negative lønrækker (BB-290); kun 0 kr. bidrager intet.
+    // Negative ydelser regnes med som negative lønrækker; kun 0 kr. bidrager intet.
     if (!Number.isFinite(amount) || amount === 0) continue;
     const resolvedType = resolveYdelsestype(row.ydelsestype?.trim() ?? '');
     if (!resolvedType) continue;
@@ -651,15 +649,14 @@ export const buildIncomeForRanges = (
  * Hvordan en kilde, der samlet er negativ i de valgte ranges, afleveres.
  *
  * - `'separate'` (standard): kilden holdes ude af `employers`/`benefits` og meldes i `negativeSources`. Det er
- *   reglen for hele beregnings- og erstatningsperioden, hvor en samlet negativ kilde spærrer (BB-290).
+ *   reglen for hele beregnings- og erstatningsperioden, hvor en samlet negativ kilde spærrer.
  * - `'include'`: kilden står i `employers`/`benefits` med sit negative beløb. Bruges af årsfordelingen, hvor en
- *   kilde kan være positiv over hele erstatningsperioden, men negativ inden for ét kalenderår; uden den fik året
- *   et for stort fradrag, og årene kunne ikke afstemmes med opgørelsen (værdiklasse-gennemgangen 2026-11-24,
- *   fund B, godkendt af udvikleren 2026-11-25).
+ *   kilde kan være positiv over hele erstatningsperioden, men negativ inden for ét kalenderår; ellers får året
+ *   et for stort fradrag, og årene kan ikke afstemmes med opgørelsen.
  */
 export type IncomeNegativeSourceHandling = 'separate' | 'include';
 
-/** Som `buildIncomeForRanges`, men med de kilder, der samlet er negative i perioden (BB-290). */
+/** Som `buildIncomeForRanges`, men med de kilder, der samlet er negative i perioden. */
 export const buildIncomeForRangesDetailed = (
   values: TafCalculationValues,
   rawRanges: readonly IsoRange[],
@@ -704,8 +701,8 @@ export const buildIncomeForRangesDetailed = (
         continue;
       }
       // En negativ række (en tilbagebetaling, en efterregulering) regnes med og modregnes i ansættelsesforholdets
-      // øvrige løn (udviklerafgørelse 2026-10-19, BB-290). Før sprang `samletContrib <= 0` den over, mens
-      // kontroltabellen talte den med, så opgørelsen standsede med «kontroluoverensstemmelser». En række på 0 kr.
+      // øvrige løn. Springes den over (`samletContrib <= 0`), mens kontroltabellen tæller den med, standser
+      // opgørelsen med «kontroluoverensstemmelser». En række på 0 kr.
       // bidrager med 0 og er uændret.
       breakdown.loenPlusLoen2 += projected.loenPlusLoen2;
       breakdown.loenPlusLoen2PlusIkkePensLoen += projected.loenPlusLoen2PlusIkkePensLoen;

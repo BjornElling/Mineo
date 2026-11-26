@@ -10,9 +10,9 @@ import { shouldRequireSygeferiegodtgoerelseInput } from './sygeferiegodtgoerelse
 /**
  * Synlighed og relevans for sygeferiegodtgørelsens felter på et ansættelsesforhold (Lønindkomst-fanen).
  *
- * BAGGRUND: Felterne stod før KUN bag JSX-betingelser i `SygeferiegodtgoerelseSection`, mens descriptorerne var
- * relevante altid. En rød referenceperiode bag «Manuelt angivet», eller 400 fraværsdage bag et slukket TAF-krav,
- * blev derfor ved med at spærre opgørelsen med en linje om et felt, brugeren ikke kunne se (BB-228-familien).
+ * BAGGRUND: Står felterne KUN bag JSX-betingelser i `SygeferiegodtgoerelseSection`, mens descriptorerne er
+ * relevante altid, bliver en rød referenceperiode bag «Manuelt angivet», eller 400 fraværsdage bag et slukket
+ * TAF-krav, ved med at spærre opgørelsen med en linje om et felt, brugeren ikke kan se.
  *
  * Modulet er den ENESTE kilde til, hvornår et SFGG-felt vises: VM'en (`getSfggPresentation`) afleder sektionens
  * flag herfra, og descriptorernes `relevance` kalder {@link erSfggFeltRelevant} med de samme input. Dermed kan

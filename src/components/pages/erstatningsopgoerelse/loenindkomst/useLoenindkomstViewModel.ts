@@ -89,7 +89,7 @@ export function useLoenindkomstViewModel({ eoValues, stamdataValues }: Loenindko
    * feltplaceret domæneregel.
    *
    * Et TOMT felt giver ingen ring (`missing`): brugeren har ikke skrevet noget, og manglen meldes i «Fejl og
-   * advarsler», hvor den blokerer (udviklerafgørelse 2026-10-06, BB-274).
+   * advarsler», hvor den blokerer (bevidst valg).
    */
   const satsIssues = React.useMemo<FieldIssueSet>(() => buildFieldIssueSet(
     employments.flatMap((employment) => assessLoenindkomstSatser(employment, { beregnesUdFra: eoValues.beregnesUdFra })
@@ -104,8 +104,8 @@ export function useLoenindkomstViewModel({ eoValues, stamdataValues }: Loenindko
       })))
   ), [employments, eoValues.beregnesUdFra]);
   /**
-   * Den påkrævede feriesats er tom (BB-274's `missing`) – samme vurdering som linjen i «Fejl og advarsler». Tabellens
-   * afledte kolonner viser da «—» (BB-099), fordi rækkerne ellers ville være regnet med satsen som 0 %.
+   * Den påkrævede feriesats er tom (`missing`) – samme vurdering som linjen i «Fejl og advarsler». Tabellens
+   * afledte kolonner viser da «—», fordi rækkerne ellers ville være regnet med satsen som 0 %.
    */
   const feriePctManglerByAfId = React.useMemo<ReadonlySet<string>>(() => new Set(
     employments
@@ -114,7 +114,7 @@ export function useLoenindkomstViewModel({ eoValues, stamdataValues }: Loenindko
   ), [employments, eoValues.beregnesUdFra]);
   /**
    * Den gule, ikke-blokerende advarsel pr. ansættelsesforhold: et ferietillæg ved løn under ferie (§2b) eller en
-   * usædvanligt høj feriesats (BB-286).
+   * usædvanligt høj feriesats.
    */
   const feriePctAdvarselByAfId = React.useMemo<Readonly<Record<string, string>>>(() => Object.fromEntries(
     employments.flatMap((employment) => assessLoenindkomstSatser(employment, { beregnesUdFra: eoValues.beregnesUdFra })
@@ -124,7 +124,7 @@ export function useLoenindkomstViewModel({ eoValues, stamdataValues }: Loenindko
 
   /**
    * Indtægtstabellens gule ring pr. ansættelsesforhold: identisk række, periode efter dags dato og negativ
-   * samlet løn (BB-289/BB-290/BB-298). Samme domæneregel giver linjerne i «Fejl og advarsler».
+   * samlet løn. Samme domæneregel giver linjerne i «Fejl og advarsler».
    */
   const tableCellWarningsByAfId = React.useMemo<ReadonlyMap<string, ReadonlyMap<SerializedFieldAddress, FieldWarning>>>(() => {
     const today = getToday();
@@ -150,13 +150,13 @@ export function useLoenindkomstViewModel({ eoValues, stamdataValues }: Loenindko
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [deleteTargetId, setDeleteTargetId] = React.useState<string | null>(null);
   const [scrollTargetId, setScrollTargetId] = React.useState<string | null>(null);
-  // Dialogen nævner kortets egen overskrift (nummer + navn), så to kort med samme navn kan skelnes (BB-438).
+  // Dialogen nævner kortets egen overskrift (nummer + navn), så to kort med samme navn kan skelnes.
   const deleteTargetIndex = employments.findIndex((employment) => employment.id === deleteTargetId);
   const deleteTargetHeading = deleteTargetIndex < 0
     ? null
     : formatAnsaettelsesforholdKortOverskrift(employments[deleteTargetIndex]?.navnPaaArbejdssted, deleteTargetIndex);
   const loentrinFinder = useLoentrinFinder();
-  // Kortenes valg, der kan skifte fraværsdagenes enhed på ET HVILKET SOM HELST kort, deler én bekræftelse (BB-449).
+  // Kortenes valg, der kan skifte fraværsdagenes enhed på ET HVILKET SOM HELST kort, deler én bekræftelse.
   const sfggEnhedsskiftBekraeftelse = useSfggEnhedsskiftBekraeftelse(eoValues);
   const sfggEnhedsskift = {
     ...sfggEnhedsskiftBekraeftelse,
@@ -166,9 +166,9 @@ export function useLoenindkomstViewModel({ eoValues, stamdataValues }: Loenindko
   };
 
   /**
-   * Tilføj sker uden bekræftelse – Ctrl+Z fortryder handlingen, så en dialog beskyttede ikke mod noget – og
-   * det nye kort rulles frem som ved «Flyt op/ned». Før blev siden stående, og det nye korts top lå under
-   * skærmens kant, så brugeren ikke kunne se, at handlingen lykkedes (BB-288).
+   * Tilføj sker uden bekræftelse – Ctrl+Z fortryder handlingen, så en dialog beskytter ikke mod noget – og
+   * det nye kort rulles frem som ved «Flyt op/ned». Ellers kan det nye korts top ligge under skærmens kant,
+   * så brugeren ikke kan se, at handlingen lykkedes.
    */
   const handleAdd = React.useCallback(() => {
     if (rows.rowIds.length >= MAX_ANSAETTELSESFORHOLD) return;

@@ -3,7 +3,7 @@
 import { getSatserForYear } from '../../../data/lovbestemteRates';
 import { describeMissingSatserCoverage, hasAnyEalSats } from '../../../domain/satser/satserCoverage';
 
-describe('describeMissingSatserCoverage (BB-392)', () => {
+describe('describeMissingSatserCoverage', () => {
   it('nævner præcis de kategorier, et delvist dækket år mangler', () => {
     const satser = getSatserForYear(2027);
     expect(hasAnyEalSats(satser)).toBe(false);

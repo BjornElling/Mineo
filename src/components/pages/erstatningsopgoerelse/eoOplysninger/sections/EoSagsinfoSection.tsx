@@ -35,7 +35,7 @@ import { EO_TAB_KEYS } from '../../../../../config/eoTabKeys';
 export default function EoSagsinfoSection() {
   const { statusSubheaderLabel, values } = useEoOplysningerVm();
   // Gul ring på en valgt status, hvis statusdato ligger efter «Opgørelse lavet den» – samme regel og tekst
-  // som «Fejl og advarsler» (NY-12a-5).
+  // som «Fejl og advarsler».
   const statusWarning = (felt: StatusDatoEfterOpgoerelseFelt) => {
     const message = resolveStatusDatoEfterOpgoerelseMessage(felt, values);
     const warning = message === undefined ? undefined : createFieldWarning(message);

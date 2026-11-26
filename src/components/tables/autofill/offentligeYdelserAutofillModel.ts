@@ -39,7 +39,7 @@ export const buildOffentligeYdelserAutofillModel = (
       choiceAutofillColumn(
         4,
         eoOffentligeYdelserYdelsestypeField,
-        // Forslaget er den kanoniske nøgle, også når rækken er gemt med sin label (BB-364).
+        // Forslaget er den kanoniske nøgle, også når rækken er gemt med sin label.
         rows.map((row) => (row === undefined ? undefined : (canonicalYdelsestypeKey(row.ydelsestype) || undefined))),
         (value) => ydelsestyper[value]?.label,
         availableYdelsestyper,

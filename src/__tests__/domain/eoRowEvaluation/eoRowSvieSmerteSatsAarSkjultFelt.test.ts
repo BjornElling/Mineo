@@ -41,7 +41,7 @@ const getSatserAarRow = (patch: Partial<ErstatningsopgoerelseValues> = {}) => {
 /**
  * Et skjult felt er ikke udfyldt og må aldrig påvirke beregninger eller fejlmeddelelser.
  * Satsårsadvarslen overlevede sit eget felt, når «Tidligere beregnet S/S til max.» fjernede det –
- * en opfordring til at gøre noget, der ikke kan gøres, med et link uden mål (BB-222).
+ * en opfordring til at gøre noget, der ikke kan gøres, med et link uden mål.
  */
 describe('buildEoSvieSmerteRows – satsårsadvarslen følger feltets synlighed', () => {
   it('viser forslaget, mens satsårsfeltet er synligt', () => {
@@ -65,8 +65,8 @@ describe('buildEoSvieSmerteRows – satsårsadvarslen følger feltets synlighed'
 });
 
 /**
- * Satsåret er lovbestemt og uafhængigt af sygeperiodernes placering (udviklerafgørelse 2026-09-23,
- * `eo-snapshot-contract.md` §16): kravet anses for rejst én måned efter «Opgørelse lavet den», og den sats,
+ * Satsåret er lovbestemt og uafhængigt af sygeperiodernes placering
+ * (`eo-snapshot-contract.md` §16): kravet anses for rejst én måned efter «Opgørelse lavet den», og den sats,
  * der gælder dér, kan kræves. Brugeren vælger året; programmet advarer alene, når en senere HØJERE sats
  * kunne være anvendt.
  */

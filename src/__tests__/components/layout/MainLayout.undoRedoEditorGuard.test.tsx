@@ -90,11 +90,11 @@ describe('MainLayout undo/redo editor guard', () => {
       await Promise.resolve();
     });
 
-    // Tasten SPÆRRES ikke, mens editoren er åben (BB-054, 2026-08-19). Programmets fortrydelse er
+    // Tasten SPÆRRES ikke, mens editoren er åben. Programmets fortrydelse er
     // bevidst uvirksom her – Ctrl+Z har præcis én funktion, at føre den seneste AFSLUTTEDE feltændring
-    // tilbage – men en tast, der spærres uden at bruges, er et sort hul: `preventDefault()` slog også
-    // browserens egen tekstfortrydelse ihjel, så brugeren stod med et felt fuldt af tekst og en tast,
-    // der hverken gjorde det ene eller det andet. Nu passerer hændelsen, og browseren beholder sin
+    // tilbage – men en tast, der spærres uden at bruges, er et sort hul: `preventDefault()` slår også
+    // browserens egen tekstfortrydelse ihjel, så brugeren står med et felt fuldt af tekst og en tast,
+    // der hverken gør det ene eller det andet. Hændelsen passerer derfor, og browseren beholder sin
     // egen fortrydelse inde i feltet.
     expect(event?.defaultPrevented).toBe(false);
     // Åben editor → stille no-op: history er urørt, satsåret står stadig 2020. DET er den truffne

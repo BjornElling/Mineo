@@ -53,8 +53,7 @@ const PercentField = React.forwardRef<HTMLDivElement, PercentFieldProps>(
     ref
   ) => {
     // Tegn- og længdepolitikken kommer fra descriptorens codec gennem den DELTE `resolvePercentCharPolicy`
-    // – samme kilde som grid-cellen. Alle procent-descriptorer er ikke-negative, og komponenten svarede
-    // tidligere `true` i strid med dem, så et minus kunne tastes som første tegn.
+    // – samme kilde som grid-cellen, så komponenten ikke kan tillade et minus i strid med descriptoren.
     const { allowNegative, allowDecimals, maxIntegerDigits, maxDraftLength } =
       resolvePercentCharPolicy(field);
     const admission = React.useMemo(
@@ -97,7 +96,7 @@ export const DerivedPercentField = React.forwardRef<HTMLDivElement, Readonly<{
   value: number | undefined;
   name?: string;
   placeholder?: string;
-  /** Feltets eget navn for skærmlæsere – «Beregnet procent» sagde ikke, hvilken sats feltet viser (BB-287). */
+  /** Feltets eget navn for skærmlæsere – «Beregnet procent» siger ikke, hvilken sats feltet viser. */
   accessibleName?: string;
   /** Hvorfor feltet er låst, vist ved hover. */
   infoTooltipText?: string;

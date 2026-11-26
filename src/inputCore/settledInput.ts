@@ -15,7 +15,7 @@ export const persistedInputSectionsSchema = z.object(nullableSectionSchemas).str
 
 export type PersistedInputSections = z.infer<typeof persistedInputSectionsSchema>;
 
-// Efter kravændringen 2026-07-18 er `format` den eneste afvisningsårsag: schema-repræsenterbare out-of-bounds-
+// `format` er den eneste afvisningsårsag: schema-repræsenterbare out-of-bounds-
 // værdier committes canonical med et afledt bounds-issue (§1.6), ikke som rejected råtekst.
 const rejectReasonSchema = z.enum(['format']);
 

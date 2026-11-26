@@ -181,7 +181,7 @@ describe('sfggSegmentering', () => {
     expect([...calculator.buildFeriepengeOreByYear(eligibleDates)]).toEqual([[2024, 125_004]]);
   });
 
-  it('modregner en negativ lønseddel i referencelønnen, som den tabte arbejdsfortjeneste gør (BB-290)', () => {
+  it('modregner en negativ lønseddel i referencelønnen, som den tabte arbejdsfortjeneste gør', () => {
     // Juni 30.000 kr. og en tilbagebetaling i juli på -2.000 kr.: referencelønnen er 28.000 kr. (før: 30.000 kr.).
     const maanedsRaekke = (id: string, maaned: string, beloeb: number) => ({
       id, col0_maaned: maaned, col1_maaned: '2017', col0_uge: '', col1_uge: '', col0_dag: undefined, col1_dag: undefined,

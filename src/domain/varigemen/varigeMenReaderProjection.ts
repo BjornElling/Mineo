@@ -65,9 +65,9 @@ const VARIGE_MEN_DOCUMENT_CONSUMER_ID = 'document.varigemen';
 export const buildVarigeMenReaderProjection = (reader: InputReader): VarigeMenReaderProjection =>
   // Trin 1: `runProjection` læser motorinput og afgør ready|blocked. Trin 2: `mapReadyProjection` kalder
   // motoren KUN i ready-grenen. Motoren ligger BEVIDST uden for kroppen: kroppen udføres, FØR statussen er
-  // afgjort, så et motorkald derinde ville køre også når projektionen ender blokeret (§3.9). Tidligere lå
-  // kaldet inde i kroppen bag fire manuelle undefined-guards; de dækkede de fire aktuelle dependencies, men
-  // sikkerheden hvilede på, at et fremtidigt read også blev tilføjet til guarden.
+  // afgjort, så et motorkald derinde ville køre også når projektionen ender blokeret (§3.9). Manuelle
+  // undefined-guards i kroppen er ikke et alternativ: sikkerheden ville hvile på, at hvert fremtidigt read også
+  // blev tilføjet til guarden.
   mapReadyProjection(
     runProjection(reader, VARIGE_MEN_DOCUMENT_CONSUMER_ID, (collector): VarigeMenEngineInput | undefined => {
       // require registrerer en rød feltfejl som blocker OG et tomt felt som `missing`. En `unavailable`-læsning

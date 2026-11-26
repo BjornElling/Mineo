@@ -39,7 +39,7 @@ const parsePctPoint = (value: string | number | undefined): number | undefined =
 };
 
 // Beregningsperiode-indkomsten opgøres for hele perioden med de satser, der gælder på reguleringsdatoen
-// (udviklerens afgørelse 2026-10-06), ikke med periodens historiske satser. Både visningen af
+// (bevidst valg), ikke med periodens historiske satser. Både visningen af
 // «Indtægt før skadedatoen» og lønudviklingens grundløn bruger denne ene funktion, så de ikke kan afvige.
 export const resolveBeregningsperiodeEmployerAtReguleringsdato = (
   values: TafCalculationValues,
@@ -292,7 +292,7 @@ export const buildIndkomstSkadestidspunkt = (
         const oevrigeFravaersdageValue = oevrigeFravaersdage;
         // Samme "antal måneder ud fra dage"-princip som beregningsgrundlaget; brug den kanoniske
         // motor-helper i stedet for en lokal dag-for-dag-løkke (ingen materialiseret dag-Set, og
-        // de to implementeringer kan ikke længere drive fra hinanden).
+        // ingen anden implementering at drive fra).
         const totalMaaneder = sumMaanedsbroekForInterval(periodeTilBeregning.fra, periodeTilBeregning.til);
         const fravaerMaaneder = oevrigeFravaersdageValue * TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR;
         const maanederEfterFradrag = Math.max(0, totalMaaneder - fravaerMaaneder);

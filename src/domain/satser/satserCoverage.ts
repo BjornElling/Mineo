@@ -9,7 +9,7 @@ export const hasAnyEalSats = (satser: Satser): boolean =>
   Object.values(satser.eal).some((value) => !isMissing(value));
 
 /**
- * De satskategorier, Mineo endnu ikke har for et ellers accepteret år (BB-392), i den rækkefølge siden viser dem.
+ * De satskategorier, Mineo endnu ikke har for et ellers accepteret år, i den rækkefølge siden viser dem.
  *
  * Satsåret accepteres, når mindst én satsserie dækker det; det betyder ikke fuld dækning. En kategori, hvis
  * samtlige satser mangler, udelades ellers tavst på skærmen og i dokumentet, så «Mineo har endnu ikke

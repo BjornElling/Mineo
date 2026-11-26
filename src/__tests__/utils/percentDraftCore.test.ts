@@ -57,7 +57,7 @@ describe('percentDraftCore', () => {
   });
 
   /**
-   * BB-118: `allowDecimals: false` er ikke længere en TEGN-regel, men en SETTLE-regel. Et decimalløst
+   * `allowDecimals: false` er ikke en TEGN-regel, men en SETTLE-regel. Et decimalløst
    * procentfelt TAGER IMOD et komma og AFRUNDER det væk – det afviser det ikke. Afrundingen er
    * `halfAwayFromZero`, samme metode som beløbsfelterne, så de to felttyper afrunder ens.
    */

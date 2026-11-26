@@ -63,10 +63,9 @@ describe('assertSortedByStartIso', () => {
 });
 
 /**
- * Nøglevælger-formen (greenfield #35). Den findes, fordi to serier med PRÆCIS samme
- * carry-forward-semantik bar datoen under et andet feltnavn (`startDato` i de manuelle
- * lønudviklings-rækker, `dato`/`iso` i inspektionens indeksrækker) og derfor havde
- * overlevet den første konsolidering som hver sin re-derivation.
+ * Nøglevælger-formen. Den findes, fordi to serier med PRÆCIS samme carry-forward-semantik bærer
+ * datoen under hver sit feltnavn (`startDato` i de manuelle lønudviklings-rækker, `dato`/`iso` i
+ * inspektionens indeksrækker); uden nøglevælgeren bliver de til hver sin re-derivation.
  */
 describe('findLatestByDateKeyInSortedList', () => {
   const keyed = (startDato: string, value: number) => ({ startDato: iso(startDato), value });

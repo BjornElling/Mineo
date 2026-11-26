@@ -116,7 +116,7 @@ const authoritativeReplace = (candidate: SettledInputCandidate = { sections: emp
 
 /**
  * Måler udfaldet frem for lytterens livscyklus: ville browseren spørge, før siden forlades? Lytteren er
- * bevidst altid monteret, fordi en åben, ændret draft (BB-396) kan opstå uden en React-render i guarden.
+ * bevidst altid monteret, fordi en åben, ændret draft kan opstå uden en React-render i guarden.
  */
 const exitIsGuarded = (): boolean => {
   const event = new Event('beforeunload', { cancelable: true });
@@ -174,7 +174,7 @@ describe('MainLayout (unsaved beforeunload)', () => {
     expect(exitIsGuarded()).toBe(false);
   });
 
-  it('keeps warning after reload when the restored work was never saved (BB-395)', async () => {
+  it('keeps warning after reload when the restored work was never saved', async () => {
     const first = renderLayout();
     commitInputChange();
     await waitFor(() => {

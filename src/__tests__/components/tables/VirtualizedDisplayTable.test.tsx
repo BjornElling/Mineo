@@ -221,7 +221,7 @@ describe('VirtualizedDisplayTable', () => {
     expect(screen.getByText('C').closest('th')).toHaveAttribute('data-mineo-column-id', 'col:c');
   });
 
-  it('fastholder de førende kolonner i venstre side ved vandret rul (BB-467)', () => {
+  it('fastholder de førende kolonner i venstre side ved vandret rul', () => {
     const { container } = render(
       <VirtualizedDisplayTable
         columns={[

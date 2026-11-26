@@ -656,7 +656,7 @@ describe('pdfWriter tekstgengivelse', () => {
   const renderedTexts = (doc: MockJsPDF): string[] =>
     doc.text.mock.calls.map((call: unknown[]) => String(call[0]));
 
-  // NY-12a-1: et ISO-formet fragment i brugerens fritekst eller journalnummer omformes ikke.
+  // Et ISO-formet fragment i brugerens fritekst eller journalnummer omformes ikke.
   it('gengiver ISO-formede fragmenter i brevhoved, brødtekst og label/værdi ordret', async () => {
     const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
     const { toISODateString } = await import('../../../types/branded');
@@ -679,7 +679,7 @@ describe('pdfWriter tekstgengivelse', () => {
     errorSpy.mockRestore();
   });
 
-  // NY-12a-2 / NY-12c-1: tegn uden for standardfontens tegnsæt må ikke nå jsPDF – ét
+  // Tegn uden for standardfontens tegnsæt må ikke nå jsPDF – ét
   // sådant tegn spreder hele linjen. Det gælder alle tekstveje, også brevhoved og underskrift.
   it('translittererer tegn uden for standardfonten i alle tekstveje og bevarer æøå', async () => {
     const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
@@ -711,10 +711,10 @@ describe('pdfWriter tekstgengivelse', () => {
   });
 });
 
-// ─── Sumlinje holdes sammen med sidste post (NY-12c-3) ────────────────────────
+// ─── Sumlinje holdes sammen med sidste post ────────────────────────
 
 describe('pdfWriter sumlinje ved sideskift', () => {
-  // Gengiver brugerblikkets scenarie: 24 poster i «Øvrige krav» efterfulgt af afstand og
+  // Scenarie: 24 poster i «Øvrige krav» efterfulgt af afstand og
   // «I alt». Uanset hvor på siden listen starter, må «I alt» ikke stå alene på en ny side.
   it('placerer «I alt» på samme side som sidste post for enhver startposition', async () => {
     const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');

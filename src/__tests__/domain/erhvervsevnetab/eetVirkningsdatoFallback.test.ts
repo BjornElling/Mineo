@@ -6,7 +6,7 @@ import { collectEetAslAfgoerelseValidationIssues, collectIncompleteRowIssues } f
 import type { AslAfgoerelseRow, ErhvervsevnetabComposedValues, StamdataValues } from '../../../schemas/formSchemas';
 import { toISODateString } from '../../../types/branded';
 
-// BB-368 (udviklerafgørelse 2026-10-29): virkningsdatoen er frivillig. En tom virkningsdato er afgørelsesdatoen, og en
+// Bevidst valg: virkningsdatoen er frivillig. En tom virkningsdato er afgørelsesdatoen, og en
 // indtastet virkningsdato LIG afgørelsesdatoen er præcis det samme som en tom – hele Erhvervsevnetab-siden og
 // EO-importen skal give samme tal, samme linjer og ingen fejl eller advarsel om den ene af de to former.
 
@@ -59,7 +59,7 @@ const snapshot = (virkning: 'tom' | 'lig') => computeEetSnapshot({
   fieldErrors: { stamdata: {}, erhvervsevnetab: {}, faellesAarsloen: {} },
 });
 
-describe('virkningsdato: tom er afgørelsesdatoen (BB-368)', () => {
+describe('virkningsdato: tom er afgørelsesdatoen', () => {
   it('giver Erhvervsevnetab-siden de samme beregninger og linjer for tom og lig afgørelsesdatoen', () => {
     const tom = snapshot('tom');
     const lig = snapshot('lig');

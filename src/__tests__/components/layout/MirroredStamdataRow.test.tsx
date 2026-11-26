@@ -46,7 +46,7 @@ describe('MirroredStamdataRow', () => {
     }
   });
 
-  // BB-464: linket var et `<span onClick>` og kunne slet ikke nås med tastaturet.
+  // Et `<span onClick>` kan slet ikke nås med tastaturet.
   it('Stamdata-genvejen er en tastaturknap, der følger linket med Enter', async () => {
     const user = userEvent.setup();
     const { onNavigate, row } = renderRow({ value: undefined, errorMessage: undefined });

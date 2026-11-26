@@ -11,7 +11,7 @@ import {
 import { BROWSER_LANE_TAG } from './support/lanes';
 
 /**
- * Browser-verifikation af den delte «peg på dette felt»-blinkmarkering (BF-020/BF-021).
+ * Browser-verifikation af den delte «peg på dette felt»-blinkmarkering.
  *
  * **Hvorfor denne test findes ud over integrationstestene.** Suitens integrationstests beviser, at
  * blink-KLASSEN lander på det rigtige element. Det er en anden påstand end den, brugeren mærker:
@@ -430,7 +430,7 @@ test.describe('Blinkmarkeringen males i browseren', () => {
     await clickEoIssueLink(
       page,
       "'Sygeferiegodtgørelse beregnes ud fra' er ikke valgt",
-      // Ved ét ansættelsesforhold hedder linket fanens afsnit; kortets nummer bruges først ved flere (BB-278).
+      // Ved ét ansættelsesforhold hedder linket fanens afsnit; kortets nummer bruges først ved flere.
       'Lønindkomst'
     );
 
@@ -486,9 +486,8 @@ test.describe('Blinkmarkeringen males i browseren', () => {
    * Advarslen om en indtastning, der IKKE FINDES ENDNU.
    *
    * «Der er ikke angivet nogen TAF-periode i EO-perioden» handler om en række, brugeren ikke har
-   * oprettet. Advarslen bar tidligere et rækkeanker på sit eget synthetiske id, og da
-   * `data-mineo-row-id` kun sættes på virkelige tabelrækker, kunne opslaget ikke finde noget: linket
-   * skiftede fane og blinkede intet. Testen hævder den adfærd, brugeren skal opleve – at fra-cellen i
+   * oprettet. Et rækkeanker på advarslens eget syntetiske id finder intet, fordi
+   * `data-mineo-row-id` kun sættes på virkelige tabelrækker: linket ville skifte fane og blinke intet. Testen hævder den adfærd, brugeren skal opleve – at fra-cellen i
    * TAF-tabellens første (tomme) række markeres.
    */
   test('advarsel om manglende TAF-periode blinker fra-cellen i tabellens første række', async ({ page }) => {
@@ -624,7 +623,7 @@ test.describe('Blinkmarkeringen males i browseren', () => {
       await setVerbatimFieldValueAndSettle(tafRow.locator('input').nth(0), '01-01-2020');
       await setVerbatimFieldValueAndSettle(tafRow.locator('input').nth(1), '31-12-2020');
       await enableEetImport(page);
-      // En fejl, der spærrer importen, siger følgen først (BB-357).
+      // En fejl, der spærrer importen, siger følgen først.
       const issueMessage = 'Midlertidigt EET kan ikke hentes fra Erhvervsevnetab-siden: der er en afgørelse uden afgørelsesdato';
       await expect(page.getByText(issueMessage, { exact: true })).toBeVisible();
 
@@ -651,7 +650,7 @@ test.describe('Blinkmarkeringen males i browseren', () => {
       }
     });
 
-    test('ved TAF «Nej» er der ingen EET-import at spærre – fanen forklarer det (BB-360)', async ({
+    test('ved TAF «Nej» er der ingen EET-import at spærre – fanen forklarer det', async ({
       page,
       runtimeErrors,
       runtimeSignals,

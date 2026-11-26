@@ -1,10 +1,9 @@
 /**
  * §7.2's OTTE obligatoriske statekæder som én datadrevet matrix.
  *
- * **Hvad fundet var.** Kun to af de otte kæder havde et egentligt undo/redo-forløb. `ugyldig X → ugyldig Y`
- * og `ugyldig → gyldig` var samlet i én test UDEN undo/redo, og kæderne med tom værdi, bounds-fejl, skjult
- * gyldig værdi og skjult fejl fandtes slet ikke som komplette forløb. Dertil hævdede de eksisterende tests
- * primært canonical/rejected – ikke §7.2's krav om, at *hvert trin* hævder alle ni aspekter.
+ * **Krav.** Hver af de otte kæder er et komplet forløb med undo/redo – også kæderne med tom værdi,
+ * bounds-fejl, skjult gyldig værdi og skjult fejl – og §7.2 kræver, at *hvert trin* hævder alle ni aspekter,
+ * ikke kun canonical/rejected.
  *
  * **Hvorfor en matrix og ikke otte håndskrevne tests.** Fejlen, kæderne findes for at fange, opstår i
  * SAMSPILLET mellem lagene: en undo kan gendanne canonical korrekt og samtidig efterlade et stale issue,
@@ -224,7 +223,7 @@ const snapshot = <T>(
  * Én kæde: en startopsætning, en række navngivne trin og den forventede ni-aspekt-tilstand efter hvert.
  *
  * `expected` er den FULDE tilstand, ikke en delmængde: en delvis forventning ville lade et uhævdet aspekt
- * drifte uset, og det er præcis hullet, fundet beskrev.
+ * drifte uset.
  */
 type Step = Readonly<{ label: string; run: (state: State) => State; expected: Aspects }>;
 

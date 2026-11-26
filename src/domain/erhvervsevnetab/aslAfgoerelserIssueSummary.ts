@@ -34,11 +34,11 @@ export const describeAslAfgoerelseRow = (
 
 /**
  * ALLE røde celler i ASL-afgørelsestabellen som linjer i en fejloversigt – hver med række, kolonne og sin egen celle
- * som mål (BB-406/BB-407, mønster M-50).
+ * som mål.
  *
- * Før førte både EET-fanerne og EO's import af midlertidigt EET kun den FØRSTE fejl videre. Brugeren rettede den,
- * vendte tilbage og blev først da bedt om den næste – og importen skjulte selv den første bag «afgørelsen er ikke
- * gyldigt udfyldt». Tabellen viser i forvejen alle fejlene på deres celler; oversigten skal sige det samme.
+ * Både EET-fanerne og EO's import af midlertidigt EET fører ALLE fejl videre. Ført kun den første videre, skulle
+ * brugeren rette, vende tilbage og først da blive bedt om den næste. Tabellen viser i forvejen alle fejlene på deres
+ * celler; oversigten skal sige det samme.
  *
  * `fieldIssues` er readerens feltfejl efterfulgt af tabellens kryds-række-regler. Højst én linje pr. celle: den
  * første vinder, og en feltfejl går derfor forud for en regel på samme celle – som tooltippet ved cellen.
@@ -67,7 +67,7 @@ export const buildAslAfgoerelserSummaryIssues = (
 
 /**
  * Én feltfejl uden for tabellen som oversigtslinje med feltets navn og konkrete besked. Bruges, hvor en side før
- * kun skrev, AT et felt var ugyldigt («… er ikke gyldigt udfyldt»), mens readeren kendte årsagen (BB-407).
+ * kun skrev, AT et felt var ugyldigt («… er ikke gyldigt udfyldt»), mens readeren kendte årsagen.
  */
 export const buildFieldSummaryIssue = (id: string, issue: FieldIssue): EetIssue => ({
   id,

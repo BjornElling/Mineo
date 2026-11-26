@@ -62,8 +62,8 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
     const grundlag = af.loenudviklingBeregningsgrundlag;
     return [{
       ansaettelsesforholdId: af.id,
-      // Kanonisk navn efter positionen i hele listen; før nummererede overskriften efter de regulerede
-      // ansættelsesforhold alene og skelnede ikke ens navne (BB-466).
+      // Kanonisk navn efter positionen i hele listen, ikke blandt de regulerede ansættelsesforhold alene, så
+      // ens navne skelnes.
       navn: resolveAnsaettelsesforholdNavn(af.navnPaaArbejdssted, kildeIndex, navne),
       kildeLabel: grundlag === 'Overenskomst' ? 'Overenskomst'
         : grundlag === 'Statistik' ? 'Statistikmodel'

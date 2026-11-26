@@ -4,7 +4,7 @@ import { createPdfChannelWriter } from '../../../pdf/infrastructure/pdfWriter';
 import { toISODateString } from '../../../types/branded';
 
 /**
- * NY-12a-2 / NY-12c-1 ende-til-ende mod den RIGTIGE jsPDF: ét tegn uden for standardfontens
+ * Ende-til-ende mod den RIGTIGE jsPDF: ét tegn uden for standardfontens
  * tegnsæt (fx «Ł») får jsPDF til at kode hele strengen som to-byte-tegn, så linjen vises som
  * spredte bogstaver. Testen læser den ukomprimerede PDF-strøm og kræver, at hver tekstlinje
  * er kodet som én byte pr. tegn – også i venstrejusterede tabelceller og brevhovedet.

@@ -91,7 +91,7 @@ const expectMatchesReference = (reference: ReferenceState): void => {
   expect(actual.revision).toBe(reference.revision);
 };
 
-describe('INPUT-001 – canonical settle-no-op efter undo', () => {
+describe('Canonical settle-no-op efter undo', () => {
   it('bevarer redo-fremtiden, revisionen og sessionen ved gentaget aktuel værdi', () => {
     let reference = initialReferenceState();
 

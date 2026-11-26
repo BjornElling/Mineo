@@ -85,7 +85,7 @@ export const assessTafPeriodeRows = (
 
 /**
  * En rød celles egen besked skal med i rækkens linje – undtagen overlappet (én linje pr. tabel) og
- * afskæringen, som periodens samlede besked allerede nævner én gang (BB-244).
+ * afskæringen, som periodens samlede besked allerede nævner én gang.
  */
 const isRowLineIssue = (issue: FieldIssue | undefined): issue is FieldIssue =>
   isRed(issue) && !isPeriodOverlapIssue(issue) && !issue.code.endsWith('.tafCutoff');
@@ -166,11 +166,11 @@ const evaluateOne = (
   combinedExtraMaxDate: ISODateString | undefined,
   context: TafPeriodeBoundsContext
 ): TafPeriodeEvaluation => {
-  // En række med kun løse feriedage er udfyldt: den spærrede før via validatoren med to linjer uden link,
-  // mens rækkebyggeren så den som tom (BB-253).
+  // En række med kun løse feriedage er udfyldt og vurderes her – ellers spærrer validatoren med linjer uden link,
+  // mens rækkebyggeren ser den som tom.
   if (!assessment.isActive) return { kind: 'skip' };
 
-  // Én linje pr. række med rækkens navn og ALLE dens mangler; linket går til den første (BB-253).
+  // Én linje pr. række med rækkens navn og ALLE dens mangler; linket går til den første.
   const dele: Array<Readonly<{ message: string; field: 'fra' | 'til' | 'loseFeriedage' }>> = [];
   // Afskæringen nævnes af periodens samlede besked, men den dannes kun, når begge datoer er læsbare. Mangler
   // den ene, bærer cellens egen afskæringstekst linjen.
@@ -202,7 +202,7 @@ const evaluateOne = (
 
   if (dele.length === 0) {
     // Et rent overlap nævner ikke rækken: de overlappende rækkers linjer er ordret ens og foldes til én pr.
-    // tabel, mens den røde celles tooltip navngiver modparten (BB-218, BB-251).
+    // tabel, mens den røde celles tooltip navngiver modparten.
     return assessment.hasOverlap
       ? {
           kind: 'error',
@@ -223,7 +223,7 @@ const evaluateOne = (
 
 /**
  * Datogrænserne og afskæringen for en række med begge datoer. Cellerne bærer hver sin afskæringsbesked;
- * periodens linje nævner hver afskæring én gang (BB-244).
+ * periodens linje nævner hver afskæring én gang.
  */
 const evaluateRangeAndCutoff = (
   fraISO: ISODateString,

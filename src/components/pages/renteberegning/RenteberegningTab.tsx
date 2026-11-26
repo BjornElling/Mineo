@@ -103,8 +103,8 @@ export interface RenteberegningTabProps {
    * Om appen har `.eo`-filer, som bekræftelsen kan berolige brugeren om.
    *
    * Standalone MinProcesrente har hverken Gem, Hent eller filformat, så sætningen om `.eo`-filer
-   * skabte netop den bekymring, den skulle fjerne: en offentlig besøgende har aldrig set en `.eo`-fil
-   * og kunne kun forstå den som, at han måske havde filer, der kunne tage skade (BB-044).
+   * ville skabe netop den bekymring, den skal fjerne: en offentlig besøgende har aldrig set en `.eo`-fil
+   * og kan kun forstå den som, at han måske har filer, der kan tage skade.
    *
    * Egenskaben er eksplicit frem for udledt af `isMobile`: den ene er en layoutbeslutning, den anden
    * er et spørgsmål om, hvilke begreber appen har.
@@ -154,7 +154,7 @@ const RenteberegningTab = React.memo(({
   const committedRows = React.useMemo(() => readRentekravCommittedRows(evaluation.reader), [evaluation]);
   const beregningsdatoRead = evaluation.reader.read(beregningsdatoRef);
   const beregningsdato = beregningsdatoRead.status === 'usable' ? beregningsdatoRead.value : undefined;
-  // «Indsæt dags dato» må ikke gøre en række rød (M-49): ligger en rentedato efter dags dato, er knappen
+  // «Indsæt dags dato» må ikke gøre en række rød: ligger en rentedato efter dags dato, er knappen
   // inaktiv med datoen i tooltippen, og den indtastede beregningsdato bliver stående.
   const todayIso = React.useMemo(() => getTodayLocalISO(), []);
   const insertTodayDisabledReason = resolveInsertTodayDisabledReason({
@@ -174,8 +174,8 @@ const RenteberegningTab = React.memo(({
   /**
    * Rækkens gate fra definitionen selv – samme `project`, samme kontekst, samme request som klikket.
    *
-   * Teksten SKAL gennem `resolveBlockedGateTooltip`. Her stod før `gate.reasons[0].message`, hvilket omgik
-   * både prioriteringen mellem årsager og klasse→tekst-oversættelsen: rækkeknapperne viste derfor gatens
+   * Teksten SKAL gennem `resolveBlockedGateTooltip`. Et direkte `gate.reasons[0].message` omgår både
+   * prioriteringen mellem årsager og klasse→tekst-oversættelsen: rækkeknapperne ville da vise gatens
    * INTERNE beskeder ("Rentelinjen findes ikke længere", "Stamdata indeholder fejl") direkte til brugeren,
    * i strid med `page-component-contract.md` §11.1.
    */
@@ -316,8 +316,8 @@ const RenteberegningTab = React.memo(({
                   onMouseDown={(event) => event.preventDefault()}
                   disabled={clearAllDisabled}
                   aria-label="Slet alle indtastninger"
-                  // Uden markøren var knappen ikke i Tab-ringen, mens dens nabo «Download samlet
-                  // oversigt» – tegnet ens, i samme rækkeform – var det (BB-047). Markøren er samtidig
+                  // Uden markøren er knappen ikke i Tab-ringen, mens dens nabo «Download samlet
+                  // oversigt» – tegnet ens, i samme rækkeform – er det. Markøren er samtidig
                   // forudsætningen for, at Enter aktiverer knappen; mellemrum virker uden den og kan
                   // derfor skjule manglen. Bemærk at «Slet rækken» bevidst står UDEN for ringen.
                   data-mineo-focusable-button="true"

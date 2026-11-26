@@ -425,8 +425,7 @@ describe('midlertidigt EET transient injection', () => {
   });
 
   // Uden en TAF-periode i EO-perioden er der intet at trække midlertidigt EET fra. Det er ikke en fejl, og
-  // importen må ikke spærre dokumenterne – heller ikke når EET-siden selv har fejl
-  // (udviklerafgørelse 2026-11-04). Før gav det en rød fejl, der spærrede alle fire dokumenter.
+  // importen må ikke spærre dokumenterne – heller ikke når EET-siden selv har fejl.
   it.each([
     ['ingen TAF-perioder', []],
     ['TAF-perioder uden for EO-perioden', [{ id: 'taf-1', fra: iso('2025-02-01'), til: iso('2025-04-30'), loseFeriedage: 0 }]],
@@ -725,13 +724,13 @@ describe('midlertidigt EET transient injection', () => {
     });
 
     expect(snapshot.data).not.toBeNull();
-    // Ingen kildefejl. Den eneste EET-linje er BB-372's gule: togglen henter intet, og afgørelsen er ikke angivet.
+    // Ingen kildefejl. Den eneste EET-linje er den gule om en toggle uden afgørelse: togglen henter intet, og afgørelsen er ikke angivet.
     expect(snapshot.invariants.filter((invariant) => invariant.id.startsWith('midlertidigt_eet_source:')).map((invariant) => invariant.id))
       .toEqual(['midlertidigt_eet_source:midlertidigt-eet-uden-afgoerelse-intet-hentet']);
     expect(snapshot.data?.midlertidigtEetGroups).toEqual([]);
   });
 
-  it('ved før kildeskiftet, om importen henter et fradrag i TAF-perioden (BB-457)', () => {
+  it('ved før kildeskiftet, om importen henter et fradrag i TAF-perioden', () => {
     const tafRanges = buildTafRanges(createValidEoBase(), { skadedatoISO: stamdata.skadedato });
     expect(vilMidlertidigtEetImportGiveFradrag(
       { revision: 'r', eetValues, skadedato: stamdata.skadedato },
@@ -769,7 +768,7 @@ describe('midlertidigt EET transient injection', () => {
     });
 
     expect(snapshot.data).not.toBeNull();
-    // Ingen kildefejl. Den eneste EET-linje er BB-372's gule: togglen henter intet, og afgørelsen er ikke angivet.
+    // Ingen kildefejl. Den eneste EET-linje er den gule om en toggle uden afgørelse: togglen henter intet, og afgørelsen er ikke angivet.
     expect(snapshot.invariants.filter((invariant) => invariant.id.startsWith('midlertidigt_eet_source:')).map((invariant) => invariant.id))
       .toEqual(['midlertidigt_eet_source:midlertidigt-eet-uden-afgoerelse-intet-hentet']);
     expect(snapshot.data?.midlertidigtEetGroups).toEqual([]);
@@ -1002,7 +1001,7 @@ describe('midlertidigt EET transient injection', () => {
     }));
   });
 
-  describe('BB-357: en advarsel fra Erhvervsevnetab-siden fjerner ikke fradraget', () => {
+  describe('en advarsel fra Erhvervsevnetab-siden fjerner ikke fradraget', () => {
     const eoMedToggle = () => ({ ...createValidEoBase(), midlertidigtEetFraEetSiden: 'Ja' as const });
     const eetMedProcent = (eetPct: number): ErhvervsevnetabComposedValues => ({
       ...eetValues,
@@ -1065,7 +1064,7 @@ describe('midlertidigt EET transient injection', () => {
     });
   });
 
-  describe('BB-358: togglen henter intet i TAF-perioden', () => {
+  describe('togglen henter intet i TAF-perioden', () => {
     const INGEN_YDELSER_ID = 'midlertidigt_eet_source:midlertidigt-eet-ingen-ydelser-i-taf';
     const eoMedAfgoerelse = (virkningsdato: string) => ({
       ...createValidEoBase(),
@@ -1120,7 +1119,7 @@ describe('midlertidigt EET transient injection', () => {
     });
   });
 
-  it('importerer en midlertidig afgørelse uden virkningsdato fra afgørelsesdatoen (BB-368)', () => {
+  it('importerer en midlertidig afgørelse uden virkningsdato fra afgørelsesdatoen', () => {
     const udenVirkningsdato: ErhvervsevnetabComposedValues = {
       ...eetValues,
       aslAfgoerelser: eetValues.aslAfgoerelser.map((row) => ({ ...row, virkningsDato: undefined })),

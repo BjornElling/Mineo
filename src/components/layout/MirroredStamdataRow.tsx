@@ -4,20 +4,17 @@ import TextLinkButton from '../inputs/TextLinkButton';
 
 // En SPEJLET stamdata-række: en værdi, siden viser, men som ejes af Stamdata og kun kan rettes dér.
 //
-// Rækken har tre tilstande, og BB-126 handlede om, at den TREDJE mistede sin vej tilbage:
+// Rækken har tre tilstande, og alle fejlgrene skal have en vej tilbage til Stamdata:
 //
 //   1. Værdien findes      → værdien vises.
 //   2. Feltet er tomt      → «Mangler (angiv i Stamdata)» MED klikbart link, der navigerer og blinkmarkerer.
-//   3. Feltet er ugyldigt  → viste før feltets fulde fejltekst UDEN link – altså netop den tilstand, der
-//                            kræver mest af brugeren (en værdi der skal RETTES et andet sted), var den ene
-//                            uden anvisning om hvor.
+//   3. Feltet er ugyldigt  → kort tekst MED samme link – netop den tilstand, der kræver mest af brugeren
+//                            (en værdi der skal RETTES et andet sted), må ikke stå uden anvisning om hvor.
 //
-// Rækken fandtes i seks nær-identiske kopier (to på Forsørgertab, fire på Varige mén), hver med sin egen
-// ternary og sin egen udgave af tilstand 3 – en med `Tooltip` + generisk tekst, en med den rå fejltekst.
-// Derfor er den nu ÉN komponent: tilstandene kan ikke længere drifte fra hinanden, og en syvende række
-// arver den rigtige adfærd frem for den nærmeste nabos.
+// Rækken er ÉN komponent for Forsørgertab og Varige mén, så tilstandene ikke kan drifte fra hinanden, og en
+// ny række arver den rigtige adfærd frem for den nærmeste nabos.
 //
-// Ordlyden i tilstand 3 følger tilstand 2's form efter udviklerens anvisning: kort, med linket til sidst,
+// Ordlyden i tilstand 3 følger bevidst tilstand 2's form: kort, med linket til sidst,
 // frem for den lange «Der er udfyldt en ugyldig værdi i feltet 'Fødselsdato'». Feltets egen fulde tekst
 // er stadig tilgængelig som hover-tekst, så præcisionen ikke går tabt.
 
@@ -28,7 +25,7 @@ export type MirroredStamdataRowProps = Readonly<{
   value: string | undefined;
   /** Feltets egen fejltekst, når værdien er ugyldig. `undefined` = ikke ugyldig. */
   errorMessage: string | undefined;
-  /** Navigerer til Stamdata og blinkmarkerer feltet. Samme handler i begge fejlgrene (BB-126). */
+  /** Navigerer til Stamdata og blinkmarkerer feltet. Samme handler i begge fejlgrene. */
   onNavigate: () => void;
   /** Nedtoning af den forklarende tekst. Rækkerne brugte `text.secondary` og `text.disabled` i flæng. */
   color?: string;
@@ -37,11 +34,10 @@ export type MirroredStamdataRowProps = Readonly<{
 const STAMDATA_LINK_LABEL = 'Stamdata';
 
 /**
- * Linket til Stamdata. Ét sted, så de to grene ikke kan få hver sin markup – det var netop dét, der lod
- * den røde gren miste linket, mens den tomme beholdt det.
+ * Linket til Stamdata. Ét sted, så de to grene ikke kan få hver sin markup – ellers kan den røde gren
+ * miste linket, mens den tomme beholder det.
  *
- * Linket var et `<span onClick>` og kunne derfor slet ikke nås med tastaturet (BB-464). Som
- * `TextLinkButton` er det en native knap i Containerens Tab-ring, der aktiveres med Enter og mellemrum.
+ * Et `<span onClick>` kan slet ikke nås med tastaturet. Som `TextLinkButton` er det en native knap i Containerens Tab-ring, der aktiveres med Enter og mellemrum.
  */
 const StamdataLink = ({ onNavigate }: Readonly<{ onNavigate: () => void }>) => (
   <TextLinkButton placement="inline" onClick={onNavigate}>

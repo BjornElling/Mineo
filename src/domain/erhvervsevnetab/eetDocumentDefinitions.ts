@@ -224,7 +224,7 @@ export type DifferencekravDocumentInput = Readonly<{
  *
  * Samme model som Erstatningsopgørelsens `resolveBilagSelection`. Uden den kunne et valg, brugeren
  * traf i en sag med kapitaliseringer, blive gemt og senere gælde i en sag uden – og dokumentet ville
- * da udelade bilaget tavst, mens afkrydsningsfeltet stod markeret (BB-188).
+ * da udelade bilaget tavst, mens afkrydsningsfeltet stod markeret.
  */
 const resolveDifferencekravBilagSelection = (
   projection: ErhvervsevnetabReaderProjection,

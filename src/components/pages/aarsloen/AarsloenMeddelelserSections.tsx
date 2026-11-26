@@ -24,7 +24,7 @@ const ROW_SX = {
 } as const;
 
 /**
- * «Fejl og advarsler» – magen til de øvrige siders boks (BB-350, udviklerafgørelse 2026-10-27).
+ * «Fejl og advarsler» – magen til de øvrige siders boks (bevidst valg).
  *
  * ALLE blokerende fejl og mangler står her: feltfejl, manglende overenskomstforudsætninger, lønrækkernes
  * cellefejl, en kritisk beregningsfejl og et afbrudt dokument. Ved felterne er der kun rød ring og tooltip. Boksen

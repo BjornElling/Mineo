@@ -41,8 +41,8 @@ const buildTafFerieFravaerLinje = (
   if (summary.totalFeriedage <= 0) return null;
 
   const periodTexts = summary.ferieperioder.map((range) => `${formatDateShort(range.fra)} - ${formatDateShort(range.til)}`);
-  // «I perioden blev der afholdt ferie i perioden …» sagde «i perioden» to gange om to forskellige perioder
-  // (BB-256); ferieperioderne står nu direkte efter «ferie».
+  // Ferieperioderne står direkte efter «ferie»; «… afholdt ferie i perioden …» ville ellers sige «i perioden»
+  // to gange om to forskellige perioder.
   const periodPart = periodTexts.length === 0
     ? null
     : `ferie ${formatDanishList(periodTexts)}`;
@@ -68,12 +68,12 @@ export const buildSvieSmerteModel = (
 ): SvieSmerteSectionPresentation => {
   const beregnes = values.kravPaaSvieSmerteGodtgoerelse === 'Ja' && values.tidligereSsMax === 'Nej';
   const skjul = values.kravPaaSvieSmerteGodtgoerelse === 'Skjul';
-  // «Der rejses ikke krav» og «kravet er udtømt» er to forskellige juridiske udsagn; dokumentet
-  // gengav dem begge som ordet «Ingen» (BB-221). Årsagen bæres derfor med.
+  // «Der rejses ikke krav» og «kravet er udtømt» er to forskellige juridiske udsagn og må ikke begge
+  // gengives som «Ingen». Årsagen bæres derfor med.
   //
   // Den udtømte ramme har to veje – brugerens egen afkrydsning og programmets beregning ud fra et
   // indtastet beløb, der æder hele maksimum. De er beregningsteknisk og forventningsmæssigt samme
-  // tilstand og får derfor samme årsag og samme sætning i papiret (BB-219).
+  // tilstand og får derfor samme årsag og samme sætning i papiret.
   const maksimumOpbrugt = erSvieSmerteMaksimumOpbrugt(values, options.engine.maksimumOpbrugtFoerPerioden);
   const ingenBeloebAarsag: SvieSmerteIngenBeloebAarsag | null = maksimumOpbrugt
     ? 'maksimumOpbrugt'
@@ -112,11 +112,11 @@ export const buildSvieSmerteModel = (
     // (`erVarigeMenAfgoerelseAktiv`). I denne gren er feltet altså skjult og dermed pr. definition
     // ikke udfyldt, så en stale «Ja» må ikke tale: papiret skrev ellers «Der er ikke truffet
     // afgørelse om varige mén. Afgørelsen er påklaget.» – en sætning, der modsiger sig selv om en
-    // afgørelse, der ikke findes (BB-222's regel).
+    // afgørelse, der ikke findes. Reglen: et skjult felt er ikke udfyldt.
     statusLinjer.push(`Der er den ${dato} ikke truffet afgørelse om varige mén.`);
   } else if (varigeMenAfgorelse === 'Ja') {
     // Uden dato er afgørelsen stadig truffet og skal oplyses – med sin klage, som netop forklarer, hvorfor
-    // svie/smerte løber videre. Samme form som de datoløse EET-linjer nedenfor (BB-241).
+    // svie/smerte løber videre. Samme form som de datoløse EET-linjer nedenfor.
     const tekst = menDato
       ? `Der er den ${formatDateLong(menDato)} truffet afgørelse om varige mén.`
       : 'Der er truffet afgørelse om varige mén.';
@@ -167,14 +167,14 @@ export const buildSvieSmerteModel = (
     : asCalculable(engine.satserMaxFoerForligOre);
   // Et indtastet 0 er IKKE et svar for "opgjort i tidligere opgørelser": samme prøve som advarslen
   // i eoRowSvieSmerteRows (`> 0`), fordi brugeren ved tvivl taster 0. Uden spejlingen ville papiret
-  // trykke "med 0 kr." om et beløb, skærmen samtidig siger mangler (BB-220). Beløbsmæssigt er det
+  // trykke "med 0 kr." om et beløb, skærmen samtidig siger mangler. Beløbsmæssigt er det
   // uden virkning: 0 fradrages ikke i maksimum.
   const tidligere: Calculable<MoneyOre> = engine.tidligereOre === null || engine.tidligereOre <= zeroMoneyOre()
     ? notCalculableMoney('Ikke angivet')
     : asCalculable(engine.tidligereOre);
   // Et modtaget beløb på 0 er intet fradrag. Uden prøven trykte papiret «á 230 kr. - 0 kr. =» og «Der er
-  // tidligere modtaget 0 kr. for denne periode.», mod den fælles fortegnsregel (BB-129/BB-130), som TAF-linjen
-  // nedenfor følger (værdiklasse-gennemgangen 2026-11-24). Beløbsmæssigt uden virkning: 0 fradrager intet.
+  // tidligere modtaget 0 kr. for denne periode.», mod den fælles regel om, at et nul ikke vises som fradrag,
+  // som TAF-linjen nedenfor følger. Beløbsmæssigt uden virkning: 0 fradrager intet.
   const aktuel: Calculable<MoneyOre> = engine.aktuelOre === null || engine.aktuelOre <= zeroMoneyOre()
     ? notCalculableMoney('Ikke angivet')
     : asCalculable(engine.aktuelOre);
@@ -223,7 +223,7 @@ const buildTafPerioderLinjer = (
   if (nonEmpty.length === 0) return [];
 
   // En periode uden én arbejdsdag indgår ikke i regnestykket i arbejdsdage; papiret siger det frem for at
-  // liste den som krævet uden at regne på den (BB-257).
+  // liste den som krævet uden at regne på den.
   const visIngenArbejdsdage = computeTafBeregningsenhed(values) === TAF_BEREGNES_SOM.ARBEJDSDAGE;
   const lines: string[] = [];
   for (const range of tafRanges) {
@@ -289,7 +289,7 @@ export const buildTabtArbejdsfortjenesteModel = (
   const eetLinjer: string[] = [];
 
   // Klagefeltet læses gennem sin egen synlighed: er det skjult, er det ikke udfyldt, og en stale
-  // «Ja» må ikke kunne slukke en TAF-afgrænsning (BB-222's regel). Her er `midlertidigtEETAfgorelse
+  // «Ja» må ikke kunne slukke en TAF-afgrænsning. Her er `midlertidigtEETAfgorelse
   // === 'Ja'` i forvejen et af de to vilkår, der gør feltet synligt, så guarden ændrer intet i
   // praksis – den gør afhængigheden eksplicit, så prædikatet ikke kan drive fra feltets synlighed.
   const klageEetAngivet = erEETKlageRelevant(values) && values.verserendeKlageEet === 'Ja';
@@ -351,7 +351,7 @@ export const buildTabtArbejdsfortjenesteModel = (
 
   const differencekravLinjeBase = values.differencekravDato
     // «pr.»: datoen er den, kravet er opgjort PR. (feltet «Evt. differencekrav opgjort per»), ikke den
-    // dag, det blev udregnet, som programmet ikke kender (BB-245).
+    // dag, det blev udregnet, som programmet ikke kender.
     ? `Der er opgjort differencekrav i sagen pr. ${formatDateLong(values.differencekravDato)}.`
     : null;
   const differencekravReferenceDato = values.differencekravDato;
@@ -369,7 +369,7 @@ export const buildTabtArbejdsfortjenesteModel = (
     midlertidigEetErTafRelevant && harTafDagenFoer(midlertidigEetReferenceDato);
   const differencekravBringTilOphoer = harTafDagenFoer(differencekravReferenceDato);
 
-  // Valget mellem kandidaterne deles med EO-kontrollens «TAF-ophør skyldes» (BB-425).
+  // Valget mellem kandidaterne deles med EO-kontrollens «TAF-ophør skyldes».
   const ophoersgrundKandidater: Array<Readonly<{ kilde: TafCutoffKilde; referenceDato: ISODateString }>> = [];
   if (differencekravBringTilOphoer && differencekravReferenceDato) {
     ophoersgrundKandidater.push({ kilde: 'differencekrav', referenceDato: differencekravReferenceDato });
@@ -420,12 +420,11 @@ export const buildTabtArbejdsfortjenesteModel = (
     const dato = formatDateLong(values.opgørelseLavetDen);
     // Klagefeltet er skjult, når INGEN EET-afgørelse er truffet (`erEETKlageRelevant`) – og det er
     // netop denne gren. En stale «Ja» gav ellers «Der er ikke truffet afgørelse … Afgørelsen er
-    // påklaget.» Samme selvmodsigelse som ménlinjen ovenfor (BB-222's regel).
+    // påklaget.» Samme selvmodsigelse som ménlinjen ovenfor.
     eetLinjer.push(`Der er den ${dato} ikke truffet afgørelse om erhvervsevnetab med 15 % eller derover.`);
   }
 
-  // Klageforbeholdet kræver en dateret afgørelse – samme vilkår, som gjaldt, da det stod under «Øvrige
-  // krav» (BB-233).
+  // Klageforbeholdet kræver en dateret afgørelse.
   const harDateretEetAfgoerelse =
     (values.midlertidigtEETAfgorelse === 'Ja' &&
       (values.midlertidigEETVirkningsdato !== undefined || values.midlertidigEETAfgoerelseDato !== undefined)) ||
@@ -484,8 +483,8 @@ export const buildOevrigeKravModel = (
   for (const row of parsed.rows) {
     const dateText = row.original.dato ? formatDateShort(row.original.dato) : '';
     const udgiftTil = (row.original.udgiftTil ?? '').trim();
-    // Datoen er valgfri (BB-229): en udateret post trykkes uden datopræfiks. Før blev den sprunget over i
-    // listen, men lagt med i «I alt», så papiret kunne vise en total, der var større end sine linjer.
+    // Datoen er valgfri: en udateret post trykkes uden datopræfiks. Ellers ville den mangle i listen, men
+    // indgå i «I alt», så papiret viste en total, der var større end sine linjer.
     // En post uden «Udgift til» blokerer download (`assessOevrigeKravRow`) og når derfor aldrig papiret.
     if (udgiftTil === '') continue;
     entries.push({ dateText, udgiftTil, amountOre: row.amountOre });

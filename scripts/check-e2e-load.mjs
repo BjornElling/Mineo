@@ -6,8 +6,8 @@
  * vælter hele kørslen i alle projekter. Fejlklassen er modul-niveau: en import, Node's egen
  * ESM-loader afviser (fx en JSON-import uden `with { type: 'json' }` efter `"type": "module"`), en
  * forkert sti eller en kaster i top-level-kode. Hverken `tsc` eller Vitest ser det, fordi ingen af
- * dem indlæser spec-filerne med Playwrights loader – så uden denne vagt landede fejlen først i
- * E2E-jobbene efter release-gaten (skete 2026-10-12).
+ * dem indlæser spec-filerne med Playwrights loader – så uden denne vagt lander fejlen først i
+ * E2E-jobbene efter release-gaten.
  *
  * `playwright test --list` indlæser præcis som en rigtig kørsel, men uden browsere og webserver, og
  * tager få sekunder. Vagten kræver både exitkode 0 og mindst én fundet test, så en tom liste ikke

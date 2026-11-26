@@ -41,7 +41,7 @@ export type LoenudviklingManuelTableProps = Readonly<{
   committedRows: readonly LoenudviklingManuelRow[];
   /** Projekterede celleregler (dato før basisdatoen, dublet-dato) – rød ring på cellen. */
   ruleIssues: FieldIssueSet;
-  /** Gule celler: ingen ændringer i lang tid, en grundløn over ti gange rækken før (BB-302, BB-313). */
+  /** Gule celler: ingen ændringer i lang tid, en grundløn over ti gange rækken før. */
   cellWarnings?: ReadonlyMap<SerializedFieldAddress, FieldWarning>;
   baseDateDisplay: string;
   baseDateISO?: string;
@@ -113,7 +113,7 @@ export default function LoenudviklingManuelTable({
   // programstyret. Datoen må aldrig falde tilbage til en redigerbar placeholder.
   const visibleBaseRowId = resolveManualRegulationBasisRowId(committedRows, orderedRows);
   // Kolonnen er et INDTASTNINGSFELT for satsen og bærer derfor feltets generiske navn, der ikke skifter med
-  // indtastningen (`feriepenge-begreber-contract.md` §2a) – ikke fællesbetegnelsen «Feriepenge», som den hed før.
+  // indtastningen (`feriepenge-begreber-contract.md` §2a) – ikke fællesbetegnelsen «Feriepenge».
   // Navnet er descriptorens, så tabelhoved og feltfejl ikke kan kalde samme celle to ting; linjeskiftet
   // er ren layout for den 140 px brede kolonne, præcis som i løntabellens overskrifter.
   const headers = [

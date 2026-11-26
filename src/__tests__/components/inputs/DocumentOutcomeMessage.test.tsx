@@ -2,13 +2,12 @@
 //
 // Den kanoniske visning af et dokumentudfald.
 //
-// Otte dokumentførende flader aktiverede en download uden nogensinde at rendere hookens besked, så et
-// stale-afbrud eller en død DEV-server var lydløs: brugeren klikkede på en aktiv knap, fik ingen fil og ingen
-// forklaring. Samtidig fandtes den samme fejlrække i fem forskellige udgaver på de flader, der huskede den.
-// Komponenten er det ene sted, rækken nu bygges.
+// Komponenten er det ene sted, en dokumentflades udfaldsrække bygges. En flade, der aktiverer en download
+// uden at rendere hookens besked, gør et stale-afbrud eller en død DEV-server lydløs: brugeren klikker på en
+// aktiv knap og får hverken fil eller forklaring.
 //
 // Den modsatte grænse er lige så vigtig og pinnes nedenfor: en GATE-blokering må ikke nå rækken. En
-// deaktiveret knap svarer aldrig med tekst – tooltippet ejer årsagen (udviklerbeslutning 2026-07-31).
+// deaktiveret knap svarer aldrig med tekst – tooltippet ejer årsagen (bevidst valg).
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { render, screen } from '@testing-library/react';
@@ -91,7 +90,7 @@ describe('DocumentOutcomeMessage', () => {
   });
 
   /**
-   * Den universelle regel (udviklerbeslutning 2026-07-31): en deaktiveret download-knap svarer ALDRIG med
+   * Den universelle regel: en deaktiveret download-knap svarer ALDRIG med
    * tekst. Gate-årsagen har én kanal – knappens tooltip ved hover.
    *
    * Værnet ligger på beskedlaget frem for på en enkelt flade, fordi det er dér, reglen er ét sted:
@@ -143,9 +142,9 @@ describe('DocumentOutcomeMessage', () => {
   });
 
   it('markerer beskeden som fejl med fejlklassen, der faktisk slår rækketekstens farve', () => {
-    // Før: `sx={{ color: 'error.main' }}` gav en emotion-klasse med én klasses specificitet, som tabte til
-    // `.MuiTypography-root.row--text` (to klasser) – teksten stod i almindelig sort (M-21). Den gamle test målte
-    // kun, at der fandtes en klasse. Nu bærer teksten modifikatoren, og stylesheetet skal have en regel for den
+    // `sx={{ color: 'error.main' }}` giver en emotion-klasse med én klasses specificitet, som taber til
+    // `.MuiTypography-root.row--text` (to klasser) – teksten ville stå i almindelig sort. Det er derfor ikke nok
+    // at måle, at der findes en klasse: teksten bærer modifikatoren, og stylesheetet skal have en regel for den
     // med mindst samme specificitet som rækketekstens farve.
     render(<DocumentOutcomeMessage message="En fejl" />);
     const text = screen.getByTestId('document-outcome-message').querySelector('.row--text');

@@ -9,7 +9,7 @@ import {
 
 describe('stamdataCalculations', () => {
   it('bruger Skadedato som sikker standard, når skadestypen mangler', () => {
-    // BB-121: referencen bærer alle former, så skadestype-afledt tekst ("på skadestidspunktet",
+    // Referencen bærer alle former, så skadestype-afledt tekst ("på skadestidspunktet",
     // "Regulering fra skadesår", "Skaden er sket før …") bøjes ét sted frem for i hvert kaldssted.
     expect(resolveStamdataDatoReference(undefined)).toEqual({
       kind: 'skadedato',

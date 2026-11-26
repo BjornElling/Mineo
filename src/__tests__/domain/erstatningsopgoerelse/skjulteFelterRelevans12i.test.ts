@@ -33,7 +33,7 @@ import type {
   SygeferiegodtgoerelseAnsaettelsesforholdRow,
 } from '../../../schemas/formSchemas';
 
-// Brugerblik 12i: felter, der er skjult på Lønindkomst-fanen, er ikke udfyldt (BB-222/BB-228). Descriptorens
+// Felter, der er skjult på Lønindkomst-fanen, er ikke udfyldt. Descriptorens
 // `relevance` giver alle læsere tomværdien, ingen rød ring og ingen spærring – og værdien bevares og kommer
 // tilbage, når feltet vises igen. Testene går gennem den rigtige reader og den rigtige projektion.
 
@@ -168,7 +168,7 @@ const linjerMed = (result: ReturnType<typeof project>, tekst: string): readonly 
 
 const sfggProjected = (result: ReturnType<typeof project>) => result.projection.eoValues.sfggAnsaettelsesforhold[0];
 
-describe('skjulte felter på Lønindkomst-fanen (brugerblik 12i)', () => {
+describe('skjulte felter på Lønindkomst-fanen', () => {
   describe('sygeferiegodtgørelsens felter', () => {
     it('skjuler referenceperioden bag «Manuelt angivet»: ingen rød ring, ingen spærring, tom for læserne', () => {
       // En omvendt referenceperiode og 400 fraværsdage er røde, når felterne vises.
@@ -326,7 +326,7 @@ describe('skjulte felter på Lønindkomst-fanen (brugerblik 12i)', () => {
         'Referenceperiode fra-dato mangler',
         'Referenceperiode til-dato mangler',
       ]));
-      // Boksen viser én linje pr. dato med feltets navn – ikke validatorens to linjer uden link (BB-369).
+      // Boksen viser én linje pr. dato med feltets navn – ikke validatorens to linjer uden link.
       expect(linjerMed(result, 'Datoen er ikke udfyldt')).toEqual([
         'Referenceperiode, fra: Datoen er ikke udfyldt',
         'Referenceperiode, til: Datoen er ikke udfyldt',

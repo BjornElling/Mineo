@@ -7,7 +7,7 @@
 invariant-klassificering, snapshot-livscyklus og projektionsgarantier i EO-domænet.
 
 **Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (herunder `form-contract.md`, `domain-boundary-contract.md`, `persistence-contract.md` og `snapshot-contract.md`), som alle går forud ved konflikt.
-**Senest verificeret mod kode:** 2026-11-25
+**Senest verificeret mod kode:** 2026-11-26
 
 ---
 
@@ -539,7 +539,7 @@ Heraf følger:
 
 Dækket af `eoInspektionTafAfskaering.test.ts` (inkl. tabellens egen afgrænsning af uafgrænsede TAF-perioder),
 `eoInspektionKontrolModelMenStopIndependent.test.ts` (ménafskæringen mod motorens opslag) og
-`e2e/kontroltabel-brugerblik-12m.spec.ts`.
+`e2e/kontroltabel-browseradfaerd.spec.ts`.
 
 ---
 

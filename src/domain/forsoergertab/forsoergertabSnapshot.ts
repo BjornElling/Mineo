@@ -39,7 +39,7 @@ export type ForsoergertabSnapshotInput = Readonly<{
   stamdata: StamdataValues | null;
   fieldErrors: ForsoergertabFieldErrors;
   /**
-   * Feltets brugervendte navn i den aktuelle kontekst (BB-117 + §3.2a) – i praksis `InputReader.labelOf`.
+   * Feltets brugervendte navn i den aktuelle kontekst (§3.2a) – i praksis `InputReader.labelOf`.
    *
    * PÅKRÆVET, fordi et felt kan have en KONTEKSTUEL label: `stamdata.skadedato` hedder «Anmeldelsesdato»
    * ved en erhvervssygdom. Snapshottet slår navnet op frem for at bygge feltrefs uden kontekst.
@@ -96,7 +96,7 @@ const usesAslAarsloenFallback = (ealAarsloen: FaellesAarsloenValues['ealAarsloen
   return !(typeof value === 'number' && Number.isFinite(value) && value > 0);
 };
 
-// Teksten ejes af det DELTE årslønsfelt (BB-124), ikke af denne flade – en kopi her ville genindføre
+// Teksten ejes af det DELTE årslønsfelt, ikke af denne flade – en kopi her ville genindføre
 // præcis den drift, konsolideringen lukkede.
 const EAL_AARSLOEN_ASL_MAX_NOTICE = ASL_AARSLOEN_MAX_NOTICE;
 
@@ -135,7 +135,7 @@ export type ForsoergertabPdfProjection = Readonly<{
     beregningsdato: ISODateString | undefined;
     skadelidteFodselsdato: ISODateString | undefined;
     /**
-     * Sagens dato + dens skadestype-afledte navn (BB-122/BB-121).
+     * Sagens dato + dens skadestype-afledte navn.
      *
      * Begge kommer HERFRA og ikke fra dokumentets brevhoved-stamdata: brevhovedet projiceres kun, når
      * brugeren har slået det til, mens dokumentets «Grundlæggende oplysninger» altid skal kunne trykke
@@ -186,7 +186,7 @@ export type ForsoergertabSnapshot = Readonly<{
    */
   ealAarsloenNotice: string | undefined;
   /**
-   * Motorens beregningsafvisende issues som ægte `FieldIssue`s med feltadresse (BB-117). Feltet slår sit
+   * Motorens beregningsafvisende issues som ægte `FieldIssue`s med feltadresse. Feltet slår sit
    * eget issue op på sin adresse og viser det som `crossFieldIssue` – samme vej som enhver anden
    * kryds-felt-regel. Uden denne kanal var beskeden død kode, og en afvist ASL-beregning forsvandt tavst.
    */
@@ -215,7 +215,7 @@ const hasIssue = (
 
 /**
  * Ingen af forsørgertab-blokeringerne citeres ordret – begge beskeder er gate-interne. De skelnes til
- * gengæld på KLASSE efter brugerkravet 2026-07-30: manglende input til en PDF-klar del er `missing-input`
+ * gengæld på KLASSE: manglende input til en PDF-klar del er `missing-input`
  * ("Indtastning mangler"), mens et rødt nødvendigt felt er `invalid-input` ("Fejl i indtastning"). `message`
  * bevares som den interne forklaring, som koder og tests skelner på.
  */
@@ -271,7 +271,7 @@ export const computeForsoergertabSnapshot = (input: ForsoergertabSnapshotInput):
   })();
 
   /**
-   * ASL-ydelsen er påbegyndt, når mindst ét af de fire felter under «ASL-ydelse» er udfyldt (BB-404).
+   * ASL-ydelsen er påbegyndt, når mindst ét af de fire felter under «ASL-ydelse» er udfyldt.
    *
    * Kønnet tæller bevidst IKKE med. Det stod før på listen, og et kønsvalg i en ren EAL-sag gjorde derfor
    * ASL «påbegyndt-men-ufuldstændig»: downloaden blev spærret med «Indtastning mangler», selv om EAL-kravet
@@ -287,7 +287,7 @@ export const computeForsoergertabSnapshot = (input: ForsoergertabSnapshotInput):
   );
 
   // Kønnet vises og kræves kun, hvor ASL-kapitaliseringen bruger det: en påbegyndt ASL-ydelse med
-  // beregningsdato før 1. marts 2015 (BB-404). Et tidligere valg bevares og vises igen, når det bliver relevant.
+  // beregningsdato før 1. marts 2015. Et tidligere valg bevares og vises igen, når det bliver relevant.
   const visKoenValg = (() => {
     const beregningsdato = coerceToISODateString(values.beregningsdato);
     return hasAnyAslInput && beregningsdato !== undefined && beregningsdato < SKAERING_2015_03_01;
@@ -319,7 +319,7 @@ export const computeForsoergertabSnapshot = (input: ForsoergertabSnapshotInput):
       'forsoergertab-faktor-unresolved',
     ]),
     virkningsdato: getIssueMessage(calculation.issues, ['beregningsdato-before-virkningsdato']),
-    // Uden påbegyndt ASL-ydelse er et manglende køn ikke en mangel (BB-404); ellers ville feltet vises
+    // Uden påbegyndt ASL-ydelse er et manglende køn ikke en mangel; ellers ville feltet vises
     // igen af `koenFieldHasError` i en ren EAL-sag.
     koen: hasAnyAslInput ? getIssueMessage(calculation.issues, ['missing-koen']) : undefined,
     tilkendtForPeriodeAar: getIssueMessage(calculation.issues, ['tilkendt-for-periode-invalid']),
@@ -407,7 +407,7 @@ export const computeForsoergertabSnapshot = (input: ForsoergertabSnapshotInput):
   ].some((error) => Boolean(error?.message));
   /**
    * Fail-closed: ETHVERT error-issue fra motoren blokerer downloaden – ikke kun de fem, en allowlist
-   * tidligere navngav (BB-117).
+   * tidligere navngav.
    *
    * Allowlisten var fail-OPEN, og det er den fejlklasse, fundet handlede om: `forsoergertab-alder-missing`
    * og fem søskende (`forsoergertab-tabel-missing`, `-tabel-rows-missing`, `-faktor-unresolved`,
@@ -429,7 +429,7 @@ export const computeForsoergertabSnapshot = (input: ForsoergertabSnapshotInput):
     (issue) => issue.severity === 'error' && !FORSOERGERTAB_MISSING_INPUT_ISSUE_IDS.has(issue.id)
   );
   /**
-   * Blokeringens KLASSE er en anden beslutning end blokeringen selv (brugerkravet 2026-07-30).
+   * Blokeringens KLASSE er en anden beslutning end blokeringen selv.
    *
    * Et issue om noget, brugeren ikke har udfyldt endnu, er «Indtastning mangler» – ikke «Fejl i
    * indtastning». Sondringen bæres af en eksplicit liste af manglende-input-id'er frem for af
@@ -464,7 +464,7 @@ export const computeForsoergertabSnapshot = (input: ForsoergertabSnapshotInput):
     if (hasDownloadBlockingFieldError) {
       reasons.push(createInvalidInputBlockingReason('blocking-input-error', 'Et eller flere nødvendige felter har blokerende fejl.'));
     } else if (hasBlockingDomainIssue) {
-      // Fail-closed (BB-117): et beregningsafvisende issue, som IKKE er en af de konkrete inputfejl
+      // Fail-closed: et beregningsafvisende issue, som IKKE er en af de konkrete inputfejl
       // ovenfor, blokerer stadig – blot som «Indtastning mangler». Uden denne gren kunne fx en manglende
       // kapitaliseringsbekendtgørelse nulle hele ASL-halvdelen, mens dokumentet blev hentet uden den.
       reasons.push(createMissingInputBlockingReason('unresolved-calculation', 'Beregningen kunne ikke gennemføres for den aktuelle sag.'));
@@ -476,11 +476,11 @@ export const computeForsoergertabSnapshot = (input: ForsoergertabSnapshotInput):
       reasons.push(createMissingInputBlockingReason('partial-asl-input', 'Alle felter under ASL-ydelse skal udfyldes, når ASL-ydelsen er påbegyndt.'));
     }
     /**
-     * M-25: gaten skal spørge «findes DET, brugeren bad om?», ikke «findes der noget?».
+     * Gaten skal spørge «findes DET, brugeren bad om?», ikke «findes der noget?».
      *
      * En komplet udfyldt ASL-halvdel, som motoren har AFVIST, må ikke kunne trykkes som et dokument, der
      * kun indeholder EAL-kravet – det ser ud præcis som en sag, hvor brugeren med vilje kun regnede
-     * EAL-delen, og kravet fremstår da mange gange for stort (BB-117). `partial-asl-input` ovenfor dækker
+     * EAL-delen, og kravet fremstår da mange gange for stort. `partial-asl-input` ovenfor dækker
      * kun TOMME felter; denne gren dækker de udfyldte, der ikke blev til noget.
      *
      * `hasMissingCommonInput` holdes uden for: mangler beregningsdatoen, er ASL-delen ikke «afvist» men

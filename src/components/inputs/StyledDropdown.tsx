@@ -938,7 +938,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
                 onMouseEnter={() => setHighlightedIndex(index)}
               >
                 {/* En deaktiveret option har ingen typeahead-label (`visualOptionLabels` er tom), så dens egen
-                    markup vises – ellers blev en ikke-valgbar oplysningslinje en tom række (BB-435). */}
+                    markup vises – ellers bliver en ikke-valgbar oplysningslinje en tom række. */}
                 {opt.kind === 'empty'
                   ? <em style={{ color: 'var(--mineo-color-dropdown-option-placeholder)' }}>{placeholder}</em>
                   : getOptionLabel && !opt.disabled

@@ -27,12 +27,11 @@ const clipTo = (rows: readonly FerieperiodeRow[], ranges: readonly Range[]): Fer
  * De ferieperioder, lønnen fordeles efter i arbejdsdage – hver tabel KUN i sin egen periode: «Ferie i
  * beregningsperioden» i beregningsperioden og TAF-afsnittets «Evt. ferie i TAF-perioden» i TAF-perioderne.
  *
- * Før blev de to tabeller lagt sammen over hele tidslinjen. En TAF-ferie dateret i (eller lige før) en
- * beregningsperiode efter skaden ændrede da, hvordan en lønrække blev fordelt i beregningsperioden, mens
- * nævneren (`calculateTafArbejdsdageBreakdown`) kun fradrog beregningsperiodens egen ferie: dagsindkomsten
- * flyttede sig, uden at antallet af arbejdsdage gjorde, og programmets kontrol meldte uoverensstemmelse
- * (udviklerafgørelse 2026-10-02, opfølgning på BB-261). TAF-afsnittets ferie fradrages heller ikke andre steder
- * end i TAF-perioderne (BB-249), så fordelingen følger nu samme ramme.
+ * De to tabeller må ikke lægges sammen over hele tidslinjen. En TAF-ferie dateret i (eller lige før) en
+ * beregningsperiode efter skaden ville da ændre, hvordan en lønrække fordeles i beregningsperioden, mens
+ * nævneren (`calculateTafArbejdsdageBreakdown`) kun fradrager beregningsperiodens egen ferie: dagsindkomsten
+ * flytter sig, uden at antallet af arbejdsdage gør, og programmets kontrol melder uoverensstemmelse.
+ * TAF-afsnittets ferie fradrages heller ikke andre steder end i TAF-perioderne, så fordelingen følger samme ramme.
  */
 export const resolveIndkomstFerieperioder = (values: IndkomstFerieperioderInput): readonly FerieperiodeRow[] => {
   const tafRanges = mergeIsoDateRanges(

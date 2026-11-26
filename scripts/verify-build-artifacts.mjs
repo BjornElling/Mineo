@@ -89,7 +89,7 @@ if (variant === 'mineo') {
 
   // Dokument-writernes vendorer (PDF/Word) må kun hentes ved download. Ligger et lille delt modul i
   // en af deres chunks, importerer entry'en fra den, og hele vendoren hentes og evalueres ved hver
-  // opstart – sådan var det med jsPDF, før Vites preload-hjælper og Babels hjælpere fik egne chunks.
+  // opstart. Derfor har fx Vites preload-hjælper og Babels hjælpere egne chunks (se `vite.config.ts`).
   const staticEntryFiles = new Set();
   const pendingKeys = ['index.html'];
   while (pendingKeys.length > 0) {

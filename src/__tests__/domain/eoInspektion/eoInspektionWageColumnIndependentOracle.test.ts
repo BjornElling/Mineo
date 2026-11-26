@@ -40,13 +40,13 @@ const createBelobModeValues = (): ErstatningsopgoerelseValues => {
 
   values.vedroererPeriodeFra = date;
   values.vedroererPeriodeTil = date;
-  // Lønkolonnerne findes kun med TAF-krav (BB-388); TAF-dagene er tomme, fordi testen ikke giver TAF-perioder.
+  // Lønkolonnerne findes kun med TAF-krav; TAF-dagene er tomme, fordi testen ikke giver TAF-perioder.
   values.kravPaaTabtArbejdsfortjeneste = 'Ja';
   values.loenindkomstAnsaettelsesforhold = [employment];
   return values;
 };
 
-describe('CALC-006 – uafhængigt inspection-kolonnefacit for Beløb-tilstand', () => {
+describe('uafhængigt inspection-kolonnefacit for Beløb-tilstand', () => {
   it('viser direkte tillægsbeløb i lønkolonnerne og summerer rækken uden satser', () => {
     const date = iso('2024-01-08');
     const model = buildEOInspektionModel(createBelobModeValues(), { tafRanges: [] });

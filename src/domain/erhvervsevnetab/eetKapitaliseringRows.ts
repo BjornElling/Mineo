@@ -30,11 +30,11 @@ import { toKroner } from '../money/money';
  * bæres derfor som en egen række-`kind`, som hver forbruger renderer.
  *
  * To tidligere options er FJERNET, fordi divergensen selv var fundet: særfaktor-etiketten skrev `<` i
- * UI'en og `≤` i dokumentet om samme regel (BB-172), og reguleringsdatoen stod i lang form på skærmen
- * og kort form i dokumentet (BB-176). Begge er nu delte konstanter/formater. Indfør dem ikke igen –
+ * UI'en og `≤` i dokumentet om samme regel, og reguleringsdatoen stod i lang form på skærmen
+ * og kort form i dokumentet. Begge er nu delte konstanter/formater. Indfør dem ikke igen –
  * skærm og dokument skal kunne lægges ved siden af hinanden.
  *
- * UI'en havde derudover en ekstra "Beregningsdato"-række, som er fjernet helt (BB-167): fanen er
+ * UI'en havde derudover en ekstra "Beregningsdato"-række, som er fjernet helt: fanen er
  * bevidst uafhængig af beregningsdatoen, så rækken var den eneste værdi i boksen, intet i boksen
  * afhang af. Genindfør den ikke her.
  */
@@ -46,9 +46,9 @@ import { toKroner } from '../money/money';
  * folkepensionsdatoen (kontroldato ≥ folkepensionsdato minus 24 måneder), og det er den operator,
  * feltbeskederne på EET oplysninger bruger. Dokumentet skrev tidligere `<` som en «læsbar
  * forenkling» på den ene af de to linjer, så to linjer i træk stod med hver sin operator om samme
- * regel (BB-172). Operatoren ER reglens indhold; den må ikke forenkles.
+ * regel. Operatoren ER reglens indhold; den må ikke forenkles.
  */
-// Linjen angiver, om særfaktoren bruges – ikke en grund til selve kapitaliseringen (BB-414).
+// Linjen angiver, om særfaktoren bruges – ikke en grund til selve kapitaliseringen.
 export const SAERFAKTOR_ANVENDES_LABEL = 'Særfaktor pga. ≤ 2 år til folkepension?';
 export const SAERFAKTOR_UNDER_TO_AAR_LABEL = 'Særfaktor (≤ 2 år til folkepension)';
 
@@ -56,20 +56,20 @@ export const SAERFAKTOR_UNDER_TO_AAR_LABEL = 'Særfaktor (≤ 2 år til folkepen
  * Overskriften på en afgørelses kapitaliseringsboks.
  *
  * Procenten er afgørelsens EGEN erhvervsevnetabsprocent, ikke den kapitaliserede andel. Den står i
- * overskriften af to grunde, som blev fundet hver for sig men har samme løsning:
+ * overskriften af to grunde:
  *
  *  - Uden den kan læseren ikke se, hvor stor en del af erhvervsevnetabet kapitalbeløbet dækker: en
- *    delvist endelig afgørelse på 30 %, hvoraf 5 % kapitaliseres, skrev kun «Kapitalisering 5 %», og
- *    de 25 % ukapitaliserede – dem differencekravet senere proformakapitaliserer – stod ingen
- *    steder (BB-170).
- *  - To afgørelser truffet SAMME dag gav to bokse med ordret samme overskrift, og i dokumentet, hvor
- *    de to sider ikke kan ses samtidig, var der ingen vej tilbage til rækken i afgørelsestabellen
- *    (BB-171). To afgørelser samme dag er almindeligt: en om erhvervsevnetabet og en om
+ *    delvist endelig afgørelse på 30 %, hvoraf 5 % kapitaliseres, ville kun skrive «Kapitalisering
+ *    5 %», og de 25 % ukapitaliserede – dem differencekravet senere proformakapitaliserer – stod
+ *    ingen steder.
+ *  - To afgørelser truffet SAMME dag ville give to bokse med ordret samme overskrift, og i
+ *    dokumentet, hvor de to sider ikke kan ses samtidig, var der ingen vej tilbage til rækken i
+ *    afgørelsestabellen. To afgørelser samme dag er almindeligt: en om erhvervsevnetabet og en om
  *    kapitalisering af en del af det.
  *
  * Formen er den samme som Løbende ydelsers («Afgørelse 1. juni 2022 (30 %)»), så de to faner kan
  * læses op mod hinanden. Er to afgørelser fra samme dag stadig ikke til at skille – samme dato OG
- * samme EET % – får overskriften virkningsdatoen med (BB-411).
+ * samme EET % – får overskriften virkningsdatoen med.
  */
 export const buildKapitaliseringAfgoerelseHeading = (
   afgoerelse: Readonly<{ afgoerelsesdato: ISODateString; virkningsdato: ISODateString; eetPct: number }>,
@@ -116,7 +116,7 @@ export const buildKapitaliseringAfgoerelseRows = (
   rows.push({ kind: 'subheading', text: 'Grundydelse og regulering' });
 
   // «Kapitalisering» navngav hele handlingen, ikke tallet – og stod ved siden af «Kapitaliseringsdato»,
-  // som netop navngiver sin egen art. Feltets egne fejlbeskeder siger «Kapitaliseringsprocent» (BB-175).
+  // som netop navngiver sin egen art. Feltets egne fejlbeskeder siger «Kapitaliseringsprocent».
   rows.push({ kind: 'labelValue', label: 'Kapitaliseringsprocent', value: kapPctFormatted });
 
   rows.push({
@@ -153,7 +153,7 @@ export const buildKapitaliseringAfgoerelseRows = (
   if (afgoerelse.aarsydelseReguleringsPctRounded4 !== null) {
     rows.push({
       kind: 'labelValue',
-      // Kort dansk form som kapitaliseringsdatoen ovenfor – skærm og dokument skal være enige (BB-176).
+      // Kort dansk form som kapitaliseringsdatoen ovenfor – skærm og dokument skal være enige.
       label: `Reguleringsprocent (${formatISOToDanish(afgoerelse.kapitaliseringsdato)})`,
       value: `${formatAsAmountTrimmed(afgoerelse.aarsydelseReguleringsPctRounded4, 4)} %`,
     });
@@ -193,7 +193,7 @@ export const buildKapitaliseringAfgoerelseRows = (
     label: afgoerelse.tidligereKapitaliseringsdato === null
       ? afgoerelse.kapitaliseretPgaUnderToAarTilFp && afgoerelse.afgoerelsesdato !== afgoerelse.kapitaliseringsdato
         ? 'Alder ved afgørelsen'
-        // Den tidligere kapitaliseringsdato står fortsat på EET oplysninger; navngiv hvorfor den ikke bruges (BB-415).
+        // Den tidligere kapitaliseringsdato står fortsat på EET oplysninger; navngiv hvorfor den ikke bruges.
         : afgoerelse.genoptagetMedNyFaktordato
           ? 'Alder ved ny kapitalisering (genoptaget fra 1. juli 2024)'
           : 'Alder ved kapitalisering'
@@ -237,7 +237,7 @@ export const buildKapitaliseringAfgoerelseRows = (
 
   rows.push({
     kind: 'labelValue',
-    // Afsluttende « =» som alle andre formellinjer med et resultat i højre kolonne (BB-132).
+    // Afsluttende « =» som alle andre formellinjer med et resultat i højre kolonne.
     label: `Beregnet kapitalbeløb (${formatKr(toKroner(afgoerelse.aarsydelseOre), 2)} x ${formatFaktor(afgoerelse.kapitaliseringsfaktor)}) (oprundet) =`,
     value: formatKr(toKroner(afgoerelse.kapitalbelobOre), 0),
     bold: true,

@@ -9,14 +9,14 @@ import {
 import type { Page } from '@playwright/test';
 
 /**
- * Brugerblikkets flade 10 (2026-11-18): de tre rettede fund på Forsørgertab, målt som brugeren møder dem.
+ * Datoknapper og fødselsdatogrænser på Forsørgertab og Renteberegning, målt som brugeren møder dem.
  *
- * - BB-403: en efterladt, der er født efter virkningsdatoen, gør feltet rødt og spærrer dokumentet.
- * - BB-404: et kønsvalg spærrer ikke længere en ren EAL-sag; kønnet vises først ved påbegyndt ASL-ydelse.
- * - BB-405: «Indsæt dags dato» er inaktiv, når dags dato ligger før virkningsdatoen.
- * - M-49-opfølgningen: samme knap på Renteberegning er inaktiv før en rækkes forfaldsdato.
+ * - En efterladt, der er født efter virkningsdatoen, gør feltet rødt og spærrer dokumentet.
+ * - Et kønsvalg spærrer ikke en ren EAL-sag; kønnet vises først ved påbegyndt ASL-ydelse.
+ * - «Indsæt dags dato» er inaktiv, når dags dato ligger før virkningsdatoen.
+ * - Samme knap på Renteberegning er inaktiv før en rækkes forfaldsdato.
  *
- * Uret fastlåses, fordi BB-405 netop handler om forholdet mellem dags dato og en fremtidig virkningsdato.
+ * Uret fastlåses, fordi knappens tilstand afhænger af forholdet mellem dags dato og en fremtidig virkningsdato.
  */
 
 const fillStamdata = async (page: Page, skadedato: string): Promise<void> => {
@@ -28,13 +28,13 @@ const fillStamdata = async (page: Page, skadedato: string): Promise<void> => {
 
 const koenRow = (page: Page) => page.locator('.row--label-right-hover').filter({ hasText: 'Skadelidtes køn' });
 
-test.describe('Brugerblik flade 10 og opfølgning', () => {
+test.describe('Datoknapper og fødselsdatogrænser', () => {
   test.beforeEach(async ({ page }) => {
     await page.clock.setFixedTime(new Date('2026-11-18T12:00:00'));
     await login(page);
   });
 
-  test('BB-403: efterladtes fødselsdato efter virkningsdatoen spærrer dokumentet', async ({ page, runtimeErrors }) => {
+  test('efterladtes fødselsdato efter virkningsdatoen spærrer dokumentet', async ({ page, runtimeErrors }) => {
     await fillStamdata(page, '10-06-2020');
     await setVerbatimFieldValueAndSettle(page.locator('input[name="beregningsdato"]'), '01-07-2025');
     await setFieldValueAndSettle(page.locator('input[name="aslAarsloen"]'), '400000');
@@ -55,7 +55,7 @@ test.describe('Brugerblik flade 10 og opfølgning', () => {
     expect(runtimeErrors).toEqual([]);
   });
 
-  test('BB-404: kønnet vises først ved påbegyndt ASL-ydelse og spærrer ikke en EAL-sag', async ({ page, runtimeErrors }) => {
+  test('kønnet vises først ved påbegyndt ASL-ydelse og spærrer ikke en EAL-sag', async ({ page, runtimeErrors }) => {
     await fillStamdata(page, '10-06-2013');
     await setVerbatimFieldValueAndSettle(page.locator('input[name="beregningsdato"]'), '28-02-2015');
     await setFieldValueAndSettle(page.locator('input[name="ealAarsloen"]'), '450000');
@@ -71,7 +71,7 @@ test.describe('Brugerblik flade 10 og opfølgning', () => {
   });
 
   // Samme fejlklasse på Renteberegning: en rækkes forfaldsdato efter dags dato er knappens nedre grænse.
-  test('M-49: Renteberegningens «Indsæt dags dato» er inaktiv før en forfaldsdato', async ({ page, runtimeErrors }) => {
+  test('Renteberegningens «Indsæt dags dato» er inaktiv før en forfaldsdato', async ({ page, runtimeErrors }) => {
     await openPage(page, 'Renteberegning');
     const beregningsdato = page.getByRole('textbox', { name: 'Beregningsdato' });
     await setFieldValueAndSettle(beregningsdato, '30-06-2027');
@@ -85,7 +85,7 @@ test.describe('Brugerblik flade 10 og opfølgning', () => {
     expect(runtimeErrors).toEqual([]);
   });
 
-  test('BB-405: «Indsæt dags dato» er inaktiv før virkningsdatoen og bevarer beregningsdatoen', async ({ page, runtimeErrors }) => {
+  test('«Indsæt dags dato» er inaktiv før virkningsdatoen og bevarer beregningsdatoen', async ({ page, runtimeErrors }) => {
     await fillStamdata(page, '10-06-2020');
     const beregningsdato = page.locator('input[name="beregningsdato"]');
     await setVerbatimFieldValueAndSettle(beregningsdato, '01-12-2026');

@@ -61,20 +61,20 @@ const pressUndo = () => {
 };
 
 /**
- * BB-050: Ctrl+Z ændrede sagen BAG en åben bekræftelsesdialog.
+ * Ctrl+Z må ikke ændre sagen BAG en åben bekræftelsesdialog.
  *
  * Programmets eget regelsæt siger, at overlayet ejer tastaturet, så længe det er åbent
- * (`keyboard-navigation.md` §Overlay-adfærd), men lytteren sidder på `window` og havde aldrig hørt om
- * overlay-stakken. Feltet bag dialogen blev derfor ryddet, mens dialogen stod uændret og spurgte om
- * noget andet – og fortrydelsens egen markering af feltet foregik bag dialogen, hvor den ikke kunne
- * ses. Trykkede brugeren «Annuller» i troen på, at han dermed lod alt være, havde han allerede
- * mistet sin sidste rettelse.
+ * (`keyboard-navigation.md` §Overlay-adfærd), men lytteren sidder på `window`. Kender den ikke
+ * overlay-stakken, ryddes feltet bag dialogen, mens dialogen står uændret og spørger om noget andet –
+ * og fortrydelsens egen markering af feltet foregår bag dialogen, hvor den ikke kan ses. Trykker
+ * brugeren «Annuller» i troen på, at han dermed lader alt være, har han allerede mistet sin sidste
+ * rettelse.
  *
  * Prøven måler på den ægte runtime-revision, ikke på et mock-kald: det er sagens tilstand, der ikke
  * må ændre sig. Modprøven umiddelbart efter viser, at samme tastetryk VIRKER uden overlay – ellers
  * kunne en hook, der aldrig fortryder noget, bestå prøven.
  */
-describe('useUndoRedoShortcuts – overlayet ejer tastaturet (BB-050)', () => {
+describe('useUndoRedoShortcuts – overlayet ejer tastaturet', () => {
   const OVERLAY_MARKER = 'data-mineo-overlay-root';
 
   const withOpenOverlay = (): (() => void) => {

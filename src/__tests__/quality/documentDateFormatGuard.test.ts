@@ -6,7 +6,7 @@ import { normalizeRightAlignedTextForDocument, normalizeTextForDocument } from '
  * kilden, og brugerens fritekst gengives tegn for tegn. Reglen om «ingen rå ISO-dato»
  * håndhæves i testene (Word-harnessen kører alle generatorer gennem `findRawIsoDates`),
  * ikke af en regex på færdig tekst i kanalerne – den kunne ikke skelne en lækket
- * programdato fra et journalnummer som «AES-2024-01-15» (NY-12a-1).
+ * programdato fra et journalnummer som «AES-2024-01-15».
  */
 describe('document-date-format guard', () => {
   describe('findRawIsoDates (test-sikkerhedsnettet)', () => {

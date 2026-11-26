@@ -102,10 +102,10 @@ describe('buildForsoergertabReaderProjection', () => {
   });
 
   /**
-   * BB-403: en ASL-periode, der ligger helt før efterladtes fødsel, blev trukket fra, fordi motorens
-   * aldersopslag ikke kører, når hele perioden er udbetalt. Grænsen ligger nu på feltet selv.
+   * En ASL-periode, der ligger helt før efterladtes fødsel, må ikke trækkes fra. Motorens aldersopslag
+   * kører ikke, når hele perioden er udbetalt, så grænsen ligger på feltet selv.
    */
-  describe('efterladtes fødselsdato efter virkningsdatoen (BB-403)', () => {
+  describe('efterladtes fødselsdato efter virkningsdatoen', () => {
     const bb403Stamdata: StamdataValues = {
       ...validStamdata,
       skadedato: toISODateString('2020-06-10'),

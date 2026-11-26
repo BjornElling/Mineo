@@ -697,7 +697,7 @@ describe('fileSave', () => {
       );
     });
 
-    it('gemmer en sag med tomme Stamdata uden advarsel eller teknisk alarm (BB-393)', async () => {
+    it('gemmer en sag med tomme Stamdata uden advarsel eller teknisk alarm', async () => {
       const pickedHandle = { name: 'tom-sag.eo', getFile: vi.fn(), createWritable: vi.fn() } as unknown as FileSystemFileHandle;
       const emptySnapshot = {
         stamdata: undefined,
@@ -760,12 +760,11 @@ describe('fileSave', () => {
 
     it('ejer ikke en tomheds-gate – et default-only snapshot afvises IKKE her', async () => {
       // "Er sagen tom?" kan IKKE besvares på dette lag: her ses kun det schema-parsede snapshot, ikke
-      // ny-sags-baselinen, så "intet indtastet" og "standardværdierne er bevidst valgt" ser ens ud. Den
-      // tidligere `hasRealData()`-gate gættede via feltoptælling og regnede hver `false` og hvert
-      // standardtal som brugerdata – derfor kunne en tom standardsag gemmes. Gaten ejes nu af
-      // `hasAnyData()` i save-shellen; se `useFileSaveLoad`-testen «gemmer ikke en urørt sag».
+      // ny-sags-baselinen, så "intet indtastet" og "standardværdierne er bevidst valgt" ser ens ud. En gate
+      // her måtte gætte via feltoptælling og ville regne hver `false` og hvert standardtal som brugerdata.
+      // Gaten ejes af `hasAnyData()` i save-shellen; se `useFileSaveLoad`-testen «gemmer ikke en urørt sag».
       //
-      // Testen her pinner den NYE grænse: et snapshot, som kun bærer standardværdier, går igennem dette lag
+      // Testen her pinner grænsen: et snapshot, som kun bærer standardværdier, går igennem dette lag
       // uden at blive afvist som "ingen data". Det er shellens beslutning, ikke dette lags.
       // Kun et standard-satsår: ingen brugerindtastning. Præcis den slags standardtal, den gamle
       // feltoptælling regnede som brugerdata, og som derfor lod en tom sag gemme.

@@ -131,7 +131,7 @@ type LoenudviklingOptions = Readonly<{
 }>;
 
 /**
- * Lønudviklingens samlede resultat: TAF-modellen og reguleringsopslaget pr. dato (AP2), som TAF-segmenterne
+ * Lønudviklingens samlede resultat: TAF-modellen og reguleringsopslaget pr. dato, som TAF-segmenterne
  * er bygget af, og som sygeferiegodtgørelsen slår op i.
  */
 export type LoenudviklingBeregning = Readonly<{
@@ -181,7 +181,7 @@ export const buildLoenudviklingBeregning = (
 
     // Reguleringsopslaget evaluerer formen ét sted: satser, reference, periode og (for KL-lønaftaler)
     // kædelønnen. Det rummer ALLE reguleringstrin i TAF-perioden – også trin uden TAF-arbejdsdage, som
-    // sygeferiegodtgørelsen fortsat skal kunne slå op i (fund A4). TAF-beløbet nedenfor frasorterer først
+    // sygeferiegodtgørelsen skal kunne slå op i. TAF-beløbet nedenfor frasorterer først
     // bagefter de trin, der har mængde 0. Reguleringsbeviset følger det anvendte delta til alle visninger;
     // forløbet bærer kun de selvstændige kildeserier.
     const reguleringOpslag = buildReguleringOpslag({

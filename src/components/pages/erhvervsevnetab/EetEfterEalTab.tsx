@@ -41,7 +41,7 @@ const EetEfterEalTab = ({ onGoToEetOplysninger, projection, download }: Props) =
     ? buildAldersreduktionEtiket(computation.alderVedSkade)
     : '';
 
-  // Ét navnevalg for hele fanen, udledt af beregningens egen skadestype (BB-121). Skadestypen bæres
+  // Ét navnevalg for hele fanen, udledt af beregningens egen skadestype. Skadestypen bæres
   // i computation'en – ikke læst separat her – så skærmen og bilaget i differencekravet ikke kan
   // navngive den samme dato forskelligt.
   const datoReference = resolveStamdataDatoReference(computation?.skadestype);
@@ -89,14 +89,14 @@ const EetEfterEalTab = ({ onGoToEetOplysninger, projection, download }: Props) =
             <Typography className="section-header">Specifikation</Typography>
 
             {/*
-              Sagens egen dato bærer både aldersreduktionen og opreguleringen, men fanen viste kun
-              fødselsdatoen plus en færdig alder (BB-182). Uden datoen kan modparten ikke kontrollere
+              Sagens egen dato bærer både aldersreduktionen og opreguleringen og vises derfor sammen
+              med fødselsdatoen og den færdige alder. Uden datoen kan modparten ikke kontrollere
               «Alder på skadestidspunkt», kun indsnævre den til et år – og netop et år flytter
               aldersreduktionen et procentpoint og opreguleringen et helt reguleringsår. Rækken står i
               Specifikationen og ikke i «Beregning», så differencekravets bilag bærer den med
-              (se `renderEfterEalBody`). Navnet følger skadestypen (BB-121), og formen er kort
+              (se `renderEfterEalBody`). Navnet følger skadestypen, og formen er kort
               `dd-mm-åååå` som Fødselsdato-rækken nedenfor – de to datoer bærer tilsammen
-              aldersreduktionen og skal kunne læses op mod hinanden uden at skifte format (BB-146).
+              aldersreduktionen og skal kunne læses op mod hinanden uden at skifte format.
             */}
             <Box className="row--label-right-hover">
               <Typography className="row--text">{datoReference.label}</Typography>
@@ -105,7 +105,7 @@ const EetEfterEalTab = ({ onGoToEetOplysninger, projection, download }: Props) =
               </Box>
             </Box>
 
-            {/* Datoen står før «Årsløn», som i dokumentet (udviklerafgørelse 2026-11-20). */}
+            {/* Datoen står før «Årsløn», som i dokumentet (bevidst valg). */}
             <Typography className="row--subheading">Årsløn</Typography>
 
             <Box className="row--label-right-hover">

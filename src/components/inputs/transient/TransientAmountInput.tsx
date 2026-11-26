@@ -75,7 +75,7 @@ const TransientAmountInput = React.forwardRef<HTMLDivElement, TransientAmountInp
     // Blur'en fra caret-værnets egen blur/focus-cyklus må ikke opfattes som brugerens blur og
     // dermed afslutte den editor, der lige blev åbnet.
     const ignoreOpeningBlurRef = React.useRef(false);
-    // Decimalpladserne er de samme, uanset om feltet VISER decimaler (BB-118): kommaet skal kunne tastes
+    // Decimalpladserne er de samme, uanset om feltet VISER decimaler: kommaet skal kunne tastes
     // og indsættes, ellers springes det over og decimalcifrene glider op i heltalsdelen. `allowDecimals`
     // udtrykkes i stedet som settle-præcision nedenfor.
     const admission = React.useMemo(() => amountExpressionAdmission({
@@ -85,7 +85,7 @@ const TransientAmountInput = React.forwardRef<HTMLDivElement, TransientAmountInp
       maxDecimalDigits: DEFAULT_AMOUNT_PRECISION,
     }), [allowDecimals, allowNegative]);
     const settlePrecision = allowDecimals ? DEFAULT_AMOUNT_PRECISION : 0;
-    // Samme fortegns-politik og dermed samme minus-normalisering som de persisterede beløbsfelter (BB-430):
+    // Samme fortegns-politik og dermed samme minus-normalisering som de persisterede beløbsfelter:
     // `10−1` er subtraktion, ikke `101`. Helperen er den ene, de persisterede flader også bruger.
     const signPolicy = React.useMemo(
       () => ({ signPolicy: allowNegative ? 'signed' as const : 'nonNegative' as const }),
@@ -109,9 +109,8 @@ const TransientAmountInput = React.forwardRef<HTMLDivElement, TransientAmountInp
         return { ok: true, value: parsed.value };
       },
       // Samme XOR-regel og samme fejlkontrakt som `TransientDateInput`: et gyldigt commit rydder en tidligere
-      // afvisning, og et afvist settle rydder den forrige værdi. Før blev en afvisning aldrig ryddet igen, så
-      // løntrin-finderens «Beregn» blev ved med at fejle efter `1/0` rettet til et gyldigt beløb, og det gamle
-      // beløb lå skjult under den røde tekst.
+      // afvisning, og et afvist settle rydder den forrige værdi. Ellers bliver løntrin-finderens «Beregn» ved
+      // med at fejle efter `1/0` rettet til et gyldigt beløb, og det gamle beløb ligger skjult under den røde tekst.
       onCommit: (next) => {
         onReject?.(undefined);
         onCommit(next);
@@ -196,8 +195,8 @@ const TransientAmountInput = React.forwardRef<HTMLDivElement, TransientAmountInp
       const element = inputElementRef.current;
       const start = typeof element?.selectionStart === 'number' ? element.selectionStart : draft.length;
       const end = typeof element?.selectionEnd === 'number' ? element.selectionEnd : start;
-      // Samme paste-normalisering som de persisterede beløbsfelter: minus-oversættelse (BB-430) og kun
-      // teksten frem til første tabulator/linjeskift (BB-439).
+      // Samme paste-normalisering som de persisterede beløbsfelter: minus-oversættelse og kun
+      // teksten frem til første tabulator/linjeskift.
       const normalized = normalizePasteForDraft(
         readClipboardText(event),
         { family: 'amount', ...signPolicy },

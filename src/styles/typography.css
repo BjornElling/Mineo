@@ -223,7 +223,7 @@
 }
 
 /* Fejllinje i en række. Klassen er nødvendig: reglen ovenfor har to klasser og slår derfor MUI's
-   `sx`-farve (én klasse), så `sx={{ color: 'error.main' }}` på en `row--text` blev aldrig rød (M-21). */
+   `sx`-farve (én klasse), så `sx={{ color: 'error.main' }}` på en `row--text` bliver aldrig rød. */
 .MuiTypography-root.row--text.row--text-error {
   color: var(--mineo-color-row-text-error);
 }
@@ -318,8 +318,8 @@
 /* ÉN typografi for begge fanefamilier: de vandrette MUI-faner (`PageTabs`) og de roterede
    side-faner (`SideTab`). Reglen sætter hele signaturen – ikke kun det, MUI ikke selv har – fordi
    side-fanen er en native <button> uden MUI's tema-typografi. Var listen kortere, ville de to
-   familier stå med hver sin skriftstørrelse, -farve og -linjehøjde, som de gjorde indtil
-   2026-08-18, hvor side-fanens `sx` bar sine egne håndkopierede værdier. */
+   familier stå med hver sin skriftstørrelse, -farve og -linjehøjde. Giv ikke side-fanens `sx` egne
+   håndkopierede værdier. */
 .MuiTab-root.tab-item,
 .tab-item {
   font-family: var(--font-family-base);
@@ -398,7 +398,7 @@
 
 /* Neutralisér UA-knap-styling, så en `<button class="icon-text-link">` er visuelt umulig at skelne fra
    `<a class="icon-text-link">` og flyder med i den omgivende brødtekst. Knappen renderes ét sted:
-   `components/inputs/TextLinkButton.tsx` (BB-463/BB-464), så callsites ikke gentager nulstillingen i `sx`. */
+   `components/inputs/TextLinkButton.tsx`, så callsites ikke gentager nulstillingen i `sx`. */
 button.icon-text-link {
   margin: 0;
   padding: 0;

@@ -9,9 +9,8 @@ import { BROWSER_LANE_TAG } from './support/lanes';
  * Testene kører i rigtige browsere, fordi netop de to ting, de måler, ikke kan måles i JSDOM:
  *
  *  - **Tab-fangst.** JSDOM implementerer ikke browserens tab-traversering. En jsdom-test kan derfor
- *    være grøn, mens fokus i praksis vandrer ud af vinduet – det skete: en jsdom-test bekræftede,
- *    at `FocusTrap` var monteret, men fangsten virkede ikke, fordi sidens egen navigation overtog
- *    Tab. Fangst SKAL måles her.
+ *    være grøn, mens fokus i praksis vandrer ud af vinduet: `FocusTrap` kan være monteret, mens
+ *    sidens egen navigation overtager Tab. Fangst SKAL måles her.
  *  - **Tilbage-knappen.** Kræver ægte `history`-adfærd.
  *
  * Begge dele er netop dét, browsermotorerne gør forskelligt – Tab-rækkefølgen mellem knapper, links
@@ -33,9 +32,8 @@ const focusIsInsideOverlay = (page: Page): Promise<boolean> =>
 
 test.describe('Overlay: tastaturet bliver inde i vinduet', { tag: BROWSER_LANE_TAG }, () => {
   test('Tab forlader ALDRIG licensvinduet, uanset hvor mange gange der trykkes', async ({ page, runtimeErrors }) => {
-    // Fundet: fokus vandrede ud i siden bagved. Årsagen var ikke en manglende `FocusTrap` – den var
-    // monteret – men at `Container` ejer Tab for hele siden og kun gav slip på hændelser fra uden
-    // for sit DOM-subtræ. Licensvinduet renderes INLINE og var derfor «indenfor».
+    // Fokus må ikke vandre ud i siden bagved. `Container` ejer Tab for hele siden og giver kun slip
+    // på hændelser fra uden for sit DOM-subtræ; licensvinduet renderes INLINE og er derfor «indenfor».
     await login(page);
     await openLicense(page);
 
@@ -69,8 +67,8 @@ test.describe('Overlay: tastaturet bliver inde i vinduet', { tag: BROWSER_LANE_T
 
 test.describe('Overlay: lukkeveje', { tag: BROWSER_LANE_TAG }, () => {
   test('tilbage-knappen lukker vinduet OG bliver på siden', async ({ page }) => {
-    // Brugerkrav 2026-08-15. Før navigerede tilbage SIDEN væk under det åbne vindue: målt gik
-    // `/mineo` → `/mineo/stamdata`, så brugeren mistede både vinduet og sin plads.
+    // Tilbage må ikke navigere SIDEN væk under det åbne vindue (`/mineo` → `/mineo/stamdata`), så
+    // brugeren mister både vinduet og sin plads.
     await login(page);
     const urlBefore = new URL(page.url()).pathname;
     const trigger = await openLicense(page);
@@ -90,7 +88,7 @@ test.describe('Overlay: lukkeveje', { tag: BROWSER_LANE_TAG }, () => {
    * Prøven er derfor funktionel: efter lukningen skal ét tilbage-tryk føre til den FORRIGE SIDE.
    * Testen bygger selv den historik op (`/mineo/stamdata` → `/mineo`), så målet er entydigt.
    *
-   * To tidligere udkast målte det forkerte og er værd at nævne, fordi begge så rigtige ud:
+   * To nærliggende prøver måler det forkerte, selv om begge ser rigtige ud:
    *  - «efterfølgende goBack forlader siden» – browser-specifikt, hvad der ligger under `/mineo`,
    *    så testen målte browserens historik-seed.
    *  - «history.length er tilbage på sin oprindelige værdi» – `history.back()` flytter POINTEREN

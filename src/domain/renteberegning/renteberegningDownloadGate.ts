@@ -29,16 +29,13 @@ export type RenteDownloadGateInput = Readonly<{
 /**
  * En ufuldstændig rentelinje er en MANGEL, ikke en ugyldig indtastning.
  *
- * Grenen svarede før «Fejl i indtastning». Det var forkert for enhver tilstand, den kan nå:
+ * «Fejl i indtastning» ville være forkert for enhver tilstand, grenen kan nå:
  * `anyRowHasError` aflæses KUN i aggregatets `ready`-gren, og aggregatet læser hver rækkes felter gennem
  * `collector.optional`. Et rødt felt gør derfor read'et `unavailable`, projektionen `blocked` og
  * `anyRowHasError` uaflæselig – de røde rækker gates et helt andet sted
  * (`blockedProjectionFromCauses` i `renteberegningDocumentDefinitions.ts`). Når flaget ER sandt, er
  * samtlige felter altså læsbare, og den manglende `pdfContext` skyldes en ufuldstændig række (typisk et
  * beløb uden «Forfaldsdato»). Brugeren skal udfylde, ikke rette.
- *
- * Samme fejlform som brugerfundet på Årsløn 2026-08-15: én aggregeret boolean over flere tilstande fik
- * påklistret én hardkodet klasse. Her var klassen forkert for HELE grenen – ikke bare halvdelen.
  */
 const blockedByIncompleteRow = (code: string): DocumentDownloadGateResult =>
   blockDocumentDownload({ code, message: 'En rente-linje med indtastning er ufuldstændig' });

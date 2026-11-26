@@ -548,7 +548,7 @@ describe('getEoBilagAvailability', () => {
   );
 
   it.each(['Nej', 'Skjul'] as const)(
-    'giver alle valg samme grund ved TAF %s – også med «Alle» (BB-373)',
+    'giver alle valg samme grund ved TAF %s – også med «Alle»',
     (kravPaaTabtArbejdsfortjeneste) => {
       const result = getEoBilagAvailability({
         eoValues: makeValues({

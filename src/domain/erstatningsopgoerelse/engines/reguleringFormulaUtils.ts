@@ -28,7 +28,7 @@ export type FormulaVisibility = Readonly<{
 
 /**
  * Kanonisk afrundings-politik for en reguleringsforms `deltaPct`: 2 decimaler, halfAwayFromZero
- * (regulering-redesign R8, mekanisme 1). Alle reguleringsformer (statistik inkl. ASL-krydsningen,
+ * Alle reguleringsformer (statistik inkl. ASL-krydsningen,
  * KRL, manuel, manuel procentsats, overenskomst offentlig/privat) OG motorens re-runding afrunder
  * deltaPct efter præcis denne politik, så det viste reguleringsindeks kan efterregnes af beløbet.
  * Negative og positive halvvejspunkter afrundes symmetrisk væk fra nul (fx ±1,235 → ±1,24).
@@ -113,10 +113,9 @@ export const computeFormulaValue = (components: FormulaComponents): number => {
  *
  * Tynd adapter over den kanoniske `computeFormulaValue`: mapper domænenavnet
  * `grundloen` → `baseValue` og deler dermed præcis samme matematik og finite-semantik
- * som privat overenskomst-grenen (der kalder `computeFormulaValue` direkte). Tidligere var
- * dette en parallel kopi af samme formel – konsolideret så der kun er ét sted for
- * lønpakke-formlen (jf. reguleringsreview U5). Bor sammen med `computeFormulaValue`, så
- * de to indgange til samme formel ikke igen driver fra hinanden (regulering-redesign R7).
+ * som privat overenskomst-grenen (der kalder `computeFormulaValue` direkte), så der kun er ét sted
+ * for lønpakke-formlen. Bor sammen med `computeFormulaValue`, så de to indgange til samme formel
+ * ikke driver fra hinanden.
  *
  * Procent-konvention: alle procentsatser angives som hele pct-tal (fx `17.3` for 17,3 %).
  * Callsites gater resultatet (`!Number.isFinite || <= 0` → throw), så en ugyldig pakkeværdi
@@ -151,7 +150,7 @@ export const buildFormulaText = (components: FormulaComponents, visibility: Form
   // Rækkefølgen af tillægsprocenterne skal følge kolonnerækkefølgen i Reguleringsværdier-tabellen
   // (Feriegodtg./-till., SH/SO, Fritvalg, Store Bededagstillæg), så indeksformlen kan aflæses direkte mod
   // tabellen. Summen er kommutativ, så rækkefølgen påvirker kun den viste tekst, ikke det beregnede indeks.
-  // Satserne skrives med to decimaler som i tabellen (BB-318); kun den faste «100 %» står uden.
+  // Satserne skrives med to decimaler som i tabellen; kun den faste «100 %» står uden.
   const extraParts = [
     ...(feriePct !== 0 ? [formatPercentFixed2(feriePct)] : []),
     ...(visibility.showShSo && shSoPct !== 0 ? [formatPercentFixed2(shSoPct)] : []),

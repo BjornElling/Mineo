@@ -118,13 +118,13 @@ describe('resolveAarsloenFeriedageOverskriderPeriodenIssue', () => {
     });
   });
 
-  it('feriedage lig periodens hverdage efterlader 0 dage → issue (BB-400)', () => {
+  it('feriedage lig periodens hverdage efterlader 0 dage → issue', () => {
     expect(issueFor(23, data('B', { hverdage: 23, feriedage: 23 }))?.message)
       .toBe('Antal feriedage kan højst være 22, så der er mindst én hverdag tilbage (23 hverdage i de indtastede perioder).');
   });
 
-  it('metode A trækker SH-dagene fra grænsen og navngiver dem (BB-400)', () => {
-    // Brugerfundet: januar 2024, 23 hverdage og nytårsdag, «Ingen» løn på helligdage. 22 feriedage gav 0 dage.
+  it('metode A trækker SH-dagene fra grænsen og navngiver dem', () => {
+    // Januar 2024, 23 hverdage og nytårsdag, «Ingen» løn på helligdage: 22 feriedage ville give 0 dage.
     for (const feriedage of [22, 23]) {
       expect(issueFor(feriedage, data('A', { hverdage: 23, shDage: 1, feriedage }))).toEqual({
         field: 'antalFeriedage',
@@ -168,7 +168,7 @@ describe('harAarsloenIngenOmregningsdage', () => {
     ...overrides,
   });
 
-  it('melder en periode uden dage at dele med i metode A, B og dag-fallbacken (BB-400)', () => {
+  it('melder en periode uden dage at dele med i metode A, B og dag-fallbacken', () => {
     expect(harAarsloenIngenOmregningsdage(beregnet({ metode: 'B' }), 'dag')).toBe(true);
     expect(harAarsloenIngenOmregningsdage(beregnet({ metode: 'A', hverdageIPeriode: 1 }), 'dag')).toBe(true);
     expect(harAarsloenIngenOmregningsdage(beregnet({ metode: 'C' }), 'dag')).toBe(true);
@@ -203,8 +203,8 @@ describe('beregnFejlmeddelelser', () => {
     });
   });
 
-  // Feriegodtgørelse med fuld løn under ferie er ikke længere en advarsel her, men en rød feltfejl i projektionen
-  // (`resolveAarsloenFeriegodtgoerelseVedFuldLoenIssue`, udviklerafgørelse 2026-11-04).
+  // Feriegodtgørelse med fuld løn under ferie er ikke en advarsel her, men en rød feltfejl i projektionen
+  // (`resolveAarsloenFeriegodtgoerelseVedFuldLoenIssue`).
   describe('feriegodtgørelse med fuld løn er ikke en advarsel', () => {
     it.each([11.9, 12, 12.5])('feriePct = %s med fuld løn → ingen advarsel om ferien', (feriePct) => {
       const errors = beregnFejlmeddelelser(feriePct, 0, true, false, 'Almindelig løn');
@@ -282,8 +282,7 @@ describe('beregnFejlmeddelelser', () => {
     });
   });
 
-  // Teksten lå tidligere som hardkodet prosa i `AarsloenMeddelelserSections.tsx` og var derfor hverken
-  // dækket her eller omfattet af relevans-gatingen. Betingelsen er uændret; kun ejerskabet er flyttet.
+  // Teksten ejes af valideringspolitikken, så den er dækket her og omfattet af relevans-gatingen.
   describe('FEJL 6: høj feriesats uden ret til 6. ferieuge', () => {
     it('feriePct >= 15 uden fuld løn og uden 6. ferieuge → fejl', () => {
       const errors = beregnFejlmeddelelser(15, 0, false, false, 'Almindelig løn');

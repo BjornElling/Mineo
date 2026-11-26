@@ -37,8 +37,8 @@ import {
 // **Feltvalidering (inputkernen, slicevis):** `getIssues` optager et STABILT kildesnapshot (§3.4) og udleder det
 // faktiske tokenbundne feltissue-snapshot via `captureStableInputEvaluation`. Rejected råtekst (format) og
 // canonical-validatorer på de migrerede sektioner giver derfor ægte røde feltfejl. Sektioner uden migrerede
-// validatorer bidrager ikke med issues endnu – Satser-årets min/maxYear-bounds er efter kravændringen 2026-07-18
-// en canonical bounds-feltvalidator på descriptoren (ikke længere codec-`range`), så et out-of-bounds-satsår
+// validatorer bidrager ikke med issues – Satser-årets min/maxYear-bounds er en canonical
+// bounds-feltvalidator på descriptoren (ikke codec-`range`), så et out-of-bounds-satsår
 // committes canonical med et rødt bounds-issue og kan gemmes i `.eo`. Snapshottet caches pr.
 // `EvaluationSourceToken`, så `getIssues` er billig at kalde under render (én gang pr. revision/settingsrevision).
 
@@ -67,13 +67,12 @@ const requireCatalog = (): InputCatalog => {
  * Den publicerede værdi er det PROJEKTEREDE snapshot, ikke hele `AppSettings`.
  *
  * Evaluering, fingerprint og dokumentcapture skal drives af præcis den samme
- * værdi, ellers kan de drive fra hinanden. Tidligere var dette hele `AppSettings`, og fordi
- * `SourceSettings` var en ren strukturel type, kunne enhver evalueringsafhængig kodesti læse en
- * nøgle UDEN FOR sættet. En sådan læsning ville indføre en source-afhængighed, som IKKE bumper
- * settingsrevisionen – så en download, der blev godkendt under den gamle regel, kunne overleve et
- * regelskift. Fejlklassen var tavs.
+ * værdi, ellers kan de drive fra hinanden. Var dette hele `AppSettings` eller `SourceSettings` en ren
+ * strukturel type, kunne enhver evalueringsafhængig kodesti læse en nøgle UDEN FOR sættet. En sådan læsning
+ * ville indføre en source-afhængighed, som IKKE bumper settingsrevisionen – så en download, der blev godkendt
+ * under den gamle regel, kunne overleve et regelskift. Fejlklassen er tavs.
  *
- * Nu er typen nominel og `projectSourceSettings` dens eneste konstruktør, så evalueringen ikke KAN
+ * Derfor er typen nominel og `projectSourceSettings` dens eneste konstruktør, så evalueringen ikke KAN
  * få den brede type at læse fra.
  */
 let publishedSettings: SourceSettings = projectSourceSettings(DEFAULT_APP_SETTINGS);

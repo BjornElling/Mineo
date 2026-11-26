@@ -8,7 +8,7 @@ import { skadestypeEnum } from '../../../../schemas/formSchemas/enumSchemas';
 import { createTestInputRuntime } from '../../testInputRuntime';
 import { skadestypeField, testLocation } from '../../testCatalog';
 
-// NY-12a-5: valgfeltet bærer samme ikke-blokerende advarsel som tekstfelterne – gul ring, tooltip og en
+// Valgfeltet bærer samme ikke-blokerende advarsel som tekstfelterne – gul ring, tooltip og en
 // skjult beskrivelse, der når skærmlæseren. Advarslen gør hverken feltet rødt eller ugyldigt.
 describe('ChoiceField – ikke-blokerende advarsel', () => {
   it('beskriver advarslen for skærmlæseren uden at markere feltet som fejl', () => {

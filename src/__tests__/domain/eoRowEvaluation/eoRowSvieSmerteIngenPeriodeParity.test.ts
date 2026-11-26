@@ -110,8 +110,8 @@ describe('collectAllEoRows – suppression af sekundær svie/smerte-advarsel', (
 });
 
 // Parallelt til `taf.perioder.clampedAway`: perioder, der alle ligger uden for EO-perioden, giver 0 kr. og en gul linje,
-// der siger det – og den sekundære «Ikke rejst …»-advarsel står ikke ved siden af (BB-374).
-describe('collectAllEoRows – svie/smerte-perioder uden for EO-perioden (BB-374)', () => {
+// der siger det – og den sekundære «Ikke rejst …»-advarsel står ikke ved siden af.
+describe('collectAllEoRows – svie/smerte-perioder uden for EO-perioden', () => {
   const eoValues = (fra: string, til: string) => ({
     ...createErstatningsopgoerelseInitialValues(),
     kravPaaSvieSmerteGodtgoerelse: 'Ja' as const,

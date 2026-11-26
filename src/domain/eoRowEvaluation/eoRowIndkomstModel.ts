@@ -41,11 +41,11 @@ export type OffentligeYdelserStatusRow = Readonly<{
    * Den ydelsesRÆKKE, statusrækkens besked stammer fra – tabellens eget række-id, ikke gruppenøglen.
    *
    * Statusrækkerne grupperer flere ydelsesrækker pr. ydelsestype, og gruppenøglen
-   * (`ydelsestype-<key>`/`mangler-ydelsestype`) er derfor ikke et element i DOM. Uden den oprindelige
+   * (`ydelsestype-<key>`/`mangler-ydelsestype`) er derfor ikke et element i DOM. Uden den bagvedliggende
    * række kunne fejllinket kun føre til fanen; med den kan det pege på den række, beskeden handler om.
    */
   sourceRowId?: string;
-  /** Cellen, linket skal føre til (BB-291). Uden den forankres linket til rækken. */
+  /** Cellen, linket skal føre til. Uden den forankres linket til rækken. */
   focusColKey?: OffentligeYdelserTableColumnKey;
 }>;
 
@@ -123,7 +123,7 @@ export const isLoenindkomstAnsaettelsesforholdEffectivelyEmpty = (
     af.shSoPct !== undefined ||
     af.storeBededagPct !== undefined ||
     af.pensionPct !== undefined ||
-    // Satserne er tomme for læserne ved «Beløb» (BB-301); selve valget er stadig en indtastning.
+    // Satserne er tomme for læserne ved «Beløb»; selve valget er stadig en indtastning.
     af.tillaegAngivesSom === 'beloeb' ||
     af.loenperiode !== 'maaned' ||
     af.fuldLoenUnderFerie !== defaultFuldLoenUnderFerie ||
@@ -164,10 +164,10 @@ const collectOffentligeYdelserCellErrorsByRow = (
 
 /**
  * Kortets status uden indtægtstabellen: tabellens rækker har deres egne linjer
- * (`eoRowLoenindkomstTableLines.ts`, BB-291).
+ * (`eoRowLoenindkomstTableLines.ts`).
  *
- * Skadedatoen er IKKE længere en parameter: de datoafhængige satsafvigelser hørte til de LÅSTE satser, som
- * nu er afledte felter, reduceren materialiserer. En bevaret, ulæst parameter ville erklære
+ * Skadedatoen er bevidst ikke en parameter: de datoafhængige satsafvigelser hører til de LÅSTE satser, som
+ * er afledte felter, reduceren materialiserer. En ulæst parameter ville erklære
  * en afhængighed, funktionen ikke har, og skjule for næste læser, hvad rækkerne faktisk afhænger af.
  */
 export const buildIndkomstSectionStatuses = (
@@ -201,15 +201,15 @@ export const buildIndkomstSectionStatuses = (
 
 /**
  * Offentlige ydelsers linjer: ÉN linje pr. ydelsesrække med en fejl eller advarsel – med rækkens navn, cellens egen
- * tekst og et link til cellen – og en «ok»-linje pr. ydelsestype uden fund (BB-291's form, udviklerønske
- * 2026-10-19). Før stod der én linje pr. ydelsestype med den FØRSTE fejl, uden række.
+ * tekst og et link til cellen – og en «ok»-linje pr. ydelsestype uden fund. Én linje pr. ydelsestype med kun
+ * den FØRSTE fejl ville skjule de øvrige rækker og ikke kunne linke til en bestemt række.
  *
  * `cellIssues` er readerens røde celler i tabellen. Rækkerne er readerens værdier, hvor en rød celle er tom.
  */
 export const buildOffentligeYdelserStatusRows = (
   rows: ReadonlyArray<OffentligeYdelserRow>,
   cellIssues: readonly FieldIssue[] = [],
-  /** Sagens perioder til rimelighedskontrollen (BB-297); uden dem vurderes beløbene ikke. */
+  /** Sagens perioder til rimelighedskontrollen; uden dem vurderes beløbene ikke. */
   values?: ErstatningsopgoerelseValues
 ): ReadonlyArray<OffentligeYdelserStatusRow> => {
   if (rows.length === 0) return [];

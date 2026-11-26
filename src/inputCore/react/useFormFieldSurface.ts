@@ -175,7 +175,7 @@ export const useFormFieldSurface = <T>(
   // ellers ville kunne genskabe en forældet caret ved en senere ekstern revisionsændring.
   const onDraftChange = React.useCallback((rawDraft: string, _selection?: InputSelectionSnapshot) => {
     const { controller: ctl, draftAdmission: admits, maxDraftLength } = latest.current;
-    // Typografisk minus → '-' FØR tegnværnet (BB-430), så tegnet møder præcis samme regler som '-'.
+    // Typografisk minus → '-' FØR tegnværnet, så tegnet møder præcis samme regler som '-'.
     const nextDraft = normalizeSignCharactersForCodec(field.descriptor.codec, rawDraft);
     if (!isDraftWithinMaxLength(nextDraft, maxDraftLength) || (admits !== undefined && !admits(nextDraft))) {
       // §1.2: tegnet blev aldrig en del af værdien. Blokeringen er TAVS – ingen rød ring, ingen fejltekst.
@@ -262,7 +262,7 @@ export const useFormFieldSurface = <T>(
       }
       if (isPrintableActivationKey(e, field.descriptor.codec)) {
         // Tast-initieret åbning (§1.3): editoren seedes med det første tegn – normaliseret som enhver
-        // anden indtastning, så et typografisk minus åbner og seeder som '-' (BB-430).
+        // anden indtastning, så et typografisk minus åbner og seeder som '-'.
         e.preventDefault();
         e.stopPropagation();
         ctl.open(normalizeSignCharactersForCodec(field.descriptor.codec, e.key));
@@ -359,9 +359,9 @@ export const useFormFieldSurface = <T>(
     }
     ctl.changeDraft(spliced.draft);
 
-    // Caret'en sættes ALTID efter det indsatte – som i grid-cellen. Det var før et opt-in (`setPasteCaret`),
-    // og kun de numeriske felter og datofeltet slog det til; i et tekstfelt sprang markøren derfor til
-    // slutningen, når brugeren indsatte midt i teksten, fordi `<input>` er styret af `displayText`. Samme
+    // Caret'en sættes ALTID efter det indsatte – som i grid-cellen, og ikke som et opt-in (`setPasteCaret`).
+    // Ellers springer markøren i et tekstfelt til slutningen, når brugeren indsætter midt i teksten, fordi
+    // `<input>` er styret af `displayText`. Samme
     // handling må ikke opføre sig forskelligt afhængigt af feltfamilie (§1.2a).
     const nextCaret = spliced.caret;
     requestAnimationFrame(() => {

@@ -4,7 +4,7 @@ import {
   type IndtaegtFoerSkadenVisningInput,
 } from '../../../../components/pages/erstatningsopgoerelse/eoOplysninger/useIndtaegtFoerSkadenSkjult';
 
-// Værnet mod at «Indtægt før skaden» forsvinder, mens brugeren taster (udviklerafgørelse 2026-10-24). Hvert
+// Værnet mod at «Indtægt før skaden» forsvinder, mens brugeren taster (bevidst valg). Hvert
 // skridt er én render med fanens aktuelle tilstand; resultatet føres videre som forrige tilstand.
 
 const AKTIV_TOM: IndtaegtFoerSkadenVisningInput = { fanenErAktiv: true, komprimeringValgt: true, kanSkjules: false };

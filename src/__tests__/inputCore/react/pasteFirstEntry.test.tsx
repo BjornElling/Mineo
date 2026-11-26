@@ -31,9 +31,9 @@ import {
 } from '../testCatalog';
 
 /**
- * BB-439 (§1.2a punkt 8): Tab og Enter afslutter en TASTET indtastning, så en tabulator eller et linjeskift i
- * en indsat tekst afslutter den INDSATTE. `1200<TAB>200` fra to regnearksceller blev før 1.200.200,00, fordi
- * tegnfilteret tavst sprang adskillelsen over. Frie tekstfelter er ikke omfattet.
+ * §1.2a punkt 8: Tab og Enter afslutter en TASTET indtastning, så en tabulator eller et linjeskift i
+ * en indsat tekst afslutter den INDSATTE. Ellers bliver `1200<TAB>200` fra to regnearksceller til
+ * 1.200.200,00, fordi tegnfilteret tavst springer adskillelsen over. Frie tekstfelter er ikke omfattet.
  */
 
 const TWO_CELLS = [
@@ -77,7 +77,7 @@ const rentekravRef = () => createCollectionRef({ section: 'renteberegning', path
 const paste = (input: HTMLElement, text: string) =>
   fireEvent.paste(input, { clipboardData: { getData: () => text } });
 
-describe('normalizePasteForDraft – første indtastning (BB-439)', () => {
+describe('normalizePasteForDraft – første indtastning', () => {
   const amount = createAmountFieldCodec({ allowNegative: false, allowDecimals: true });
 
   it.each(TWO_CELLS)('beløb: %s mellem to celler giver kun den første', (_name, text) => {

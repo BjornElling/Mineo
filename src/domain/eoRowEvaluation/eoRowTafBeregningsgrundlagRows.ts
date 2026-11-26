@@ -61,7 +61,7 @@ import {
  * Har en lønindkomst- eller ydelsesrække en fejl, der holder den ude af beregningen? Både en regelfejl i de
  * afsluttede værdier og en afvist råtekst (fx `1/0`) tæller: den afviste celle læses som tom og forsvinder derfor
  * fra beregningen præcis som en ugyldig række. Uden den sidste del blev en enkelt rød lønrække både meldt som
- * rækkefejl og som «Ingen indkomst i beregningsperioden» (BB-442, M-58).
+ * rækkefejl og som «Ingen indkomst i beregningsperioden».
  */
 const harFejlIIndkomstraekker = (
   values: ErstatningsopgoerelseValues,
@@ -109,7 +109,7 @@ export const buildEoTafBeregningsgrundlagRows = (
   const periodeFra = values.tafBeregningsperiodeFra;
   const periodeTil = values.tafBeregningsperiodeTil;
 
-  // Overlappet med en TAF-periode farver begge datoer (BB-262), men har sin egen linje nedenfor; her kom det
+  // Overlappet med en TAF-periode farver begge datoer, men har sin egen linje nedenfor; her kom det
   // ellers med to gange i samme linje (én pr. dato).
   const periodeIssues = (field: 'tafBeregningsperiodeFra' | 'tafBeregningsperiodeTil') =>
     presentIssuesForRow(topLevelFieldIssue(errors, 'erstatningsopgoerelse', field))
@@ -166,8 +166,7 @@ export const buildEoTafBeregningsgrundlagRows = (
     }
     if (beregningsperiodeIssueSummary) return beregningsperiodeIssueSummary;
 
-    // Samme ordlyd som «Fejl og advarsler» (BB-385); før stod «Ikke alle felter udfyldt», som kataloget
-    // oversatte til netop denne sætning.
+    // Samme ordlyd som «Fejl og advarsler».
     if (filledCount !== 2) {
       return { displayValue: `Fejl (${BEREGNINGSPERIODE_MANGLER_MESSAGE})`, status: 'error' as EoRowStatus };
     }
@@ -189,7 +188,7 @@ export const buildEoTafBeregningsgrundlagRows = (
 
   /**
    * Perioden er ikke tastet færdig, og intet andet er galt med den. Manglen står én gang, på periodens egen række;
-   * «Arbejdsdage» og «Måneder» viser da `-` i stedet for at kalde en tom periode «ugyldig» (BB-385).
+   * «Arbejdsdage» og «Måneder» viser da `-` i stedet for at kalde en tom periode «ugyldig».
    */
   const beregningsperiodeMangler = isBeregningsperiode
     && beregningsperiodeIssueSummary === undefined
@@ -218,10 +217,10 @@ export const buildEoTafBeregningsgrundlagRows = (
     if (!beregningsperiodeRangeForIncome || !beregningsperiodeIncome) return null;
     const hasIncome = beregningsperiodeIncome.employers.length > 0 || beregningsperiodeIncome.benefits.length > 0;
     // Samlet negativ indkomst har sin egen navngivne fejl. Vis ikke også «Ingen indkomst», som ellers får den
-    // synlige, men negative kilde til at ligne en manglende række (BB-333).
+    // synlige, men negative kilde til at ligne en manglende række.
     if (hasIncome || beregningsperiodeIncome.negativeSources.length > 0) return null;
     // En rød løn- eller ydelsesrække har sin egen linje med link til cellen. Indtil den er rettet, kan programmet
-    // ikke vide, om perioden reelt mangler indkomst (BB-442).
+    // ikke vide, om perioden reelt mangler indkomst.
     if (harFejlIIndkomstraekker(values, errors)) return null;
 
     const fraDanish = isoToDanish(beregningsperiodeRangeForIncome.fra);
@@ -271,11 +270,11 @@ export const buildEoTafBeregningsgrundlagRows = (
     });
   }
 
-  // Perioder uden hverken løn eller ydelse udtynder månedslønnen tavst (BB-260). Linjen er gul og fører til
+  // Perioder uden hverken løn eller ydelse udtynder månedslønnen tavst. Linjen er gul og fører til
   // Lønindkomst – til det første ansættelsesforhold, eller til perioden, når der kun er ydelser.
   //
   // Har en lønrække eller ydelsesrække en rød fejl, meldes hullerne ikke: rækken indgår ikke, så dens måned
-  // blev et «hul» – samme ene fejl som en linje mere (BB-291). Rækkens egen linje siger, hvad der skal rettes,
+  // blev et «hul» – samme ene fejl som en linje mere. Rækkens egen linje siger, hvad der skal rettes,
   // og et reelt hul meldes, så snart den er rettet.
   const indkomstHuller = isBeregningsperiode && beregningsperiodeRangeOk && !harFejlIIndkomstraekker(values, errors)
     ? resolveBeregningsperiodeIndkomstHuller(values)
@@ -304,11 +303,11 @@ export const buildEoTafBeregningsgrundlagRows = (
 
   const fravaerPerioder = values.fravaerPerioder ?? [];
   // Beregningsperiodens ferie og løse dage vises og vurderes kun, hvor de virker: i arbejdsdage. I måneder
-  // fradrages de ikke, og readeren giver dem som tomme (BB-263).
+  // fradrages de ikke, og readeren giver dem som tomme.
   const shouldIncludeFravaer = isBeregningsperiode && tafBeregnesSom === TAF_BEREGNES_SOM.ARBEJDSDAGE;
   // Rækkens linje samler dens røde celler (vinduet, overlappet og en ferie over hele perioden projekteres i
   // `beregningsgrundlagCellIssues.ts`) og dens manglende datoer, med rækkens navn og link til cellen – samme
-  // skabelon som TAF-afsnittets ferie (BB-264). Før stod reglerne her uden feltadresse og farvede ingen celle.
+  // skabelon som TAF-afsnittets ferie. Reglerne bærer feltadresse, så de farver cellen.
   const ferieEvaluations = evaluateFerieperioder(fravaerPerioder, (rowId) => ({
     fra: cellIssue(eoFravaerPeriodeFraField, rowId),
     til: cellIssue(eoFravaerPeriodeTilField, rowId),
@@ -377,8 +376,8 @@ export const buildEoTafBeregningsgrundlagRows = (
 
   const uspecificeredeFerie = values.uspecificeredeFerieFridage;
   if (shouldIncludeFravaer) {
-    // Feltets egen fejl (loftet, eller at der skal være en arbejdsdag tilbage) står på rækken (BB-264). Før var
-    // rækken altid `ok`, og reglen kom kun frem gennem sikkerhedsnettet, når intet andet var galt (BB-265).
+    // Feltets egen fejl (loftet, eller at der skal være en arbejdsdag tilbage) står på rækken; ellers kom
+    // reglen kun frem gennem sikkerhedsnettet, når intet andet var galt.
     const summary = summarizeFieldErrorsForEoRow(
       topLevelFieldIssue(errors, 'erstatningsopgoerelse', 'uspecificeredeFerieFridage'),
     );
@@ -449,7 +448,7 @@ export const buildEoTafBeregningsgrundlagRows = (
   if (oevrigtFravaerAktivt) {
     rows.push({
       id: 'taf.beregningsgrundlag.oevrigeFravaersdageBeskrivelse',
-      // Skærmens tekst (BB-270); rækken hed «Beskrivelse», og boksen «Beskrivelse af fravær».
+      // Skærmens tekst; rækken hed «Beskrivelse», og boksen «Beskrivelse af fravær».
       label: 'Årsag til fravær',
       displayValue: oevrigeFravaerBeskrivelseDisplay.displayValue,
       status: oevrigeFravaerBeskrivelseDisplay.status,
@@ -568,7 +567,7 @@ export const buildEoTafBeregningsgrundlagRows = (
       label: maanederRow.label,
       displayValue: maanederRow.displayValue,
       status: maanederRow.status,
-      // Fraværet er sin egen række; uden afhængigheden meldte «Måneder» samme mangel en gang til (BB-269).
+      // Fraværet er sin egen række; uden afhængigheden meldte «Måneder» samme mangel en gang til.
       dependsOn: [
         { kind: 'id', id: 'taf.beregningsgrundlag.beregningsperiode' },
         { kind: 'id', id: 'taf.beregningsgrundlag.oevrigeFravaersdage' },
@@ -576,7 +575,7 @@ export const buildEoTafBeregningsgrundlagRows = (
     });
   }
 
-  // Næsten intet tilbage efter fradragene (BB-259): ikke-blokerende, med samme tekst som feltets gule ring.
+  // Næsten intet tilbage efter fradragene: ikke-blokerende, med samme tekst som feltets gule ring.
   // Linket fører til det første indtastede fradrag; er det kun ferien, til ferietabellens første række.
   const fradragAdvarsel = evaluateBeregningsgrundlagFradragAdvarsel(
     resolveBeregningsgrundlagFradrag(values, tafBeregnesSom),
@@ -655,8 +654,8 @@ export const buildEoTafBeregningsgrundlagRows = (
     });
   }
 
-  // Den angivne løns rimelighedsadvarsler (BB-268, BB-432): gul ring på beløbet og samme tekst her. Skjuler
-  // «Skjul beregning efter første opgørelse» grundlaget, udelader Beregning grundlagets gule rækker (BB-431).
+  // Den angivne løns rimelighedsadvarsler: gul ring på beløbet og samme tekst her. Skjuler
+  // «Skjul beregning efter første opgørelse» grundlaget, udelader Beregning grundlagets gule rækker.
   const angivetLoenAdvarsel = resolveAngivetLoenAdvarsel(values);
   if (angivetLoenAdvarsel !== undefined) {
     rows.push({
@@ -685,7 +684,7 @@ export const buildEoTafBeregningsgrundlagRows = (
 
     rows.push({
       id: 'taf.beregningsgrundlag.loenBaseretPaa',
-      // Skærmens tekst uden den visuelle tankestreg; ellers citerede boksen «'- baseret på' er ikke angivet» (BB-270).
+      // Skærmens tekst uden den visuelle tankestreg; ellers citerede boksen «'- baseret på' er ikke angivet».
       label: 'Baseret på',
       displayValue: loenBaseretPaaDisplay.displayValue,
       status: loenBaseretPaaDisplay.status,
@@ -705,7 +704,7 @@ export const buildEoTafBeregningsgrundlagRows = (
   }
 
   if (beregnesUdFra === 'Angivet månedsløn' || beregnesUdFra === 'Angivet dagsløn') {
-    // Bestemt form skrevet ud: en bøjning ved sammensætning gav «månedslønen» (BB-271).
+    // Bestemt form skrevet ud: en bøjning ved sammensætning gav «månedslønen».
     const loenLabel = beregnesUdFra === 'Angivet månedsløn' ? 'månedslønnen' : 'dagslønnen';
     const opreguleresLabel = `Det angivne beløb afspejler ${loenLabel} den`;
 

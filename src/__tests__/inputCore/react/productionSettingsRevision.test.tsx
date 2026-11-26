@@ -17,7 +17,7 @@ describe('production runtime – settingssnapshot', () => {
       { initialProps: { settings: initial } }
     );
     const before = captureProductionEvaluationSource();
-    // Testen sammenlignede tidligere med `toBe(initial)` – altså identitet med hele `AppSettings`.
+    // Ikke `toBe(initial)` – identitet med hele `AppSettings`.
     // Broen publicerer det projekterede snapshot, og DET er pointen: den brede værdi må
     // ikke nå evalueringen. Vi pinner derfor både at snapshottet svarer til det committede input, OG
     // at det ikke bærer nøgler uden for sættet.

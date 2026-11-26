@@ -64,7 +64,7 @@ describe('projectSatser (reader-projektion)', () => {
     ['over interval', maxYear + 1],
   ])('år %s → canonical men blocked med rødt bounds-feltissue, samme consumer-gate som formatfejl (§1.6)', (_name, year) => {
     const state = settle(empty(), String(year));
-    // Efter kravændringen 2026-07-18 er et out-of-bounds satsår canonical (kan gemmes i .eo), men en
+    // Et out-of-bounds satsår er canonical (kan gemmes i .eo), men en
     // bounds-feltvalidator giver et rødt issue, som readeren skjuler → projektionen blokerer ligesom format.
     expect(state.sections.satser?.aargang).toBe(year);
     expect(Object.keys(state.rejectedInputs)).toHaveLength(0);

@@ -84,9 +84,9 @@ const buildLoenindkomstSections = (
     const sectionRows = grouped.get(ansaettelsesforholdId) ?? [];
     const arbejdsstedNavn = sectionRows.find((row) => row.label === 'Navn på arbejdssted')?.displayValue.trim() ?? '';
     const hasNamedArbejdssted = arbejdsstedNavn !== '' && arbejdsstedNavn !== '-';
-    // Den kanoniske navneregel skelner ens navne og et navn, der rammer et andet korts standardnavn. Før dannede
-    // afsnittet sin egen titel af rækkens visningsværdi og nummererede efter afsnittenes rækkefølge, så to
-    // ansættelsesforhold kunne stå under samme overskrift (BB-466).
+    // Den kanoniske navneregel skelner ens navne og et navn, der rammer et andet korts standardnavn. En egen titel
+    // af rækkens visningsværdi, nummereret efter afsnittenes rækkefølge, kunne sætte to ansættelsesforhold under
+    // samme overskrift.
     const title = employmentNamesById.get(ansaettelsesforholdId)
       ?? (hasNamedArbejdssted ? arbejdsstedNavn : `Ansættelsesforhold ${index + 1}`);
     const visibleRows = hasNamedArbejdssted

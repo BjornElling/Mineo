@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 //
 // `varigemen-contract.md` §2.9: alle beløb i varige mén vises i HELE KRONER uden decimaler – på begge
-// faner og i dokumentet. Reglen er unik for denne ydelse (udviklerbeslutning 2026-08-21, BB-078/BB-079)
+// faner og i dokumentet. Reglen er unik for denne ydelse (bevidst valg)
 // og er derfor ikke dækket af `amount-contract.md` §5's to-decimal-standard.
 //
 // Testen måler gennem den ÆGTE side og den ægte produktions-runtime, og den er skrevet som et
@@ -111,7 +111,7 @@ describe('Varige mén – alle beløb vises i hele kroner (§2.9)', () => {
     expect(grundbeloeb + reduktion).toBe(godtgoerelse);
   });
 
-  it('Beregning: satsrækken og «á»-formuleringen skriver samme sats på samme form (BB-079)', () => {
+  it('Beregning: satsrækken og «á»-formuleringen skriver samme sats på samme form', () => {
     hydrate({ mengrad: 10, beregningsdato: toISODateString('2026-01-01') }, stamdataMedReduktion);
     renderPage();
 
@@ -120,7 +120,7 @@ describe('Varige mén – alle beløb vises i hele kroner (§2.9)', () => {
     expect(screen.getByText(/á 11\.035 kr\.$/)).toBeInTheDocument();
   });
 
-  it('Satser-fanen: alle 22 satser vises som hele kroner (BB-078)', async () => {
+  it('Satser-fanen: alle 22 satser vises som hele kroner', async () => {
     const user = userEvent.setup();
     hydrate(null, null);
     renderPage();

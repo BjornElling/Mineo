@@ -398,7 +398,7 @@ describe('calculateStandardLoenProjectedAmounts', () => {
 
 describe('roundStandardLoenAmountToTwoDecimals', () => {
   it('afrunder til 2 decimaler med halfAwayFromZero', () => {
-    // 1.005 er i floating-point 1.004999…, men afrundes efter decimalværdien → 1.01 (fund A, 2026-11-25),
+    // 1.005 er i floating-point 1.004999…, men afrundes efter decimalværdien → 1.01,
     // som feltet selv gør ved indtastning.
     expect(roundStandardLoenAmountToTwoDecimals(1.005)).toBe(1.01);
     // 2.005 er i floating-point faktisk 2.005000... → afrunder op til 2.01
@@ -561,9 +561,9 @@ describe('hasAtLeastOneCompletePeriodRow', () => {
     expect(hasAtLeastOneCompletePeriodRow([row], 'maaned')).toBe(true);
   });
 
-  // Udviklerbeslutning 2026-08-26: en lønrække med 0 kr. er en OPLYSNING (der var ingen indkomst i
-  // perioden), ikke en manglende indtastning. Prædikatet krævede tidligere samlet ≠ 0, hvilket gjorde
-  // dokumentgaten uenig med tabelvalideringen, der regner et eksplicit 0 som udfyldt.
+  // Bevidst valg: en lønrække med 0 kr. er en OPLYSNING (der var ingen indkomst i perioden), ikke en
+  // manglende indtastning. Et krav om samlet ≠ 0 ville gøre dokumentgaten uenig med tabelvalideringen,
+  // der regner et eksplicit 0 som udfyldt.
   it('row med komplet periode og beløbet 0 → true (0 kr. er en lovlig lønrække)', () => {
     const row = createRow({ col0_maaned: '1', col1_maaned: '2024', col2: 0, col3: 0, col4: 0, col5: 0 });
     expect(hasAtLeastOneCompletePeriodRow([row], 'maaned')).toBe(true);

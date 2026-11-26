@@ -115,7 +115,7 @@ const projectWithBlockedBrevhovedStamdata = () => {
   );
 };
 
-describe('CALC-004 – varige mén fra snapshot til Word', () => {
+describe('Varige mén fra snapshot til Word', () => {
   it('fører det håndberegnede resultat til det faktiske Word-dokument', async () => {
     const input = project();
 
@@ -148,7 +148,7 @@ describe('CALC-004 – varige mén fra snapshot til Word', () => {
     expect(text).toContain('303.896 kr.');
   });
 
-  it('navngiver anmeldelsesdatoen ved en erhvervssygdom, også når brevhovedet er fravalgt (BB-398)', async () => {
+  it('navngiver anmeldelsesdatoen ved en erhvervssygdom, også når brevhovedet er fravalgt', async () => {
     // Uden brevhoved er brevhovedets stamdata tomme. Datoens navn skal derfor følge sagens skadestype
     // og ikke brevhovedet – før faldt dokumentet her tilbage til «Skadedato» og «Alder på skadestidspunkt».
     const input = project({ ...stamdata, skadestype: 'Erhvervssygdom' });

@@ -110,8 +110,8 @@ describe('persisterede specialtoggles → klik → undo-fokusmål', () => {
     expect(serializeFieldAddress(origin.field))
       .toBe(serializeFieldAddress(aarsloenOmregningTilFuldtAarField.bind().address));
 
-    // (2) DET AFGØRENDE: undo/redo's egen opslagsfunktion finder kontrollen igen. Før rettelsen bar det rå
-    //     `StyledToggleSwitch` ingen restore-attributter, og dette returnerede `null`.
+    // (2) DET AFGØRENDE: undo/redo's egen opslagsfunktion finder kontrollen igen. Bærer det rå
+    //     `StyledToggleSwitch` ingen restore-attributter, returnerer dette `null`.
     expect(findRestoreTarget(origin)).toBe(toggle);
 
     // (3) Togglen oplyser sin EGEN destination: Årsløn er en side uden faner.

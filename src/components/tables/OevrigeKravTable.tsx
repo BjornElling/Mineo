@@ -58,7 +58,7 @@ export type OevrigeKravTableProps = Readonly<{
   /** De committede rækker (læst reader-afledt af forælderen), i den afsluttede rækkefølge. */
   committedRows: readonly OevrigeKravRow[];
   saveOrderPath?: TableSaveOrderPath;
-  /** Opgørelsens «Vedrører perioden»; en dato uden for den får en gul ring (BB-235). */
+  /** Opgørelsens «Vedrører perioden»; en dato uden for den får en gul ring. */
   periode?: OevrigeKravPeriode;
 }>;
 
@@ -76,7 +76,7 @@ const OevrigeKravTableRow = React.memo(({ renderRow, committed, rowHasSettledInp
   const rowId = renderRow.rowId;
   const gc = (colIndex: number) => ({ rowId, colIndex });
   const showDelete = renderRow.kind === 'existing' && committed !== undefined && rowHasSettledInput;
-  // Ikke-blokerende: samme regel og tekst som advarslen i «Fejl og advarsler» (BB-235).
+  // Ikke-blokerende: samme regel og tekst som advarslen i «Fejl og advarsler».
   const datoWarning = periode !== undefined && isOevrigeKravDatoUdenforPeriode(committed?.dato, periode)
     ? createFieldWarning(buildOevrigeKravDatoUdenforPeriodeMessage(periode))
     : undefined;

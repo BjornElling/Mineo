@@ -57,7 +57,7 @@ export const projectStamdataForDocument = (
  *
  * Skadestype, skade-/anmeldelsesdato og fødselsdato er udeladt af typen, fordi værdien er tom, når brevhovedet
  * er fravalgt. Et dokument, der læste skadestypen herfra, skiftede tavst «Anmeldelsesdato» ud med «Skadedato»
- * blot fordi brevhovedet var slået fra (BB-398). Sagens fakta hentes fra dokumentets eget beregningsgrundlag.
+ * blot fordi brevhovedet var slået fra. Sagens fakta hentes fra dokumentets eget beregningsgrundlag.
  */
 export type DocumentBrevhovedStamdata = Omit<StamdataValues, 'skadestype' | 'skadedato' | 'skadelidteFodselsdato'>;
 

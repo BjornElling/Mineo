@@ -5,17 +5,13 @@ import type { LoenPaaHelligdage } from '../../types/loen';
 
 // Ny-sags-defaults for `aarsloen` (§1.12/§2.11).
 //
-// **Kriteriet er ikke "kan værdien udtrykkes i schemaet".** Det stod her før og udelod
-// `fuldLoenUnderFerie` og `loenPaaHelligdage`, fordi de HAR schema-defaults. Men en schema-default er et
-// LOAD-fallback for en gammel `.eo`, hvor feltet helt mangler – ikke en ny sags værdi (se §2a i
-// `aarsloen-contract.md`, som gør netop den sondring for `loenperiode`). De to felter slog derfor aldrig
-// igennem på Årsløn, selv om indstillingerne hedder ORDRET det samme som sidens felter.
+// **Kriteriet er ikke "kan værdien udtrykkes i schemaet".** Det ville udelade `fuldLoenUnderFerie` og
+// `loenPaaHelligdage`, fordi de HAR schema-defaults. Men en schema-default er et LOAD-fallback for en
+// gammel `.eo`, hvor feltet helt mangler – ikke en ny sags værdi (se §2a i `aarsloen-contract.md`, som
+// gør netop den sondring for `loenperiode`).
 //
-// Resultatet var værre end hvis ingen af dem virkede: at «Løn indtastes som» virkede, var netop beviset
-// for, at boksen gjaldt siden – og så stod de to andre stille på noget andet. Udviklerbeslutning
-// 2026-08-26: standardværdier skal slå igennem på nye sager og ved «Slet alt» ALLE de steder i
-// programmet, hvor de pågældende felter anvendes. Kriteriet er derfor: har indstillingen et felt her,
-// gælder den her.
+// Standardværdier skal slå igennem på nye sager og ved «Slet alt» ALLE de steder i programmet, hvor de
+// pågældende felter anvendes. Kriteriet er derfor: har indstillingen et felt her, gælder den her.
 
 /** De årsløn-felter, en ny sag tager fra brugerens standardværdier. */
 export type AarsloenNewCaseDefaults = Readonly<{

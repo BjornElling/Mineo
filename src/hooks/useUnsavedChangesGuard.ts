@@ -10,7 +10,7 @@ type UseUnsavedChangesGuardArgs = {
   combinedSectionRevision: number;
   authoritativeSnapshotEpoch: number;
   /**
-   * Om en åben editor bærer en faktisk ændret, endnu ikke afsluttet draft (M-47/BB-396). Læses først i selve
+   * Om en åben editor bærer en faktisk ændret, endnu ikke afsluttet draft. Læses først i selve
    * `beforeunload`, så den synlige tekst er beskyttet uden et abonnement på hvert tastetryk.
    */
   hasChangedOpenDraft: () => boolean;
@@ -28,7 +28,7 @@ type UseUnsavedChangesGuardResult = {
 // (`replacementGeneration`), som hel-sags-clear bumper. En ny undtagelse fra advarslen skal begrundes af sin
 // egen handling, ikke af en generisk "tillad exit"-omgåelse, ingen anden kalder havde brug for.
 //
-// **Markeringen har samme levetid som input (M-46).** Afsluttet input overlever en genindlæsning i fanens
+// **Markeringen har samme levetid som input.** Afsluttet input overlever en genindlæsning i fanens
 // sessionStorage. Baseline lever kun i React og starter ved mount på den hydrerede revision; uden en persisteret
 // markør blev gendannet, aldrig gemt arbejde derfor behandlet som sikret efter F5. Markøren skrives ved hver
 // ændring af `hasUnsavedChanges` og læses én gang ved mount. Kun en ny baseline – vellykket gem/download

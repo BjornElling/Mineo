@@ -80,7 +80,7 @@ export const buildManuelProcentsatsEntries = (args: Readonly<{
 // buildManuelProcentsatsEntries ved konstruktion (basisrækken først, brugerrækker > basisdato
 // i datoorden).
 //
-// Deler det fælles carry-forward-opslag (regulering-redesign R3); den ene afvigelse fra det
+// Deler det fælles carry-forward-opslag (`reguleringSeriesLookup.ts`); den ene afvigelse fra det
 // generiske opslag er fallback: ligger `iso` før alle entries, anvendes basisrækken (`entries[0]`,
 // indeks 100) frem for `undefined` – basisrækken repræsenterer altid niveauet pr. reguleringsdatoen.
 export const findManuelProcentsatsEntryForDate = (

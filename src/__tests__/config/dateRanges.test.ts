@@ -45,8 +45,8 @@ describe('dateRanges – globale konstanter', () => {
 
 describe('dateRanges – dags dato er live, ikke et import-øjebliksbillede', () => {
   // Disse tests er værnet mod at `getToday`/`getCurrentYear` bliver lavet til `const` igen.
-  // De ville ALLE fejle på den tidligere form, hvor værdien blev låst ved modulets import:
-  // en session der står åben over midnat validerede fortsat mod gårsdagens maksimum.
+  // Låses værdien ved modulets import, validerer en session, der står åben over midnat, fortsat mod
+  // gårsdagens maksimum – og de ville ALLE fejle.
   beforeEach(() => {
     vi.useFakeTimers();
   });
@@ -114,10 +114,8 @@ describe('dateRanges_stamdata', () => {
     expect(dateRanges_stamdata.skadedato.max).toBe(getToday());
   });
 
-  // Bemærk: der er ingen placeholder-assertion længere. Intervallerne bar tidligere et
-  // `placeholder`-felt, som INGEN kode læste; denne test og dens søster i varige mén var det eneste,
-  // der holdt det i live. Formvejledningen ejes af dato-feltfamilien, og
-  // `fieldFormatPlaceholders.test.ts` måler den dér.
+  // Bemærk: der er bevidst ingen placeholder-assertion. Intervallerne bærer ingen formvejledning; den
+  // ejes af dato-feltfamilien, og `fieldFormatPlaceholders.test.ts` måler den dér.
 });
 
 // ─── dateRanges_erstatningsopgoerelse ────────────────────────────────────────

@@ -715,7 +715,7 @@ describe('computeEetKapitaliseringCalculation', () => {
   });
 
   it('blokerer når særfaktor mangler efter faktortabellens sidste alder', () => {
-    // Vejl. 9871/2020 har siden 2026-11-12 sin særfaktor (1,168) registreret; den fjernes her, så
+    // Vejl. 9871/2020 har sin særfaktor (1,168) registreret; den fjernes her, så
     // vagten for en bekendtgørelse uden særfaktor fortsat er dækket.
     const dataById = kapitaliseringsTabelDataById as Record<string, KapitaliseringsTabelData | undefined>;
     const original = dataById['9871/2020'];
@@ -1085,7 +1085,7 @@ describe('computeEetKapitaliseringCalculation', () => {
   });
 
   it('kapitaliserer en skade fra 2004-2007 i 2012 med tabel L i 1403/2011 (ældste årgang)', () => {
-    // Tabel L manglede tidligere i registret, så beregningen blokerede. Født 1953-01-01 → 59 år den
+    // Tabel L skal findes i registret, ellers blokerer beregningen. Født 1953-01-01 → 59 år den
     // 2012-02-01; for skader før 1. juli 2007 slås op på fyldt alder uden månedsinterpolation (mænd: 4,561).
     const result = computeEetKapitaliseringCalculation({
       erhvervsevnetab: {

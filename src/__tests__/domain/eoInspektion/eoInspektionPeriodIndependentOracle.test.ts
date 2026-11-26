@@ -6,7 +6,7 @@ import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 const iso = (value: string) => toISODateString(value);
 const amount = (value: number): AmountValue => ({ kind: 'number', value });
 
-describe('CALC-006 – uafhængigt EOInspektion-periodefacit', () => {
+describe('uafhængigt EOInspektion-periodefacit', () => {
   it('fordeler en ydelse korrekt over skudårsdagen ved et interval på tværs af månedsskift', () => {
     const values = {
       ...createErstatningsopgoerelseInitialValues(),

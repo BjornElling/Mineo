@@ -11,9 +11,9 @@ import { expect, login, openPage, test } from './support/mineoTest';
  * Forskellen er reel. Navnet leveres på tre forskellige måder (`aria-labelledby` til en søskende-tekst,
  * `aria-label`, og en `<label htmlFor>`-binding), og hver af dem afhænger af, at `id`-parringen holder
  * gennem MUI's slot-videresendelse. En brudt parring giver stadig grønne enhedstests og en tavs
- * arkitekturregel, men en navnløs kontrol hos brugeren – nøjagtig den tilstand fladerne kom fra.
+ * arkitekturregel, men en navnløs kontrol hos brugeren.
  *
- * Testen dækker de flader, hvor kontrollerne stod navnløse: sidemenuen, Indstillinger, Om-siden og EET.
+ * Testen dækker sidemenuen, Indstillinger, Om-siden og EET.
  */
 
 test.describe('Tilgængelige navne på interaktive kontroller', () => {
@@ -77,7 +77,7 @@ test.describe('Tilgængelige navne på interaktive kontroller', () => {
         name: 'Endelig EET-afgørelse kan gøre tidligere udbetalt midl. EET til endeligt med tilbagevirkende kraft',
       })
     ).toBeVisible();
-    // Ét navn for fradrag 4 i alle fem forekomster – togglen dannes af det (BB-191).
+    // Ét navn for fradrag 4 i alle fem forekomster – togglen dannes af det.
     await expect(
       page.getByRole('checkbox', { name: 'Indregn forhøjet pensionsalder', exact: true })
     ).toBeVisible();

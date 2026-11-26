@@ -27,8 +27,8 @@ export const formatJaNej = (value: boolean): string => (value ? 'Ja' : 'Nej');
 export const formatFaktor = (value: number): string => formatAsAmountTrimmed(value, 3);
 
 /**
- * Månedsantal i EET: programmets ene månedsformat (fem decimaler, efterstillede nuller trimmet) – udviklerens
- * afgørelse 2026-11-19: måneder vises med fem decimaler alle steder.
+ * Månedsantal i EET: programmets ene månedsformat (fem decimaler, efterstillede nuller trimmet) – måneder vises
+ * med fem decimaler alle steder.
  */
 export const formatMaaneder = (value: number): string => formatDocumentMaanederTrimmed(value);
 
@@ -132,7 +132,7 @@ const GRUNDLAEGGENDE_IDS = new Set([
   // Blindgyde-beskeden («beregningsgrundlaget er ufuldstændigt») kan ikke navngive ét felt, fordi den
   // netop er reserven for de tilfælde, hvor ingen anden fejl har meldt sig. Sektionen er dog en ægte
   // anvisning: alle dens forudsætninger – beregningsdato, skadedato, fødselsdato – rettes her eller
-  // gennem den delte stamdatarække (BB-195).
+  // gennem den delte stamdatarække.
   'differencekrav-beregningsgrundlag-missing',
 ]);
 

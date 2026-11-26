@@ -36,12 +36,12 @@ export type LoentrinFinderOverlayProps = Readonly<{
   onAmountFieldError: (errorMsg: string | undefined) => void;
   onDateFieldError: (errorMsg: string | undefined) => void;
   results: ReadonlyArray<LoentrinFinderResult>;
-  /** Satstabellens dato og om den er programmets nyeste (BB-310). */
+  /** Satstabellens dato og om den er programmets nyeste. */
   satsDato: ISODateString | undefined;
   erNyesteSatser: boolean;
   /** Kan et resultat sættes ind i fladen? Uden indsætningsmål er linjerne kun til læsning. */
   kanIndsaette: boolean;
-  /** Hvorfor resultaterne ikke kan sættes ind (anden løntype end sagens, BB-445). */
+  /** Hvorfor resultaterne ikke kan sættes ind (anden løntype end sagens). */
   indsaetSpaerretGrund: string | undefined;
   /** Sætter resultatet ind; `true`, når det lykkedes – overlayet lukker da. */
   onInsertResult: (result: LoentrinFinderResult) => boolean;
@@ -99,8 +99,8 @@ const LoentrinFinderOverlay = React.memo((props: LoentrinFinderOverlayProps) => 
   } = props;
 
   // Fokus tilbage til den `Find løntrin`-knap, der åbnede overlayet (jf. `keyboard-navigation.md`
-  // §Popup-fokus-restore). Uden den blev fokus efterladt på overlayets forsvindende felt og faldt til
-  // `body` – bekræftet i Chrome, Edge, Firefox og WebKit i AUDIT-2026-08-14-21. Restoren bor her, hvor
+  // §Popup-fokus-restore). Uden den efterlades fokus på overlayets forsvindende felt og falder til
+  // `body` i Chrome, Edge, Firefox og WebKit. Restoren bor her, hvor
   // popupen bor, så overlayets øvrige `focus()`-kald (tastaturnavigationen nedenfor) ikke er en
   // konkurrerende restore-vej.
   // Den fælles overlay-adfærd: tilbage-knappen, stak-disciplinen og fokus-restoren.
@@ -136,7 +136,7 @@ const LoentrinFinderOverlay = React.memo((props: LoentrinFinderOverlayProps) => 
     const ansaettelseInput = loentrinFinderAnsaettelseRef.current?.querySelector<HTMLInputElement>('input') ?? null;
     const beloebInput = loentrinFinderBeloebRef.current?.querySelector<HTMLInputElement>('input') ?? null;
     const datoInput = loentrinFinderDatoRef.current?.querySelector<HTMLInputElement>('input') ?? null;
-    // De indsættelige resultatlinjer kommer efter «Beregn» (BB-310).
+    // De indsættelige resultatlinjer kommer efter «Beregn».
     const resultater = Array.from(dialogRef.current?.querySelectorAll<HTMLElement>(`[${RESULTAT_ATTRIBUT}="true"]`) ?? []);
     const orderedElements: Array<HTMLElement | null> = [ansaettelseInput, beloebInput, datoInput, beregnRef.current, ...resultater];
     return orderedElements.filter((item): item is HTMLElement => item !== null);
@@ -286,7 +286,7 @@ const LoentrinFinderOverlay = React.memo((props: LoentrinFinderOverlayProps) => 
 
   const indsaet = (result: LoentrinFinderResult) => {
     // Lukningen går den fælles vej, så historik-trinnet ryddes; restoren lander på gruppefeltet, som hooken
-    // har udpeget (udviklerens ønske, BB-310). Årsagen svarer til et klik på luk-knappen.
+    // har udpeget. Årsagen svarer til et klik på luk-knappen.
     if (onInsertResult(result)) requestClose('close-button');
   };
 
@@ -448,7 +448,7 @@ const LoentrinFinderOverlay = React.memo((props: LoentrinFinderOverlayProps) => 
               <Typography className="row--text" sx={{ mb: 1 }}>
                 Nærmeste lønsatser
               </Typography>
-              {/* Hvilken tabel svaret kommer fra – samme løn giver forskellige løntrin efter datoen (BB-310). */}
+              {/* Hvilken tabel svaret kommer fra – samme løn giver forskellige løntrin efter datoen. */}
               {satsDato === undefined ? null : (
                 <Typography className="row--text" sx={{ mb: 1, color: 'text.secondary' }}>
                   {erNyesteSatser
@@ -469,8 +469,8 @@ const LoentrinFinderOverlay = React.memo((props: LoentrinFinderOverlayProps) => 
                     {...(indsaettelig ? {
                       role: 'button',
                       tabIndex: 0,
-                      // Eget navn pr. resultat. Uden det gav tooltippen alle linjer det samme navn, «Indsæt i
-                      // programmet», så en skærmlæser ikke kunne skelne trinnene (BB-448). Et tooltip er ikke et
+                      // Eget navn pr. resultat. Uden det giver tooltippen alle linjer det samme navn, «Indsæt i
+                      // programmet», så en skærmlæser ikke kan skelne trinnene. Et tooltip er ikke et
                       // navn (`page-component-contract.md`).
                       'aria-label': `Indsæt ${formatLoentrinFinderResultLabel(result).replace(/^Løntrin/, 'løntrin')}, ${formatCurrency(result.beloeb)} kr.`,
                       [RESULTAT_ATTRIBUT]: 'true',
@@ -508,7 +508,7 @@ const LoentrinFinderOverlay = React.memo((props: LoentrinFinderOverlayProps) => 
                 if (indsaettelig) {
                   return <Tooltip key={key} title="Indsæt i programmet" arrow placement="left">{linje}</Tooltip>;
                 }
-                // Fundet med en anden løntype end sagens: linjen kan læses, men ikke sættes ind (BB-445).
+                // Fundet med en anden løntype end sagens: linjen kan læses, men ikke sættes ind.
                 return spaerret
                   ? <Tooltip key={key} title={indsaetSpaerretGrund} describeChild arrow placement="left">{linje}</Tooltip>
                   : linje;

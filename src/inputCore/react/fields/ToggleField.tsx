@@ -25,9 +25,9 @@ import {
  * - `'handled'` – callsitet har selv afsluttet ændringen, typisk som én atomisk transaktion, der også rører
  *   andre felter eller rækker. Adapteren skriver da ikke oveni.
  *
- * Findes for de persisterede toggles, hvis afslutning IKKE er én ren feltskrivning. Tidligere måtte netop de
+ * Findes for de persisterede toggles, hvis afslutning IKKE er én ren feltskrivning. Uden den måtte netop de
  * callsites bruge det rå `StyledToggleSwitch` direkte og forbinde editoren manuelt – hvorved BÅDE den konkrete
- * `FieldRef` og undo/redo-fokusmetadataen faldt væk. Overriden flytter kun AFSLUTNINGEN; identitet, visning og
+ * `FieldRef` og undo/redo-fokusmetadataen falder væk. Overriden flytter kun AFSLUTNINGEN; identitet, visning og
  * restore-attributter forbliver adapterens ansvar.
  */
 export type ToggleCommitDecision = 'commit' | 'reject' | 'handled';
@@ -44,7 +44,7 @@ export type ToggleFieldProps = Readonly<{
    * `CheckboxField`s prop af samme navn.
    *
    * Findes, fordi en programinaktiv kontrol UDEN årsag efterlader brugeren i tvivl om, hvorvidt
-   * muligheden slet ikke findes, eller han selv har fravalgt den (BB-188). `disabled` alene er
+   * muligheden slet ikke findes, eller han selv har fravalgt den. `disabled` alene er
    * derfor kun til de tilfælde, hvor grunden fremgår af konteksten.
    */
   unavailableReason?: string | null;
@@ -69,7 +69,7 @@ const ToggleField = (props: ToggleFieldProps) => {
     // En boolsk descriptor har altid en defineret canonical værdi (emptyValue false/true); controller.value er
     // derfor defineret for et toggle-felt. Fald tilbage til false for at opfylde den controlled kontrakt.
     const unavailable = unavailableReason !== undefined && unavailableReason !== null;
-    // En inaktiv kontakt vises slået fra af `StyledToggleSwitch` selv (§10.5, BB-422).
+    // En inaktiv kontakt vises slået fra af `StyledToggleSwitch` selv (§10.5).
     const checked = checkedOverride ?? controller.value ?? false;
 
     const handleCommit = React.useCallback(

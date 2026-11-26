@@ -94,8 +94,7 @@ export type LoenindkomstFlatModel = Readonly<{
   isOffentligLoenSelectionReady: (af: Ansaettelsesforhold) => boolean;
   resolveOverenskomstLabel: (overenskomstId: string | undefined) => string;
 
-  // Per-af kort-afledninger der tidligere blev udregnet inde i AnsaettelsesforholdCard FRA eoValues.
-  // Eksponeres her, så kortet ikke længere behøver rå committed EO-state.
+  // Kort-afledninger pr. ansættelsesforhold. Eksponeres her, så kortet ikke behøver rå committed EO-state.
   showSygeferiegodtgoerelseSection: (af: Ansaettelsesforhold) => boolean;
   getSfggRowForAf: (af: Ansaettelsesforhold) => SfggRow | undefined;
   /**
@@ -130,11 +129,11 @@ export type SfggPresentation = Readonly<{
    * «skaden er før» / «skaden er anmeldt før» følger skadestypen; «siden skaden» betegner selve skaden.
    */
   sharedSfggBefore2015Besked: string | null;
-  /** Enheden, fraværsdagene i referenceperioden tælles i – samme som opgørelsen af sygeferiegodtgørelsen (BB-329). */
+  /** Enheden, fraværsdagene i referenceperioden tælles i – samme som opgørelsen af sygeferiegodtgørelsen. */
   fravaersdageEnhed: SfggDayBasis;
-  /** Info-tooltippen ved «Referenceperiode»: reglens udgangspunkt, og at perioden er fri (BB-321). */
+  /** Info-tooltippen ved «Referenceperiode»: reglens udgangspunkt, og at perioden er fri. */
   referenceperiodeTooltip: string;
-  /** Seksmånedersadvarslens tekst; vises kun, når snapshottet har meldt advarslen for kortet (BB-325). */
+  /** Seksmånedersadvarslens tekst; vises kun, når snapshottet har meldt advarslen for kortet. */
   seksMaanederBesked: string | undefined;
 }>;
 

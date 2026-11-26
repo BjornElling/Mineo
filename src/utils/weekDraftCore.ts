@@ -1,6 +1,5 @@
 // Delt commit-parse-kerne for UGE-inputs (uge/år-par) – brugt af BÅDE formularfeltet (`WeekField`)
-// og tabel-cellen (`weekAdapter`). Tidligere var den identiske uge-/år-parsing kopieret i begge familier;
-// A2 samler den her. Årsdelens fortolkning og interval-besked deles yderligere med årstalsfeltet via
+// og tabel-cellen (`weekAdapter`), så de to familier deler samme uge-/år-parsing. Årsdelens fortolkning og interval-besked deles yderligere med årstalsfeltet via
 // `yearDraftCore` (ensartet ordlyd: "Årstallet skal være …").
 
 import { yearHas53Weeks } from './dateUtils';
@@ -53,9 +52,9 @@ export const parseWeekDraftForCommit = (
   if (trimmed === '') return { ok: true, value: undefined };
   if (trimmed.length > maxDraftLength) return fail('Ugyldigt format');
 
-  // Separatorsættet ejes af `normalizeWeekSeparators`, som feltets tegnværn læser af samme kilde.
-  // Her stod før et selvstændigt `[ .:-]`, der hverken dækkede `,` og `\` (tastbare, men afvist ved
-  // settle) eller udelod mellemrummet (ikke længere en separator, jf. udviklerbeslutning 2026-08-18).
+  // Separatorsættet ejes af `normalizeWeekSeparators`, som feltets tegnværn læser af samme kilde. Et
+  // selvstændigt sæt her ville drifte fra tegnværnet (fx afvise tastbare `,` og `\` ved settle eller
+  // tillade mellemrummet, som ikke er en separator).
   const normalized = normalizeWeekSeparators(trimmed);
   if (normalized.startsWith('/')) return fail('Ugyldigt format');
 
@@ -77,7 +76,7 @@ export const parseWeekDraftForCommit = (
   if (rangeError !== '') return fail(rangeError);
 
   // Året står i beskeden, fordi grænsen 52/53 afhænger af det: uden det kan brugeren ikke se, hvorfor uge 53
-  // er gyldig i ét år og ikke i et andet (BB-114/BB-296).
+  // er gyldig i ét år og ikke i et andet.
   const maxWeek = yearHas53Weeks(year) ? 53 : 52;
   if (weekNum > maxWeek) return fail(`Uge skal være mellem 1 og ${maxWeek} i ${year}`, 'weekNumber');
 

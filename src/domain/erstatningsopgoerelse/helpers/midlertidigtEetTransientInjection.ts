@@ -27,8 +27,8 @@ export type MidlertidigtEetTransientResult = Readonly<{
  * drive fra hinanden.
  *
  * Uden en clampet TAF-periode er der intet at fradrage i, og importen giver en tom context UDEN issue
- * (udviklerafgørelse 2026-11-04). Før spærrede en rød fejl alle EO-dokumenter – også når TAF-perioderne
- * blot lå uden for EO-perioden og stille var skåret væk. Ufuldstændige TAF-perioder giver deres egne fejl.
+ * (bevidst valg). En rød fejl ville spærre alle EO-dokumenter – også når TAF-perioderne blot ligger uden for
+ * EO-perioden og stille er skåret væk. Ufuldstændige TAF-perioder giver deres egne fejl.
  */
 export const buildMidlertidigtEetImportContext = (
   source: EetImportSource,
@@ -48,7 +48,7 @@ const MIDLERTIDIGT_EET_IMPORT_FAILURE_PREFIX = 'Midlertidigt EET kan ikke hentes
 /**
  * En fejl, der spærrer importen, siger FØLGEN først: «Midlertidigt EET kan ikke hentes fra Erhvervsevnetab-siden:
  * <årsag>». Årsagen alene («Der er en afgørelse uden afgørelsesdato») læses i EO som en bemærkning om EET-siden – og
- * ikke som, at fradraget er faldet bort (BB-357). Beskeder, der allerede nævner midlertidigt EET, står urørte.
+ * ikke som, at fradraget er faldet bort. Beskeder, der allerede nævner midlertidigt EET, står urørte.
  */
 const describeImportFailure = (issue: EetIssue): EetIssue => {
   if (issue.severity !== 'error' || issue.message.startsWith('Midlertidigt EET')) return issue;
@@ -68,8 +68,8 @@ const describeImportFailure = (issue: EetIssue): EetIssue => {
  *
  * Kun en FEJL stopper importen. En advarsel fra EET-siden (fx en procent uden for 10 %-trinnene eller en
  * midlertidig afgørelse efter en endelig) følger med som advarsel, og fradraget er det samme, som EET-siden selv
- * regner. Før opgav importen alle perioder ved den mindste linje fra EET-siden – også en advarsel – og kravet
- * blev det fulde fradrag for højt uden et ord om, at fradraget var faldet bort (BB-357, mønster M-43).
+ * regner. Opgav importen alle perioder ved den mindste linje fra EET-siden – også en advarsel – blev kravet
+ * det fulde fradrag for højt uden et ord om, at fradraget var faldet bort.
  */
 export const buildMidlertidigtEetSourceResult = (
   context: EetImportContext | null | undefined
@@ -122,7 +122,7 @@ export const harMidlertidigtEetYdelseITafPerioden = (
 
 /**
  * Vil et kildeskift hente et fradrag? Læses FØR togglen slås til, så bekræftelsen kan sige, at de manuelle rækker
- * slettes uden at blive erstattet (BB-457). Samme import og samme TAF-perioder som beregningen efter skiftet.
+ * slettes uden at blive erstattet. Samme import og samme TAF-perioder som beregningen efter skiftet.
  */
 export const vilMidlertidigtEetImportGiveFradrag = (
   source: EetImportSource | null | undefined,
@@ -133,7 +133,7 @@ export const vilMidlertidigtEetImportGiveFradrag = (
     tafRanges,
   );
 
-/** Tilføjes bekræftelsen, når skiftet ikke henter et fradrag (BB-457). */
+/** Tilføjes bekræftelsen, når skiftet ikke henter et fradrag. */
 export const MIDLERTIDIGT_EET_SKIFT_UDEN_FRADRAG_TEKST =
   'Erhvervsevnetab-siden har intet midlertidigt EET i TAF-perioden – der fradrages derefter intet.';
 
@@ -144,8 +144,8 @@ export const MIDLERTIDIGT_EET_INGEN_YDELSER_I_TAF_MESSAGE =
 
 /**
  * Togglen er slået til, men importen giver ingen løbende ydelse i TAF-perioden: en ikke-blokerende advarsel
- * (BB-358, udviklerafgørelse 2026-10-29). Uden den så det udfald, hvor intet trækkes fra, ud præcis som det, hvor
- * fradraget er gjort – og den eksisterende advarsel om en afgørelse uden ydelser tav, fordi togglen tæller som ydelser.
+ * (bevidst valg). Uden den ser det udfald, hvor intet trækkes fra, ud præcis som det, hvor
+ * fradraget er gjort – og den eksisterende advarsel om en afgørelse uden ydelser tier, fordi togglen tæller som ydelser.
  *
  * Advarslen gælder kun, når TAF-perioden helt eller delvist ligger på eller efter den midlertidige afgørelses dato på
  * EO oplysninger (virkningsdatoen, ellers afgørelsesdatoen): før den dato løber der endnu ingen ydelse. Er der ingen
@@ -181,15 +181,14 @@ export const MIDLERTIDIGT_EET_UDEN_AFGOERELSE_INTET_HENTET_ID = 'midlertidigt-ee
 export const MIDLERTIDIGT_EET_UDEN_AFGOERELSE_HENTET_ID = 'midlertidigt-eet-uden-afgoerelse-hentet';
 
 /**
- * Togglen er slået til, men «Midlertidigt EET-afgørelse» på EO oplysninger er ikke `Ja` (BB-372, udviklerafgørelse
- * 2026-10-29). To tilstande med hver sin gule linje – før stod «Der er indtastet midlertidige EET-ydelser, men ikke
- * angivet en afgørelse» i begge, også når intet var indtastet eller hentet:
+ * Togglen er slået til, men «Midlertidigt EET-afgørelse» på EO oplysninger er ikke `Ja`. To tilstande med hver sin
+ * gule linje – én fælles linje om indtastede ydelser ville være forkert, når intet er indtastet eller hentet:
  *
  *  - importen giver intet: der fradrages intet, og det siger linjen;
  *  - importen giver ydelser: de fradrages (valg A – fradraget følger togglen, ikke valget på EO oplysninger), og
  *    linjen påpeger uoverensstemmelsen mellem de to sider.
  *
- * Ikke-blokerende som BB-240's mønster: afgørelsen er en oplysning, ydelsen en forventning. En blokerende importfejl
+ * Ikke-blokerende: afgørelsen er en oplysning, ydelsen en forventning. En blokerende importfejl
  * siger selv sit; så tier denne.
  */
 export const resolveMidlertidigtEetUdenAfgoerelseIssue = (args: Readonly<{

@@ -6,7 +6,7 @@ import { formatCountWithUnit } from '../../utils/formatUtils';
 import { isStandardLoenRowEffectivelyEmpty } from './standardLoenRowCalculations';
 
 /**
- * «Antal <enhed> i de indtastede perioder» – ÉN ordlyd for skærm og dokument (BB-112).
+ * «Antal <enhed> i de indtastede perioder» – ÉN ordlyd for skærm og dokument.
  *
  * Teksten stod tidligere hardkodet seks steder (fire i `AarsloenBeregningSection.tsx`, to i
  * `aarsloenDocument.ts`) i formen «Antal måneder i indtastede perioder» – uden «de», som resten af siden

@@ -10,20 +10,18 @@ import type { Page } from '@playwright/test';
 
 /**
  * EET efter EAL opgør kravet efter erstatningsansvarsloven, og skærmen er ordret dens dokument.
- * Denne spec måler de fire forhold, fladen manglede:
+ * Denne spec måler, at:
  *
- * - rækken kaldte procenten «Endeligt erhvervsevnetab», selv når den kom fra en afgørelse, brugeren
- *   havde markeret Midlertidig – og EAL kender slet ikke et midlertidigt erhvervsevnetab (BB-177),
- * - en senere midlertidig afgørelse fortrænger en tidligere endelig, hvilket er den ønskede
- *   udvælgelse, men fanen var helt tavs om, at der VAR to afgørelser at vælge imellem, mens de to
- *   nabofaner advarede i samme sag (BB-178),
- * - specifikationen manglede skadedatoen, som både aldersreduktionen og opreguleringen hviler på,
- *   mens fødselsdatoen stod der (BB-182),
- * - årslønsmaksimum-advarslen havde en gul ring, når EAL-feltet var TOMT, men ikke når feltet selv
- *   stod på maks. årslønnen efter ASL – den halve regel lå kun som en linje i en boks (BB-183),
- * - en afgørelsesrække med tom EET %-celle sendte brugeren til det VALGFRIE EAL-felt, hvor de tre
- *   andre faner peger på afgørelsen; udfyldte han feltet, regnede fanen, men han havde sat en
- *   EAL-afvigelse han ikke mente, og de tre andre faner stod fortsat blokeret (BB-181).
+ * - rækken navngiver procenten uden «Endeligt», fordi den kan komme fra en afgørelse markeret
+ *   Midlertidig – og EAL kender slet ikke et midlertidigt erhvervsevnetab,
+ * - en senere midlertidig afgørelse fortrænger en tidligere endelig (den ønskede udvælgelse), og
+ *   fanen siger, at der er to afgørelser at vælge imellem, ligesom de to nabofaner gør,
+ * - specifikationen viser skadedatoen, som både aldersreduktionen og opreguleringen hviler på,
+ * - årslønsmaksimum-advarslen giver gul ring både når EAL-feltet er tomt, og når feltet selv står
+ *   på maks. årslønnen efter ASL,
+ * - en afgørelsesrække med tom EET %-celle peger på afgørelsen som de tre andre faner, ikke på det
+ *   VALGFRIE EAL-felt – ellers udfylder brugeren en EAL-afvigelse, han ikke mener, og de andre
+ *   faner står fortsat blokeret.
  */
 
 const SKADEDATO = '01-06-2018';
@@ -102,14 +100,14 @@ test.describe('EET efter EAL – specifikationens påstande og forudsætninger',
 
     await eetTab(page, 'EET efter EAL').click();
 
-    // BB-177: adjektivet er væk – rækken navngiver den procent, fanen faktisk regner med.
+    // Adjektivet er væk – rækken navngiver den procent, fanen faktisk regner med.
     await expect(page.getByText('Endeligt erhvervsevnetab')).toHaveCount(0);
     const eetRow = page.locator('.row--label-right-hover').filter({
       has: page.getByText('Erhvervsevnetab', { exact: true }),
     });
     await expect(eetRow.first()).toContainText('30 %');
 
-    // BB-182: skadedatoen bærer aldersreduktionen sammen med fødselsdatoen og skal kunne læses op
+    // Skadedatoen bærer aldersreduktionen sammen med fødselsdatoen og skal kunne læses op
     // mod den – derfor samme korte form som fødselsdato-rækken.
     const skadedatoRow = page.locator('.row--label-right-hover').filter({
       has: page.getByText('Skadedato', { exact: true }),
@@ -150,8 +148,8 @@ test.describe('EET efter EAL – specifikationens påstande og forudsætninger',
 
     await eetTab(page, 'EET efter EAL').click();
 
-    // BB-178: den midlertidige afgørelse bærer FORTSAT procenten – det er den ønskede adfærd, fordi
-    // EAL lægger den seneste ASL-procent til grund uanset type. Det nye er, at fanen siger det.
+    // Den midlertidige afgørelse bærer procenten – det er den ønskede adfærd, fordi EAL lægger
+    // den seneste ASL-procent til grund uanset type. Fanen skal sige det.
     await expect(
       page.getByText('Der er angivet en midlertidig afgørelse efter en endelig afgørelse.'),
     ).toBeVisible();
@@ -180,7 +178,7 @@ test.describe('EET efter EAL – specifikationens påstande og forudsætninger',
       return (await status.count()) === 0 ? null : (await status.innerText()).trim();
     };
 
-    // BB-183: præcis den værdi, advarslen beder brugeren om IKKE at bruge. Feltet stod neutralt før.
+    // Præcis den værdi, advarslen beder brugeren om IKKE at bruge.
     await setFieldValueAndSettle(ealAarsloen, ASL_MAKS_2018);
     await expect
       .poll(warningText)
@@ -211,7 +209,7 @@ test.describe('EET efter EAL – specifikationens påstande og forudsætninger',
 
     await eetTab(page, 'EET efter EAL').click();
 
-    // BB-181: ordret de tre andre faners besked, så samme mangel ikke får to beskrivelser.
+    // Ordret de tre andre faners besked, så samme mangel ikke får to beskrivelser.
     const issueRow = page.locator('.row--label-right-hover').filter({
       hasText: 'Der er en afgørelse uden EET %',
     });

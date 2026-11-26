@@ -34,7 +34,7 @@ export const useStandaloneDocumentOutput = <TInput, TRequest>(
   gateRequest: NoInfer<TRequest>,
   context: DocumentSourceContext<void>,
   /**
-   * Sidens exit-guard, der skal vide, at arbejdet nu ER hentet (BB-048). Leveres af siden, fordi
+   * Sidens exit-guard, der skal vide, at arbejdet nu ER hentet. Leveres af siden, fordi
    * guarden er én pr. flade – se `useStandaloneExitGuard`.
    */
   onDownloadOutcome: StandaloneDownloadTracker

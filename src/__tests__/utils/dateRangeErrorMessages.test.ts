@@ -134,10 +134,9 @@ describe('resolveDateRangeErrorMessage', () => {
   });
 
   /**
-   * Grenen blev tidligere genkendt på `bounds.kind === 'static'`, altså på grænsens OPHAV som helhed.
-   * Et felt, hvis MIN-grænse var skærpet af skadedatoen, fik `kind: 'derived'` og mistede derfor sin
-   * dags dato-tekst, selv om dets max stadig var kalenderen: brugeren fik en bar intervaltekst, mens
-   * samme felts anden grænse navngav sin kilde. Erklæringen gør max-siden uafhængig af min-siden.
+   * Grenen må ikke genkendes på `bounds.kind === 'static'`, altså på grænsens OPHAV som helhed: et felt,
+   * hvis MIN-grænse er skærpet af skadedatoen, har `kind: 'derived'` og ville ellers miste sin dags
+   * dato-tekst, selv om dets max stadig er kalenderen. Erklæringen gør max-siden uafhængig af min-siden.
    */
   it('navngiver dags dato som loft, selv når min-grænsen er UDLEDT af et andet felt', () => {
     const message = resolveDateRangeErrorMessage({
@@ -207,11 +206,9 @@ describe('resolveDateRangeErrorMessage', () => {
 
 // Årsagsinputtene er en PÅKRÆVET del af kontrakten, ikke en valgfri ekstra.
 //
-// Fundet var ikke, at helperen manglede evnen – den kunne allerede tilføje årsagen gennem
-// `noValidRangeInputs`. Fejlen var, at feltet var VALGFRIT, så de fleste descriptors udelod det: brugeren fik at
-// vide, at ingen dato var gyldig, men ikke hvilke inputs der skulle rettes. Kravet er derfor flyttet til TYPEN
-// (`bounds: DateRangeBoundsOrigin`), hvor `derived` tvinger et årsagsnavn frem. Et nyt dynamisk datofelt kan
-// dermed ikke længere glemme årsagen uden en compilerfejl.
+// Var feltet valgfrit, ville descriptors udelade det, og brugeren ville få at vide, at ingen dato er gyldig,
+// men ikke hvilke inputs der skal rettes. Kravet ligger derfor i TYPEN (`bounds: DateRangeBoundsOrigin`), hvor
+// `derived` tvinger et årsagsnavn frem. Et nyt dynamisk datofelt kan ikke glemme årsagen uden en compilerfejl.
 describe('resolveDateRangeErrorMessage – årsagsinputs i det umulige interval', () => {
   const impossible = (bounds: Parameters<typeof resolveDateRangeErrorMessage>[0]['bounds']) =>
     resolveDateRangeErrorMessage({
@@ -222,9 +219,8 @@ describe('resolveDateRangeErrorMessage – årsagsinputs i det umulige interval'
     });
 
   it('navngiver årsagsinputtene, når grænserne er UDLEDT af andre felter', () => {
-    // Fundets egen reproduktion: `skadedato = 2099-01-01` gør både forligsdatoens og øvrige-krav-datoens
-    // interval umuligt. Før rettelsen viste beskeden de faktiske grænser, men hverken "Skadedato" eller det
-    // andet årsagsinput.
+    // `skadedato = 2099-01-01` gør både forligsdatoens og øvrige-krav-datoens interval umuligt. Beskeden skal
+    // navngive årsagsinputtene, ikke kun de faktiske grænser.
     const message = impossible(derivedDateBounds('Skadedato og Skadestype'));
 
     expect(message).toContain('ingen gyldig dato');

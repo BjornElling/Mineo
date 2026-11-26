@@ -37,8 +37,8 @@ describe('TAF-rækkens direkte regler', () => {
     expect(buildTafLoseFeriedageMaxMessage({ maksimum: 5 })).toBe('Løse ferie-/feriefridage overstiger mulige arbejdsdage i perioden (maksimalt 5)');
   });
 
-  it('navngiver den talte del, når erstatningsperioden afgrænser rækken (BB-427)', () => {
-    // BB-427's sag: TAF 01-01-2024 – 05-01-2024 med to løse dage; erstatningsperioden er kun fredag 05-01-2024.
+  it('navngiver den talte del, når erstatningsperioden afgrænser rækken', () => {
+    // Sagen: TAF 01-01-2024 – 05-01-2024 med to løse dage; erstatningsperioden er kun fredag 05-01-2024.
     const row = { id: 'taf-1', fra: iso('2024-01-01'), til: iso('2024-01-05'), loseFeriedage: 2 };
     const values = { ferieperioder: [], vedroererPeriodeFra: iso('2024-01-05'), vedroererPeriodeTil: iso('2024-01-05') };
 

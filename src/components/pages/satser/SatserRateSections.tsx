@@ -26,7 +26,7 @@ type Satser = NonNullable<SatserProjectionValue['satser']>;
  */
 const SatserRateSections = React.memo(({ satser }: { satser: Satser }) => (
   <>
-    {/* En EAL-sektion uden en eneste sats udelades som i dokumentet; manglen nævnes i dækningsbeskeden (BB-392). */}
+    {/* En EAL-sektion uden en eneste sats udelades som i dokumentet; manglen nævnes i dækningsbeskeden. */}
     {hasAnyEalSats(satser) && <ContentBox className="content-box">
       <Typography className="section-header">Erstatningsansvarsloven</Typography>
 

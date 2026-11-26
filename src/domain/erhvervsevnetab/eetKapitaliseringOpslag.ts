@@ -267,7 +267,7 @@ type KontroldatoKilde = Readonly<{
  *
  * Før 1. juli 2024 vurderes en genoptagelse som om kapitaliseringen skete på den tidligere dato
  * (toårsregel, bekendtgørelse, tabel, alder og faktor). Ved en afgørelse fra 1. juli 2024 styrer den nye
- * afgørelsesdato i stedet (udviklerafgørelse 2026-11-13); den tidligere dato er da kun oplysning.
+ * afgørelsesdato i stedet; den tidligere dato er da kun oplysning.
  * Ukendt afgørelsesdato bevarer den tidligere dato, så en ufuldstændig række ikke skifter regel tavst.
  */
 export const resolveRegelvalgendeTidlKapDato = ({ afgoerelsesdato, tidlKapDato }: KontroldatoKilde): ISODateString | undefined =>

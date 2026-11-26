@@ -146,7 +146,7 @@ describe('resolveManualRegulationIssue', () => {
     });
   });
 
-  it('peger under angivet løn på basisrækkens egen celle – der er intet satsfelt over tabellen (BB-307)', () => {
+  it('peger under angivet løn på basisrækkens egen celle – der er intet satsfelt over tabellen', () => {
     const source = createSource({
       loenudviklingManuelTableData: [
         withSupplement(manualRow('base'), 'feriepenge', undefined),
@@ -189,7 +189,7 @@ describe('resolveManualRegulationIssue', () => {
     });
   });
 
-  it('melder en tom procentsats-tabel, ignorerer en komplet og kan adressere angivet løn (BB-303)', () => {
+  it('melder en tom procentsats-tabel, ignorerer en komplet og kan adressere angivet løn', () => {
     const empty = createSource({ loenudviklingManuelProcentsatsTableData: [] });
     const complete = createSource({
       loenudviklingManuelProcentsatsTableData: [

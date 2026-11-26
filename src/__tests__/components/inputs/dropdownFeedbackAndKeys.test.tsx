@@ -5,17 +5,17 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import StyledDropdown from '../../../components/inputs/StyledDropdown';
 
-// VÆRN for tre fund i valg-kontrollen, som alle handler om at fejl og taster skal opføre sig som i
+// VÆRN for tre regler i valg-kontrollen, som alle handler om at fejl og taster skal opføre sig som i
 // resten af programmet:
 //
-//   1. Fejlbeskeden nåede kun ØJET. Kontrollen viste rød ramme + hover-tooltip, men havde hverken en
-//      visuelt skjult besked eller `aria-describedby` – begge dele har tekstfelterne haft hele tiden
-//      (`StyledTextFieldBase`). En skærmlæserbruger fik altså at vide AT feltet var forkert, aldrig hvad.
-//   2. Escape på en LUKKET dropdown blev slugt (`preventDefault` + `stopPropagation`), selv om der
-//      intet var at lukke. En omgivende dialog kunne derfor ikke lukkes med Escape, hvis fokus stod i
-//      en af dens dropdowns.
-//   3. Delete/Backspace med ÅBEN menu ryddede valget OG lukkede menuen i ét tryk – `gridUxSpec.ts`
-//      giver kun ryddetasten til en LUKKET kontrol.
+//   1. Fejlbeskeden når også skærmlæseren: ud over rød ramme + hover-tooltip har kontrollen en visuelt
+//      skjult besked og `aria-describedby` som tekstfelterne (`StyledTextFieldBase`). Ellers får en
+//      skærmlæserbruger at vide AT feltet er forkert, aldrig hvad.
+//   2. Escape på en LUKKET dropdown sluges ikke (`preventDefault` + `stopPropagation`), for der er intet
+//      at lukke. Ellers kan en omgivende dialog ikke lukkes med Escape, hvis fokus står i en af dens
+//      dropdowns.
+//   3. Delete/Backspace med ÅBEN menu rydder ikke valget – `gridUxSpec.ts` giver kun ryddetasten til en
+//      LUKKET kontrol.
 
 type DemoValue = 'A' | 'B';
 

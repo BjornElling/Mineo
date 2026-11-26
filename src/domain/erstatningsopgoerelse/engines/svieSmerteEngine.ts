@@ -56,13 +56,13 @@ export type SvieSmerteEngineOutput = Readonly<{
    * Maksimum var opbrugt FØR denne opgørelse: det, der er opgjort i tidligere opgørelser, æder hele
    * rammen, så der ikke er restplads tilbage. Adskilt fra `maxApplied`, som også er sand, når kravet
    * blot skæres NED til en resterende plads. Forskellen er den, papiret skal fortælle: «reduceret
-   * til max» er sandt i det ene tilfælde og misvisende i det andet, hvor beløbet bliver 0 (BB-219).
+   * til max» er sandt i det ene tilfælde og misvisende i det andet, hvor beløbet bliver 0.
    */
   maksimumOpbrugtFoerPerioden: boolean;
   /**
    * Kravet i denne periode NÅR maksimum: råbeløbet er mindst den resterende plads (målt i hele øre).
    * Adskilt fra `maxApplied`, som kun er sand, når kravet skæres ned – ved præcis lighed skæres intet,
-   * men loftet er nået alligevel, og det er det, EO-kontrollens ophørsgrund skal sige (NY-12b-1).
+   * men loftet er nået alligevel, og det er det, EO-kontrollens ophørsgrund skal sige.
    * Påvirker ingen beløb.
    */
   maksimumNaaet: boolean;
@@ -318,12 +318,12 @@ export const computeSvieSmerteEngine = (input: SvieSmerteEngineInputSnapshot): S
     const restPladsEfterTidligere = clampToNonNegative(restPlads);
     const beloebFoerFradrag = Math.min(rawKroner, restPladsEfterTidligere);
     // I hele øre som `maksimumNaaet`: et brøkforlig og et tidligere beløb med øre kan give en restplads på
-    // 14319,999999999998 mod et krav på præcis 14320, og så trykte papiret «(reduceret til max)», selv om
-    // intet blev skåret ned (værdiklasse-gennemgangen 2026-11-24). Beløbet er uberørt: det afrundes alligevel.
+    // 14319,999999999998 mod et krav på præcis 14320, og så ville papiret trykke «(reduceret til max)», selv om
+    // intet blev skåret ned. Beløbet er uberørt: det afrundes alligevel.
     maxApplied = fromKroner(roundKroner(rawKroner)) > fromKroner(roundKroner(restPladsEfterTidligere));
     // Ingen restplads overhovedet: rammen var brugt op i forvejen, og kravet nedsættes ikke TIL
     // maksimum – det bortfalder. Den tilstand er samme virkelighed som togglen «Tidligere beregnet
-    // S/S til max.» og skal behandles ens (BB-219).
+    // S/S til max.» og skal behandles ens.
     maksimumOpbrugtFoerPerioden = restPladsEfterTidligere <= 0 && rawKroner > 0;
     // I hele øre, så flydende-tals-støj i summen af dagssatser ikke afgør en præcis lighed.
     maksimumNaaet = rawKroner > 0

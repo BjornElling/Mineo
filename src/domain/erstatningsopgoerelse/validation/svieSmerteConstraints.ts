@@ -53,7 +53,7 @@ export const buildSvieSmerteCutoffErrorMessage = (args: Readonly<{
 
 /**
  * Periodens linje i «Fejl og advarsler». Ligger allerede fra-datoen på eller efter ménafgørelsen, ligger hele
- * perioden der, og linjen siger det – samme form som TAF-periodernes (BB-244). Ellers er det til-cellens
+ * perioden der, og linjen siger det – samme form som TAF-periodernes. Ellers er det til-cellens
  * besked. Cellerne beholder hver sin besked fra `buildSvieSmerteCutoffErrorMessage`.
  */
 export const buildSvieSmertePeriodeCutoffErrorMessage = (args: Readonly<{

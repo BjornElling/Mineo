@@ -106,7 +106,7 @@ describe('evaluateForligsgrad', () => {
     });
   });
 
-  // NY-12a-4: brøken har samme nedre grænse som procentfeltet (1 %). Grænsen er inklusiv.
+  // Brøken har samme nedre grænse som procentfeltet (1 %). Grænsen er inklusiv.
   it.each(['1/100', '2/200', '3/300'])('accepterer brøken %s, der svarer til præcis 1 %%', (broek) => {
     expect(evaluateForligsgrad({ forligAnsvarsgradProcent: undefined, forligAnsvarsgradBroek: broek }).status).toBe('valid');
   });

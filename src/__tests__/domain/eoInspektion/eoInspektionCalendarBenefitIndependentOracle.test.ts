@@ -32,7 +32,7 @@ const buildValues = (): ErstatningsopgoerelseValues => {
   return values;
 };
 
-describe('CALC-006 / TD-016 – uafhængigt kalenderdags-downstreamfacit', () => {
+describe('uafhængigt kalenderdags-downstreamfacit', () => {
   it('fordeler dagpenge på weekend, helligdag og hverdag med intakt rækkesum', () => {
     const model = buildEOInspektionModel(buildValues(), {
       tafRanges: [{ fra: iso('2024-03-30'), til: iso('2024-04-02') }],

@@ -9,11 +9,9 @@ import type { ISODateString } from '../../../types/branded';
  * post hvis `startIso <= date` gælder frem til næste post; falder datoen før første post,
  * findes ingen dækning (`undefined` – kaldstedet afgør fallback, fx basisrækken).
  *
- * Tidligere fandtes samme opslag som mindst fem parallelle udgaver – reverse-scan i motoren,
- * `.filter(<=).at(-1)` tre steder i præsentationen, og `.filter(<=).sort(desc)[0]` i
- * inspektionen – hvoraf de fire re-derivationer manglede sorterings-invarianten. Konsolideret
- * til ét sted (regulering-redesign R3), så carry-forward-politikken og "interiort hul umuligt"-
- * beviset kun findes ét sted og ikke kan drive fra hinanden.
+ * Opslaget findes kun her – ingen lokale reverse-scans eller `.filter(<=).at(-1)`-varianter, som let
+ * mister sorterings-invarianten – så carry-forward-politikken og "interiort hul umuligt"-beviset kun
+ * findes ét sted og ikke kan drive fra hinanden.
  *
  * Bevidst afgrænsning: dette dækker udelukkende `ISODateString`-serier med
  * carry-forward-semantik. Datalagets `DanishDateString`-opslag (privat/offentlig overenskomst)

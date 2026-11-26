@@ -45,9 +45,9 @@ const notCalculableMoney = (reason: string): Calculable<MoneyOre> => notCalculab
  * ansættelsesforhold med lønudvikling sit eget opslag; ellers (angivet løn, eller ingen lønindkomst i
  * beregningsperioden) gælder det fælles opslag for alle ansættelsesforhold.
  *
- * Opslaget afhænger ikke af, om TAF-segmenterne har arbejdsdage: før byggede SFGG på de TAF-segmenter,
- * der overlevede frasorteringen af segmenter uden arbejdsdage, og fik da hverken segment eller regulering
- * (fund A4) – ved angivet løn kunne hele opslaget forsvinde.
+ * Opslaget afhænger ikke af, om TAF-segmenterne har arbejdsdage: byggede SFGG på de TAF-segmenter, der
+ * overlever frasorteringen af segmenter uden arbejdsdage, fik dage uden arbejdsdage hverken segment eller
+ * regulering – ved angivet løn kunne hele opslaget forsvinde.
  */
 export const buildSfggReguleringOpslagMap = (
   values: TafCalculationValues,

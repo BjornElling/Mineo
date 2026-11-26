@@ -1,11 +1,10 @@
 /**
  * Erhvervsevnetabs delte brugervendte navne.
  *
- * Ét navn pr. størrelse, brugt af alle kanaler. Baggrunden er BB-191: mer-erstatningen ved forhøjet
- * folkepensionsalder hed fire ting i samme sag – ét navn i bilagsvalget, et andet i togglen, et
- * tredje i boksens overskrift og et fjerde i dokumentets sektion og bilagstitel. Brugeren skulle selv
- * koble fire navne til én størrelse på tværs af to bokse og et papir. Udvikleren valgte
- * «Forhøjet pensionsalder» som det ene navn (2026-09-09).
+ * Ét navn pr. størrelse, brugt af alle kanaler, så brugeren ikke selv skal koble flere navne til én
+ * størrelse på tværs af bokse og papir. Mer-erstatningen ved forhøjet folkepensionsalder hedder
+ * «Forhøjet pensionsalder» i bilagsvalget, togglen, boksens overskrift og dokumentets sektion og
+ * bilagstitel.
  *
  * Prøven ved en senere ændring: for hvert bilagsvalg skal de FIRE navne (afkrydsningsfelt ·
  * skærmoverskrift · dokumentsektion · bilagstitel) være samme streng – ikke fire strenge, der ligner
@@ -21,8 +20,8 @@ export const INDREGN_FORHOEJET_PENSIONSALDER_LABEL = `Indregn ${FORHOEJET_PENSIO
 /**
  * Bundlinjens underoverskrift på «EET efter EAL» – skærm og dokument.
  *
- * Hed før «Beregnet EAL-krav». Fanen opgør erhvervsevnetabet EFTER erstatningsansvarsloven, og navnet
- * siger nu, hvad tallet ER, frem for hvilket lovsæt det kommer fra (udviklerens ordlyd 2026-09-09).
+ * Fanen opgør erhvervsevnetabet EFTER erstatningsansvarsloven, og navnet siger, hvad tallet ER, frem for
+ * hvilket lovsæt det kommer fra (fastlagt ordlyd).
  * Forsørgertabs egen «Beregnet EAL-krav»-underoverskrift er BEVIDST uændret: den flade opgør et
  * forsørgertab, ikke et erhvervsevnetab.
  */

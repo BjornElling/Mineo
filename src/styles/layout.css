@@ -99,7 +99,7 @@
   --color-input-disabled-text: rgba(255, 255, 255, 0.5);
   --color-input-disabled-locked-bg: #1e1e1e;
   /* Låst tekst er en værdi, der indgår i beregningen (fx en sats fastsat af overenskomsten), og skal kunne læses.
-     Tokenet var 0,16 hvid – svagere end placeholderteksten og ca. 1,7:1 mod den låste baggrund (BB-436). Låsningen
+     En svag tone (fx 0,16 hvid) er svagere end placeholderteksten og ca. 1,7:1 mod den låste baggrund. Låsningen
      markeres af den faste kant og den mørkere baggrund, ikke af en næsten usynlig tekst; derfor samme læsbare farve
      som deaktiveret felttekst (ca. 5:1). */
   --color-input-disabled-locked-text: var(--color-input-disabled-text);
@@ -165,14 +165,14 @@
    en tilstand på et element: rækkerne toner baggrunden (`.row--label-right-hover:hover`), og
    ikonknapperne toner deres runde flade. Ingen af dem tegner en ring.
 
-   En ring blev prøvet først (primærfarvet, som `.auth-login-button:focus-visible`) og forkastet
-   2026-08-18: login-siden står uden for app-shellen og har sit eget udtryk, så dens fokusramme er
-   ikke sidernes sprog. Inde i programmet virkede ringen påklistret – den lagde en form oven på et
-   element, der ellers ingen form har.
+   En ring (primærfarvet, som `.auth-login-button:focus-visible`) er bevidst fravalgt: login-siden
+   står uden for app-shellen og har sit eget udtryk, så dens fokusramme er ikke sidernes sprog. Inde
+   i programmet virker en ring påklistret – den lægger en form oven på et element, der ellers ingen
+   form har.
 
-   FARVEN er `--color-active-bg-hover` og ikke `--color-hover`. Den neutrale grå tone blev målt
-   først og var reelt usynlig: knappen ligger inde i en række, der SELV toner sig grå ved hover, så
-   grå på grå forsvandt – og en fokusmarkering, tastaturbrugeren ikke kan se, er ingen markering.
+   FARVEN er `--color-active-bg-hover` og ikke `--color-hover`. Den neutrale grå tone er reelt
+   usynlig: knappen ligger inde i en række, der SELV toner sig grå ved hover, så grå på grå
+   forsvinder – og en fokusmarkering, tastaturbrugeren ikke kan se, er ingen markering.
    `--color-active-bg-hover` er programmets «dette element er aktivt nu»-tone (samme som det valgte
    menupunkt) og findes i begge temaer.
 
@@ -181,9 +181,7 @@
    `--border-radius-small` præcis som rækkens egen hover-flade.
 
    `:focus-visible` frem for `:focus`: en museklikker skal ikke se markeringen, kun tastatur-
-   brugeren. Hover håndteres separat af knappen selv (understregning + primærfarve).
-
-   Brugerfund 2026-08-18 (`docs/testing/brugerblik/indstillinger.md` BB-036, «Nulstil»-knappen). */
+   brugeren. Hover håndteres separat af knappen selv (understregning + primærfarve). */
 .text-action-button:focus-visible {
   outline: none;
   background-color: var(--color-active-bg-hover);

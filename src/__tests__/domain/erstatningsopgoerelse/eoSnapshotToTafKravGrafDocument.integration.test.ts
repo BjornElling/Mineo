@@ -61,7 +61,7 @@ describe('eoSnapshotToTafKravGrafDocument – fælles indkomstgrundlag', () => {
     }));
     const graf = project();
     if (graf.kind !== 'ok') throw new Error(graf.message);
-    // Samme arbejdssted skelnes ved Lønindkomsts kortoverskrift (BB-411-mønstret, BB-466).
+    // Samme arbejdssted skelnes ved Lønindkomsts kortoverskrift.
     const employers = graf.document.series.filter((serie) => serie.label.startsWith('Løn (Ansættelsesforhold '));
     expect(employers.map((serie) => serie.label)).toEqual([
       'Løn (Ansættelsesforhold 1 (Arbejdsgiver A))',

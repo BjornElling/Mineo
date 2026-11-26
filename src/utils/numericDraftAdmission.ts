@@ -48,17 +48,15 @@ const hasMultipleDecimalSeparatorsInAmountToken = (draft: string): boolean =>
 /**
  * Om hele den kommende beløbsdraft kan rumme præcis de tegn, brugeren har skrevet.
  *
- * **Decimalkommaet er tilladt UANSET `allowDecimals` (BB-118).** Flaget styrede før tegnsættet, og det var
- * fejlen: en indsat eller tastet `400.000,00` fik kommaet SPRUNGET OVER – ikke afvist – hvorefter de to
- * nuller efter kommaet gled op i heltalsdelen og gjorde beløbet til `4.000.000`. En faktor-10-fejl i det tal,
- * hele erstatningen udspringer af, frembragt af den mest almindelige handling i programmet: at kopiere et
- * beløb, som det står skrevet på dansk. Ingen rød kant, ingen besked.
+ * **Decimalkommaet er tilladt UANSET `allowDecimals`.** Styrede flaget tegnsættet, ville en indsat eller
+ * tastet `400.000,00` få kommaet SPRUNGET OVER – ikke afvist – hvorefter de to nuller efter kommaet glider op
+ * i heltalsdelen og gør beløbet til `4.000.000`: en faktor-10-fejl i det tal, hele erstatningen udspringer
+ * af, uden rød kant eller besked.
  *
- * Reglen er nu, at et decimalløst felt TAGER IMOD decimaler og AFRUNDER dem ved settle (udviklerbeslutning
- * 2026-08-28) – præcis som resten af programmets beløbsfelter. `allowDecimals` er dermed en settle-regel,
- * ikke en tegnregel, og `maxDecimalDigits` styrer stadig hvor mange decimaler der må stå i draften.
+ * Reglen er, at et decimalløst felt TAGER IMOD decimaler og AFRUNDER dem ved settle (bevidst valg) – præcis som resten af programmets beløbsfelter. `allowDecimals` er dermed en settle-regel,
+ * ikke en tegnregel, og `maxDecimalDigits` styrer hvor mange decimaler der må stå i draften.
  *
- * Fjern ikke kommaet fra tegnklassen igen: «spring det ulovlige tegn over» er den rigtige regel for et
+ * Fjern ikke kommaet fra tegnklassen: «spring det ulovlige tegn over» er den rigtige regel for et
  * bogstav, men den forkerte for det tegn, der ADSKILLER de to dele af et tal.
  */
 export const isAmountExpressionDraftAllowed = (
@@ -91,7 +89,7 @@ export const isAmountExpressionDraftAllowed = (
 /**
  * Om hele den kommende procentdraft følger feltets tegn-, decimal- og cifferpolitik.
  *
- * Decimalkommaet er tilladt uanset `allowDecimals` af samme grund som i beløbsdraften (BB-118): et
+ * Decimalkommaet er tilladt uanset `allowDecimals` af samme grund som i beløbsdraften: et
  * indsat «15,00 %» blev til `1500`, fordi kommaet blev sprunget over frem for at afslutte tallet. Et
  * decimalløst procentfelt tager derfor imod decimaler og afrunder dem ved settle.
  */
@@ -115,11 +113,11 @@ export const isPercentDraftAllowed = (
 /**
  * Årsdraftens tegn- og længdeværn: højst fire cifre, intet andet.
  *
- * Flyttet hertil fra `components/inputs/draftAdmission.ts` 2026-08-18, så BÅDE tastningens
+ * Ligger her i `utils` (ikke i `components/inputs/draftAdmission.ts`), så BÅDE tastningens
  * `yearAdmission` og pastens `normalizeYearPaste` kan læse det samme prædikat. Modulet
- * `inputPasteNormalization` ligger i `utils` og må ikke importere fra `components`; lå prædikatet
- * fortsat kun dér, ville paste have været nødt til at kopiere regexet – og en kopi er præcis den
- * drift mellem to parallelle værn, `draftAdmission.ts`' egen header advarer om.
+ * `inputPasteNormalization` ligger i `utils` og må ikke importere fra `components`; ellers skulle paste
+ * kopiere regexet – og en kopi er præcis den drift mellem to parallelle værn, `draftAdmission.ts`' egen
+ * header advarer om.
  */
 export const MAX_YEAR_DRAFT_DIGITS = 4;
 
@@ -132,12 +130,12 @@ export const isYearDraftAllowed = (draft: string): boolean =>
  * Separatoren må være `.`, `,`, `/`, `\` eller `-`; `parseWeekDraftForCommit` normaliserer den til `/`
  * ved settle. Samme flytningsbegrundelse som {@link isYearDraftAllowed}.
  *
- * **Mellemrum er IKKE en separator (udviklerbeslutning 2026-08-18).** Det var det før, og kombineret med
- * §1.2a's regel «paste = tastning tegn for tegn» gjorde det en almindelig indsat tekst ubrugelig: i
- * `uge 23/2025` optog mellemrummet efter «uge» separator-pladsen, hvorefter det ægte `/` blev ulovligt
- * (kun én separator er tilladt), og resultatet ` 2320` blev afvist som «Ugyldigt format». Nu er
- * mellemrummet et ulovligt tegn på lige fod med bogstaverne og springes derfor – ved både tastning og
- * paste – så teksten bliver `23/2025`. Prisen er, at `23 2025` ikke længere kan tastes med mellemrum.
+ * **Mellemrum er IKKE en separator (bevidst valg).** Som separator ville det, kombineret med §1.2a's regel
+ * «paste = tastning tegn for tegn», gøre en almindelig indsat tekst ubrugelig: i `uge 23/2025` optager
+ * mellemrummet efter «uge» separator-pladsen, hvorefter det ægte `/` bliver ulovligt (kun én separator er
+ * tilladt), og resultatet ` 2320` afvises som «Ugyldigt format». Mellemrummet er derfor et ulovligt tegn på
+ * lige fod med bogstaverne og springes – ved både tastning og paste – så teksten bliver `23/2025`. Prisen er,
+ * at `23 2025` ikke kan tastes med mellemrum.
  */
 /**
  * De lovlige ugeseparatorer, ét sted. `-` står sidst i tegnklassen, så den ikke læses som et interval.

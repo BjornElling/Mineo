@@ -173,7 +173,7 @@ const arbejdsdag: RowDay = {
   svieSmerte: 'Ingen',
 };
 
-describe('CALC-006 – offentlig løn uden gældende regulering', () => {
+describe('offentlig løn uden gældende regulering', () => {
   it('udelader løndagen før den første offentlige regulering', () => {
     // KL-tabellen begynder 01-01-2012; datoen er ellers en arbejdsdag i EO-perioden.
     const result = buildLoenTimeline({

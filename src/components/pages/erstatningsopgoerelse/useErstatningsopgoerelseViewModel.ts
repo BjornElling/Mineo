@@ -25,7 +25,7 @@ import { createFieldWarning, type FieldWarning } from '../../../inputCore/fieldW
  */
 
 // `EoTabKey` importeres fra `config/eoTabKeys` – den kanoniske kilde. En lokal genudledning af samme udtryk
-// ville være to offentlige navne for ét begreb, altså præcis den parallelle model dette review lukker.
+// ville være to offentlige navne for ét begreb – en parallel model.
 
 const EO_MAIN_TAB_ITEMS: readonly Readonly<{ key: EoTabKey; label: string }>[] = [
   { key: EO_TAB_KEYS.EO_OPLYSNINGER, label: 'EO oplysninger' },
@@ -111,7 +111,7 @@ export function useErstatningsopgoerelseViewModel() {
   );
 
   /**
-   * Midlertidigt-EET-togglens gule ring (BB-358): samme advarsel, som «Fejl og advarsler» viser på Beregning-fanen,
+   * Midlertidigt-EET-togglens gule ring: samme advarsel, som «Fejl og advarsler» viser på Beregning-fanen,
    * læst fra snapshottet, så fanen og beregningen ikke kan svare forskelligt.
    */
   const midlertidigtEetToggleWarning = React.useMemo<FieldWarning | undefined>(() => {

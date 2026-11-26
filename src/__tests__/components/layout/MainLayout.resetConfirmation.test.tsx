@@ -4,8 +4,7 @@
 // Skiftet er ikke kosmetisk, og testene her hævder præcis det, den native dialog ikke kunne garantere:
 //
 //  1. Bekræftelsen er SYNLIG i appen (kan læses, tabbes og lukkes af testen – en `window.confirm` kan
-//     ingen af de ting, og derfor kunne auditens påstand om «reset-dialogens fokus-/Tab-/Escape-adfærd»
-//     i `docs/testing/runtime-input-audit/STATUS.md` aldrig efterprøves).
+//     ingen af de ting, så dialogens fokus-, Tab- og Escape-adfærd kunne ellers aldrig efterprøves).
 //  2. Annullering og Escape bevarer sagen fuldstændigt (`critical-action-contract.md` §7).
 //  3. Bekræftelse rydder sagen atomisk og afslutter INDE i appen med navigation til Stamdata.
 //  4. Fokus vender tilbage til `Slet alt`-menuknappen (`keyboard-navigation.md` §Popup-fokus-restore).

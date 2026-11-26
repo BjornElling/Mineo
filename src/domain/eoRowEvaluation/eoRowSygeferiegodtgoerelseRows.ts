@@ -35,7 +35,7 @@ import { zeroMoneyOre } from '../money/money';
 import type { ErstatningsopgoerelseValues, StamdataValues } from './eoRowShared';
 import { formatRowCount, formatStatusMessage } from './eoRowShared';
 
-/** En tom dato i referenceperioden (BB-369). Feltets navn står foran: «Referenceperiode, fra: …». */
+/** En tom dato i referenceperioden. Feltets navn står foran: «Referenceperiode, fra: …». */
 const SFGG_REFERENCEPERIODE_DATO_MANGLER = 'Datoen er ikke udfyldt';
 
 const formatIsoRange = (range: Readonly<{ fra: ISODateString; til: ISODateString }>): string =>
@@ -108,7 +108,7 @@ export const buildEoSygeferiegodtgoerelseRows = (
 
     if (kilde === 'Overenskomst') {
       // Uden overenskomst siger linjen, hvad brugeren kan gøre, og linket fører til togglen «Overenskomst» – eller
-      // til «Vælg overenskomst», når togglen er slået til. Før førte det til hele kortet (BB-330).
+      // til «Vælg overenskomst», når togglen er slået til – ikke til hele kortet.
       const overenskomstMangler = hasSelectedOverenskomst ? undefined : buildSfggOverenskomstManglerBesked(employment);
       rows.push({
         id: `sfgg.overenskomst.${employment.id}`,
@@ -128,8 +128,9 @@ export const buildEoSygeferiegodtgoerelseRows = (
       });
     }
 
-    // Hvert rødt felt får sin egen fejl-/advarselslinje med link til feltet. Kun BB-322's to identiske
-    // «før første TAF-periode»-fejl deler én linje; generisk deduplikering skjulte fx den anden dato-grænsefejl.
+    // Hvert rødt felt får sin egen fejl-/advarselslinje med link til feltet. Kun referenceperiodens to identiske
+    // «før første TAF-periode»-fejl (Fra og Til) deler én linje; generisk deduplikering ville fx skjule den anden
+    // dato-grænsefejl.
     const employmentFieldIssues = sfggFieldIssues[employment.id] ?? [];
     const tafBoundaryFieldIds = new Set(
       employmentFieldIssues
@@ -151,7 +152,7 @@ export const buildEoSygeferiegodtgoerelseRows = (
           // Gruppér kun Fra+Til i samme ansættelsesforhold. Et enkelt ugyldigt Til-felt må ikke få Fra-label,
           // og to arbejdsgiverkort med samme grænsefejl skal fortsat fremgå som to uafhængige rettemål.
           summaryDeduplicationGroup: `sfgg-referenceperiode-taf-boundary:${employment.id}` as const,
-          // Bevar BB-322's godkendte fælles linjetekst, hvor begge datoer deler samme grænse.
+          // Bevidst fælles linjetekst, hvor begge datoer deler samme grænse.
           summaryText: `${eoSfggReferenceperiodeFraField.label}: ${issue.message}`,
         } : {}),
         focusTarget: { kind: 'fieldAddress', address: issue.field.address },
@@ -159,7 +160,7 @@ export const buildEoSygeferiegodtgoerelseRows = (
     });
 
     // En tom referenceperiode spærrer i validatoren, men nåede før kun boksen gennem sikkerhedsnettet: to linjer uden
-    // link og uden ansættelsesforhold (BB-369). Her får hver tom dato sin linje med link til feltet, i samme form som
+    // link og uden ansættelsesforhold. Her får hver tom dato sin linje med link til feltet, i samme form som
     // periodens øvrige regler. Prædikatet er validatorens: kun når perioden bruges OG vises. Et felt med en rød fejl
     // springes over – readeren har maskeret værdien, og feltets egen linje står allerede ovenfor.
     const kraeverReferenceperiode = sfggKildeUsesReferenceperiode(sfggSource.kind)
@@ -297,7 +298,7 @@ export const buildEoSygeferiegodtgoerelseRows = (
     }
 
     // En rød dagssats (fx `1/0`) læses som tom, men er ikke en mangel: feltets egen linje står ovenfor. Uden værnet
-    // gav én indtastning både formatfejlen og «ikke angivet» (BB-452, M-58) – samme værn som referencedatoerne.
+    // gav én indtastning både formatfejlen og «ikke angivet» – samme værn som referencedatoerne.
     const dagssatsErRoed = employmentFieldIssues.some((issue) => issue.field.descriptor.id === eoSfggManuelDagssatsField.id);
     let sfggManuelDagssatsMangler: string | undefined;
     if (
@@ -306,7 +307,7 @@ export const buildEoSygeferiegodtgoerelseRows = (
       && result
       && result.sfggReferencesats.status !== 'ok'
       // Ingen dage i erstatningsperioden (4-månedersgrænsen nået før perioden, ophør eller sygeløn hele perioden)
-      // er et gyldigt krav på 0 kr. og ingen mangel ved dagssatsen (BB-320).
+      // er et gyldigt krav på 0 kr. og ingen mangel ved dagssatsen.
       && !isSfggNoEligibleDaysNotCalculable(result.sfggReferencesats)
     ) {
       sfggManuelDagssatsMangler = result.sfggReferencesats.reason;
@@ -318,7 +319,7 @@ export const buildEoSygeferiegodtgoerelseRows = (
 
     let direkteOverenskomstDagssatsMangler: string | undefined;
     // Mangler kun en del af perioden sats (fx dage før overenskomstens første direkte sats), spærrer det som når
-    // hele perioden mangler – før faldt de dage ud af kravet uden besked (fund C, 2026-11-25).
+    // hele perioden mangler – ellers faldt de dage ud af kravet uden besked.
     if (
       sfggSource.kind === 'overenskomst_direkte'
       && result
@@ -433,9 +434,8 @@ export const buildEoSygeferiegodtgoerelseRows = (
 
       /*
         Tabellen bygges ÉN gang som struktureret data og serialiseres derefter til
-        `displayValue`. Tidligere blev kun strengen bygget, og viewmodellen splittede den op
-        igen på `\n` og `|` – med kolonneantallet udledt af indholdet og totalrækken genkendt
-        ved at strengmatche «I alt». Nu er strukturen kilden, og strengen er projektionen.
+        `displayValue`. Strukturen er kilden, og strengen er projektionen – viewmodellen må ikke
+        splitte strengen op igen på `\n` og `|` og genkende totalrækken ved at strengmatche «I alt».
       */
       const columns = hasReguleringsindeks
         ? ['Fra-dato', 'Til-dato', 'Indeks', 'Feriepenge-sats', 'AG-pension', antalDageHeader, SFGG_TABLE_TOTAL_LABEL]
@@ -525,7 +525,7 @@ export const buildEoSygeferiegodtgoerelseRows = (
       });
     }
 
-    // Samme tekst som på kortet, og linket fører til togglen «Opsagt fra stillingen» (BB-325).
+    // Samme tekst som på kortet, og linket fører til togglen «Opsagt fra stillingen».
     const seksMaanederBesked = seksMaanedersWarnings.has(employment.id)
       ? buildSfggSeksMaanederBesked(values, employment)
       : undefined;
@@ -561,7 +561,7 @@ export const buildEoSygeferiegodtgoerelseRows = (
       });
     }
 
-    // En manuel dagssats over en dags registreret løn er gul (BB-450): typisk en ekstra nulgruppe.
+    // En manuel dagssats over en dags registreret løn er gul: typisk en ekstra nulgruppe.
     const hoejDagssats = hoejeManuelleDagssatser.find((advarsel) => advarsel.employmentId === employment.id);
     if (hoejDagssats !== undefined) {
       const besked = buildSfggManuelDagssatsBesked(hoejDagssats);
@@ -579,7 +579,7 @@ export const buildEoSygeferiegodtgoerelseRows = (
       });
     }
 
-    // «Først … efter ophør af sygeløn» uden lønrækker i erstatningsperioden gør ingenting (BB-326).
+    // «Først … efter ophør af sygeløn» uden lønrækker i erstatningsperioden gør ingenting.
     if (result && harSfggSygeloenUdenLoenraekker(result)) {
       rows.push({
         id: `sfgg.advarsel.sygeloenUdenLoenraekker.${employment.id}`,

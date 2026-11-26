@@ -73,7 +73,7 @@ describe('Erstatningsopgørelses tabeller over den fælles grid-adapter', () => 
     expect(screen.getByText('Løse ferie-/feriefridage')).toBeInTheDocument();
   });
 
-  it('TAF-tabellen skjuler løse feriedage, når TAF opgøres i måneder (BB-247)', () => {
+  it('TAF-tabellen skjuler løse feriedage, når TAF opgøres i måneder', () => {
     const rows = [{ id: 'taf-1', fra: toISODateString('2024-01-01'), til: toISODateString('2024-01-31'), loseFeriedage: 2 }];
     hydrate({ ...createErstatningsopgoerelseInitialValues(), tafPerioder: rows });
 
@@ -161,7 +161,7 @@ describe('Erstatningsopgørelses tabeller over den fælles grid-adapter', () => 
     expect(within(dataRows()[0]!).getByText('31')).toBeInTheDocument();
   });
 
-  it('sorterer «Antal dage» og «Ydelse per dag» efter talværdien, ikke den viste tekst (BB-454)', () => {
+  it('sorterer «Antal dage» og «Ydelse per dag» efter talværdien, ikke den viste tekst', () => {
     const row = (id: string, fra: string) => ({
       id,
       fraDato: toISODateString(fra),

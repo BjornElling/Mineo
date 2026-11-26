@@ -127,14 +127,13 @@ const MenberegningTab = React.memo(() => {
   );
 
   // Spejlet stamdata-værdi: navnet OG dets afledte former kommer fra feltets ene navneregel (§3.2a),
-  // aldrig fra en lokal ternary. Tidspunktsformen lå her som netop sådan en, indtil referencen selv
-  // kom til at bære den (BB-121); en erhvervssygdom omtales dermed ikke med et «skadestidspunkt»,
-  // sagen ikke har (BB-072).
+  // aldrig fra en lokal ternary; en erhvervssygdom omtales dermed ikke med et «skadestidspunkt»,
+  // sagen ikke har.
   const datoReference = resolveStamdataDatoReference(skadestype);
   const skadedatoLabel = datoReference.label;
   const alderVedSkadeLabel = `Alder på ${datoReference.tidspunkt}`;
 
-  // "Indsæt dags dato" må ikke kunne producere en værdi, feltet selv afviser (BB-068): er dags dato uden for
+  // "Indsæt dags dato" må ikke kunne producere en værdi, feltet selv afviser: er dags dato uden for
   // beregningsdatoens øvre grænse (satsdatasættets sidste dækkede år), er knappen inaktiv med årsagen i tooltippen.
   const todayIso = React.useMemo(() => getTodayLocalISO(), []);
   const insertTodayDisabledReason = resolveInsertTodayDisabledReason({
@@ -170,7 +169,7 @@ const MenberegningTab = React.memo(() => {
   // Fokusér det første blokerende felt efter en blokeret download. Læser en FRISK evaluering
   // (`readPort.getEvaluation()`) taget EFTER preflightens settle, ikke render-tidens closure-værdier –
   // closure'en er frosset fra renderet før klikket, og på klik-tidspunktet er beregningen typisk stadig
-  // gyldig i det renderede snapshot, selvom preflighten netop har afsluttet et felt som rødt (BB-069).
+  // gyldig i det renderede snapshot, selvom preflighten netop har afsluttet et felt som rødt.
   // Prioritet: Fødselsdato → Skadedato → Méngrad → Beregningsdato.
   const focusFirstBlockingField = React.useCallback(() => {
     const freshReader = readPort.getEvaluation().reader;
@@ -219,7 +218,7 @@ const MenberegningTab = React.memo(() => {
   // Gate-årsagen hører kun i knappens tooltip; en blokering besvares her visuelt med fokusspring.
   const pdfErrorMessage = pageMessage(download.errorMessage);
 
-  // `formatSkadedato` er FJERNET (BB-126): dens «Mangler (angiv i Stamdata)»-gren var uopnåelig, fordi
+  // `formatSkadedato` er FJERNET og må ikke genindføres: dens «Mangler (angiv i Stamdata)»-gren var uopnåelig, fordi
   // kaldsstedet allerede gav `undefined` for en tom dato – og den duplikerede rækkekomponentens ordlyd
   // som en løs streng, hvilket var en invitation til at genindføre det mønster, komponenten afskaffede.
 
@@ -229,7 +228,7 @@ const MenberegningTab = React.memo(() => {
 
       <Typography className="row--subheading">Stamdata</Typography>
 
-      {/* De to spejlede stamdata-rækker deler nu komponent med Forsørgertabs (BB-126): den ugyldige gren
+      {/* De to spejlede stamdata-rækker deler komponent med Forsørgertabs: den ugyldige gren
           bærer samme link til Stamdata som den tomme, i stedet for en tekst uden vej tilbage. */}
       <MirroredStamdataRow
         label="Fødselsdato"
@@ -247,7 +246,7 @@ const MenberegningTab = React.memo(() => {
       />
 
       {/* Alderen er AFLEDT af de to rækker ovenfor og er derfor ikke en spejlet stamdata-række – men den
-          skal have samme vej tilbage (BB-126). Linket peger på det felt, der faktisk står i vejen: er
+          skal have samme vej tilbage. Linket peger på det felt, der faktisk står i vejen: er
           fødselsdatoen problemet, fører det dertil, ellers til skadedatoen. */}
       <MirroredStamdataRow
         label={alderVedSkadeLabel}
@@ -346,9 +345,8 @@ const MenberegningTab = React.memo(() => {
 
       {beregningsResultat && (
         <Box className="row--label-right-hover">
-          {/* BB-073's regel læses nu fra den delte helper (BB-129/130). Den lokale ternary vagtede på
-              RÅværdien, mens helperen vagter på det, brugeren faktisk ser – forskellen betyder noget,
-              hvis beløbet en dag ikke længere er en hel krone. */}
+          {/* Reglen læses fra den delte helper, der vagter på det, brugeren faktisk ser – ikke på RÅværdien.
+              Forskellen betyder noget, hvis beløbet en dag ikke er en hel krone. */}
           <Typography className="row--text">
             {`Aldersreduktion, ${alderVedSkade} år = ${formatDeductionPercent(
               beregningsResultat.aldersreduktionPct,
@@ -383,7 +381,7 @@ const MenberegningTab = React.memo(() => {
               </Typography>
               <DocumentDownloadButton
                 onClick={() => void handlePdfDownload()}
-                // BB-069: uden dette flytter museklikkets mousedown fokus til knappen og blurrer en åben,
+                // Uden dette flytter museklikkets mousedown fokus til knappen og blurrer en åben,
                 // ugyldig draft (fx méngrad) FØRST – draften committes synkront, knappen bliver disabled,
                 // og click-eventet når aldrig `onClick`. preventDefault bevarer fokus på draft-feltet, så
                 // klikket altid rammer preflighten, som selv settler og afgør udfaldet mod frisk state.

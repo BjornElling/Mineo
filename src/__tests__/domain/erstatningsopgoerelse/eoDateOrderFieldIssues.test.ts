@@ -209,8 +209,8 @@ describe('EO dato-par: kronologien er en strukturel feltfejl på begge felter', 
     expect(issueAt(evaluation, eoTafPeriodeTilField.bind('t1'))?.reason).toBe('rule');
     expect(issueAt(evaluation, eoFerieperiodeFraField.bind('f1'))?.reason).toBe('rule');
     expect(issueAt(evaluation, eoFerieperiodeTilField.bind('f1'))?.reason).toBe('rule');
-    // «Ferie i beregningsperioden» er skjult i måneder (BB-263), så her – uden et ansættelsesforhold, der gør
-    // enheden til arbejdsdage – er cellen tavs. Kronologien i arbejdsdage dækkes i `beregningsgrundlagBrugerblik12f`.
+    // «Ferie i beregningsperioden» er skjult i måneder, så her – uden et ansættelsesforhold, der gør
+    // enheden til arbejdsdage – er cellen tavs. Kronologien i arbejdsdage dækkes i `beregningsgrundlagGraenserOgAdvarsler`.
     expect(issueAt(evaluation, eoFravaerPeriodeFraField.bind('fr1'))).toBeUndefined();
     expect(issueAt(evaluation, eoFravaerPeriodeTilField.bind('fr1'))).toBeUndefined();
     expect(issueAt(evaluation, eoSvieSmertePeriodeFraField.bind('s1'))?.reason).toBe('rule');
@@ -293,7 +293,7 @@ describe('EO dato-par: kronologien er en strukturel feltfejl på begge felter', 
       beregnesUdFra: 'Beregningsperiode',
       tafBeregningsperiodeFra: toISODateString('2022-06-30'),
       tafBeregningsperiodeTil: toISODateString('2022-04-01'),
-      // Parrene skal være SYNLIGE for at være røde (BB-228): SFGG-rækken hører til et ansættelsesforhold med
+      // Parrene skal være SYNLIGE for at være røde: SFGG-rækken hører til et ansættelsesforhold med
       // TAF-krav og en kilde, der viser referenceperioden, og indtægtstabellen indtastes i dage.
       kravPaaTabtArbejdsfortjeneste: 'Ja',
       sfggAnsaettelsesforhold: [{
@@ -346,7 +346,7 @@ describe('EO dato-par: kronologien er en strukturel feltfejl på begge felter', 
   });
 });
 
-describe('Offentlige ydelser: rækkernes datoer følger sagens ramme, ikke sygedagpengesatserne (BB-362)', () => {
+describe('Offentlige ydelser: rækkernes datoer følger sagens ramme, ikke sygedagpengesatserne', () => {
   const medYdelse = (fra: string, til: string): ErstatningsopgoerelseValues => ({
     ...baseEo(),
     kravPaaTabtArbejdsfortjeneste: 'Ja',

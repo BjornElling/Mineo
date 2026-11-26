@@ -530,7 +530,7 @@ describe('buildLoenindkomstRateSegments – Store Bededag', () => {
   });
 });
 
-// ─── manuel lønudvikling: carry-forward mellem daterede rækker (greenfield #35) ─────
+// ─── manuel lønudvikling: carry-forward mellem daterede rækker ─────
 
 /**
  * `resolveLatestManualRowForDate` havde ingen egen dækning, før den blev ruttet gennem

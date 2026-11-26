@@ -133,13 +133,13 @@ describe('EOKontrolTabel', () => {
     expect(screen.getByText('Kontroltabel')).toBeInTheDocument();
     expect(screen.getByText('Kontroltabellen kan ikke vises, fordi beregningen er stoppet')).toBeInTheDocument();
     expect(screen.getByText('Se «Fejl og advarsler» under Beregning.')).toBeInTheDocument();
-    // Uden kontrolgrundlag er der intet at tælle sammen (BB-389).
+    // Uden kontrolgrundlag er der intet at tælle sammen.
     expect(screen.queryByText('Sammentælling')).not.toBeInTheDocument();
 
     vi.useRealTimers();
   });
 
-  it('forklarer tom-tilstanden med de kilder, tabellen faktisk dannes af (BB-380)', () => {
+  it('forklarer tom-tilstanden med de kilder, tabellen faktisk dannes af', () => {
     const snapshot = makeSnapshot(makeModel({ rowCount: 0 }));
 
     renderComponent({
@@ -157,7 +157,7 @@ describe('EOKontrolTabel', () => {
       .toBeTruthy();
   });
 
-  it('viser intet mærke for en række uden tal og udelader tomme grupper (BB-386)', () => {
+  it('viser intet mærke for en række uden tal og udelader tomme grupper', () => {
     const tom = buildSammentaellingControl({ beregnet: beregnetVaerdi(null, '-'), tabel: { value: null, display: '-' } });
     const ok = buildSammentaellingControl({ beregnet: beregnetVaerdi(5, '5'), tabel: { value: 5, display: '5' } });
     const snapshot: EOInspektionSnapshot = {
@@ -183,7 +183,7 @@ describe('EOKontrolTabel', () => {
     expect(screen.getByText('Beløb')).toBeInTheDocument();
   });
 
-  it('bruger oversigtens nye betegnelser (BB-387)', () => {
+  it('bruger oversigtens nye betegnelser', () => {
     renderComponent({ inspektionSnapshot: makeSnapshot(makeModel({ rowCount: 0 })) });
 
     expect(screen.getByText('Sagens første og sidste dato')).toBeInTheDocument();

@@ -19,7 +19,7 @@ describe('fælles lønsatsadvarsler', () => {
     expect(FERIE_PCT_OVER_MAKS_BESKED).toBe('Feriegodtgørelse kan ikke overstige 25 %');
   });
 
-  it('navngiver satsen efter ydelsen: under 12 % ferietillæg, ellers feriegodtgørelse (udviklerafgørelse 2026-11-04)', () => {
+  it('navngiver satsen efter ydelsen: under 12 % ferietillæg, ellers feriegodtgørelse', () => {
     for (const sats of [0, 1, 2.95, 11.99]) {
       expect(resolveFerieYdelse(sats)).toBe('ferietillaeg');
       expect(ferieYdelseNavn(sats)).toBe('Ferietillæg');

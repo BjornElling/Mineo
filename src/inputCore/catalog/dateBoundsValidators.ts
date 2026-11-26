@@ -21,14 +21,11 @@ import type {
 
 // Datofelternes bounds-regel: ÉT sted, alle datofelter arver.
 //
-// Baggrunden er et strukturelt hul, ikke en enkeltfejl. `src/config/dateRanges.ts` DEKLARERER grænser for
-// hvert datofelt, men intet bandt deklarationen til håndhævelsen: hver validator var håndskrevet på sin egen
-// descriptor, så et felt havde grænser præcis hvis nogen huskede at skrive dem. Målingen 2026-08-09 viste, at
-// 31 af 54 datofelter accepterede både år 1900 og år 2100 uden ét eneste issue – konfigurationen sagde ét, og
-// programmet gjorde noget andet. En runtime-audit fandt kun 3 af de 31, fordi den prøvede
-// felter stikprøvevis; hullet var aldrig lokalt for de felter, den nåede at ramme.
+// `src/config/dateRanges.ts` DEKLARERER grænser for hvert datofelt. Er hver validator håndskrevet på sin egen
+// descriptor, har et felt grænser præcis hvis nogen huskede at skrive dem, og konfigurationen siger ét, mens
+// programmet gør noget andet. Hullet er strukturelt, ikke lokalt for enkelte felter.
 //
-// Derfor er reglen nu DATA (en `DateBoundsSpec`) frem for kode pr. felt: et datofelt erklærer sine grænser, og
+// Derfor er reglen DATA (en `DateBoundsSpec`) frem for kode pr. felt: et datofelt erklærer sine grænser, og
 // denne fil oversætter erklæringen til det `FieldIssue`, den røde ring og tooltippet kræver. Værnet
 // `dateFieldsDeclareBounds.test.ts` håndhæver, at ethvert datofelt i produktionskataloget bærer en erklæring –
 // også den bevidst grænseløse (`unconstrainedDateBounds`), som skal fravælges aktivt og med en begrundelse.
@@ -144,7 +141,7 @@ export const resolveDateFormatIssueText = (
   // Kun de YDRE grænser bruges. En skærpelse udledt af andre felter kan ikke gøres skarpere af en værdi,
   // der aldrig blev canonical, og et umuligt interval ville her beskrive en tilstand, råteksten ikke nåede.
   //
-  // Er loftet kalenderen, navngives det som «dags dato» ligesom for en canonical værdi (BB-208): de to
+  // Er loftet kalenderen, navngives det som «dags dato» ligesom for en canonical værdi: de to
   // fejlformer må ikke blive til to forskellige sprog om den samme grænse.
   const maxTekst = maxDate === getToday()
     ? `dags dato (${formatISOToDanish(maxDate)})`
@@ -169,7 +166,7 @@ export const systemrammeSpec: DateBoundsSpec = {
  * Systemrammens nedre grænse og dags dato som loft – for en dato, lønnen eller beløbet AFSPEJLER: en løn kan
  * ikke afspejle en dato, der endnu ikke er nået, så en senere dato er en tastefejl i årstallet.
  *
- * Delt af de angivne beløbs dato (BB-261) og «Evt. særlig fra-dato for regulering» (BB-282), så de to
+ * Delt af de angivne beløbs dato og «Evt. særlig fra-dato for regulering», så de to
  * datoer, der begge siger «lønnen per denne dato», har samme grænse og samme tooltip («… og dags dato (…)»).
  */
 export const systemrammeTilDagsDatoSpec: DateBoundsSpec = {

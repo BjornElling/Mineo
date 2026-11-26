@@ -31,10 +31,9 @@ import { referenceRates, surchargeRates } from '../../data/interestRates';
  *
  * Fejningen er BEVIDST udtømmende og katalogdrevet, ikke en liste af scenarier: den henter valgmængden fra
  * hvert felts eget codec (`FieldCodec.options`), så et nyt valgfelt eller en ny enum-værdi automatisk er
- * dækket, uden at nogen husker at tilføje en case. De tidligere værn på samme klasse
- * (`eoReguleringInvariantReachability`) byggede deres fixture med `createErstatningsopgoerelseInitialValues`
- * – en fabrik produktionen IKKE bruger, og som netop udfyldte det felt, der manglede. Den var derfor
- * strukturelt ude af stand til at se fejlen. Denne fejning starter fra præcis den tilstand
+ * dækket, uden at nogen husker at tilføje en case. En fixture bygget med
+ * `createErstatningsopgoerelseInitialValues` – en fabrik produktionen IKKE bruger, og som udfylder felter, en
+ * ny sag mangler – er strukturelt ude af stand til at se fejlen. Denne fejning starter fra præcis den tilstand
  * `initializeInputRuntime` giver en ny sag.
  *
  * Kun STATISKE felter (uden entity-led) fejes: rækkefelter kræver en indsat række og hører derfor ikke til

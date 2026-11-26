@@ -264,10 +264,10 @@ describe('eoSnapshotToInspektionView', () => {
   });
 
   it('fail-closer reguleringsforløbet (loenudvikling=null) i validerings-fejl-stien selv om inspektionSnapshot findes', () => {
-    // Udviklerbeslutning (greenfield #23-review): når autoritativ beregning er blokeret af en
+    // Bevidst valg: når autoritativ beregning er blokeret af en
     // valideringsfejl, bygges pdfModel ikke, og reguleringsafsnittet må derfor IKKE re-derivere en
     // serie. Kontrollaget modtager `loenudvikling: null`/`undefined`, så reguleringstabellerne
-    // fail-closer til placeholders. Genindfør ikke et fejl-tilstands-forløb uden en ny beslutning.
+    // fail-closer til placeholders. Genindfør ikke et fejl-tilstands-forløb.
     const inspektionSnapshot = {
       model: {
         tableData: {

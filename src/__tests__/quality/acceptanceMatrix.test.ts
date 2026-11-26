@@ -788,8 +788,8 @@ describe('§5-acceptregister – kilde-verifikation', () => {
 
   it('parseren skelner leaf fra suite og medtager ikke skippede tests, arvet skip eller kommentarer', () => {
     // Syntetisk kilde, så parseren prøves i BEGGE retninger uden at afhænge af, at produktionen
-    // tilfældigvis indeholder de svære former. De to arvede-skip-cases er præcis dem, den tidligere
-    // regex-baserede version FALDT på (verificeret ved probe før rettelsen).
+    // tilfældigvis indeholder de svære former. De to arvede-skip-cases er præcis dem, en
+    // regex-baseret parser falder på.
     const synthetic = [
       "it('aktiv test', () => {});",
       "it.skip('skippet test', () => {});",

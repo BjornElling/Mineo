@@ -171,7 +171,7 @@ export const useGridCellSurface = <T, TEntity = unknown>(
 
   const onDraftChange = React.useCallback((rawDraft: string) => {
     const { controller: ctl, draftAdmission: admits, maxDraftLength } = latest.current;
-    // Typografisk minus → '-' FØR tegnværnet (BB-430) – samme regel som formularfeltet.
+    // Typografisk minus → '-' FØR tegnværnet – samme regel som formularfeltet.
     const nextDraft = normalizeSignCharactersForCodec(cellFieldRef.current.descriptor.codec, rawDraft);
     if (!isDraftWithinMaxLength(nextDraft, maxDraftLength) || (admits !== undefined && !admits(nextDraft))) {
       // §1.2: tegnet blev aldrig en del af værdien, og blokeringen er tavs. Se
@@ -194,7 +194,7 @@ export const useGridCellSurface = <T, TEntity = unknown>(
     filter(e);
   }, []);
 
-  // Celle-paste. Udviklerbeslutning (2026-07-17): en lukket celle committer det indsatte STRAKS (ingen
+  // Celle-paste. Bevidst valg: en lukket celle committer det indsatte STRAKS (ingen
   // åbn-med-kladde-fase). En åben celle splicer ind i draften på caret-positionen (som formular-surfacen).
   const onPaste = React.useCallback((e: React.ClipboardEvent<HTMLInputElement>) => {
     const { controller: ctl, locked: isLocked } = latest.current;
@@ -322,7 +322,7 @@ export const useGridCellSurface = <T, TEntity = unknown>(
     prepareEditFromKey: (key: string) => {
       if (latest.current.locked) return false;
       const codec = cellFieldRef.current.descriptor.codec;
-      // Første tegn normaliseres som enhver anden indtastning (typografisk minus → '-', BB-430).
+      // Første tegn normaliseres som enhver anden indtastning (typografisk minus → '-').
       const seed = normalizeSignCharactersForCodec(codec, key);
       if (!codec.acceptsInitialKey(seed)) return false;
       // Tast-initieret åbning (§1.3): editoren seedes med det første tegn (overwrite-all-semantik).
@@ -394,6 +394,6 @@ export const useGridCellSurface = <T, TEntity = unknown>(
 
 /**
  * Den bundne `FieldRef` for et celle-spec. BEGGE cellearter bærer den færdigt bundne reference (§3.2), så der
- * findes ikke længere en surface-lokal bindingsregel, der kunne drifte fra tabellens egen.
+ * findes ingen surface-lokal bindingsregel, der kunne drifte fra tabellens egen.
  */
 const cellFieldOf = <T, TEntity>(cell: CellSpec<T, TEntity>): FieldRef<T> => cell.field;

@@ -4,13 +4,12 @@ import { useInputEvaluation } from './useInputEvaluation';
 /**
  * Feltets SYNLIGE label – den ene måde en renderflade må komme til et feltnavn (§3.2a).
  *
- * **Hvorfor hooken findes.** Feltnavnet fandtes tidligere i to uafhængige systemer: `descriptor.label`
- * navngav feltet i beskeder, mens den synlige label blev skrevet i hånden på rendersiden (`<Typography
- * className="row--text">Skadedato</Typography>`). Intet bandt dem sammen, og for et felt med et
- * kontekstafhængigt navn drev de fra hinanden: `stamdata.skadedato` viste «Anmeldelsesdato» ved
- * Erhvervssygdom, mens den røde fejl bad brugeren rette «Skadedato».
+ * **Hvorfor hooken findes.** Skrives den synlige label i hånden på rendersiden (`<Typography
+ * className="row--text">Skadedato</Typography>`), mens `descriptor.label` navngiver feltet i beskeder, binder
+ * intet de to sammen, og for et felt med et kontekstafhængigt navn driver de fra hinanden: `stamdata.skadedato`
+ * viser «Anmeldelsesdato» ved Erhvervssygdom, mens den røde fejl beder brugeren rette «Skadedato».
  *
- * Hooken lukker driften ved at fjerne det ene af de to systemer: rendersiden HAR ikke længere sit eget
+ * Hooken lukker driften ved at fjerne det ene af de to systemer: rendersiden HAR ikke sit eget
  * feltnavn, den spørger feltet. Beskeder og skærm læser derfor samme autoritet – descriptorens `label` plus
  * dens eventuelle `contextualLabel` – og kan ikke navngive samme felt forskelligt.
  *

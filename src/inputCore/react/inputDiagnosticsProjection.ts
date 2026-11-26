@@ -10,9 +10,8 @@ import {
 // rå persisterede sektionsform – det er hele pointen med en fejlrapport. Men behovet er en NAVNGIVET
 // projektion, ikke en generel undtagelse fra §3.4's læsegrænse.
 //
-// Tidligere greb shellen selv ned i `getSettled().input.sections[pageKey]`. Det var det eneste rå
-// sektionsopslag uden for inputinfrastrukturen, og det gjorde grænsen til en aftale frem for en konstruktion.
-// Nu ejer dette modul opslaget, og `domain/raw-section-access-boundary` håndhæver, at ingen anden fil uden for
+// Shellen må ikke selv gribe ned i `getSettled().input.sections[pageKey]`; et råt sektionsopslag uden for
+// inputinfrastrukturen gør grænsen til en aftale frem for en konstruktion. Dette modul ejer opslaget, og `domain/raw-section-access-boundary` håndhæver, at ingen anden fil uden for
 // `src/inputCore/` gør det samme.
 
 /**

@@ -36,7 +36,7 @@ export const sumMaanedsbroekForInterval = (
 
 /**
  * Fjerner binær regnestøj fra en sum eller forskel af månedsbrøker, før den sammenlignes med et heltal eller
- * skæres til hele måneder. Månedsbrøken afrundes ellers aldrig i beregningen (udviklerens afgørelse 2026-11-19);
+ * skæres til hele måneder. Månedsbrøken afrundes ellers bevidst aldrig i beregningen;
  * en sum, der matematisk er 60, kan i flydende tal blive 59,99999999999 og ville da blive skåret til 59.
  * Ti decimaler ligger langt under de fem viste og flytter et beløb med mindre end en tusindedel øre.
  */

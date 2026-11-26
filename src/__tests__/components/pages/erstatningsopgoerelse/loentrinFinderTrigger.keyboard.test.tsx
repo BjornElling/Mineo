@@ -3,8 +3,7 @@
 // »Find løntrin«-ikonet er en sideintegreret handlingsknap med eksplicit opt-in i Containerens
 // tab-sekvens (keyboard-navigation.md §Implementeringsfrihed), på samme måde som »Indsæt dags dato«.
 //
-// Ikonet stod tidligere med `tabIndex={-1}` og var dermed helt uden for tastaturet: musen var eneste
-// vej til løntrin-finderen. Testen måler den observerbare kontraktadfærd på den ÆGTE flade – at
+// Med `tabIndex={-1}` er ikonet helt uden for tastaturet, og musen er eneste vej til løntrin-finderen. Testen måler den observerbare kontraktadfærd på den ÆGTE flade – at
 // knappen kan nås med Tab og aktiveres med både Enter og mellemrum – frem for at asserte på
 // markør-attributten, som kunne blive inert uden at nogen test fejlede.
 //
@@ -13,8 +12,8 @@
 // DETTE render-sted faktisk har opt-in'et og derfor indgår i sekvensen.
 //
 // Testen dækker desuden vejen TILBAGE: Escape fra overlayet skal returnere fokus til knappen
-// (keyboard-navigation.md §Popup-fokus-restore). Uden det krav endte fokus på `body`, og
-// tastaturbrugeren måtte tabbe forfra gennem siden – registreret som Q-001 i runtime-input-auditen.
+// (keyboard-navigation.md §Popup-fokus-restore). Uden det krav ender fokus på `body`, og
+// tastaturbrugeren må tabbe forfra gennem siden.
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -143,11 +142,10 @@ describe('»Find løntrin« indgår i tastatur-sekvensen', () => {
   }, ASYNC_TEST_TIMEOUT_MS);
 
   /**
-   * Svaret på Q-001 i runtime-input-auditen: Escape skal returnere fokus til »Find løntrin«.
+   * Escape skal returnere fokus til »Find løntrin«.
    *
-   * Fokus endte tidligere på `body` i alle fire browsere (AUDIT-2026-08-14-21), så
-   * tastaturbrugeren måtte tabbe forfra gennem hele siden for at komme tilbage til knappen.
-   * Kontrakten fastlægger nu restore-målet (keyboard-navigation.md §Popup-fokus-restore).
+   * Ender fokus på `body`, må tastaturbrugeren tabbe forfra gennem hele siden for at komme tilbage
+   * til knappen. Kontrakten fastlægger restore-målet (keyboard-navigation.md §Popup-fokus-restore).
    */
   it('returnerer fokus til knappen, når overlayet lukkes med Escape', async () => {
     const user = userEvent.setup();
@@ -165,8 +163,8 @@ describe('»Find løntrin« indgår i tastatur-sekvensen', () => {
   }, ASYNC_TEST_TIMEOUT_MS);
 
   /**
-   * BB-310 (udviklerafgørelse 2026-10-30): EO oplysninger husker indtastningen mellem åbninger, som Lønindkomst gør
-   * pr. ansættelsesforhold. Før startede finderen forfra hver gang på denne flade.
+   * Bevidst valg: EO oplysninger husker indtastningen mellem åbninger, som Lønindkomst gør
+   * pr. ansættelsesforhold.
    */
   it('husker beløbet, når finderen lukkes og åbnes igen', async () => {
     const user = userEvent.setup();

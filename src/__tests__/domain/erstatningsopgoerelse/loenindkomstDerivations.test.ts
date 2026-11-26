@@ -402,7 +402,7 @@ describe('deriveLoenindkomstVm', () => {
     });
   });
 
-  describe('getSfggPresentation – fraværsdagenes enhed (BB-329)', () => {
+  describe('getSfggPresentation – fraværsdagenes enhed', () => {
     it('tæller fraværsdagene i kalenderdage, når referenceperiode-sporet opgøres i måneder', () => {
       const af = createDefaultLoenindkomstAnsaettelsesforhold();
       const row = createSfggRow(af.id, { sfggBeregningskilde: 'Ferieloven' });

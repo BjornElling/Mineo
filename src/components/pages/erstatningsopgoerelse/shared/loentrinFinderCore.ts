@@ -26,8 +26,8 @@ export type LoentrinFinderErrors = Readonly<{
 export type Loengruppe = 0 | 1 | 2 | 3 | 4;
 
 /**
- * Ét resultat. Grupper med samme beløb på samme løntrin er samlet i én linje («Løntrin 50, alle grupper») – før
- * stod de som fem ens linjer (BB-310).
+ * Ét resultat. Grupper med samme beløb på samme løntrin er samlet i én linje («Løntrin 50, alle grupper») frem
+ * for fem ens linjer.
  */
 export type LoentrinFinderResult = Readonly<{
   loentrin: number | '55+';
@@ -37,7 +37,7 @@ export type LoentrinFinderResult = Readonly<{
 }>;
 
 /** «Løntrin 38, gruppe 4», «Løntrin 50, alle grupper» eller «Løntrin 12, gruppe 1 og 2». */
-/** Tooltip, når opslagets løntype ikke er sagens «Ansættelse» (BB-445). */
+/** Tooltip, når opslagets løntype ikke er sagens «Ansættelse». */
 export const buildLoentrinFinderLoenTypeSpaerring = (sagensLoenType: string): string =>
   `Ansættelse er sat til ${sagensLoenType.toLowerCase()} – søg med ${sagensLoenType.toLowerCase()} for at indsætte`;
 
@@ -58,7 +58,7 @@ export type LoentrinFinderCalculationOutcome =
   | Readonly<{
     ok: true;
     results: ReadonlyArray<LoentrinFinderResult>;
-    /** Datoen for den lønsatstabel, svaret bygger på (BB-310). */
+    /** Datoen for den lønsatstabel, svaret bygger på. */
     satsDato: ISODateString;
     /** Sand, når tabellen er programmets nyeste – også for en dato langt efter den. */
     erNyesteSatser: boolean;

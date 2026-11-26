@@ -3,13 +3,13 @@
 // §1.3 settle-udløser: KLIK-VÆK-benet.
 //
 // §1.3 opregner fire settle-udløsere: "Blur, Enter, klik uden for feltet og almindelig
-// side-/fanenavigation". Blur og Enter var dækket i `useFormFieldSurface.test.tsx`, men gennem DIREKTE
+// side-/fanenavigation". Blur og Enter er dækket i `useFormFieldSurface.test.tsx`, men gennem DIREKTE
 // kald af `onBlur`/`onKeyDown` – ikke gennem en faktisk brugerhandling. Side- og fanenavigation har
-// hver sin test. "Klik uden for feltet" havde ingen.
+// hver sin test. Denne fil dækker "klik uden for feltet".
 //
-// Registret citerede i stedet en Escape-test som evidens, hvilket re-reviewet korrekt afviste: Escape
-// er den MODSATTE regel (§1.3: "Escape lukker editoren uden at udstede en command"). En test, der
-// beviser at intet committes, kan ikke bære et punkt om, at noget committes.
+// En Escape-test er ikke evidens for punktet: Escape er den MODSATTE regel (§1.3: "Escape lukker
+// editoren uden at udstede en command"). En test, der beviser at intet committes, kan ikke bære et
+// punkt om, at noget committes.
 //
 // Testen klikker derfor på et rigtigt element uden for feltet, i den ægte side med den ægte runtime, og
 // læser resultatet fra det autoritative afsluttede input.

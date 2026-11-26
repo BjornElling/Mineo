@@ -16,11 +16,10 @@ import { shouldRequireSygeferiegodtgoerelseInput } from './helpers/sygeferiegodt
 import { selectLoenindkomstTableFieldIssues } from './eoInputIssues';
 
 // Sygeferiegodtgørelsens referenceperiode-regler – ét sted, projekteret til feltets egen adresse, så feltet får
-// rød ring med reglen i tooltippen, og «Fejl og advarsler» får én linje med link til feltet. Reglerne stod før
-// kun i validatoren og spærrede uden ring og link, med samme linje to gange (BB-322, BB-323), eller fandtes slet
-// ikke, så en periode uden løn gav satsen 0,00 kr. uden et ord (BB-319). Perioden er i øvrigt fri: hverken
-// længde eller placering kontrolleres ud over grænsen før første TAF-periode (udviklerafgørelse 2026-10-24,
-// BB-321).
+// rød ring med reglen i tooltippen, og «Fejl og advarsler» får én linje med link til feltet. En regel, der kun
+// står i validatoren, spærrer uden ring og link; uden reglen om løn i perioden giver en periode uden løn satsen
+// 0,00 kr. uden et ord. Perioden er i øvrigt bevidst fri: hverken længde eller placering kontrolleres ud over
+// grænsen før første TAF-periode.
 
 const formatDato = (iso: ISODateString): string => isoToDanish(iso) ?? iso;
 
@@ -38,13 +37,13 @@ const dagEnhed = (antal: number, label: 'kalenderdage' | 'arbejdsdage'): string 
   return label === 'kalenderdage' ? '1 kalenderdag' : '1 arbejdsdag';
 };
 
-/** Beskeden ved en referenceperiode, hvor der ingen løn er (BB-319). Linjen og feltets tooltip bruger den. */
+/** Beskeden ved en referenceperiode, hvor der ingen løn er. Linjen og feltets tooltip bruger den. */
 export const buildSfggReferenceperiodeUdenLoenBesked = (fra: ISODateString, til: ISODateString): string =>
   `Der er ingen løn i referenceperioden (${formatDato(fra)} – ${formatDato(til)}) – angiv perioden før sygeforløbet`;
 
 /**
- * Højst så mange fraværsdage, at mindst én dag i referenceperioden er tilbage at dele lønnen med (BB-323). Før
- * kaldte beskeden referenceperiodens antal dage for «maksimalt», og netop det antal var derefter selv en fejl.
+ * Højst så mange fraværsdage, at mindst én dag i referenceperioden er tilbage at dele lønnen med. Beskedens
+ * «maksimalt» er derfor referenceperiodens antal dage minus én – ellers ville netop det nævnte antal selv være en fejl.
  */
 const buildFravaersdageBesked = (
   tilgaengelige: number,
@@ -68,7 +67,7 @@ const buildIngenDageBesked = (label: 'kalenderdage' | 'arbejdsdage'): string => 
  */
 export const collectSfggReferenceperiodeIssues = (
   values: ErstatningsopgoerelseValues,
-  /** De strukturelle feltfejl, så en rød lønrække ikke læses som en manglende løn (BB-451). */
+  /** De strukturelle feltfejl, så en rød lønrække ikke læses som en manglende løn. */
   structuralIssues: FieldIssueSet = EMPTY_FIELD_ISSUE_SET,
 ): readonly FieldIssue[] => {
   const roedeLoencellerPrAnsaettelse = selectLoenindkomstTableFieldIssues(structuralIssues);
@@ -117,9 +116,9 @@ export const collectSfggReferenceperiodeIssues = (
       )];
     }
 
-    // En samlet NEGATIV løn spærrer i motoren med sin egen besked (BB-290); her fanges kun den tomme periode.
+    // En samlet NEGATIV løn spærrer i motoren med sin egen besked; her fanges kun den tomme periode.
     // En rød lønrække læses som tom, men er ikke en manglende løn: rækkens egen linje siger, hvad der skal rettes.
-    // Uden værnet blev en korrekt referenceperiode rød med en opfordring til at flytte den (BB-451, M-58).
+    // Uden værnet bliver en korrekt referenceperiode rød med en opfordring til at flytte den.
     if ((roedeLoencellerPrAnsaettelse[employment.id]?.length ?? 0) > 0) return [];
     const loen = roundKroner(
       buildEmploymentSfggCalculator(employment, values.ferieperioder ?? []).sumLoenInRangesKroner([{ fra, til }])

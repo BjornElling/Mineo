@@ -15,11 +15,11 @@ import { settleField } from '../../../inputCore/inputReducer';
 import { renteberegningBeregningsdatoField } from '../../../inputCore/catalog/renteberegningDescriptors';
 import { documentDownloaded, documentFailed } from '../../../document/definition/documentOutcome';
 
-// BB-048: standalone havde ingen advarsel, før fanen blev lukket. Der er hverken Gem, Hent eller
-// filformat, så det eneste varige spor af arbejdet er den PDF, brugeren måtte have hentet – og
-// søskendefladen Mineo viser i samme situation browserens «vil du forlade siden?».
+// Standalone advarer, før fanen lukkes. Der er hverken Gem, Hent eller filformat, så det eneste varige
+// spor af arbejdet er den PDF, brugeren måtte have hentet – og søskendefladen Mineo viser i samme
+// situation browserens «vil du forlade siden?».
 //
-// Udviklerens regel: advar KUN når der er indtastninger, som ikke er hentet som PDF siden sidste ændring.
+// Reglen: advar KUN når der er indtastninger, som ikke er hentet som PDF siden sidste ændring.
 
 const catalog = getProductionInputCatalog();
 

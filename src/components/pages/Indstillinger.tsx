@@ -50,7 +50,7 @@ const [brevhovedOptionsRow1, brevhovedOptionsRow2, brevhovedOptionsRow3] = brevh
  * `Record<AppThemeMode, string>`: en ny tilstand i schemaet giver en compilerfejl her frem for en
  * valgmulighed, brugeren aldrig får at se. Rækkefølgen sætter «Følg computeren» sidst, fordi de to
  * konkrete valg er dem, brugeren typisk vælger imellem – automatikken er standarden, man vender
- * tilbage til (BB-024).
+ * tilbage til.
  */
 const THEME_MODE_LABELS: Record<AppThemeMode, string> = {
   light: 'Lyst',
@@ -372,10 +372,10 @@ const Indstillinger = React.memo(() => {
           Først uden for vinduet træder toggle'n i kraft og afgør, om manglen er en fejl eller kun
           en advarsel.
 
-          Stod toggle'n først (som før), læste rækkefølgen naturligt som «grænsen gælder, når jeg har
-          tilladt det» – og en bruger, der slog toggle'n fra for at få den strengeste kontrol, fik
+          Står toggle'n først, læses rækkefølgen naturligt som «grænsen gælder, når jeg har
+          tilladt det» – og en bruger, der slår toggle'n fra for at få den strengeste kontrol, får
           den ikke inden for vinduet uden at opdage det. Tolerancen står derfor først og er
-          formuleret som en selvstændig regel. Brugerfund BB-028, accepteret 2026-08-18.
+          formuleret som en selvstændig regel.
         */}
         <Box className="row--label-right-hover">
           <Typography className="row--text">Overenskomsten regnes for dækkende indtil</Typography>

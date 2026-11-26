@@ -14,13 +14,11 @@ import { normalizeMinusCharacters } from '../../../utils/draftNormalization';
  *   - `GridIntegerCell`     → `allowNegative: true`   (månedscellen 1..12)
  *   - `AmountField`         → `allowNegative: true`
  *
- * Symptomet brugeren fandt var, at et minustegn kunne tastes som første tegn i et procentfelt. Årsagen var
- * ikke en manglende `false` på ét callsite, men at politikken slet ikke havde en vej fra det sted, den ER
- * erklæret, til det sted, den skal virke. To flader af samme feltfamilie kunne derfor svare forskelligt uden
- * at noget blev rødt.
+ * Uden en vej fra det sted, politikken ER erklæret, til det sted, den skal virke, kan to flader af samme
+ * feltfamilie svare forskelligt uden at noget bliver rødt – fx et minustegn som første tegn i et procentfelt.
  *
  * Politikken læses HER af begge flader fra `field.descriptor.codec.signPolicy`. En ny numerisk
- * feltkomponent kan ikke længere vælge selv – og et nyt descriptor-felt får automatisk den rigtige adfærd på
+ * feltkomponent kan ikke vælge selv – og et nyt descriptor-felt får automatisk den rigtige adfærd på
  * både formular og grid.
  *
  * **Hvad dette IKKE ændrer (§1.6).** Et fortegn er stadig en BOUNDS-regel, ikke et formatbrud:
@@ -48,9 +46,8 @@ export const fieldAllowsNegative = <T>(field: FieldRef<T>): boolean =>
  * Normaliserer typografiske minustegn til ASCII '-' i tekst, der er på vej ind i en draft – men KUN for
  * familier med et fortegnsbegreb (dem, der erklærer en `signPolicy`).
  *
- * **Hvorfor her.** Fundet BB-430: `10−1` (U+2212) og `10–1` (U+2013) blev indsat som `101`, fordi
- * tegnfilteret kun kender ASCII-minus og derfor sprang tegnet over, så cifrene smeltede sammen. Et felt
- * med negative beløb fik `−1200` som +1200. Normaliseringen sker FØR tegnfilteret, så tegnet derefter
+ * **Hvorfor her.** Tegnfilteret kender kun ASCII-minus og springer andre tegn over: uden normaliseringen
+ * indsættes `10−1` (U+2212) og `10–1` (U+2013) som `101`, og et felt med negative beløb får `−1200` som +1200. Normaliseringen sker FØR tegnfilteret, så tegnet derefter
  * møder præcis de samme regler som '-' – også §8.2's regel om, at et unært minus springes over i et felt
  * uden negative værdier. Tegnklassen er den kanoniske i `utils/draftNormalization.ts`.
  *

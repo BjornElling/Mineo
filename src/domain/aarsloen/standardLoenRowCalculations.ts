@@ -369,17 +369,16 @@ export const hasCompletePeriodForLoenperiode = (row: StandardLoenTableRow, loenp
 /**
  * Findes der mindst én lønrække med en komplet periode?
  *
- * Beløbet indgår BEVIDST ikke i prøven. Funktionen hed tidligere `hasAtLeastOneValidRow` og krævede
- * desuden, at rækkens samlede løn var forskellig fra nul – men en lønrække med 0 kr. er lovlig
- * (udviklerbeslutning 2026-08-26): brugeren kan have behov for at vise, at der i en måned ikke var
- * lønindkomst, og det er tydeligere end at udelade perioden, som da kunne se glemt ud.
+ * Beløbet indgår BEVIDST ikke i prøven: en lønrække med 0 kr. er lovlig. Brugeren kan have behov for at
+ * vise, at der i en måned ikke var lønindkomst, og det er tydeligere end at udelade perioden, som da kunne
+ * se glemt ud.
  *
- * Nul-kravet var desuden uenigt med tabelvalideringen, der regner et eksplicit 0 som udfyldt input. En
- * tabel med én række «januar 2025, 0 kr.» passerede altså valideringen uden ét rødt felt, mens
- * dokumentgaten svarede «Indtastning mangler» – en mangel, der ikke fandtes. De to prædikater er nu enige.
+ * Prøven skal være enig med tabelvalideringen, der regner et eksplicit 0 som udfyldt input; ellers passerer
+ * en tabel med én række «januar 2025, 0 kr.» valideringen uden ét rødt felt, mens dokumentgaten svarer
+ * «Indtastning mangler».
  *
- * At en komplet periode UDEN noget beløb overhovedet fortsat er en fejl, er en anden regel: den ejes af
- * `missing_amount` i tabelvalideringen (jf. årsløn-kontrakten §2-regel 6) og er uændret.
+ * At en komplet periode UDEN noget beløb er en fejl, er en anden regel: den ejes af `missing_amount` i
+ * tabelvalideringen (jf. årsløn-kontrakten §2-regel 6).
  */
 export const hasAtLeastOneCompletePeriodRow = (
   rows: readonly StandardLoenTableRow[],

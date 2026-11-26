@@ -33,7 +33,7 @@ const fillSag = async (page: Page): Promise<void> => {
 
 const errorBox = (page: Page) => page.locator('.content-box').filter({ hasText: 'Fejl og advarsler' });
 
-// Flade 12d (BB-242, BB-243): en afgørelse dateret efter «Opgørelse lavet den» får en gul, ikke-blokerende
+// En afgørelse dateret efter «Opgørelse lavet den» får en gul, ikke-blokerende
 // ring med samme tekst som «Fejl og advarsler», og feltet hedder det samme begge steder som på skærmen.
 test.describe('Erstatningsopgørelse – AES-afgørelser', () => {
   test('advarer ikke-blokerende om en ménafgørelse efter opgørelsens dato', async ({ page, runtimeErrors, externalRequests }) => {

@@ -39,8 +39,8 @@ const fullCollectionPath = (entry: (typeof INPUT_COLLECTION_LEDGER)[number]): st
   entry.path === '' ? entry.collection : `${entry.path}.${entry.collection}`;
 
 // Reconciliationen sker mod det LEVENDE inputCore-produktionskatalog – det katalog produktionen faktisk kører
-// på. (Tidligere blev der reconcileret mod de gamle `src/input`-manifester; de er slettet med legacy-klyngen,
-// og en ledger, der kun stemte med en død kilde, ville ikke bevise noget om produktionen.)
+// på. En ledger, der kun stemte med en død kilde (fx de slettede `src/input`-manifester), ville ikke bevise
+// noget om produktionen.
 type TemplatePath = readonly Readonly<
   { kind: 'property'; name: string } | { kind: 'entity'; collection: string; entityId?: string }
 >[];

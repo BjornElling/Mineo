@@ -19,7 +19,7 @@ export const getRegulationTableColumns = (table: NonNullable<RegulationInspektio
   const isBeregnetTabel = table.columns.includes('Indeksberegning');
 
   // Kun «Dato» omdøbes. Overskrifterne kommer fra samme præsentation som dokumentet; en omdøbning af
-  // «Grundløn» til «Timeløn»/«Månedsløn» ville påstå en enhed, programmet ikke kender (BB-309).
+  // «Grundløn» til «Timeløn»/«Månedsløn» ville påstå en enhed, programmet ikke kender.
   const resolveHeaderLabel = (header: string): string => (header === 'Dato' ? 'Fra-dato' : header);
 
   return table.columns.map((header) => {

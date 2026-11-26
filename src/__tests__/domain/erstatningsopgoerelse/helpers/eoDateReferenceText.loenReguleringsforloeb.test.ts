@@ -7,7 +7,7 @@ import { toISODateString } from '../../../../types/branded';
 const iso = (value: string) => toISODateString(value);
 const loen = 'lønnen på den manuelt angivne reguleringsdato (01-10-2024)';
 
-// BB-314: sætningen om lønnen følger den faktisk anvendte regulering.
+// Sætningen om lønnen følger den faktisk anvendte regulering.
 describe('resolveLoenReguleringsforloeb', () => {
   it('siger «tillagt efterfølgende lønstigninger» kun ved regulering efter reguleringsdatoen', () => {
     const forloeb = resolveLoenReguleringsforloeb([

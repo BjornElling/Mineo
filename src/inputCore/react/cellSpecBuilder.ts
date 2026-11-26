@@ -9,9 +9,9 @@ import { bindCollectionCell, collectionOwnerEntityIds } from '../collectionCellB
  *
  * Problemet den løser: en celles dataidentitet er `descriptor` bundet til HELE ejerstien – for en top-level
  * collection kun rækkens entity-id, for en nested collection (fx EO's løntabel under ét ansættelsesforhold)
- * ejerens id FØRST og derefter rækkens. Da hver tabel tidligere byggede sit eget celle-spec, kunne hver af dem
- * vælge sin egen bindingsmodel, og en nested tabel kunne binde med for få entity-led. Adresseariteten er
- * håndhævet i `FieldDescriptor.bind`, så bruddet blev en runtime-fejl under render frem for en typefejl.
+ * ejerens id FØRST og derefter rækkens. Bygger hver tabel sit eget celle-spec, kan hver af dem vælge sin egen
+ * bindingsmodel, og en nested tabel kan binde med for få entity-led. Adresseariteten er håndhævet i
+ * `FieldDescriptor.bind`, så bruddet bliver en runtime-fejl under render frem for en typefejl.
  *
  * Her bygges BEGGE cellearter ét sted, mens den rene `bindCollectionCell`-primitive ejer selve adressebindingen.
  * Så kan en eksisterende celle og dens placeholder aldrig få forskellig adressestruktur.

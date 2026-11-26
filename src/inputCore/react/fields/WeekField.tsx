@@ -12,8 +12,7 @@ import { resolveFormLengthPolicy } from './charLengthPolicy';
 // modtager KUN sin `field`/`location` + rendering-props (§2.4). Værditypen er den string-backede uge-repræsentation.
 
 // Draftloftet er erklæret på uge-codecet (`maxDraftLength`) og læses gennem den DELTE resolver, så
-// formularfeltet og grid-cellen ikke kan håndhæve hver sin længde. Tallet stod før hardkodet her (8),
-// mens grid-cellen slet ingen havde.
+// formularfeltet og grid-cellen ikke kan håndhæve hver sin længde.
 const WEEK_ADMISSION = weekAdmission();
 
 export type WeekFieldProps = Readonly<{

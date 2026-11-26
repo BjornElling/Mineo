@@ -45,7 +45,7 @@ export default function SvieSmerteSection() {
     svieSmerteCellWarnings,
   } = useEoOplysningerVm();
   // Gul ring ved feltet, ikke kun en linje i boksen på Beregning-fanen: brugeren står HER og taster
-  // beløbet, og et beløb over maksimum gør hele kravet til 0 (BB-219, samme afgørelse som BB-207).
+  // beløbet, og et beløb over maksimum gør hele kravet til 0.
   // Teksten hentes fra samme kilde som rækken, så de to kanaler ikke kan drive fra hinanden.
   const tidligereTotalOverMax = (() => {
     const tekst = resolveSvieSmerteTidligereTotalOverMaxWarning(values);
@@ -143,7 +143,7 @@ export default function SvieSmerteSection() {
                 </Box>
 
                 {/* Dækker begge felter uanset opgørelsesnummer: ved 1. opgørelse står kun
-                    "allerede modtaget for nuværende periode" under den (BB-225). */}
+                    "allerede modtaget for nuværende periode" under den. */}
                 <Typography className="row--subheading">Tidligere svie/smerte-beløb</Typography>
 
                 {/* Synlighed deler samme predikat som beregningens neutralisering,

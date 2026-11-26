@@ -27,7 +27,7 @@ describe('svieSmerteMaksimum', () => {
     }))).toBe(59_000);
   });
 
-  it('afrunder brøkforligets maksimum til hele øre som beregningen og visningen (NY-12b-2)', () => {
+  it('afrunder brøkforligets maksimum til hele øre som beregningen og visningen', () => {
     // 88.500 / 7 = 12.642,857… – beregningen og «Satser per dag/max» bruger 12.642,86.
     expect(resolveEffektivtSvieSmerteMaksimum(makeValues({
       forligAnsvarsgradProcent: undefined,
@@ -35,7 +35,7 @@ describe('svieSmerteMaksimum', () => {
     }))).toBe(12_642.86);
   });
 
-  it('advarer først, når tidligere opgjort beløb overstiger det VISTE maksimum ved brøkforlig (NY-12b-2)', () => {
+  it('advarer først, når tidligere opgjort beløb overstiger det VISTE maksimum ved brøkforlig', () => {
     const medBroek = (tidligere: number) => makeValues({
       forligAnsvarsgradProcent: undefined,
       forligAnsvarsgradBroek: '1/7',

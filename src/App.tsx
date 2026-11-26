@@ -42,8 +42,7 @@ const routeModuleLoaders = {
 
 /**
  * Rute-inventaret er ÉT sted (`pageNavigation.ts`). Denne guard fejler ved modulets import,
- * hvis de to lister driver fra hinanden – tidligere stod pathstrengene hardkodet her ved
- * siden af kataloget, uden at nogen test sammenlignede dem.
+ * hvis de to lister driver fra hinanden.
  */
 const assertRouteInventoryMatchesCatalog = (): void => {
   const declared = new Set(Object.keys(routeModuleLoaders));

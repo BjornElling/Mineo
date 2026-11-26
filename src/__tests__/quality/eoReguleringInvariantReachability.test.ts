@@ -114,8 +114,8 @@ const UFULDSTAENDIGE_OPSAETNINGER: ReadonlyArray<Readonly<{
       offentligLoenTrin: 30,
     },
   },
-  // «Offentlig overenskomst uden løntype» findes ikke længere: «Ansættelse» kan ikke være tom og er Månedsløn som
-  // standard (BB-300).
+  // «Offentlig overenskomst uden løntype» kan ikke opstå: «Ansættelse» kan ikke være tom og er Månedsløn som
+  // standard.
   {
     navn: 'overenskomst valgt, men togglen slået fra',
     employment: {

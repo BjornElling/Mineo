@@ -213,7 +213,7 @@ const hentKnap = (page: Page) =>
   page.locator('.row--label-right-hover').filter({ hasText: 'Hent opgørelse' }).getByRole('button');
 
 test.describe('Erstatningsopgørelse – tidligere gemte filer', () => {
-  test('den låste 3.14-fil bevarer BB-242-datoerne og viser den ikke-blokerende advarsel efter load', async ({
+  test('den låste 3.14-fil bevarer en ménafgørelse efter opgørelsens dato og viser den ikke-blokerende advarsel efter load', async ({
     page,
     runtimeErrors,
     runtimeSignals,
@@ -233,7 +233,7 @@ test.describe('Erstatningsopgørelse – tidligere gemte filer', () => {
         opgørelseLavetDen: '2025-02-01',
         varigeMenAfgorelse: 'Ja' as const,
         menAfgoerelseDato: '2025-06-01',
-        // Fixtureens S/S-periode ligger efter ménafgørelsen; fjern det uvedkommende stop, så denne case isolerer BB-242.
+        // Fixtureens S/S-periode ligger efter ménafgørelsen; fjern det uvedkommende stop, så casen isolerer ménafgørelsen efter opgørelsens dato.
         kravPaaSvieSmerteGodtgoerelse: 'Nej' as const,
         svieSmertePerioder: [],
       },

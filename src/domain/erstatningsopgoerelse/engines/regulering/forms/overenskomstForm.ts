@@ -140,7 +140,7 @@ const konsolider = (ctx: FormKonsoliderContext): ResolvedStrategi => {
 // Overenskomst dækker to fundamentalt forskellige former under ét grundlag: privat pakke-indeks
 // og offentlig løntrin. `konsolider` og `coverageInterval` er ægte delte (samme uniformitets-
 // kontrakt og dæknings-interval), mens segment-byggeriet dispatches til hver sin selvindeholdte
-// bygger baseret på `konsolideret.offentlig` (jf. R6 – den tidligere fælles funktionskrop er delt).
+// bygger baseret på `konsolideret.offentlig` (jf. `overenskomstSegmentContext.ts`).
 const byggResultat = (
   konsolideret: KonsolideretLoenudvikling,
   segmentRanges: readonly IsoRange[] = konsolideret.tafRanges

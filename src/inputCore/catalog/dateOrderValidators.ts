@@ -5,11 +5,10 @@ import { parseWeekString } from '../../utils/dateUtils';
 
 // Kronologireglen for et dato-par: ét sted, alle fra/til-par arver.
 //
-// Reglen lå tidligere UDELUKKENDE i række-evaluerings-motoren
-// (`validation/tafPeriodeValidation.ts` m.fl.), som producerer `{ message, field: 'fra' | 'til' }`. Et
-// kolonne-hint er ikke en feltadresse, og en rød ring kræver et fuldt `FieldIssue` med en strukturel
-// `FieldRef` (§1.8). Derfor kunne rækkefølgefejlen vises i "Fejl og advarsler" og endda scrolle til det
-// rigtige felt – uden at feltet nogensinde blev rødt.
+// Reglen kan ikke ligge alene i række-evaluerings-motoren (`validation/tafPeriodeValidation.ts` m.fl.), som
+// producerer `{ message, field: 'fra' | 'til' }`. Et kolonne-hint er ikke en feltadresse, og en rød ring
+// kræver et fuldt `FieldIssue` med en strukturel `FieldRef` (§1.8). Ellers kan rækkefølgefejlen vises i
+// "Fejl og advarsler" og endda scrolle til det rigtige felt – uden at feltet bliver rødt.
 //
 // Reglen hører til på descriptoren, fordi den kan afgøres af feltet plus dets søskendefelt alene.
 // Overlap mellem rækker og cutoff mod BEREGNEDE datoer kan den derimod ikke afgøre; de forbliver
@@ -95,7 +94,7 @@ export const dateOrderValidator = (
 };
 
 /**
- * Uge-parrets tekst: hver celle navngiver sin egen udvej med modpartens uge (BB-107/BB-295). Ordet «dato»
+ * Uge-parrets tekst: hver celle navngiver sin egen udvej med modpartens uge. Ordet «dato»
  * står bevidst ikke i en ugefejl, og feltnavnene er descriptorernes egne labels («Uge fra»/«Uge til»), så
  * teksten følger kolonneoverskriften.
  */
@@ -116,9 +115,8 @@ export const buildWeekOrderMessage = (
  * Ugeværdien er canonical «UU/ÅÅÅÅ»; kan en af dem ikke tolkes som uge, bærer den selv sin formatfejl, og
  * rækkefølgen vurderes ikke.
  *
- * Reglen lå tidligere kun i rækkeevalueringen (`indkomstRowValidation.ts`) for EO, så ingen celle blev rød,
- * og boksen sagde «Ugyldig værdi i Uge fra» om en gyldig uge (BB-295); Årsløn havde en egen kopi med den
- * fælles dato-tekst (BB-107).
+ * Reglen hører til på cellen, ikke kun i rækkeevalueringen (`indkomstRowValidation.ts`): ellers bliver ingen
+ * celle rød, og boksen siger «Ugyldig værdi i Uge fra» om en gyldig uge. EO og Årsløn deler denne ene regel.
  */
 export const weekOrderValidator = (
   role: 'fra' | 'til',

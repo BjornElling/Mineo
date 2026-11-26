@@ -21,9 +21,9 @@ type KapitaliseringsPctRow = Readonly<{ rowId: string; kapitaliseringspct: numbe
  *
  * Mindstegrænserne og de faste procentsatser kan juridisk ikke fraviges, men en teoretisk beregning
  * af en sådan værdi skal være mulig. Derfor advares der i stedet for at kalde en værdi «ugyldig», som
- * programmet i samme åndedrag regner på og trykker (BB-158).
+ * programmet i samme åndedrag regner på og trykker.
  *
- * Advarslerne bærer bevidst INGEN hale om, at «beregningen derfor ikke er lovmæssig» (BB-173):
+ * Advarslerne bærer bevidst INGEN hale om, at «beregningen derfor ikke er lovmæssig»:
  * hvad der kan bruges juridisk, er brugerens vurdering, ikke programmets, og halen gav to advarsler
  * om samme grænse hver sin alvorsgrad. Advarslen navngiver grænsen; konsekvensen kender brugeren.
  * Tilføj den ikke igen – heller ikke for en enkelt advarsel.
@@ -42,7 +42,7 @@ export const resolveEetUnder15Warning = (value: number | undefined): FieldWarnin
  *
  * Fra den dato fastsættes erhvervsevnetabet i trin af 10 %. Reglen afhænger af SKADEDATOEN, som ikke
  * står i den celle, brugeren taster i, så advarslen skal stå ved feltet – ellers får han en neutral
- * celle og opdager det først på en anden fane (BB-158). 15 % er lovligt uanset trinreglen.
+ * celle og opdager det først på en anden fane. 15 % er lovligt uanset trinreglen.
  */
 export const EET_TITRIN_FRA_2024_WARNING =
   'Erhvervsevnetab fastsættes i trin af 10 % for skader fra 1. juli 2024';
@@ -66,10 +66,9 @@ export const resolveEetTitrinWarning = (
 /**
  * Advarslen når en af sagens datoer ligger efter beregningsdatoen.
  *
- * Tidligere stod tre linjer over hinanden – en pr. datotype – i en boks på de faner, brugeren IKKE
- * taster på, mens alle tre celler stod neutrale. Tre linjer om én årsag læses som tre problemer, og
- * den ene rettelse (beregningsdatoen) blev ikke navngivet (BB-159). Nu siger boksen årsagen én
- * gang, og hver af de tre datoceller bærer sin egen gule feltadvarsel, hvor brugeren sidder.
+ * Boksen siger årsagen én gang og navngiver den ene rettelse (beregningsdatoen), og hver af de tre
+ * datoceller bærer sin egen gule feltadvarsel, hvor brugeren sidder. Tre linjer om én årsag – en pr.
+ * datotype – ville læses som tre problemer.
  */
 export const formatDatoEfterBeregningsdatoWarning = (beregningsdato: ISODateString): string =>
   `En eller flere datoer i ASL-afgørelserne ligger efter beregningsdatoen (${formatISOToDanish(beregningsdato)}).`;
@@ -92,7 +91,7 @@ export const resolveDatoEfterBeregningsdatoWarning = (
  * Kanonisk advarsel for en kapitaliseringsdato efter afgørelsesdatoen.
  *
  * Kapitalisering sker her som udgangspunkt på afgørelsesdatoen, men en senere dato er tilladt og lægges til
- * grund i beregningen (udviklerafgørelse 2026-11-13). Derfor gul, ikke rød.
+ * grund i beregningen. Derfor gul, ikke rød.
  */
 export const KAP_DATO_EFTER_AFGOERELSESDATO_UNDER_TO_AAR_WARNING =
   'Ved ≤ 2 år til folkepension sker kapitalisering som udgangspunkt på afgørelsesdatoen';
@@ -121,8 +120,7 @@ const resolveKapDatoEfterAfgoerelsesdatoText = (
 /**
  * Advarsel for en kapitaliseringsdato inden for de sidste to år før folkepensionsalderen.
  *
- * Kapitalisering er her som udgangspunkt udelukket, men advarslen blokerer ikke (udviklerafgørelse
- * 2026-11-13). Den vises IKKE, når kapitaliseringen netop er påkrævet efter toårsreglen – så ville
+ * Kapitalisering er her som udgangspunkt udelukket, men advarslen blokerer bevidst ikke. Den vises IKKE, når kapitaliseringen netop er påkrævet efter toårsreglen – så ville
  * brugeren både få et krav om at udfylde feltet og en advarsel om, at det er udelukket. Ukendt
  * skadedato giver ingen advarsel, fordi det så ikke kan afgøres, om kapitaliseringen er påkrævet.
  */
@@ -220,7 +218,7 @@ export const resolveKapitaliseringUnder15Warning = (
 /**
  * Feltbeskeden når ASL-årslønnen står på skadesårets maksimum.
  *
- * Teksten ejes af det DELTE årslønsfelt, ikke af denne flade (BB-124): Forsørgertab havde sin egen,
+ * Teksten ejes af det DELTE årslønsfelt, ikke af denne flade: Forsørgertab havde sin egen,
  * handlingsanvisende formulering for præcis samme situation, og de to nåede hver sin halvdel af brugerne.
  * Skriv ikke en flade-lokal variant igen – ret den fælles konstant.
  */
@@ -250,12 +248,12 @@ export const hasEetAslAarsloenMaxWarning = (
 /**
  * Feltbeskeden når EAL-årslønnen SELV står på skadesårets ASL-maksimum.
  *
- * Den er den anden halvdel af samme regel som `hasEetAslAarsloenMaxWarning` (BB-183): dér er
+ * Den er den anden halvdel af samme regel som `hasEetAslAarsloenMaxWarning`: dér er
  * EAL-feltet tomt, og ASL-årslønnen står på maksimum, så advarslen opfordrer til at udfylde
  * EAL-feltet med den fulde årsløn. Her HAR brugeren udfyldt det – men med netop maks. årslønnen
  * efter ASL, altså det tal, advarslen bad ham om ikke at bruge. De to tilstande er lige forkerte og
- * skal derfor se lige ens ud på feltet; før BB-183 fik kun den første en gul ring, mens den anden
- * kun stod som en linje i «Fejl og advarsler» på to resultatfaner, brugeren ikke behøver åbne.
+ * skal derfor se lige ens ud på feltet – begge med gul ring, ikke kun som en linje i «Fejl og
+ * advarsler» på to resultatfaner, brugeren ikke behøver åbne.
  *
  * Teksten er beregningens egen (`warn-eal-aarsloen-is-max`), ikke ASL-halvdelens: den navngiver det
  * felt, ringen sidder på, og siger hvad der skal stå i det.

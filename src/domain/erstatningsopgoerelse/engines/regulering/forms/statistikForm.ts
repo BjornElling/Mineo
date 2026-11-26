@@ -34,7 +34,7 @@ const resolveStatistikModelIdFromLabel = (label: string): StatistiskLoenudviklin
 // Kalenderårs-opdeling delegeres til den kanoniske periodiserings-helper, så ASL-sporet
 // ikke vedligeholder en parallel dag-/års-løkke (jf. periodisering-contract §7 og
 // offentligeYdelserUdviklingBeregning.ts, der splitter med samme helper). Helperen er
-// fail-closed på omvendt interval/ugyldigt år frem for den tidligere stille break-sti.
+// fail-closed på omvendt interval/ugyldigt år frem for en stille break-sti.
 const buildAslReguleringsSegments = (ranges: readonly IsoRange[]): ReadonlyArray<IsoRange & { year: number }> =>
   ranges.flatMap((range) => [...splitIsoRangeByCalendarYearsInclusive(range.fra, range.til)]);
 
@@ -94,8 +94,7 @@ const byggResultat = (
     // fulde `aarsloenAslMax`-tabel (default) frem for et injiceret to-års-map. Motoren
     // tjekker hvert år i basisår→segmentår for dækning (ensartet med den akkumulerede motor,
     // jf. `opregulerMedAslAarsloensmaksimum`); tal-neutralt via interiort-hul-load-guarden.
-    // Det tidligere per-segment-opslag + to-års-injektion var netop den endepunkts-kun-gren,
-    // foreningen fjernede – genindfør den ikke.
+    // Et per-segment-opslag med to-års-injektion ville kun tjekke endepunkterne – genindfør det ikke.
     const aslSegments = buildAslReguleringsSegments(segmentRanges)
       .map<LoenreguleringsSegment>((segment) => {
         const rawDeltaPct = aslIndeksTilRaaSegmentDelta(baseYear, segment.year);
@@ -118,7 +117,7 @@ const byggResultat = (
     throw new Error('Loenudvikling kan ikke beregnes: ukendt statistikmodel');
   }
 
-  // R2 – samme delte kvartals-indeksserie som formen emitterer som forløb og præsentationen
+  // Samme delte kvartals-indeksserie som formen emitterer som forløb og præsentationen
   // læser (buildStatistikIndexEntries): bygges ÉN gang her og bæres både som segment-basis og
   // som autoritativt forløb, så vist indeksværdi = den motoren afleder deltaPct fra.
   // Segment-byggeriet bruger kun startIso + indeksvaerdi (kvartal ignoreres her).

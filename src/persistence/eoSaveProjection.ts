@@ -19,7 +19,7 @@ export type EoSaveProjection =
 /**
  * Blokerende adresser i deterministisk rækkefølge med de SYNLIGE (relevante) først.
  *
- * Et `ubestemt` felt (BB-433) bærer afvist råtekst, men er skjult, fordi dets relevans byggede på afvist input i
+ * Et `ubestemt` felt bærer afvist råtekst, men er skjult, fordi dets relevans byggede på afvist input i
  * et andet felt. Gem fokuserer den første adresse; sorteredes alene på adressen, kunne den ramme det skjulte felt,
  * sende brugeren til en anden fane og ikke fokusere noget. Årsagen er selv afvist og synlig, så der findes altid
  * en relevant adresse at sende brugeren til. Rækkefølgen sættes her, så alle forbrugere af projektionen får den.

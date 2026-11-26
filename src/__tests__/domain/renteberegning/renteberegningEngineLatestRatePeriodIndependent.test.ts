@@ -12,7 +12,7 @@ const surchargeRates: ReadonlyArray<RateEntry> = [
   { effectiveDate: iso('2010-01-01'), ratePct: 8 },
 ];
 
-describe('CALC-003 – uafhængigt enginefacit for juli-december-dækning', () => {
+describe('uafhængigt enginefacit for juli-december-dækning', () => {
   it('giver 31. december som seneste referencesatsperiodes slutdato', () => {
     const result = computeRentekravRow(
       {

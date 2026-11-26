@@ -80,7 +80,7 @@ const ACTIVE_TAB_SUFFIX_PREFIX = 'ui_activeTab_';
  *
  * `caseScoped`: sagsnær tilstand – brugerindtastede hjælpeværdier og filnavns-/filhåndtags-metadata, der hører
  * til PRÆCIS den sag, der slettes. Overlever den ikke en bekræftet hel-sags-clear, kan den hydrere ind i den
- * næste, tomme sag og påvirke den (fundets konkrete symptom).
+ * næste, tomme sag og påvirke den.
  *
  * `deviceScoped`: uafhængig UI-præference eller devtools-tilstand, som ikke beskriver sagen. Ryddes bevidst
  * IKKE – kontraktens §3.7 holder den uden for inputenvelopen, og en bruger, der sletter sin sag, har ikke
@@ -95,7 +95,7 @@ const SESSION_RESET_POLICY = {
   eoOffentligeYdelserHelpers: 'caseScoped',
   devtoolsLastSeenIssueId: 'deviceScoped',
   sideMenuExpanded: 'deviceScoped',
-  // Markøren for «arbejdet er endnu ikke gemt/hentet» beskriver netop den aktuelle sag (BB-394/395).
+  // Markøren for «arbejdet er endnu ikke gemt/hentet» beskriver netop den aktuelle sag.
   unsavedWork: 'caseScoped',
 } as const satisfies { readonly [K in keyof typeof UI_STORAGE_KEY_SUFFIXES]: 'caseScoped' | 'deviceScoped' };
 

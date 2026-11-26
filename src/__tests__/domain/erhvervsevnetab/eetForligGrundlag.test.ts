@@ -2,7 +2,7 @@
  * Forligsgradens GRUNDLAG på de to EET-faner, der reducerer med den.
  *
  * Dette er filen, `eetCalculationGraph.ts` og `eetEalForligSchema` henviser til. Reglen er
- * ufravigelig og er udviklerens (2026-09-09):
+ * ufravigelig (bevidst valg):
  *
  *   EET efter EAL:  forlig x (EAL-krav)
  *   Differencekrav: forlig x (EAL-krav − løbende ydelser − kapitalbeløb − rest-EET − mer-erstatning)
@@ -131,7 +131,7 @@ describe('forligsgradens grundlag på de to EET-faner', () => {
     const difference = snapshot.differencekrav.computation;
     if (!eal || !difference) throw new Error('Forventede begge beregninger');
 
-    // Et forlig på 100 % reducerer intet, og begge faner udelader derfor forligsomtalen (BB-197).
+    // Et forlig på 100 % reducerer intet, og begge faner udelader derfor forligsomtalen.
     expect(eal.forlig).toBeNull();
     expect(difference.forligFactor).toBeNull();
     expect(difference.forligLabel).toBeNull();

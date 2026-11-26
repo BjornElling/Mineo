@@ -11,9 +11,8 @@ import { deleteFileHandleFromIndexedDB } from '../utils/fileHandleStorage';
 // (§1.12) – porten er derfor også recovery-vejen ud af en blokeret session.
 //
 // Porten ejer HELE reset-transaktionen: det autoritative input, den sagsnære UI-sessionstate og
-// filhåndtaget. Tidligere lå de to sidste som løse kald i shell-use-casen, hvis boolean-resultater ingen læste,
-// så en fejlet oprydning blev rapporteret som "Alle indtastninger slettet". Rester rapporteres nu i resultatet, så
-// kalderen ikke KAN love fuld succes uden at have set dem.
+// filhåndtaget. Rester rapporteres i resultatet, så kalderen ikke KAN love fuld succes ("Alle indtastninger
+// slettet") uden at have set dem; løse kald med ulæste boolean-resultater ville skjule en fejlet oprydning.
 
 /** En rest efter reset: en oprydning, der ikke kunne verificeres. Bæres i resultatet, aldrig kastet. */
 export type ResetResidue = Readonly<{

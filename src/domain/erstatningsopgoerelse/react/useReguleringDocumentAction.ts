@@ -10,9 +10,8 @@
  * én gang fra samme friske kilde. React har derfor ingen selvstændig preflight og kan ikke komme til
  * at afvikle et andet output end den reactive gate beskriver.
  *
- * **Den fælles gate-regel.** De to callsites havde hver sin `canDownload`-IIFE med ikke-identiske
- * formler. Nu kommer knaptilstanden fra den valgte definitions egen `project` – samme funktion, som
- * click-preflighten kalder – og de to steder kan ikke længere drifte.
+ * **Den fælles gate-regel.** Knaptilstanden kommer fra den valgte definitions egen `project` – samme
+ * funktion, som click-preflighten kalder – så de to callsites ikke har hver sin formel og ikke kan drifte.
  */
 import type { DocumentOutcome } from '../../../document/definition/documentOutcome';
 import { resolveDocumentGateTooltip } from '../../../document/layout/documentGateTypes';
@@ -31,9 +30,9 @@ export type ReguleringDocumentAction = Readonly<{
   canDownload: boolean;
   disabledReason: string | undefined;
   /**
-   * Den brugerrettede besked for det seneste udfald. Begge callsites RENDERER den nu
-   * gennem `DocumentOutcomeMessage`; tidligere blev den udledt her og ignoreret af dem begge, så et
-   * stale-afbrud eller en død DEV-server var lydløs på både Lønindkomst-kortet og Oplysninger-fanen.
+   * Den brugerrettede besked for det seneste udfald. Begge callsites RENDERER den
+   * gennem `DocumentOutcomeMessage`; ellers ville et stale-afbrud eller en død DEV-server være
+   * lydløs på både Lønindkomst-kortet og Oplysninger-fanen.
    *
    * Beskeden er `output.errorMessage` råt – hook'en har allerede filtreret gate-blokeringer væk, fordi
    * en deaktiveret knap ikke svarer med tekst. Det er derfor netop stale-afbruddet og DEV-serveren,

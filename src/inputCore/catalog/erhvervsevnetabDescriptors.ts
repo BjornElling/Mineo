@@ -353,8 +353,8 @@ const aslDateBoundsValidator = (role: AslDateRole): FieldValidator<ISODateString
         maxDate,
         special,
         // ALLE fire roller udleder min af Skadedato, og de to kapitaliseringsroller desuden af rækkens
-        // Afgørelsesdato. Tidligere var årsagen kun sat for de to sidste – de øvrige gav derfor "ingen dato
-        // er gyldig" uden at nævne, at det var Skadedato, brugeren skulle rette.
+        // Afgørelsesdato. Årsagen sættes for alle fire; mangler den, giver rollen "ingen dato er gyldig"
+        // uden at nævne, at det er Skadedato, brugeren skal rette.
         bounds: derivedDateBounds(
           role === 'kapDato' || role === 'tidlKapDato'
             ? `Afgørelsesdato og ${resolveStamdataDatoReferenceFromView(view).label}`

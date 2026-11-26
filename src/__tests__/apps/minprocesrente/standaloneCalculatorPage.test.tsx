@@ -16,8 +16,8 @@ vi.mock('../../../hooks/usePersistedActiveTab', () => ({
   usePersistedActiveTab: () => ({ activeTab: 'calculation', setActiveTab: vi.fn() }),
 }));
 
-// Standalone MinProcesrentes egne brugerfund. Fanen `RenteberegningTab` er DELT med Mineo, så hvert
-// fund måles fra begge sider, hvor de to flader bevidst skal svare forskelligt.
+// Standalone MinProcesrentes egen adfærd. Fanen `RenteberegningTab` er DELT med Mineo, så hver
+// regel måles fra begge sider, hvor de to flader bevidst skal svare forskelligt.
 
 const renderStandalone = () => {
   const { binding } = bootstrapProductionInputRuntime();
@@ -36,7 +36,7 @@ const renderMineo = () => render(
   </MemoryRouter>
 );
 
-describe('MinProcesrente – «Slet alle indtastninger»-bekræftelsen (BB-044)', () => {
+describe('MinProcesrente – «Slet alle indtastninger»-bekræftelsen', () => {
   beforeEach(() => {
     sessionStorage.clear();
   });
@@ -80,12 +80,10 @@ describe('MinProcesrente – «Slet alle indtastninger»-bekræftelsen (BB-044)'
   });
 });
 
-// BB-045/BB-046: opstillingen skiftede på VINDUETS bredde, mens den bredde-rettelse, der hører til
-// telefonopstillingen, kun gjaldt berøringsenheder. En zoomende bruger på en almindelig computer fik
-// derfor telefonens tre kolonner med desktopbredden – og mistede samtidig tillægstid, enhed og den
-// afledte rentedato, mens renten fortsat blev regnet med tillægstiden.
-//
-// Udviklerbeslutning 2026-08-19: visningen låses til enhedstypen og skifter aldrig med vinduet.
+// Opstillingen låses til enhedstypen og skifter aldrig med vinduet (bevidst valg). Den bredde-rettelse, der
+// hører til telefonopstillingen, gælder kun berøringsenheder; fulgte opstillingen vinduets bredde, fik en
+// zoomende bruger på en almindelig computer telefonens tre kolonner med desktopbredden – og mistede
+// tillægstid, enhed og den afledte rentedato, mens renten fortsat blev regnet med tillægstiden.
 
 const createMediaQueryList = (matches: boolean, media: string): MediaQueryList => ({
   matches,
@@ -119,7 +117,7 @@ const configureDevice = (options: Readonly<{
 const hasDesktopColumns = (): boolean =>
   screen.queryAllByText('Evt. tillægstid').length > 0 && screen.queryAllByText('Rentedato').length > 0;
 
-describe('MinProcesrente – opstillingen følger enheden, ikke vinduet (BB-045/BB-046)', () => {
+describe('MinProcesrente – opstillingen følger enheden, ikke vinduet', () => {
   const originalMatchMedia = window.matchMedia;
 
   beforeEach(() => {
@@ -131,7 +129,7 @@ describe('MinProcesrente – opstillingen følger enheden, ikke vinduet (BB-045/
   });
 
   it('giver desktopopstilling i et SMALT musevindue – vinduets bredde afgør ikke', () => {
-    // Præcis fundet: 599 px bredt vindue, ingen berøring. Før faldt fladen i telefonopstillingen.
+    // 599 px bredt vindue, ingen berøring: må ikke give telefonopstillingen.
     configureDevice({ touch: false, screenWidth: 1366, screenHeight: 768, viewportWidth: 599 });
     renderStandalone();
 
@@ -139,7 +137,7 @@ describe('MinProcesrente – opstillingen følger enheden, ikke vinduet (BB-045/
   });
 
   it('giver desktopopstilling på en berøringsfølsom bærbar med stor skærm', () => {
-    // Udviklerens valg: skærmens fysiske størrelse afgør. En touch-laptop er en desktop.
+    // Bevidst valg: skærmens fysiske størrelse afgør. En touch-laptop er en desktop.
     configureDevice({ touch: true, screenWidth: 1920, screenHeight: 1080, viewportWidth: 1920 });
     renderStandalone();
 
@@ -155,7 +153,7 @@ describe('MinProcesrente – opstillingen følger enheden, ikke vinduet (BB-045/
   });
 });
 
-describe('«Slet alle indtastninger» i tastaturrækkefølgen (BB-047)', () => {
+describe('«Slet alle indtastninger» i tastaturrækkefølgen', () => {
   beforeEach(() => {
     sessionStorage.clear();
   });

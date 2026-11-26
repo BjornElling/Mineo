@@ -56,7 +56,7 @@ export type VirtualizedDisplayTableProps = Readonly<{
   stickyHeaderTop?: number;
   /**
    * Antal førende kolonner, der bliver stående i venstre side, når tabellen ruller vandret – så en række stadig kan
-   * knyttes til sin dato, mens brugeren ser beløbene længst til højre (BB-467). Kun i `scrollMode="ancestor"`, hvor
+   * knyttes til sin dato, mens brugeren ser beløbene længst til højre. Kun i `scrollMode="ancestor"`, hvor
    * scroll-containeren også ruller vandret.
    */
   stickyLeadingColumns?: number;

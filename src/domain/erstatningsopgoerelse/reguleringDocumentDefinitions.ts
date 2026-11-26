@@ -102,10 +102,9 @@ const readOptional = <T>(reader: InputReader, ref: ReturnType<FieldDescriptor<T>
 /**
  * Sagsniveauets overenskomst-etiket.
  *
- * Viste tidligere KUN `meta.navn`, mens ansættelsesforholdet viste `navn (lønmodtager / arbejdsgiver)`.
- * Forskellen var eksisterende dokumentindhold og afventede derfor en udviklerbeslutning (§5.4's hårde stop).
- * Beslutningen faldt 2026-07-31: navn OG parter, alle steder. De to etiketter er nu samme funktion –
- * kun fallback-teksten for et manglende ID skiller dem.
+ * Bevidst regel: overenskomsten vises med navn OG parter, alle steder – som ansættelsesforholdets
+ * `navn (lønmodtager / arbejdsgiver)`. De to etiketter er samme funktion; kun fallback-teksten for et
+ * manglende ID skiller dem.
  */
 const resolveCaseOverenskomstLabel = (overenskomstId: string | undefined): string =>
   resolveOverenskomstDisplay(overenskomstId);
@@ -220,8 +219,8 @@ const resolveReguleringsDatoInterval = (
  * Alt de tre outputs deler: kilde, stamdata og de fælles gate-trin.
  *
  * `stamdata` er en obligatorisk dokumentdependency for alle tre (brevhovedet bygges af den), præcis
- * som for de øvrige 15 outputs. Tidligere blev den sendt uvalideret ind i servicelaget som
- * `unknown` og re-parset dér; den sti findes ikke længere.
+ * som for de øvrige 15 outputs. Den må ikke sendes uvalideret ind i servicelaget som `unknown` og
+ * re-parses dér.
  */
 type SharedReguleringSource = Readonly<{
   reader: InputReader;
@@ -282,10 +281,9 @@ type ReguleringCommonInput = Readonly<{
  * Den fælles gate for alle tre outputs, i den rækkefølge kontrakten kræver: dependencies først
  * (stamdata), så entitetens eksistens, så grundlagsvalget, så dækningsintervallet.
  *
- * Bemærk `resolveReguleringInterval`'s tidligere adfærd: den KASTEDE ved et interval, hvis datoer
- * ikke kunne omsættes til dansk format (`documentService.ts`). En exception midt i afviklingen ville
- * i den nye struktur blive rapporteret som en uventet systemfejl. Det er en normal, forventelig
- * tilstand og er derfor nu en `blocked`-årsag fra gaten.
+ * Et interval, hvis datoer ikke kan omsættes til dansk format, er en normal, forventelig tilstand og
+ * derfor en `blocked`-årsag fra gaten – en exception midt i afviklingen ville blive rapporteret som en
+ * uventet systemfejl.
  */
 const projectReguleringCommon = <TInput>(
   context: DocumentSourceContext<MineoDocumentGateSettings>,
@@ -438,7 +436,7 @@ export const reguleringDocumentDefinition: MineoDocumentDefinition<ReguleringDoc
  */
 export type ReguleringSatstabelDocumentInput = ReguleringCommonInput;
 
-/** KRL-dokumentet fremhæver den satstabel, sagen anvender (BB-317). */
+/** KRL-dokumentet fremhæver den satstabel, sagen anvender. */
 export type KrlDocumentInput = ReguleringCommonInput & Readonly<{ anvendtSatstabel: KRLSatstabelId }>;
 
 export const krlDocumentDefinition: MineoDocumentDefinition<KrlDocumentInput, ReguleringDocumentRequest> =
@@ -503,7 +501,7 @@ export const klLoenaftalerDocumentDefinition: MineoDocumentDefinition<Regulering
  * Bruges BÅDE af den reaktive knap-gate (mod render-tidens kontekst) og af click-preflighten (mod
  * det friske snapshot efter settle). Fordi den er en ren funktion af kilden, kan de to ikke drifte –
  * og fordi preflighten kalder den EFTER barrieren, kan et settle, der ændrer
- * `loenudviklingBeregningsgrundlag`, ikke længere levere det forrige grundlags dokument.
+ * `loenudviklingBeregningsgrundlag`, ikke levere det forrige grundlags dokument.
  */
 export type ReguleringDocumentOutputId = 'regulering' | 'krl' | 'kl-loenaftaler';
 

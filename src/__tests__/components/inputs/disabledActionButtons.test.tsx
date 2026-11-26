@@ -8,7 +8,7 @@ import FloatingActionButton from '../../../components/ui/FloatingActionButton';
 import { resolveActionGate } from '../../../components/inputs/actionGate';
 
 // Den universelle regel for GRÅ KNAPPER (`page-component-contract.md` §11.1, generaliseret fra de
-// deaktiverede downloadknapper ved udviklerbeslutning 2026-08-15):
+// deaktiverede downloadknapper):
 //
 //   1. knappen bliver stående som nedtonet og inaktiv – den forsvinder ikke,
 //   2. årsagen har ÉN visningskanal: tooltippet, og kun ved hover,
@@ -136,9 +136,8 @@ describe('FloatingActionButton: deaktiveret ved en maksimumgrænse', () => {
   });
 
   it('har et STABILT navn, der ikke skifter med blokeringstilstanden', () => {
-    // De fire runde knapper hentede tidligere deres navn udelukkende fra tooltippen, og tooltippen
-    // skiftede tekst ved blokering – så knappens identitet skiftede med den. Navnet følger nu
-    // handlingen; kun tooltippen bærer årsagen.
+    // Tooltippen skifter tekst ved blokering; hentede de fire runde knapper deres navn fra den, ville
+    // knappens identitet skifte med. Navnet følger handlingen; kun tooltippen bærer årsagen.
     const { rerender } = render(
       <FloatingActionButton
         icon={<AddIcon />}

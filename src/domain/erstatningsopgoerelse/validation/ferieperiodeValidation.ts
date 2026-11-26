@@ -10,10 +10,10 @@ import { assessPeriodeDatoMangler, buildPeriodeRaekkeNavn, FERIE_OVERLAP_LINJE, 
  * Ren (React-/kontrol-frit) blokerings-afgørelse for TAF-ferieperiode-rækker (`taf.ferie.*`) – linjen i
  * «Fejl og advarsler».
  *
- * Rækkens datoregler ligger IKKE her længere. Feriens vindue (skadedato, dags dato, afskæringerne) og
+ * Rækkens datoregler ligger IKKE her. Feriens vindue (skadedato, dags dato, afskæringerne) og
  * overlappet projekteres til cellerne i `tafRowCellIssues.ts`, hvor de farver cellen og blokerer TAF-grenen
- * som enhver rød feltfejl (BB-248, BB-251); dato-orden og systemrammen bærer descriptoren selv. Her samles
- * rækkens røde celler og dens manglende datoer til ÉN linje med rækkens navn (BB-253) – så cellen og linjen
+ * som enhver rød feltfejl; dato-orden og systemrammen bærer descriptoren selv. Her samles
+ * rækkens røde celler og dens manglende datoer til ÉN linje med rækkens navn – så cellen og linjen
  * aldrig siger to forskellige ting om samme dato.
  */
 
@@ -75,8 +75,8 @@ const evaluateOne = (
 };
 
 /**
- * Gælder begge ferietabeller: TAF-afsnittets og beregningsperiodens (BB-264). `overlapLinje` navngiver
- * tabellen, så to tabellers overlap ikke foldes sammen til én linje i «Fejl og advarsler» (BB-251).
+ * Gælder begge ferietabeller: TAF-afsnittets og beregningsperiodens. `overlapLinje` navngiver
+ * tabellen, så to tabellers overlap ikke foldes sammen til én linje i «Fejl og advarsler».
  */
 export const evaluateFerieperioder = (
   ferieperioder: ReadonlyArray<FerieperiodeRowInput>,
@@ -94,7 +94,7 @@ export const evaluateFerieperioder = (
 /**
  * En påbegyndt ferierækkes manglende dato, når der ingen TAF-række er. Ferien indgår da ikke i opgørelsen, og
  * manglen blokerer derfor ikke – men den må heller ikke forsvinde tavst: brugeren kunne ellers afslutte
- * opgørelsen med en halvt indtastet ferie uden at opdage den (BB-429). Samme ordlyd som den blokerende linje,
+ * opgørelsen med en halvt indtastet ferie uden at opdage den. Samme ordlyd som den blokerende linje,
  * der gælder, når der er en TAF-række. `undefined` for en helt tom række og for en række med begge datoer.
  */
 export const resolveFerieperiodeDatoMangel = (

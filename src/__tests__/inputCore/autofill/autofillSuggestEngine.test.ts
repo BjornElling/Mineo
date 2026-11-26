@@ -205,7 +205,7 @@ describe('resolveAutofillSuggestion', () => {
     });
 
     it('måler hele kalendermåneder i måneder, så april ikke er «længere» end januar og februar', () => {
-      // Udviklerens skærmbillede 2026-10-29: 30 dage i april er flere end februars 28, men begge er én måned.
+      // 30 dage i april er flere end februars 28, men begge er én måned.
       const model = ydelserModel([
         ydelseRow('r1', { fraDato: iso('2026-01-01'), tilDato: iso('2026-01-31'), ydelse: amount(12345) }),
         ydelseRow('r2', { fraDato: iso('2026-02-01'), tilDato: iso('2026-02-28'), ydelse: amount(12345) }),
@@ -392,8 +392,8 @@ describe('resolveAutofillSuggestion', () => {
     });
 
     it('foreslår måned, år OG lønbeløb hen over årsskiftet', () => {
-      // Alle tre kolonner har en udfyldt celle ovenover, så alle tre har en ghost. Beløbet standsede
-      // tidligere ved årsskiftet; reglen er væk, fordi den gjorde ghostens tilstedeværelse uforudsigelig.
+      // Alle tre kolonner har en udfyldt celle ovenover, så alle tre har en ghost. Beløbet standser ikke
+      // ved årsskiftet: en sådan regel gør ghostens tilstedeværelse uforudsigelig.
       const model = loenModel([
         loenRow('r1', { col0_maaned: '11', col1_maaned: '2025', col2: amount(30000) }),
         loenRow('r2', { col0_maaned: '12', col1_maaned: '2025', col2: amount(30000) }),
@@ -432,11 +432,11 @@ describe('resolveAutofillSuggestion', () => {
     });
   });
 
-  describe('kun den FØRSTE tomme række under serien (review 2026-09-07)', () => {
+  describe('kun den FØRSTE tomme række under serien', () => {
     it('viser forslaget i rækken lige under serien, men ikke i rækkerne længere nede', () => {
-      // Udvikleren observerede en ghost «to linjer under den seneste udfyldte celle». Årsagen var, at
-      // `collectAbove` springer tomme rækker over – rigtigt for et hul MIDT i serien, forkert for
-      // afstanden ned til dens ende, hvor der ikke længere er en serie at fortsætte.
+      // Ingen ghost «to linjer under den seneste udfyldte celle». `collectAbove` springer tomme rækker
+      // over – rigtigt for et hul MIDT i serien, forkert for afstanden ned til dens ende, hvor der ikke
+      // længere er en serie at fortsætte.
       const model = loenModel([
         loenRow('r1', { col0_maaned: '1', col1_maaned: '2026' }),
         loenRow('r2', { col0_maaned: '2', col1_maaned: '2026' }),
@@ -588,11 +588,11 @@ describe('resolveAutofillSuggestion', () => {
       expect(resolveAutofillSuggestion(monthly, 'ny', LOEN_COL.period1)?.displayText).toBe('31-03-2026');
     });
   });
-  describe('regressioner fra reviewet', () => {
+  describe('regressioner', () => {
     it('gentager beløbet uafhængigt af, hvad periodekolonnen gør i rækken', () => {
       // En delvist udfyldt række (beløb, men ingen periodestart) forstyrrer intet: beløbskolonnen ser kun
-      // sin egen celle ovenover. Det var netop denne rækkeform, den tidligere årsskifte-gate læste
-      // forkert – den gjorde referenceåret ukendt og åbnede gaten, mens en anden rækkeform lukkede den.
+      // sin egen celle ovenover. En årsskifte-gate ville læse netop denne rækkeform forkert – den gør
+      // referenceåret ukendt og åbner gaten, mens en anden rækkeform lukker den.
       const model = ydelserModel([
         ydelseRow('r1', { fraDato: iso('2025-11-01'), ydelse: amount(3100) }),
         ydelseRow('r2', { ydelse: amount(3100) }),

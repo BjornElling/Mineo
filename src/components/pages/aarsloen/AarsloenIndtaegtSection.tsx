@@ -24,7 +24,7 @@ const AarsloenIndtaegtSection = React.memo(() => {
     <ContentBox className="content-box">
       <Typography className="section-header">Indtægtsoplysninger</Typography>
 
-      {/* Lønperioden styrer kun tabellens kolonner og står derfor lige over tabellen (BB-348). */}
+      {/* Lønperioden styrer kun tabellens kolonner og står derfor lige over tabellen. */}
       <Box className="row--label-right-hover">
         <Typography className="row--text">Løn indtastes som:</Typography>
         <Box className="row--label-right-hover__content">

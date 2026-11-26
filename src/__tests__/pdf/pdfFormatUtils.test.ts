@@ -56,8 +56,7 @@ describe('pdfFormatUtils', () => {
     });
 
     it('viser ikke negativt fortegn på en lille negativ værdi der afrundes til nul', () => {
-      // Regression: tidligere blev fortegnet taget fra den rå værdi, så -0,00001
-      // gav det misvisende "- 0 %". Fortegnet skal nu følge den afrundede størrelse.
+      // Fortegnet følger den afrundede størrelse; ellers giver -0,00001 det misvisende "- 0 %".
       expect(formatReguleringPct(-0.00001)).toBe('+ 0 %');
     });
 

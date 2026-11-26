@@ -21,8 +21,8 @@ describe('satser → Word-indhold', () => {
     expect(text).toMatch(/Arbejdsskadesikringsloven/i);
   });
 
-  // BB-030: dokumentet udelod en sats på 0 %, som skærmen viste. Prøven var `> 0` i dokumentet og
-  // «findes værdien» på siden, og de to var kun enige, så længe ingen sats var nul.
+  // En sats på 0 % skal med i dokumentet, som på skærmen. En prøve på `> 0` i dokumentet og «findes
+  // værdien» på siden er kun enige, så længe ingen sats er nul.
   // `reguleringsprocentErhvervsevnetabFra2024` er 0,0 i 2024 – det ene nul i hele satsdatasættet.
   it('skriver en sats på 0 % – et nul er en oplysning, ikke et fravær', async () => {
     const year = 2024;

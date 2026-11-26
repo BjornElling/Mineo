@@ -43,14 +43,13 @@ const validRange = (entry: PeriodOverlapEntry): ClosedDateRange | undefined => {
 /**
  * Programmets ENE overlaps-regel for fra/til-perioder, projekteret til de konkrete datoceller.
  *
- * Overlap spærrede opgørelsen gennem rækkeevalueringen, men uden en feltadresse og dermed uden rød celle –
- * mens datoorden, afskæringer og feltets egne grænser på de samme celler farvede dem. Fraværet af rød kant
- * læses som «denne celle er kontrolleret og i orden» (BB-218 for svie/smerte, BB-251 for TAF- og
- * ferieperioderne, BB-262 for beregningsperioden mod TAF-perioderne). BEGGE celler i BEGGE perioder markeres:
+ * Overlap skal have en feltadresse og dermed en rød celle – som datoorden, afskæringer og feltets egne grænser
+ * på de samme celler. Fraværet af rød kant læses som «denne celle er kontrolleret og i orden» (gælder
+ * svie/smerte, TAF- og ferieperioderne og beregningsperioden mod TAF-perioderne). BEGGE celler i BEGGE perioder markeres:
  * perioden er ét hele, og brugeren kan rette overlappet fra hvilken som helst af de to ender.
  *
  * Reglen tager vilkårligt mange kilder, så overlap INDEN FOR en tabel og MELLEM to kilder (et skalart datopar
- * mod en tabel) går samme vej og giver samme form (udviklerønske 2026-10-02: én samlet, gennemtænkt løsning).
+ * mod en tabel) går samme vej og giver samme form.
  * Overlapper en celle flere modparter – fx en anden TAF-periode OG beregningsperioden – samles de i ÉN besked,
  * fordi issue-snapshottet kun bærer ét aktivt issue pr. felt (§1.8).
  *
@@ -58,7 +57,7 @@ const validRange = (entry: PeriodOverlapEntry): ClosedDateRange | undefined => {
  * siger ikke, hvilke rækker der er tale om; det gør den røde celles tooltip.
  *
  * En ufuldstændig eller omvendt periode overlapper bevidst intet – dens mangel er brugerens fejl et andet sted –
- * og to perioder, der blot deler en endedato, overlapper (udviklerbeslutning 2026-09-17). Prædikatet er
+ * og to perioder, der blot deler en endedato, overlapper (bevidst valg). Prædikatet er
  * `rangesOverlap`, det samme som `periodOverlapDetection.ts` bruger.
  */
 export const collectSourcesOverlapIssues = (

@@ -19,7 +19,7 @@ describe('krl → Word-indhold', () => {
     expect(text).toMatch(/krl\.dk/i);
   });
 
-  it('fremhæver den anvendte satstabel og skriver datoerne ældste først (BB-317)', async () => {
+  it('fremhæver den anvendte satstabel og skriver datoerne ældste først', async () => {
     const { documentXml } = await renderWordDocument((session) =>
       generateKRLDocument(session, { visBrevhoved: false, anvendtSatstabel: 'SHK (regioner)' }));
 

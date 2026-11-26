@@ -35,7 +35,7 @@ const addresses = (cells: readonly Readonly<{ address: Parameters<typeof seriali
   cells.map((cell) => serializeFieldAddress(cell.address));
 
 describe('resolveOffentligeYdelserRowWarnings', () => {
-  it('ser en ydelsestype gemt med sin label som samme type ved dubletkontrollen (BB-364)', () => {
+  it('ser en ydelsestype gemt med sin label som samme type ved dubletkontrollen', () => {
     const warnings = resolveOffentligeYdelserRowWarnings([
       ydelse('a', { ydelsestype: 'Kontanthjælp' }),
       ydelse('b', { ydelsestype: 'kontanthjaelp' }),
@@ -44,7 +44,7 @@ describe('resolveOffentligeYdelserRowWarnings', () => {
     expect(warnings.map((warning) => [warning.rowId, warning.kind])).toEqual([['b', 'duplicateRow']]);
   });
 
-  it('advarer, når perioden af en arbejdsdagsydelse ingen arbejdsdage har – ring på datoerne (BB-365)', () => {
+  it('advarer, når perioden af en arbejdsdagsydelse ingen arbejdsdage har – ring på datoerne', () => {
     const warnings = resolveOffentligeYdelserRowWarnings([
       ydelse('w', { fraDato: iso('2026-06-06'), tilDato: iso('2026-06-07'), ydelse: amount(3000), ydelsestype: 'feriepenge' }),
     ]);
@@ -71,7 +71,7 @@ describe('resolveOffentligeYdelserRowWarnings', () => {
   });
 
   // En indlæst fil kan have manuelle midlertidigt EET-rækker, mens hentningen fra Erhvervsevnetab-siden er slået
-  // til. Beregningen springer dem over; før stod de i tabellen uden et ord om det (udviklerafgørelse 2026-11-04).
+  // til. Beregningen springer dem over, og tabellen skal sige det.
   it('advarer om manuelle midlertidigt EET-rækker, der ikke medregnes, mens EET hentes fra Erhvervsevnetab-siden', () => {
     const rows = [
       ydelse('eet', { ydelsestype: 'midlertidigt_eet' }),
@@ -103,7 +103,7 @@ describe('resolveOffentligeYdelserRowWarnings', () => {
 });
 
 describe('resolveLoenindkomstRowWarnings', () => {
-  it('giver løn i en periode uden arbejdsdage gul ring på periodecellerne og samme linje som før (BB-365)', () => {
+  it('giver løn i en periode uden arbejdsdage gul ring på periodecellerne og samme linje som før', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.beregnesUdFra = 'Angivet dagsløn';
     const employment = { ...createDefaultLoenindkomstAnsaettelsesforhold(), fuldLoenUnderFerie: 'Nej' as const };

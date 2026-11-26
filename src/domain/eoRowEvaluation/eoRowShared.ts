@@ -53,8 +53,8 @@ export const focusOnSenesteTil = (
  * for «Ikke rejst svie/smerte-krav for hele perioden» og «Der er ikke rejst TAF-krav for hele EO-perioden».
  *
  * En afvist dato læses som tom: en tastefejl i en periodes dato eller i en afskæringsdato (ménafgørelse,
- * EET-afgørelse, differencekrav) fik derfor programmet til at bede om at forlænge kravet – en forlængelse, der
- * efter rettelsen kunne ramme afskæringen (NY-12b-4, BB-426). Kalenderfejlen står allerede med link til feltet;
+ * EET-afgørelse, differencekrav) ville derfor få programmet til at bede om at forlænge kravet – en forlængelse,
+ * der efter rettelsen af datoen kunne ramme afskæringen. Kalenderfejlen står allerede med link til feltet;
  * dækningen vurderes først, når den er rettet. Kalderen sender kun de felter, der faktisk kan flytte kravets
  * slutning: forklares ophøret af en gyldig, uafhængig afskæring, nås advarslen slet ikke.
  */
@@ -65,7 +65,7 @@ export const kanDaekningIkkeVurderesPgaAfvistInput = (
   felter.some((felt) => activeFieldIssue(issues, serializeFieldAddress(felt.address))?.reason === 'format');
 
 export const formatRowCount = (value: number): string => formatAsAmountTrimmed(value, 0);
-// Programmets ene månedsformat: fem decimaler, efterstillede nuller trimmet (udviklerens afgørelse 2026-11-19).
+// Programmets ene månedsformat: fem decimaler, efterstillede nuller trimmet.
 export const formatRowMonths = (value: number): string => formatDocumentMaanederTrimmed(value);
 
 export const formatStatusMessage = (status: EoRowStatus, message: string): string => {

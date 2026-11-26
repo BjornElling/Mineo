@@ -259,8 +259,8 @@ const rowTemplate = (field: string): FieldAddressTemplate => ({
 /**
  * Årslønstabellens datokolonner – samme form som EO-tvillingen (`erstatningsopgoerelseLoenDescriptors.ts`):
  * konfigurationens ydre grænser som bounds og kronologien som den fælles `dateOrderValidator`, der markerer
- * begge celler med modpartens dato (BB-107). Tidligere clampede rækkens modpart grænsen her, og begge celler
- * fik den fælles «Til-dato skal være efter fra-dato» uden dato.
+ * begge celler med modpartens dato. Rækkens modpart clamper bevidst ikke grænsen her; ellers får begge celler
+ * den fælles «Til-dato skal være efter fra-dato» uden dato.
  */
 const dateBoundsSpecFor = (role: 'fra' | 'til'): DateBoundsSpec => ({
   min: () => role === 'fra'

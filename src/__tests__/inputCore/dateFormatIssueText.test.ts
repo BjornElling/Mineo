@@ -53,7 +53,7 @@ describe('datofelters format-fejl formuleres med konkrete datoer', () => {
   });
 
   /**
-   * Kernen i brugerkravet: Fødselsdato slutter ved dags dato. Nævnte fejlen år 2100, ville den påstå et
+   * Kernen: Fødselsdato slutter ved dags dato. Nævnte fejlen år 2100, ville den påstå et
    * loft, feltet ikke har – og modsige den besked, en dato efter i dag rent faktisk får.
    */
   it('viser dags dato som Fødselsdatoens øvre grænse, ikke år 2100', () => {

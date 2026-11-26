@@ -1,5 +1,5 @@
 /**
- * `collectAllEoRows` – den AUTORITATIVE EO-række-evaluerings-aggregator (jf. B9).
+ * `collectAllEoRows` – den AUTORITATIVE EO-række-evaluerings-aggregator.
  *
  * Samler alle status-rækker fra builder-registret, tilføjer navigation-metadata, anvender
  * relevans-filtrering (`isRowRelevantForEoValues`) + dependency-suppression, og grupperer efter
@@ -232,11 +232,10 @@ const isRowRelevantForEoValues = (
   if (values.kravPaaOevrigeErstatningskrav !== 'Ja' && row.id.startsWith('oevrigekrav.')) {
     return false;
   }
-  // Over-block-fix (B9 §2D, udviklergodkendt 2026-06-24): de to krævede oversigtsfelter må kun
-  // blokere, når den tilhørende beregning faktisk kræves. 'Arbejdssituation' (tafArbejdsstatus)
-  // indgår udelukkende i TAF-fremstillingen; 'Helbredsforhold' (svieSmerteHelbredsstatus) kun i
-  // svie/smerte. Tidligere blokerede de PDF-download uanset relevans, fordi deres id'er ikke matcher
-  // de prefiks-baserede regler nedenfor – fx blokerede tom Arbejdssituation selv med TAF='Nej'.
+  // De to krævede oversigtsfelter må kun blokere, når den tilhørende beregning faktisk kræves.
+  // 'Arbejdssituation' (tafArbejdsstatus) indgår udelukkende i TAF-fremstillingen; 'Helbredsforhold'
+  // (svieSmerteHelbredsstatus) kun i svie/smerte. Deres id'er matcher ikke de prefiks-baserede regler
+  // nedenfor; ellers blokerede fx en tom Arbejdssituation PDF-download selv med TAF='Nej'.
   if (values.kravPaaTabtArbejdsfortjeneste !== 'Ja' && row.id === 'erstatningsopgoerelse.arbejdsstatus') {
     return false;
   }

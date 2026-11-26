@@ -96,7 +96,7 @@ export const EetProformaKapitaliseringBox = ({ pk, koen }: ProformaBoxProps) => 
     {pk.aarsydelseReguleringsPctRounded4 !== null && (
       <Box className="row--label-right-hover">
         <Typography className="row--text">
-          {/* Kort dansk form som i dokumentet og som boksens øvrige datoer (BB-176). */}
+          {/* Kort dansk form som i dokumentet og som boksens øvrige datoer. */}
           {`Reguleringsprocent (${formatISOToDanish(pk.kapitaliseringsdato)})`}
         </Typography>
         <Box className="row--label-right-hover__content">
@@ -145,7 +145,7 @@ export const EetProformaKapitaliseringBox = ({ pk, koen }: ProformaBoxProps) => 
     </Box>
 
     <Box className="row--label-right-hover">
-      {/* Delte etiketter: `≤` er reglens faktiske operator og skal stå ens overalt (BB-172). */}
+      {/* Delte etiketter: `≤` er reglens faktiske operator og skal stå ens overalt. */}
       <Typography className="row--text">{SAERFAKTOR_ANVENDES_LABEL}</Typography>
       <Box className="row--label-right-hover__content">
         <Typography className="row--text">{formatJaNej(pk.kapitaliseretPgaUnderToAarTilFp)}</Typography>

@@ -31,8 +31,7 @@ interface UseOmregningToggleReturn {
  * - Den centrale omregnings-gate afgør både toggle-visning og effektiv aktivering
  * - Manuel enable blokeres tidligt ved ugyldige forhold (→ rystelse + blink af første fejl)
  *
- * Rystelsen ejes af togglen selv: `'reject'` får `StyledToggleSwitch` til at ryste (udviklerbeslutning
- * 2026-10-28). Hooken tilføjer kun henvisningen til årsagen – fejlcellen, den manglende indtastning eller
+ * Rystelsen ejes af togglen selv: `'reject'` får `StyledToggleSwitch` til at ryste. Hooken tilføjer kun henvisningen til årsagen – fejlcellen, den manglende indtastning eller
  * første periodecelle – og den blinker, HVOR den står (`'inPlace'`): brugeren forsøgte at slå omregningen
  * til, ikke at blive ført hen til tabellen.
  */

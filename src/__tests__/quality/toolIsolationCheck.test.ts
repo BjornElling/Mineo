@@ -19,11 +19,10 @@ import { packageNameFromBinTarget, resolveInstalledCommandOwner } from '../../..
  *
  * Fixturen skriver `.bin`-slottet med BEGGE de mekanismer, npm bruger, fordi valget er
  * platformbestemt og usynligt i koden: en shim-FIL på Windows, hvis indhold nævner pakkestien,
- * og et SYMLINK på POSIX (herunder CI's ubuntu-runner), hvis mål er pakkestien. Kontrollen læste
- * oprindeligt kun filindholdet; på Linux fulgte `readFileSync` symlinket og læste Playwrights egen
- * `cli.js`, hvor regexen intet fandt – så CI meldte «peger på et ukendt sted», selv om
- * afhængighedsgrafen var i orden. Testene var grønne, fordi fixturen kun kunne skrive shim-filer.
- * Derfor er linkformen nu en eksplicit dimension: enhver ny påstand om `.bin` skal holde i begge.
+ * og et SYMLINK på POSIX (herunder CI's ubuntu-runner), hvis mål er pakkestien. Læser kontrollen kun
+ * filindholdet, følger `readFileSync` på Linux symlinket og læser Playwrights egen `cli.js`, hvor
+ * regexen intet finder – og en fixture, der kun skriver shim-filer, ser det ikke. Derfor er linkformen
+ * en eksplicit dimension: enhver ny påstand om `.bin` skal holde i begge.
  */
 
 type LockEntry = {

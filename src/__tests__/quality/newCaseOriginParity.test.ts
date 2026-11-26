@@ -8,9 +8,9 @@ import { DEFAULT_APP_SETTINGS, appSettingsSchema } from '../../settings/appSetti
 /**
  * VÆRN: en ny sag skal se ens ud, uanset HVORDAN den blev født.
  *
- * En sag kan opstå to steder: ved bootstrap af en frisk session, og ved brugerens `Slet alt`. Kun den første
- * havde tidligere en seed, så `Slet alt` ryddede til bar `null` – og de standardværdier, brugeren netop havde
- * fået, forsvandt permanent for resten af sessionen. Ingen fejl, ingen advarsel; blot to forskellige
+ * En sag kan opstå to steder: ved bootstrap af en frisk session, og ved brugerens `Slet alt`. Har kun den
+ * første en seed, rydder `Slet alt` til bar `null` – og de standardværdier, brugeren netop havde fået,
+ * forsvinder permanent for resten af sessionen. Ingen fejl, ingen advarsel; blot to forskellige
  * udgangspunkter for det, brugeren opfatter som den samme handling.
  *
  * Sammenligningen sker på den PERSISTEREDE form: bootstrap-sagen er round-trippet gennem envelopen, og det er

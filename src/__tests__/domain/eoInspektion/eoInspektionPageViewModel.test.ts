@@ -92,7 +92,7 @@ describe('buildEOInspektionPageViewModel', () => {
     expect(result.offentligeYdelserRows).toEqual([]);
   });
 
-  it('giver ansættelsesforholdene entydige overskrifter efter den kanoniske navneregel (BB-466)', () => {
+  it('giver ansættelsesforholdene entydige overskrifter efter den kanoniske navneregel', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.kravPaaTabtArbejdsfortjeneste = 'Ja';
     const [skabelon] = eoValues.loenindkomstAnsaettelsesforhold;

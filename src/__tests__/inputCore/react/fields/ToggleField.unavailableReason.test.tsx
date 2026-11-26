@@ -24,7 +24,7 @@ import {
 } from '../../../../inputCore';
 import { createTestCatalog, omregningField, testLocation } from '../../testCatalog';
 
-// Betinget kontakt (page-component-contract.md §10.5, BB-422): en kontakt, hvis forudsætning mangler, vises
+// Betinget kontakt (page-component-contract.md §10.5): en kontakt, hvis forudsætning mangler, vises
 // inaktiv og slået FRA – ellers lover den en side, dokumentet ikke har. Den afsluttede værdi bevares imens.
 
 let catalog: InputCatalog;

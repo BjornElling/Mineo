@@ -117,7 +117,7 @@ const INDEPENDENT_ENDELIG_EET_VALUES: ErstatningsopgoerelseValues = {
   bilagsnumreOevrigeErstatningskrav: undefined,
 };
 
-describe('CALC-006 – uafhængigt TAF-facit for endelig EET-ophør', () => {
+describe('uafhængigt TAF-facit for endelig EET-ophør', () => {
   it('viser endelig EET-afgørelse som ophørsårsag dagen efter TAF-perioden', () => {
     const rows = buildEoTaftRows(INDEPENDENT_ENDELIG_EET_VALUES, EMPTY_FIELD_ISSUE_SET, {
       skadedatoISO: iso('2023-01-01'),

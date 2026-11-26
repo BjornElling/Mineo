@@ -39,16 +39,16 @@ export type SammentaellingControl = Readonly<{
 /**
  * Den beregnede side af en kontrolrække.
  *
- * `null` betød før to vidt forskellige ting, og kontrollen kunne ikke skelne dem:
+ * Et rent `null` ville betyde to vidt forskellige ting, som kontrollen ikke kan skelne:
  *
  *  - **Grundlaget findes ikke (endnu).** Inputtet er ikke et gyldigt, færdigt grundlag – et tomt
  *    påkrævet felt, to perioder der overlapper, en fraslået sektion. Manglen er ALLEREDE fortalt
  *    brugeren som rødt felt eller rød række, og der er intet at sammenligne.
  *  - **Grundlaget fandtes, men opgørelsen kunne ikke dannes.** Det er et ægte fund, som skal meldes.
  *
- * Sammenblandingen gjorde en helt almindelig indtastning til en systemfejl: en tom beregnet side
- * mod et udfyldt tabeltal blev læst som uoverensstemmelse, og `control:sammentaelling_mismatch` er
- * `source: 'system'` og åbner notitsen «Teknisk fejl registreret» (brugerfund 2026-09-17).
+ * Sammenblandingen ville gøre en helt almindelig indtastning til en systemfejl: en tom beregnet side
+ * mod et udfyldt tabeltal læses som uoverensstemmelse, og `control:sammentaelling_mismatch` er
+ * `source: 'system'` og åbner notitsen «Teknisk fejl registreret».
  */
 export type SammentaellingBeregnetSide =
   /**
@@ -109,8 +109,8 @@ export const buildSammentaellingControl = (input: SammentaellingControlInput): S
 
 /**
  * - `ok`: begge sider har et tal, og de stemmer.
- * - `tom`: ingen af siderne har et tal; der er intet kontrolleret, og rækken får intet mærke (BB-386). Før fik
- *   den et grønt ✓, også når grundlaget manglede.
+ * - `tom`: ingen af siderne har et tal; der er intet kontrolleret, og rækken får intet mærke – ikke et grønt ✓,
+ *   når grundlaget mangler.
  * - `error`: siderne er uenige.
  */
 export type SammentaellingControlStatus = 'ok' | 'tom' | 'error';

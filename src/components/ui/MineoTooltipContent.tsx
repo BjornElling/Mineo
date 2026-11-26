@@ -113,9 +113,9 @@ const findBestPartition = (
 };
 
 /**
- * Fordeler en tekst på hele ord med den faktiske bredde af tooltipfonten. Før blev bruddene beregnet
- * ud fra antal tegn; det kunne lave en planlagt linje, der var få pixels for bred, hvorefter CSS
- * ombrød den sidste del til en isoleret linje. Her findes først det nødvendige antal linjer og
+ * Fordeler en tekst på hele ord med den faktiske bredde af tooltipfonten. Brud beregnet ud fra antal tegn
+ * kan lave en planlagt linje, der er få pixels for bred, hvorefter CSS ombryder den sidste del til en
+ * isoleret linje. Her findes først det nødvendige antal linjer og
  * derefter den mest jævne opdeling, mens hver flerords-linje holdes inden for samme bredde som CSS.
  *
  * Et langt sammenhængende token er den eneste bevidste undtagelse: det må nødombrydes af CSS, fordi

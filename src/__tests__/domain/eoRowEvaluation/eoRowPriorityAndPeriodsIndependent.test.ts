@@ -43,7 +43,7 @@ const rowById = <T extends { id: string }>(rows: readonly T[], id: string): T =>
   return row;
 };
 
-describe('CALC-006 – uafhængigt rækkeprioritets- og periodefacit', () => {
+describe('uafhængigt rækkeprioritets- og periodefacit', () => {
   it('viser den konkrete EO-periodefejl, men undertrykker afledte TAF-/S/S-rækker', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.kravPaaSvieSmerteGodtgoerelse = 'Ja';
@@ -253,7 +253,7 @@ describe('CALC-006 – uafhængigt rækkeprioritets- og periodefacit', () => {
         fra: iso('2024-01-02'),
         til: undefined,
       }],
-      // Ferien i beregningsperioden vises kun i arbejdsdage (BB-263): uden løn under ferie bliver enheden det.
+      // Ferien i beregningsperioden vises kun i arbejdsdage: uden løn under ferie bliver enheden det.
       // Lønnen er 0 kr., så perioden stadig er uden indkomst.
       loenindkomstAnsaettelsesforhold: [{
         ...createDefaultLoenindkomstAnsaettelsesforhold(),

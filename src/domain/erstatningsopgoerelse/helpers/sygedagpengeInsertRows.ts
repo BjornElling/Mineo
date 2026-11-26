@@ -247,7 +247,7 @@ export const buildSygedagpengeRowsForRange = (
  * Hjælperen lægger sine rækker til de eksisterende. Står der allerede sygedagpenge for nogle af dagene (typisk fra
  * udbetalingsspecifikationerne), ville samme dage blive trukket fra to gange, og fordi hjælperen regner
  * maksimumssatsen, er beløbene sjældent ens, så dublet-reglen tier. Brugeren bekræfter derfor indsættelsen
- * (udviklerafgørelse 2026-10-29, BB-359 valg B). Ydelsestypen slås op kanonisk, så en række gemt med sin label tæller.
+ * (bevidst valg). Ydelsestypen slås op kanonisk, så en række gemt med sin label tæller.
  */
 export const findOverlappingSygedagpengeRows = (
   rows: readonly OffentligeYdelserRow[],
@@ -263,7 +263,7 @@ export const findOverlappingSygedagpengeRows = (
     const faellesTil = minISO(rowTil, til);
     if (faellesFra > faellesTil) return false;
     // Sygedagpenge regnes på hverdage. Deler perioderne kun en weekend, får ingen dag beløb fra begge rækker, og
-    // spørgsmålet om dobbelt indtastning er forkert (BB-456: en række til lørdag og hjælperen fra samme lørdag).
+    // spørgsmålet om dobbelt indtastning er forkert (fx en række til lørdag og hjælperen fra samme lørdag).
     // En helligdag på en hverdag tæller med: om den betales, afhænger af rækkens slutdato, og et ekstra spørgsmål
     // er her bedre end et tavst dobbeltfradrag.
     let harFaellesHverdag = false;

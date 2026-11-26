@@ -53,7 +53,7 @@ const withSvieSmerteIssue = (issue: FieldIssue): EoDependencyProjection => ({
   aggregateIssues: [issue],
 });
 
-describe('CALC-006-A – uafhængigt håndfacit gennem EO-snapshot', () => {
+describe('uafhængigt håndfacit gennem EO-snapshot', () => {
   it('fører en simpel gyldig sag uændret til kontrolvisning og EO-dokument', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.vedroererPeriodeFra = iso('2024-01-01');

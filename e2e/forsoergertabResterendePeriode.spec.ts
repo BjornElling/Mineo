@@ -11,17 +11,15 @@ import type { Page } from '@playwright/test';
 /**
  * Forsørgertabets to halvdele skal tælle de allerede udbetalte måneder PÅ SAMME MÅDE.
  *
- * Fladen havde før hver sin læsning i hver sin halvdel, og de gav to forskellige tal for de samme
- * udbetalinger i den samme opgørelse:
+ * Den dagbaserede optjeningstælling er den rigtige (bevidst valg), og begge halvdele bruger den. To
+ * mulige læsninger giver ellers to forskellige tal for de samme udbetalinger:
  *
- * - tabellen «Løbende ydelse» værdiansatte dag for dag og nåede ca. 60,7323 måneder,
- * - kapitalfaktoren talte hele kalendermåneder inklusive begge ender og nåede 62 måneder,
- *   hvilket gav «Resterende periode 4 år og 10 måneder» i stedet for 4 år og 11.
+ * - dag for dag (tabellen «Løbende ydelse») giver ca. 60,7323 måneder,
+ * - hele kalendermåneder inklusive begge ender giver 62 måneder og dermed «Resterende periode 4 år
+ *   og 10 måneder» i stedet for 4 år og 11.
  *
- * Udvikleren afgjorde 2026-09-04, at den dagbaserede optjeningstælling er den rigtige, og at begge
- * halvdele skal bruge den. Specen måler netop den sag, brugerblik-gennemgangen kvantificerede
- * (`docs/testing/brugerblik/forsoergertab.md`, åbent spørgsmål 1), fordi det er den sag, hvor de to
- * læsninger gav hver sit resultat – forskellen var 9.360 kr. i kapitalbeløbet.
+ * Specen måler en sag, hvor de to læsninger giver hver sit resultat – forskellen er 9.360 kr. i
+ * kapitalbeløbet.
  *
  * Tallene er BEREGNINGSRESULTATER og skal kun ændres, hvis tællemetoden ændres bevidst igen.
  */
@@ -37,8 +35,8 @@ const row = (page: Page, label: string) =>
 
 /**
  * Indtaster hele den målte sag – stamdata først, fordi fladens grænser og den efterladtes alder
- * hviler på den. Felterne adresseres ved deres `name`, ikke ved etiketten: etiketterne er selv
- * genstand for gennemgangen (BB-120/BB-134 omdøbte flere af dem), mens `name` er stabil.
+ * hviler på den. Felterne adresseres ved deres `name`, ikke ved etiketten: etiketterne kan
+ * ændres, mens `name` er stabil.
  */
 const fillMaaltSag = async (page: Page): Promise<void> => {
   await openPage(page, 'Stamdata');
@@ -90,7 +88,7 @@ test.describe('Forsørgertabets resterende periode', () => {
       });
 
     await expect(resultatRow('Kapitalbeløb (efter ASL)')).toContainText('429.026 kr.');
-    // 82.742 kr.: månedsbrøken afrundes ikke længere (2026-11-19), så de løbende ydelser er 1 kr. lavere end før.
+    // 82.742 kr.: månedsbrøken afrundes ikke, før de løbende ydelser summeres.
     await expect(resultatRow('Forsørgertabserstatning')).toContainText('82.742 kr.');
 
     expect(runtimeErrors).toEqual([]);

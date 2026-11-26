@@ -12,16 +12,15 @@ import {
 /**
  * Feltfamiliernes tegn- og længdeværn som ÉT prædikat pr. familie (`input-field-behavior-contract.md` §1.2).
  *
- * **Hvorfor dette modul findes.** Værnet var indtil nu udelukkende et `keydown`-filter: `filterDateLikeKeyDown`
- * og dens søskende beregnede den kommende draft ud fra `e.key` og kaldte `preventDefault()`. Det virker på et
- * fysisk tastatur, hvor hvert tegn har en `keydown` med et brugbart `key` – og KUN dér.
+ * **Hvorfor dette modul findes.** Et rent `keydown`-filter (`filterDateLikeKeyDown` og dens søskende), der
+ * beregner den kommende draft ud fra `e.key` og kalder `preventDefault()`, virker på et fysisk tastatur, hvor
+ * hvert tegn har en `keydown` med et brugbart `key` – og KUN dér.
  *
  * Et mobilt skærmtastatur (Android/GBoard er det målte tilfælde) skriver derimod tegnet direkte i `<input>` og
  * fyrer et `input`-event. Den `keydown`, der eventuelt følger med, bærer `key === 'Unidentified'`, som filtrenes
- * `isBypassKeyEvent` med vilje lader passere – IME/composition må ikke forstyrres. Resultatet var, at HELE
- * tegn- og længdeværnet var fraværende på mobil: brugerens fund `21-1111111-2026` i et datofelt er præcis den
- * form, `isDateLikeDraftAllowed` afviser ved tastning på desktop. Målt i en mobil-emuleret browser gik strengen
- * uændret ind i feltet.
+ * `isBypassKeyEvent` med vilje lader passere – IME/composition må ikke forstyrres. Med et rent keydown-filter
+ * er HELE tegn- og længdeværnet fraværende på mobil: `21-1111111-2026` i et datofelt – præcis den form,
+ * `isDateLikeDraftAllowed` afviser ved tastning på desktop – går uændret ind i feltet.
  *
  * **Derfor er PRÆDIKATET primært, og keydown-filteret afledt.** Værnet flyttes til `onDraftChange` – den ene
  * kanal, ENHVER indtastningsmodalitet passerer (tastatur, skærmtastatur, autofyld, stemmeinput, IME-commit).
@@ -29,9 +28,8 @@ import {
  * kun, at draften ændrer sig.
  *
  * `keyFilterFromAdmission` bevarer keydown-benet, fordi det stadig har en egen værdi: det forhindrer tegnet i
- * overhovedet at nå DOM'en, så caret'en ikke flytter sig og springer tilbage. Men de to kan ikke længere drifte
- * fra hinanden, for de læser det SAMME prædikat – og det var netop drift mellem to parallelle værn, der lod
- * fejlen opstå.
+ * overhovedet at nå DOM'en, så caret'en ikke flytter sig og springer tilbage. Men de to kan ikke drifte
+ * fra hinanden, for de læser det SAMME prædikat.
  *
  * **Grænsen for prædikatet er uændret §1.2:** tegnsæt og længde, ikke talværdi. En værdi, der bryder en range-,
  * kronologi- eller domænegrænse, skal fortsat kunne tastes og bevares canonical med rød ring (§1.1).
@@ -177,7 +175,7 @@ export const integerAdmission = (options?: IntegerDraftConstraints): DraftAdmiss
  * År: kun cifre, højst 4 (`YYYY`).
  *
  * Prædikatet bor i `utils/numericDraftAdmission`, fordi pastens `normalizeYearPaste` skal læse præcis
- * det samme (§1.2a: paste = tastning). Regexet stod her som en selvstændig kopi indtil 2026-08-18.
+ * det samme (§1.2a: paste = tastning). Skriv ikke en selvstændig kopi af regexet her.
  */
 export const yearAdmission = (): DraftAdmission => isYearDraftAllowed;
 

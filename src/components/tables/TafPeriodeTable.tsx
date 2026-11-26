@@ -35,12 +35,12 @@ export type TafPeriodeTableProps = Readonly<{
    */
   cellIssues?: FieldIssueSet;
   /**
-   * «Løse ferie-/feriefridage» vises kun, når TAF opgøres i arbejdsdage; i måneder fradrages de ikke
-   * (BB-247). Skjult er ikke udfyldt: værdierne bevares og kommer tilbage, hvis enheden skifter.
+   * «Løse ferie-/feriefridage» vises kun, når TAF opgøres i arbejdsdage; i måneder fradrages de ikke.
+   * Skjult er ikke udfyldt: værdierne bevares og kommer tilbage, hvis enheden skifter.
    */
   visLoseFeriedage: boolean;
   /**
-   * Gule ringe pr. celle: en periode uden arbejdsdage inden for opgørelsen (BB-257) og en sammenhængende
+   * Gule ringe pr. celle: en periode uden arbejdsdage inden for opgørelsen og en sammenhængende
    * periode skrevet i to rækker. Ikke-blokerende.
    */
   cellWarnings?: ReadonlyMap<SerializedFieldAddress, FieldWarning>;

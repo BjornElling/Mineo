@@ -470,7 +470,7 @@ describe('eoPdfModel', () => {
     // 10 dage * 250 kr = 2.500 kr = 250.000 øre
     expect(model.svieSmerte.totalOre).toBe(250000);
     expect(model.svieSmerte.satserPerDag.status).toBe('ok');
-    // Et modtaget beløb på 0 er intet fradrag: papiret må ikke trykke «- 0 kr.» (BB-129/BB-130).
+    // Et modtaget beløb på 0 er intet fradrag: papiret må ikke trykke «- 0 kr.».
     expect(model.svieSmerte.aktuel.status).toBe('not_calculable');
   });
 
@@ -494,7 +494,7 @@ describe('eoPdfModel', () => {
     expect(model.svieSmerte.totalOre).toBe(200000);
   });
 
-  // BB-241: en ménafgørelse uden dato er stadig truffet og skal stå i papiret – med sin klage, som
+  // En ménafgørelse uden dato er stadig truffet og skal stå i papiret – med sin klage, som
   // forklarer, hvorfor svie/smerte opgøres uden afskæring. Samme form som de datoløse EET-linjer.
   it.each([
     ['uden klage', 'Nej' as const, 'Der er truffet afgørelse om varige mén.'],
@@ -718,7 +718,7 @@ describe('eoPdfModel', () => {
       .toThrow('«Beløb» er ikke udfyldt');
   });
 
-  it('trykker en øvrige krav-post uden dato uden datopræfiks (BB-229)', () => {
+  it('trykker en øvrige krav-post uden dato uden datopræfiks', () => {
     const eoValues = makeValues({
       kravPaaOevrigeErstatningskrav: 'Ja',
       oevrigeKravPerioder: [
@@ -1282,8 +1282,7 @@ describe('eoPdfModel', () => {
     expect(snapshot.invariants.some((issue) => issue.message.includes('ligger før den første sats i'))).toBe(true);
   });
 
-  // Afklaringslog 10a: anciennitetens enhed ved angivet løn er brugerens eget valg og læses. Testen hævdede
-  // tidligere det modsatte («resolver-immunitet»), fordi enheden blev tvunget efter «Beregnes ud fra».
+  // Anciennitetens enhed ved angivet løn er brugerens eget valg og læses – den tvinges ikke efter «Beregnes ud fra».
   it('bruger den gemte anciennitetsenhed for angivet månedsløn', () => {
     const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
     const baseEoLoenudvikling = {

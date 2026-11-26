@@ -128,7 +128,7 @@ test.describe('Svie/smerte efter ménafgørelse', () => {
     expect(externalRequests).toEqual([]);
   });
 
-  test('viser cutoff med manglende Fra-dato og linker til den røde Til-dato (BB-346)', async ({
+  test('viser cutoff med manglende Fra-dato og linker til den røde Til-dato', async ({
     page,
     runtimeErrors,
     runtimeSignals,
@@ -229,7 +229,7 @@ test.describe('Svie/smerte efter ménafgørelse', () => {
     expect(externalRequests).toEqual([]);
   });
 
-  test('viser hver ens delvise periodefejl og linker til dens egen række (BB-336)', async ({
+  test('viser hver ens delvise periodefejl og linker til dens egen række', async ({
     page,
     runtimeErrors,
     runtimeSignals,

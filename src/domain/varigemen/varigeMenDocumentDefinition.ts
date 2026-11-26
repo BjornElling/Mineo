@@ -27,7 +27,7 @@ export type VarigeMenDocumentInput = Readonly<{
   mengrad: number;
   beregningsdato: ISODateString | undefined;
   beregningsResultat: VarigeMenBeregningResult;
-  /** Datoens navn ud fra sagens skadestype – uafhængig af brevhovedet (BB-398). */
+  /** Datoens navn ud fra sagens skadestype – uafhængig af brevhovedet. */
   datoReference: StamdataDatoReference;
   stamdata: DocumentBrevhovedStamdata;
 }>;

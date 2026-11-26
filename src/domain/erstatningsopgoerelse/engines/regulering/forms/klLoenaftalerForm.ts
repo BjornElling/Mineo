@@ -48,7 +48,7 @@ const byggResultat = (
   // beregnes som indeksforhold her; den sættes senere fra KL-lønaftaler-kæde-resolveren,
   // så den trinvise afrunding på lønnen er eneste beregningssandhed.
 
-  // R2 – samme delte periodeserie som formen emitterer som forløb og præsentationen læser
+  // Samme delte periodeserie som formen emitterer som forløb og præsentationen læser
   // (buildKlLoenaftalerIndexEntries): bygges ÉN gang her og bæres både som brudpunkt-kilde og
   // som autoritativt forløb. Segment-byggeriet bruger kun startIso til brudpunkter.
   const periodStarts = buildKlLoenaftalerIndexEntries();

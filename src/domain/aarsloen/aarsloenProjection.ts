@@ -129,11 +129,11 @@ export const readAarsloenValues = (reader: InputReader): AarsloenValues => {
 };
 
 /**
- * Den tomme, påkrævede feriesats som mangel uden rød ring (M-37). Kravet er den FÆLLES regel med EO; et rødt felt
- * har allerede sin egen fejl i feltgaten. «Fuld løn under ferie» læses kun, når valget vises (BB-353) – skjult
- * tæller det som sin tomværdi (M-32), så et usynligt valg aldrig kræver feltet.
+ * Den tomme, påkrævede feriesats som mangel uden rød ring. Kravet er den FÆLLES regel med EO; et rødt felt
+ * har allerede sin egen fejl i feltgaten. «Fuld løn under ferie» læses kun, når valget vises – skjult
+ * tæller det som sin tomværdi, så et usynligt valg aldrig kræver feltet.
  *
- * Feltgaten og løntabellens afledte kolonner (BB-099, `tabelSatserUkendte`) læser begge denne funktion, så
+ * Feltgaten og løntabellens afledte kolonner (`tabelSatserUkendte`) læser begge denne funktion, så
  * tabellen viser «—» på præcis samme betingelse, som gaten nægter at beregne.
  */
 export const resolveAarsloenFeriePctManglerIssue = (
@@ -156,14 +156,14 @@ export const resolveAarsloenFeriePctManglerIssue = (
 };
 
 /**
- * Feriegodtgørelse OG fuld løn under ferie (udviklerafgørelse 2026-11-04, `feriepenge-begreber-contract.md` §2c).
+ * Feriegodtgørelse OG fuld løn under ferie (`feriepenge-begreber-contract.md` §2c).
  *
  * Lønmodtageren får enten ferietillæg (løn under ferie) eller feriegodtgørelse – aldrig begge (regel 1). En sats på
  * 12 % eller derover er feriegodtgørelse, og lagt oven i en løn, der allerede dækker ferien, bliver årslønnen ca.
- * 11,5 % for høj. Det er derfor en rød feltfejl på satsen, som standser beregningen og spærrer download – ikke den
- * advarselslinje, det var før. Erstatningsopgørelsens tvungne både-og (regel 3) gælder ikke her.
+ * 11,5 % for høj. Det er derfor en rød feltfejl på satsen, som standser beregningen og spærrer download – ikke en
+ * advarselslinje. Erstatningsopgørelsens tvungne både-og (regel 3) gælder ikke her.
  *
- * Valget læses kun, når det vises (BB-353); skjult tæller det ikke, og satsen er da blot den indtastede ydelse.
+ * Valget læses kun, når det vises; skjult tæller det ikke, og satsen er da blot den indtastede ydelse.
  */
 export const resolveAarsloenFeriegodtgoerelseVedFuldLoenIssue = (
   values: AarsloenValues,
@@ -201,7 +201,7 @@ export const resolveAarsloenFieldErrorGate = (
 ): readonly (FieldIssue | ConsumerIssue)[] => {
   const issues: (FieldIssue | ConsumerIssue)[] = [];
 
-  // Satsfelterne er løntabellens (`satsRefs`), så tabellens afledte kolonner og denne gate læser samme felter (BB-099).
+  // Satsfelterne er løntabellens (`satsRefs`), så tabellens afledte kolonner og denne gate læser samme felter.
   if (values.tillaegAngivesSom !== 'beloeb') {
     for (const ref of aarsloenStandardLoenFieldSet.satsRefs) {
       const result = reader.read(ref);
@@ -286,17 +286,16 @@ export type AarsloenReaderProjection = Readonly<{
   shDageBlockingIssues: readonly (FieldIssue | ConsumerIssue)[];
   fieldIssues: readonly (FieldIssue | ConsumerIssue)[];
   /**
-   * En sats, løntabellen regner med, er ukendt uden selv at stå rød: den påkrævede feriesats er tom (M-37), eller
-   * overenskomstens satser kan ikke slås op (BB-402). Begge spærrer feltgaten. Løntabellens afledte kolonner viser
-   * da «—» (BB-099), fordi rækkerne ellers ville være regnet med satsen som 0 %.
+   * En sats, løntabellen regner med, er ukendt uden selv at stå rød: den påkrævede feriesats er tom, eller
+   * overenskomstens satser kan ikke slås op. Begge spærrer feltgaten. Løntabellens afledte kolonner viser
+   * da «—», fordi rækkerne ellers ville være regnet med satsen som 0 %.
    */
   tabelSatserUkendte: boolean;
   /** Satsfeltets røde regel – feriegodtgørelse ved fuld løn under ferie – til feltets ring; også i `fieldIssues`. */
   feriePctRuleIssue: FieldIssue | undefined;
   /**
-   * Løntabellens IKKE-blokerende rækkeadvarsler: en række, der gentager en tidligere ordret (BB-096/BB-289), og
-   * en periode efter dags dato (BB-115/BB-298). Udviklerafgørelse 2026-10-19: identiske rækker spærrer ikke
-   * længere – dobbelt løn for samme periode kan være reel – men giver gul ring og en linje i «Advarsler».
+   * Løntabellens IKKE-blokerende rækkeadvarsler: en række, der gentager en tidligere ordret, og
+   * en periode efter dags dato. Identiske rækker spærrer bevidst ikke – dobbelt løn for samme periode kan være reel – men giver gul ring og en linje i «Advarsler».
    */
   tableRowWarnings: readonly StandardLoenRowWarning[];
   /** Advarslerne som gul ring pr. celle (`StandardLoenTable.cellWarnings`). */
@@ -309,7 +308,7 @@ export type AarsloenReaderProjection = Readonly<{
    * rødt med den konkrete grænse i tooltippen – og blokerer dokumentet gennem gaten.
    */
   feriedageFieldIssues: readonly FieldIssue[];
-  /** De ugyldige tabelcellers feltissues (`rowId:colKey`), så «Fejl og advarsler» kan sige årsagen (BB-440). */
+  /** De ugyldige tabelcellers feltissues (`rowId:colKey`), så «Fejl og advarsler» kan sige årsagen. */
   tableCellIssues: ReadonlyMap<string, FieldIssue>;
   sourceToken: EvaluationSourceToken;
 }>;
@@ -353,8 +352,8 @@ export const buildAarsloenReaderProjection = (reader: InputReader): AarsloenRead
     ? null
     : computeAarsloenBeregning({ values, omregningAktiveret: omregningGate.effectiveEnabled });
 
-  // SH-dage læser kun periodecellerne og «Løn på helligdage» (BB-419-princippet: et dokument blokeres kun af de
-  // felter, det selv bruger).
+  // SH-dage læser kun periodecellerne og «Løn på helligdage» (et dokument blokeres kun af de felter, det selv
+  // bruger).
   const periodKeys: readonly string[] = getStandardLoenPeriodKeys(values.loenperiode);
   const hasInvalidPeriodCell = tableValidation.errors.some(
     (error) => error.kind === 'cell' && error.issue === 'invalid' && periodKeys.includes(error.colKey)
@@ -387,10 +386,9 @@ export const buildAarsloenReaderProjection = (reader: InputReader): AarsloenRead
     errorRowIds: new Set(tableValidation.summary.rowIssues
       .filter((issue) => issue.level === 'error')
       .map((issue) => issue.rowId)),
-    // En negativ række får samme gule advarsel som på EO (BB-290); før passerede den på Årsløn uden et ord
-    // (værdiklasse-gennemgangen 2026-11-24, fund E, godkendt af udvikleren 2026-11-25).
+    // En negativ række får samme gule advarsel som på EO.
     rowTotal: aarsloenRowTotal,
-    // Rimelighedskontrollen (BB-297): Årsløn har ingen beregnings- og erstatningsperiode, så hele tabellen er én
+    // Rimelighedskontrollen: Årsløn har ingen beregnings- og erstatningsperiode, så hele tabellen er én
     // gruppe. Beløbet er rækkens «Samlet løn», som tabellen viser den.
     amountOutlier: {
       rowTotal: aarsloenRowTotal,

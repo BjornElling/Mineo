@@ -44,7 +44,7 @@ const withDocumentUnavailable = async <T>(run: () => Promise<T>): Promise<T> => 
 
 const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-describe('TD-014/TD-018 – KRL-registreringens faktiske PDF-artefakt', () => {
+describe('KRL-registreringens faktiske PDF-artefakt', () => {
   it('bevarer statisk titel, tabelindhold, kilde og filnavn gennem PDF-generatoren', async () => {
     const session = await createRealPdfDocumentSessionForTest();
     const artifact = await generateKRLDocument(session, { visBrevhoved: false, anvendtSatstabel: 'KTO (kommuner)' });

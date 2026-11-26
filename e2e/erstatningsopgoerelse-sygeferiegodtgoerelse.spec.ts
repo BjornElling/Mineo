@@ -19,7 +19,7 @@ import {
 const AF_ID = 'bb12j-af';
 
 /**
- * Brugerblikkets grundsag for 12j: skade 01-03-2023, opgørelse nr. 1, TAF marts–december 2023, beregningsperiode
+ * Grundsag: skade 01-03-2023, opgørelse nr. 1, TAF marts–december 2023, beregningsperiode
  * marts 2022 – februar 2023 med 12 månedsrækker à 30.000 kr. og sygeferiegodtgørelse efter ferieloven med
  * referenceperiode februar 2023. Lønrækkerne slutter i februar 2023, så seksmånedersadvarslen står.
  */
@@ -139,9 +139,9 @@ const errorBox = (page: Page) => page.locator('.content-box').filter({ hasText: 
 const referenceFra = (page: Page) => page.locator(`input[name="${AF_ID}:sfggReferenceperiodeFra"]`);
 const fravaersdage = (page: Page) => page.locator(`input[name="${AF_ID}:sfggReferenceperiodeFravaersdageUdenLoen"]`);
 
-// Flade 12j (BB-319–BB-331): sygeferiegodtgørelsen. Basisbanen er nok – intet her afhænger af motor eller viewport.
+// Sygeferiegodtgørelsen. Basisbanen er nok – intet her afhænger af motor eller viewport.
 test.describe('Erstatningsopgørelse – sygeferiegodtgørelse', () => {
-  test('en referenceperiode efter skadedato kan bruges før et senere TAF-forløb (BB-319)', async ({
+  test('en referenceperiode efter skadedato kan bruges før et senere TAF-forløb', async ({
     page,
     runtimeErrors,
     externalRequests,
@@ -194,19 +194,19 @@ test.describe('Erstatningsopgørelse – sygeferiegodtgørelse', () => {
     expect(externalRequests).toEqual([]);
   });
 
-  test('en referenceperiode i TAF-perioden giver rød ring og én linje, hvis link blinker datoen (BB-322)', async ({
+  test('en referenceperiode i TAF-perioden giver rød ring og én linje, hvis link blinker datoen', async ({
     page,
     runtimeErrors,
     externalRequests,
   }, testInfo) => {
     await hentGrundsag(page);
-    // BB-329: enheden står ved feltet.
+    // Enheden står ved feltet.
     const fravaersLabel = page.getByText('Evt. ferie- og fraværsdage uden løn (kalenderdage)', { exact: true });
     await expect(fravaersLabel).toBeVisible();
     await fravaersLabel.scrollIntoViewIfNeeded();
     await page.screenshot({ path: testInfo.outputPath('sfgg-afsnit.png') });
 
-    // Fundets periode 01-03-2023 – 28-03-2023: begge datoer ligger i TAF-perioden og får hver sin røde ring.
+    // Perioden 01-03-2023 – 28-03-2023: begge datoer ligger i TAF-perioden og får hver sin røde ring.
     await setVerbatimFieldValueAndSettle(page.locator(`input[name="${AF_ID}:sfggReferenceperiodeTil"]`), '28-03-2023');
     await setVerbatimFieldValueAndSettle(referenceFra(page), '01-03-2023');
     await expect(referenceFra(page)).toHaveAttribute('aria-invalid', 'true');
@@ -230,7 +230,7 @@ test.describe('Erstatningsopgørelse – sygeferiegodtgørelse', () => {
     expect(externalRequests).toEqual([]);
   });
 
-  test('TAF-grænsefejl navngiver Til og foldes kun inden for samme ansættelsesforhold (BB-345)', async ({
+  test('TAF-grænsefejl navngiver Til og foldes kun inden for samme ansættelsesforhold', async ({
     page,
     runtimeErrors,
     externalRequests,
@@ -325,7 +325,7 @@ test.describe('Erstatningsopgørelse – sygeferiegodtgørelse', () => {
     expect(externalRequests).toEqual([]);
   });
 
-  test('fraværsdagene bærer loftet selv, og en periode uden løn spærrer (BB-319, BB-323)', async ({
+  test('fraværsdagene bærer loftet selv, og en periode uden løn spærrer', async ({
     page,
     runtimeErrors,
     externalRequests,
@@ -356,7 +356,7 @@ test.describe('Erstatningsopgørelse – sygeferiegodtgørelse', () => {
     expect(externalRequests).toEqual([]);
   });
 
-  test('seksmånedersadvarslen siger hvad og hvorfor, og linket blinker «Opsagt fra stillingen» (BB-325)', async ({
+  test('seksmånedersadvarslen siger hvad og hvorfor, og linket blinker «Opsagt fra stillingen»', async ({
     page,
     runtimeErrors,
     externalRequests,

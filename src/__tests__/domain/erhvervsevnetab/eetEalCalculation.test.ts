@@ -64,7 +64,7 @@ describe('computeEetEalCalculation', () => {
 
     expect(result.computation).toBeNull();
     expect(result.issues).toEqual(expect.arrayContaining([
-      // Begge årslønninger kan bære EAL-kravet; beskeden nævner begge og fører til EAL-feltet (BB-418).
+      // Begge årslønninger kan bære EAL-kravet; beskeden nævner begge og fører til EAL-feltet.
       { id: 'eal-aarsloen-missing', severity: 'error', message: 'Årslønnen mangler: angiv årslønnen efter EAL eller efter ASL' },
       { id: 'skadelidte-fodselsdato-missing', severity: 'error', message: 'Fødselsdato er ikke udfyldt' },
     ]));
@@ -523,7 +523,7 @@ describe('computeEetEalCalculation', () => {
   });
 
   /**
-   * BB-181: to tilstande efterlader fanen uden en procent, og de skal pege hvert sit sted.
+   * To tilstande efterlader fanen uden en procent, og de skal pege hvert sit sted.
    *
    * Er en afgørelsesrække PÅBEGYNDT og mangler blot sin procentcelle, er det en halvfærdig
    * indtastning i ASL-tabellen, og beskeden skal være de tre andre faners – med afgørelsens egen
@@ -800,16 +800,16 @@ describe('computeEetEalCalculation', () => {
 });
 
 /**
- * BB-178: fanen valgte sin EET-procent ved en sortering, brugeren ikke kunne se, og var samtidig helt
- * tavs om, at der var mere end én afgørelse at vælge imellem – mens Løbende ydelser og Differencekrav
- * begge advarede i samme sag. Målt i fundet: en midlertidig afgørelse fra 2022 på 30 % fortrænger en
- * endelig fra 2020 på 50 %, en forskel på 813.240 kr. i det trykte krav.
+ * Fanen vælger sin EET-procent ved en sortering, brugeren ikke kan se, og må derfor ikke være tavs om, at
+ * der er mere end én afgørelse at vælge imellem – Løbende ydelser og Differencekrav advarer i samme sag.
+ * Eksempel: en midlertidig afgørelse fra 2022 på 30 % fortrænger en endelig fra 2020 på 50 %, en forskel
+ * på 813.240 kr. i det trykte krav.
  *
- * Udvælgelsen er BEVIDST uændret (udviklerens afgørelse 2026-09-04): mangler en særskilt EET-procent
- * efter EAL, gælder den seneste procent efter ASL uanset afgørelsestype, fordi erstatningsansvarsloven
- * ikke kender et midlertidigt erhvervsevnetab. Kun tavsheden er rettet.
+ * Udvælgelsen er BEVIDST: mangler en særskilt EET-procent efter EAL, gælder den seneste procent efter
+ * ASL uanset afgørelsestype, fordi erstatningsansvarsloven ikke kender et midlertidigt erhvervsevnetab.
+ * Fanen advarer derfor i stedet for at vælge anderledes.
  */
-describe('computeEetEalCalculation – advarsel om ikke-endelig afgørelse efter endelig (BB-178)', () => {
+describe('computeEetEalCalculation – advarsel om ikke-endelig afgørelse efter endelig', () => {
   const NON_ENDELIG_WARNING = 'Der er angivet en midlertidig afgørelse efter en endelig afgørelse.';
 
   const beregn = (rows: AslAfgoerelseRow[], ealEetPct?: number) =>
@@ -892,8 +892,8 @@ describe('computeEetEalCalculation – advarsel om ikke-endelig afgørelse efter
 });
 
 describe('computeEetEalCalculation – delegering til opreguleringsmotor (akkumuleret reguleringssats)', () => {
-  // Den tidligere inline-løkke (faktor *= 1 + sats/100 over [skadeår+1, beregningsår])
-  // blev erstattet af opregulerMedAkkumuleretReguleringssats. Disse tests låser
+  // Opreguleringen delegeres til opregulerMedAkkumuleretReguleringssats (faktor *= 1 + sats/100 over
+  // [skadeår+1, beregningsår]). Disse tests låser
   // (a) at den anvendte reguleringsprocent er numerisk identisk med det eksplicitte
   // akkumulerede produkt, og (b) at et hul i reguleringssatsen fail-closer.
   const baseInput = (overrides: { reguleringssats?: typeof reguleringssats } = {}) => ({
@@ -1034,7 +1034,7 @@ describe('buildAldersreduktionEtiket', () => {
   });
 
   /**
-   * BB-129: ved 0 % er der ingen formel. Etiketten var «Aldersreduktion 0 =» – ikke et regnestykke, men
+   * Ved 0 % er der ingen formel. Etiketten «Aldersreduktion 0 =» ville ikke være et regnestykke, men
    * et lighedstegn uden venstreside, hvor 45-års-tilfældet giver «Aldersreduktion (45 - 29) =».
    */
   it('udelader formlen helt, når reduktionen er nul', () => {

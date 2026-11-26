@@ -319,7 +319,7 @@ export const planSfggForAnsaettelsesforhold = (
     });
     if (dates.length === 0) return [];
     if (rate === null) {
-      // Dagene har krav, men ingen sats. De kan ikke regnes, og de må ikke forsvinde uden besked (fund C).
+      // Dagene har krav, men ingen sats. De kan ikke regnes, og de må ikke forsvinde uden besked.
       const foerste = dates[0];
       if (foerste !== undefined && (foersteDagUdenSats === undefined || foerste < foersteDagUdenSats)) {
         foersteDagUdenSats = foerste;

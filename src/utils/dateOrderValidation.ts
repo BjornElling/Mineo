@@ -1,4 +1,4 @@
-// Samme dag er en gyldig periode, så teksten siger «på eller efter» (M-42/BB-443), ikke blot «efter».
+// Samme dag er en gyldig periode, så teksten siger «på eller efter», ikke blot «efter».
 export const DATE_ORDER_ERROR_MESSAGE = 'Til-dato skal være på eller efter fra-dato';
 
 /**

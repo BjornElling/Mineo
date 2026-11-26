@@ -13,18 +13,18 @@ import type { EoDependencyProjection } from '../../../domain/erstatningsopgoerel
 // INVARIANT (F2 – `form-contract.md` §2.3, `error-contract.md` §5): EO's beregningsmotorer må ikke kaldes,
 // når en rød reader-feltfejl gør deres EGET input uanvendeligt.
 //
-// Før rettelsen gik reader-fejlene KUN til inspektionsvisningen, mens motorerne blev kaldt bagefter på
-// readerens MASKEREDE værdier. En rød værdi er `undefined` for motoren, så fx en forligsprocent på 150 blev
-// regnet som "intet forlig" (= 100 %), og "Beregnet svie/smerte" kunne vises som om tidligere udbetalt var 0.
+// Uden gaten kaldes motorerne på readerens MASKEREDE værdier. En rød værdi er `undefined` for motoren, så fx
+// en forligsprocent på 150 regnes som "intet forlig" (= 100 %), og "Beregnet svie/smerte" vises som om
+// tidligere udbetalt var 0.
 //
-// Udviklerbeslutning 2026-07-25: et EO-output, hvis afhængighed er rød, skal vise `-`/ikke beregnet – og
-// uafhængige dele skal BEVARES (ingen overblokering).
+// Bevidst valg: et EO-output, hvis afhængighed er rød, skal vise `-`/ikke beregnet – og uafhængige dele skal
+// BEVARES (ingen overblokering).
 //
 // ⚠️ Baseline SKAL være beregningsklar (`data !== null`). En tom EO-sag har i forvejen validatorfejl, så en
 // test bygget på den ville være selvopfyldende: `data` var `null` uanset gaten.
 //
-// ⚠️ GATENS AUTORITET er `eoFieldIssues` – de STRUKTURELLE feltissues – ikke `eoErrors`-mappet (
-// fund S3). Testene driver derfor gaten gennem strukturelle adresser. `eoErrors` bruges kun dér, hvor det
+// ⚠️ GATENS AUTORITET er `eoFieldIssues` – de STRUKTURELLE feltissues – ikke `eoErrors`-mappet.
+// Testene driver derfor gaten gennem strukturelle adresser. `eoErrors` bruges kun dér, hvor det
 // er `buildReaderFieldIssueInvariants`' egen vej, der testes.
 
 const EMPLOYMENT_ID = 'af-1';
@@ -174,7 +174,7 @@ describe('EO: motorerne kaldes ikke, når en rød reader-feltfejl blokerer', () 
   });
 
   it('en rød RÆKKECELLE giver sin egen invariant pr. række, ikke én samlet', () => {
-    // Fund S3's kerne: rækkeceller havde slet ingen invariant. Id'et bærer entity-id'et, så to røde celler i
+    // Rækkeceller skal have deres egen invariant. Id'et bærer entity-id'et, så to røde celler i
     // samme collection ikke kollapser til én invariant.
     const snapshot = compute([
       redRowCell('svieSmertePerioder', 'fra', 'ss-1'),
@@ -187,15 +187,15 @@ describe('EO: motorerne kaldes ikke, når en rød reader-feltfejl blokerer', () 
   });
 
   it('en rød S/S-afhængighed stopper S/S-motoren – intet falsk "Beregnet svie/smerte"', () => {
-    // Kernen i udviklerbeslutningen: uden gaten kørte S/S-motoren videre på den maskerede tomværdi og viste et
-    // beløb regnet som om "tidligere udbetalt svie/smerte" var 0.
+    // Uden gaten kører S/S-motoren videre på den maskerede tomværdi og viser et beløb regnet som om
+    // "tidligere udbetalt svie/smerte" var 0.
     compute([redField('svieSmerteTidligereTotal')]);
 
     expect(svieSmerteSpy).not.toHaveBeenCalled();
   });
 
   it('S/S-gaten er DEPENDENCY-SPECIFIK: en TAF-fejl stopper ikke S/S-motoren', () => {
-    // §1.10 / udviklerbeslutning 2: rettelsen må ikke overblokere. `tidligereModtagetTaf` er ikke en
+    // Gaten må ikke overblokere. `tidligereModtagetTaf` er ikke en
     // S/S-afhængighed, så S/S-visningen skal bestå (selv om de autoritative totaler er blokeret).
     compute([redField('tidligereModtagetTaf')]);
 
@@ -204,8 +204,8 @@ describe('EO: motorerne kaldes ikke, når en rød reader-feltfejl blokerer', () 
   });
 
   it('en rød svieSmertePerioder-RÆKKECELLE stopper også S/S-motoren', () => {
-    // Fund S3: præcis denne vej var død. Rækkeceller når aldrig `eoErrors`, så en nøglebaseret gate kunne
-    // ikke se dem, og motoren regnede på readerens maskerede periode.
+    // Rækkeceller når aldrig `eoErrors`, så en nøglebaseret gate kan ikke se dem, og motoren ville regne på
+    // readerens maskerede periode.
     compute([redRowCell('svieSmertePerioder', 'fra')]);
 
     expect(svieSmerteSpy).not.toHaveBeenCalled();
@@ -227,14 +227,13 @@ describe('EO: motorerne kaldes ikke, når en rød reader-feltfejl blokerer', () 
 
 });
 
-// EO's afhængighedsopdeling. §1.10 kræver flere små dependency-specifikke
-// gates – ikke én global. Modellen er A (Codex sol/high): de UAFHÆNGIGE grene overlever hinandens fejl, mens
+// EO's afhængighedsopdeling: flere små dependency-specifikke gates – ikke én global. De UAFHÆNGIGE grene overlever hinandens fejl, mens
 // det krydsgående aggregat (samlet total + canonicalOutput + pdfModel) blokeres, hvis bare ét led er blokeret.
 //
 // Testene her hævder BEGGE retninger pr. gren, OG at den gyldige grens FAKTISKE OUTPUT bevares – ikke kun at
 // en boolean er `false`. En boolean-only-test ville bestå med en global gate:
-// `blockedDependencies.taf === false` sagde intet om, hvorvidt TAF-periodiseringen nåede Beregning-fanen.
-describe('EO: afhængighedsopdelingen er specifik pr. gren (§1.10)', () => {
+// `blockedDependencies.taf === false` siger intet om, hvorvidt TAF-periodiseringen nåede Beregning-fanen.
+describe('EO: afhængighedsopdelingen er specifik pr. gren', () => {
   let svieSmerteSpy: ReturnType<typeof vi.spyOn>;
   let tafNettoSpy: ReturnType<typeof vi.spyOn>;
 
@@ -268,7 +267,7 @@ describe('EO: afhængighedsopdelingen er specifik pr. gren (§1.10)', () => {
   });
 
   it('en rød S/S-afhængighed blokerer KUN S/S-grenen – TAF forbliver ubrudt', () => {
-    // Udviklerbeslutning 2: et ugyldigt svie/smerte-felt må ikke fjerne den gyldige TAF-visning.
+    // Et ugyldigt svie/smerte-felt må ikke fjerne den gyldige TAF-visning.
     const snapshot = compute([redField('svieSmerteSatserAar')]);
 
     expect(snapshot.blockedDependencies?.svieSmerte).toBe(true);
@@ -276,8 +275,8 @@ describe('EO: afhængighedsopdelingen er specifik pr. gren (§1.10)', () => {
     expect(svieSmerteSpy).not.toHaveBeenCalled();
   });
 
-  it('UDVIKLERBESLUTNING 2: den gyldige TAF-periodisering NÅR Beregning-fanen ved en S/S-fejl', () => {
-    // Dette er fund S1's egentlige krav. `data` er `null` (aggregatet er ikke autoritativt), men fanen
+  it('den gyldige TAF-periodisering NÅR Beregning-fanen ved en S/S-fejl', () => {
+    // `data` er `null` (aggregatet er ikke autoritativt), men fanen
     // læser `beregningView.tafPerioder` – og den skal fortsat vise det GYLDIGE forløb.
     //
     // En test der kun hævdede `blockedDependencies.taf === false` ville bestå med den globale gate, hvor
@@ -327,11 +326,11 @@ describe('EO: afhængighedsopdelingen er specifik pr. gren (§1.10)', () => {
     expect(snapshot.blockedDependencies?.taf).toBe(false);
   });
 
-  it('S2: en rød forligsgrad neutraliserer EFTER-forlig-satserne, men bevarer før-forlig-grundlaget', () => {
-    // Fund S2: motoren læser SELV forligsgraden (`svieSmerteEngine.ts:234`) og skalerer satser + total med
-    // faktoren. En maskeret ugyldig forligsprocent blev derfor regnet som 100 %.
+  it('en rød forligsgrad neutraliserer EFTER-forlig-satserne, men bevarer før-forlig-grundlaget', () => {
+    // Motoren læser SELV forligsgraden (`svieSmerteEngine.ts:234`) og skalerer satser + total med
+    // faktoren. En maskeret ugyldig forligsprocent ville derfor blive regnet som 100 %.
     //
-    // Udviklerbeslutning 1 kræver samtidig, at før-forlig-resultater BESTÅR – derfor må forligsfelterne ikke
+    // Samtidig skal før-forlig-resultater BESTÅ – derfor må forligsfelterne ikke
     // ligge i S/S-gruppen, og grundlaget skal være uændret.
     const eoValues = createComputableEoValues();
     eoValues.svieSmerteSatserAar = 2024;
@@ -416,10 +415,10 @@ describe('EO: afhængighedsopdelingen er specifik pr. gren (§1.10)', () => {
 
 // Stamdata-afhængigheder er klassificeret, ikke globale.
 //
-// Stamdata er en FREMMED sektion for EO, men EO læser den på tværs af sektionsgrænsen. Tidligere gjorde
-// ETHVERT rødt stamdataissue hele EO's autoritative output ikke-autoritativt. Det var en overblokering:
-// et bounds-fejlende felt, EO's motorer og dokumentindhold aldrig læser, fjernede totaler, canonical output
-// og alle fire EO-dokumenter. §1.10: overblokering er lige så forkert som falske tal.
+// Stamdata er en FREMMED sektion for EO, men EO læser den på tværs af sektionsgrænsen. Gør ETHVERT rødt
+// stamdataissue hele EO's output ikke-autoritativt, er det en overblokering: et bounds-fejlende felt, EO's
+// motorer og dokumentindhold aldrig læser, ville fjerne totaler, canonical output og alle fire EO-dokumenter.
+// Overblokering er lige så forkert som falske tal.
 //
 // Testene hævder BEGGE retninger, så en for smal klassifikation er lige så rød som en for bred.
 describe('EO: stamdata blokerer efter faktisk afhængighed, ikke efter sektion', () => {

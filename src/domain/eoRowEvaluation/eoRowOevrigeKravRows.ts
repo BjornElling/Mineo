@@ -58,7 +58,7 @@ export const buildEoOevrigeKravRows = (
     index,
     vurdering: vurder(krav, false),
   }));
-  // Identiske rækker får et kvalificeret navn (BB-231), så brugeren kan skelne deres separate linjer og vælge det
+  // Identiske rækker får et kvalificeret navn, så brugeren kan skelne deres separate linjer og vælge det
   // rette krav. Fejloversigten folder kun overlap med en eksplicit deduplikeringsgruppe.
   const beskedAntal = new Map<string, number>();
   for (const { vurdering } of foersteVurderinger) {
@@ -86,7 +86,7 @@ export const buildEoOevrigeKravRows = (
   if (udfyldte.length === 0) {
     if (erOevrigeKravSektionAktiv(values)) {
       // «Ja» er et svar om, at der ER øvrige krav; en tabel uden en eneste post lod en glemt tabel
-      // passere som et færdigt krav (BB-236). Advarslen blokerer ikke.
+      // passere som et færdigt krav. Advarslen blokerer ikke.
       rows.push({
         id: 'oevrigekrav.empty',
         label: 'Øvrige krav',
@@ -153,7 +153,7 @@ export const buildEoSaerligeKommentarerRows = (
   return [
     {
       id: 'saerligekommentarer',
-      // Etiketten er emnet og værdien svaret – før stod svaret «Ingen» som etiket med værdien «-» (BB-384).
+      // Etiketten er emnet og værdien svaret – ikke svaret «Ingen» som etiket med værdien «-».
       label: 'Bemærkninger',
       displayValue: harKommentarer ? kommentarer.trim() : 'Ingen',
       status: 'ok',

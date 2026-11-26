@@ -8,7 +8,7 @@ export type OffentligeYdelserDerivedRow = Readonly<{
   periodiseringLabel: string;
   antalDage: number | null;
   ydelsePerDag: number | null;
-  /** En arbejdsdags-periodiseret række, hvis periode ingen arbejdsdage har (BB-365). */
+  /** En arbejdsdags-periodiseret række, hvis periode ingen arbejdsdage har. */
   ingenArbejdsdage: boolean;
 }>;
 
@@ -30,8 +30,8 @@ export const deriveOffentligeYdelserRow = (row: OffentligeYdelserRow): Offentlig
   });
   if (periodiseringsdage === null || fra === undefined || til === undefined) return uden;
   // Samme fald-tilbage som beregningen (periodisering-contract.md §3A): en arbejdsdags-periodiseret ydelse i en ren
-  // weekend fordeles på fald-tilbage-dagene og medregnes fuldt. Før stod dagkolonnerne tomme – det tegn, tabellen
-  // ellers bruger for en række, der IKKE regnes – mens beregningen trak hele beløbet fra (BB-365; lønnens BB-292).
+  // weekend fordeles på fald-tilbage-dagene og medregnes fuldt. Dagkolonnerne må derfor ikke stå tomme – det tegn,
+  // tabellen ellers bruger for en række, der IKKE regnes.
   const ingenArbejdsdage = periodiseringsdage === 0 && config.periodisering !== 'kalenderdage';
   const antalDage = ingenArbejdsdage
     ? buildFallbackAllocationDaysForInterval({ fra, til }).size

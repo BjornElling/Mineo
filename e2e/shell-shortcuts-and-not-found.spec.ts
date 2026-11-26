@@ -1,19 +1,19 @@
 import { expect, login, openPage, setFieldValue, setFieldValueAndSettle, test } from './support/mineoTest';
 
-// Shellens tre browser-afhængige forhold fra brugerblikket på global shell (BB-050, BB-054, BB-057).
+// Shellens tre browser-afhængige forhold.
 //
 // De ligger i e2e og ikke i jsdom, fordi de hver især kræver noget, jsdom ikke har:
 //
-//  - **BB-054** frigiver BROWSERENS egen tekstfortrydelse i et åbent felt. jsdom har ingen
+//  - **Fortrydelse i et åbent felt** frigiver BROWSERENS egen tekstfortrydelse i et åbent felt. jsdom har ingen
 //    tekstfortrydelse, så den eneste måde at se virkningen er en rigtig browser.
-//  - **BB-050** er dækket af mutationstestede jsdom-værn, men netop tastatur-ejerskab er det, kontrakten
+//  - **Overlayets Ctrl+Z** er dækket af mutationstestede jsdom-værn, men netop tastatur-ejerskab er det, kontrakten
 //    kræver målt i en rigtig browser (`keyboard-navigation.md`: tab-fangst kan jsdom ikke se). Den
 //    fulde brugerrejse – felt, dialog, tastetryk – hører derfor også her.
-//  - **BB-057** er en side, der først findes efter login og kun på desktop. Rejsen dertil kan kun gås
+//  - **404-siden** er en side, der først findes efter login og kun på desktop. Rejsen dertil kan kun gås
 //    igennem gaten.
 
 test.describe('Shellens genveje og 404-siden', () => {
-  test('overlayet ejer Ctrl+Z, så sagen bag dialogen ikke ændrer sig (BB-050)', async ({ page, runtimeErrors }) => {
+  test('overlayet ejer Ctrl+Z, så sagen bag dialogen ikke ændrer sig', async ({ page, runtimeErrors }) => {
     await login(page);
     await openPage(page, 'Renteberegning');
 
@@ -29,8 +29,8 @@ test.describe('Shellens genveje og 404-siden', () => {
 
     await page.keyboard.press('Control+z');
 
-    // Dialogen står uændret, OG feltet bagved er urørt. Før rettelsen blev feltet ryddet bag dialogen,
-    // mens dialogen blev stående og spurgte uændret om noget andet.
+    // Dialogen står uændret, OG feltet bagved er urørt – feltet må ikke ryddes bag en dialog, der
+    // står og spørger om noget andet.
     await expect(dialog).toBeVisible();
     await expect(date).toHaveValue('01-01-2026');
 
@@ -43,7 +43,7 @@ test.describe('Shellens genveje og 404-siden', () => {
     expect(runtimeErrors).toEqual([]);
   });
 
-  test('browserens egen fortrydelse virker i et åbent felt (BB-054)', async ({ page, runtimeErrors }) => {
+  test('browserens egen fortrydelse virker i et åbent felt', async ({ page, runtimeErrors }) => {
     await login(page);
     await openPage(page, 'Renteberegning');
 
@@ -56,15 +56,15 @@ test.describe('Shellens genveje og 404-siden', () => {
     await page.keyboard.press('Control+z');
 
     // Programmets egen fortrydelse er bevidst uvirksom her – den har præcis én funktion, at føre den
-    // seneste AFSLUTTEDE feltændring tilbage. Men tasten SPÆRRES ikke længere, så browseren kan bruge
-    // den til det, den bruges til i ethvert andet tekstfelt: at fortryde tegnene i feltet. Før
-    // rettelsen skete INGEN af de to ting, og brugeren stod med en tast, der ikke gjorde noget.
+    // seneste AFSLUTTEDE feltændring tilbage. Men tasten SPÆRRES ikke, så browseren kan bruge den
+    // til det, den bruges til i ethvert andet tekstfelt: at fortryde tegnene i feltet. Ellers står
+    // brugeren med en tast, der ikke gør noget.
     await expect(date).not.toHaveValue('02-02-2026');
 
     expect(runtimeErrors).toEqual([]);
   });
 
-  test('404-siden beholder sidemenuen og oplyser, at sagen er uændret (BB-057)', async ({ page, runtimeErrors }) => {
+  test('404-siden beholder sidemenuen og oplyser, at sagen er uændret', async ({ page, runtimeErrors }) => {
     await login(page);
     await openPage(page, 'Stamdata');
 
@@ -87,7 +87,7 @@ test.describe('Shellens genveje og 404-siden', () => {
     expect(runtimeErrors).toEqual([]);
   });
 
-  test('en ukendt adresse kommer ikke ind bag login (BB-057)', async ({ page }) => {
+  test('en ukendt adresse kommer ikke ind bag login', async ({ page }) => {
     // Brugerens betingelse for at acceptere en dedikeret 404-side. Rutetræet ligger inde i den gatede
     // `App`, så catch-all'en rammer login-siden præcis som en kendt adresse gør.
     //

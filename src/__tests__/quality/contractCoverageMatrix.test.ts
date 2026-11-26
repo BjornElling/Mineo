@@ -501,11 +501,8 @@ describe('contract linkage matrix', () => {
    * To autoritative lister over samme forhold skal stemme overens.
    *
    * Fem kontrakter har et eget `Testkobling`-afsnit, som navngiver deres testsuiter – samtidig med at
-   * `COVERAGE_MATRIX` her gør præcis det samme. Ingen kontrol sammenholdt dem, og de var faktisk
-   * uenige: `app-shell-contract.md` §4 navngav tre suiter (`pwaHeaders.test.ts`,
-   * `responsiveStylingRules.ts`, `verify-build-artifacts.mjs`), som matrixen ikke kendte;
-   * `auth-gate-contract.md` og `calculation-data-contract.md` hver én. Alle filerne fandtes – så
-   * uenigheden var ikke en død reference, men det værre tilfælde: to lister, en læser kunne slå op i og
+   * `COVERAGE_MATRIX` her gør præcis det samme. Uden en kontrol kan de blive uenige, selv om alle
+   * filerne findes – ikke en død reference, men det værre tilfælde: to lister, en læser kan slå op i og
    * få forskellige svar. Det er samme fejlklasse, som når topologien og AGENTS.md giver
    * forskellig kontraktprioritet.
    *

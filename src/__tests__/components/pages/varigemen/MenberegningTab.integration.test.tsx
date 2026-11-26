@@ -191,8 +191,8 @@ describe('MenberegningTab – reader-projektion + download-gate', () => {
  *     samme besked, og
  *  2. den findes som ikonets tilgængelige navn (MUI's `Tooltip` sætter `aria-label` på den disablede knap).
  *
- * Andre rækker (fx satsrækken) må gerne vise samme universelle tekst synligt – det er efter udviklerbeslutning
- * 2026-08-20 (BB-065) den TILSIGTEDE måde de skelner mellem "mangler" og "fejl" i deres egen lånte værdi, og
+ * Andre rækker (fx satsrækken) må gerne vise samme universelle tekst synligt – det er bevidst
+ * den TILSIGTEDE måde de skelner mellem "mangler" og "fejl" i deres egen lånte værdi, og
  * er en anden linje end resultatrækken denne test pinner.
  */
 describe('MenberegningTab – gate-årsagen vises kun i tooltippet', () => {
@@ -215,10 +215,10 @@ describe('MenberegningTab – gate-årsagen vises kun i tooltippet', () => {
   });
 
   /**
-   * En méngrad uden for 5..120 er en RØD feltfejl, ikke en manglende indtastning – og efter brugerkravet
-   * 2026-07-30 skal de to blokeringer sige noget FORSKELLIGT: "Fejl i indtastning" mod "Indtastning mangler".
-   * Tidligere kollapsede de til én universel tekst, så knappen svarede "Indtastning mangler" på et felt, der
-   * var udfyldt – bare forkert.
+   * En méngrad uden for 5..120 er en RØD feltfejl, ikke en manglende indtastning – og de to
+   * blokeringer skal sige noget FORSKELLIGT: "Fejl i indtastning" mod "Indtastning mangler". Kollapsede de
+   * til én universel tekst, ville knappen svare "Indtastning mangler" på et felt, der er udfyldt – bare
+   * forkert.
    *
    * Testen asserter begge retninger (den viser den nye tekst OG ikke den gamle), fordi en assertion på kun
    * den nye ville være grøn, hvis begge tekster stod der. Ét-kanal-invarianten fra klassen ovenfor gælder
@@ -247,9 +247,9 @@ describe('MenberegningTab – gate-årsagen vises kun i tooltippet', () => {
   /**
    * «Mangler (angiv i Stamdata)» skal PEGE på feltet – ikke kun skifte side.
    *
-   * Linkene navigerede tidligere blot til Stamdata og efterlod brugeren dér uden anvisning, selv om det er
-   * den reneste form for «en indtastning mangler»: feltet findes, det er blot tomt. Blokerings-feedbacken
-   * havde samme mangel, og skadedato-grenen returnerede endda uden at gøre noget som helst.
+   * Navigerede linkene blot til Stamdata, stod brugeren dér uden anvisning, selv om det er
+   * den reneste form for «en indtastning mangler»: feltet findes, det er blot tomt. Det samme gælder
+   * blokerings-feedbacken, også skadedato-grenen.
    *
    * Testen hævder, at den DELTE markeringsvej kaldes med præcis det stamdata-felt, rækken handler om.
    * Selve blinket er dækket af `scrollToFieldAddress`-/blink-testene og af e2e; her er påstanden
@@ -276,18 +276,17 @@ describe('MenberegningTab – gate-årsagen vises kun i tooltippet', () => {
   });
 
   /**
-   * BB-069: et klik på en (endnu) AKTIV downloadknap, mens méngrad har en åben draft med en ugyldig
+   * Et klik på en (endnu) AKTIV downloadknap, mens méngrad har en åben draft med en ugyldig
    * værdi. Knappens gate læser render-tidens tilstand og er derfor stadig aktiv i det øjeblik brugeren
-   * klikker – en åben draft ændrer bevidst ikke gaten. Der var TO fejl i samspil:
+   * klikker – en åben draft ændrer bevidst ikke gaten. To mekanismer skal virke i samspil:
    *
    *  1. Museklikkets `mousedown` flytter native fokus til knappen og blurrer det åbne draft-felt FØR
    *     `click` affyres. Blur committer draften synkront, méngrad bliver rødt, og knappen bliver
    *     `disabled` – FØR click-eventet når frem. En disabled `<button>` fyrer intet `onClick`, så
-   *     klikket forsvandt helt. Rettet med `onMouseDown={(e) => e.preventDefault()}` på selve
+   *     klikket ville forsvinde helt. Derfor `onMouseDown={(e) => e.preventDefault()}` på selve
    *     downloadknappen (lokalt for denne flade), som bevarer fokus på draft-feltet til click rammer.
-   *  2. Selve fokus-feedbacken læste closure-værdier fra renderet FØR settle og fandt derfor intet
-   *     blokerende felt. Rettet ved at læse en FRISK evaluering (`readPort.getEvaluation()`) taget
-   *     EFTER settle.
+   *  2. Closure-værdier fra renderet FØR settle viser intet blokerende felt. Fokus-feedbacken læser
+   *     derfor en FRISK evaluering (`readPort.getEvaluation()`) taget EFTER settle.
    *
    * Begge dele skal virke sammen, før méngrad-feltet korrekt får fokus og blink.
    */

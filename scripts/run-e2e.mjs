@@ -15,7 +15,7 @@ import process from 'node:process';
  *     oprydning fejler den næste kørsel øjeblikkeligt med «port already used».
  *
  * Ukendte argumenter sendes videre til Playwright, så `npm run test:e2e -- --project=firefox-desktop`
- * og `-- e2e/mineo-smoke.spec.ts` virker som før.
+ * og `-- e2e/mineo-smoke.spec.ts` virker som ved et direkte Playwright-kald.
  */
 
 const argv = process.argv.slice(2);

@@ -12,7 +12,7 @@ export type StoreBededagstillaegValg = Readonly<{
 /**
  * Load-migreringens værdi for en ældre fil UDEN togglen: hidtil beregnedes tillægget netop ved almindelig løn på
  * helligdage, så det er den kompatibilitetsbevarende værdi. Et NYT kort får altid `true`
- * (`createDefaultLoenindkomstAnsaettelsesforhold`, BB-281).
+ * (`createDefaultLoenindkomstAnsaettelsesforhold`).
  */
 export const resolveDefaultStoreBededagstillaeg = (loenPaaHelligdage: string | undefined): boolean =>
   loenPaaHelligdage === LOEN_PAA_HELLIGDAGE.ALMINDELIG;
@@ -43,13 +43,13 @@ export const harStoreBededagstillaegIInterval = (
 /**
  * Hvornår der SÆDVANLIGVIS er krav på tillægget – og dermed grund til at advare, når det er fravalgt.
  *
- * Den juridiske præmis (udvikleren, 2026-10-02; se `indskudte-loentillaeg-contract.md` §2b):
+ * Den juridiske præmis (se `indskudte-loentillaeg-contract.md` §2b):
  * - Store Bededag blev afskaffet som helligdag fra 1. januar 2024. Den, der får **samme løn uanset antallet af
  *   arbejdsdage** – angivet månedsløn, eller en beregningsperiode med almindelig (fuld) løn på helligdage – arbejder
  *   nu én dag mere for samme løn og kompenseres med tillægget på 0,45 %.
  * - Den, der aflønnes med en **angivet dagsløn**, får løn for de dage, der arbejdes. Store Bededag er fra 2024 en
  *   arbejdsdag i TAF-perioden (`shDageBeregning.ts`), så dagen kompenseres allerede gennem antallet af
- *   arbejdsdage, og der er **aldrig** krav på tillægget. Advarslen tier derfor ved angivet dagsløn (BB-267).
+ *   arbejdsdage, og der er **aldrig** krav på tillægget. Advarslen tier derfor ved angivet dagsløn.
  */
 export const kanDerVaereKravPaaStoreBededagstillaeg = (
   beregnesUdFra: Beregningsmetode | undefined,

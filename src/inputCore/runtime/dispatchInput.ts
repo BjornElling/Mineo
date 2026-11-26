@@ -164,8 +164,8 @@ const isUsableAnchorString = (value: unknown): boolean =>
  * halv adresse ville først fejle DÉR – langt fra fejlkilden.
  *
  * Validerer mod `fieldAddressSchema`, som er den KANONISKE adresseform (samme skema `serializeFieldAddress`
- * parser med). En håndrullet tjek-liste ville drifte: en tidligere udgave godtog fx `path: [{}]`, fordi den
- * kun tjekkede at `path` var et array – ikke segmenternes form.
+ * parser med). En håndrullet tjek-liste ville drifte: den kunne fx godtage `path: [{}]`, hvis den kun
+ * tjekkede, at `path` er et array – ikke segmenternes form.
  */
 const isUsableFieldAddress = (address: unknown): boolean =>
   fieldAddressSchema.safeParse(address).success;

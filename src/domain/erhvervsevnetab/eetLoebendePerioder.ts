@@ -58,7 +58,7 @@ type AfgoerelseTransition = Readonly<{
   calculateOverlap: boolean;
   cutoverDate: ISODateString;
   skaeringsDato: ISODateString | null;
-  /** Afgørelsesdatoen for en tilbageholdt forgænger, hvis ydelse derfor ikke fratrækkes (BB-408). */
+  /** Afgørelsesdatoen for en tilbageholdt forgænger, hvis ydelse derfor ikke fratrækkes. */
   tilbageholdtForgaenger: ISODateString | null;
 }>;
 
@@ -454,7 +454,7 @@ export const buildLoebendePeriodeplan = (
     if (nextStopDate) finalCandidates.push({ date: nextStopDate, cause: 'senere-afgoerelse' });
     if (folkepensionsDagFoer) finalCandidates.push({ date: folkepensionsDagFoer, cause: 'folkepensionsdato' });
     // En endelig afgørelse i toårsvinduet giver ingen løbende ydelse i selve vinduet,
-    // heller ikke når brugeren angiver en senere kapitaliseringsdato (udviklerafklaring 2026-11-13).
+    // heller ikke når brugeren angiver en senere kapitaliseringsdato.
     const toAarsreglensSidsteYdelsesdag = resolveToAarsreglensSidsteYdelsesdag(current, skadedato, fodselsdato);
     if (toAarsreglensSidsteYdelsesdag) finalCandidates.push({ date: toAarsreglensSidsteYdelsesdag, cause: 'to-aarsgraense' });
     if (!hasRestSection && dayBeforeKapitalisering) {

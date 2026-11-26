@@ -8,11 +8,10 @@ import { toRepoRelativePath } from './testUtils';
 /**
  * Værn mod platform-antagelser i `scripts/` – den ene mappe, hvis fejl først viser sig i CI.
  *
- * Baggrund: `check-tool-isolation.mjs` læste `node_modules/.bin/playwright` med `readFileSync`.
- * På Windows er den indgang en shim-FIL, hvis indhold nævner pakkestien, så alt så rigtigt ud
- * lokalt. På Linux – CI's platform – er den samme indgang et SYMLINK; `readFileSync` fulgte det
- * og læste Playwrights egen `cli.js`, hvor mønsteret intet fandt. Resultatet var en rød CI med
- * «peger på et ukendt sted», selv om afhængighedsgrafen var fuldstændig i orden.
+ * Baggrund: læses `node_modules/.bin/playwright` med `readFileSync`, ser alt rigtigt ud på Windows,
+ * hvor indgangen er en shim-FIL, hvis indhold nævner pakkestien. På Linux – CI's platform – er den samme
+ * indgang et SYMLINK; `readFileSync` følger det og læser Playwrights egen `cli.js`, hvor mønsteret intet
+ * finder. Resultatet er en rød CI, selv om afhængighedsgrafen er fuldstændig i orden.
  *
  * Hele `verify:release:core` køres lokalt kun på Windows, så den slags divergens er usynlig
  * indtil push. Reglen her gør den strukturel: rører et script `node_modules/.bin`, skal det

@@ -59,7 +59,7 @@ export type AarsloenDocumentInput = Readonly<{
     pensionPct: number | undefined;
   }>;
   loenperiode: Loenperiode;
-  /** Overenskomst og satsdato, når satserne er overenskomstens (BB-355). */
+  /** Overenskomst og satsdato, når satserne er overenskomstens. */
   satsKilde: AarsloenSatsKilde | null;
   tillaegAngivesSom: ReturnType<typeof resolveAarsloenTillaegsMode>;
   tableData: AarsloenValues['tableData'];

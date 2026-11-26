@@ -202,12 +202,12 @@ const buildIndexFormulaDisplay = (
 /**
  * Overskriften over pakkens grundløn. Enheden læses fra reguleringsbeviset, som producenten har mærket med
  * satsens egen enhed («Ansættelse» ved offentlig overenskomst, overenskomstens `grundloenAngivetPer` ved
- * privat). Den må ikke udledes igen af TAF-enheden: en offentlig månedsløn med TAF i arbejdsdage stod
- * tidligere som «Timeløn» (fund C5).
+ * privat). Den må ikke udledes igen af TAF-enheden: en offentlig månedsløn med TAF i arbejdsdage ville
+ * da stå som «Timeløn».
  *
  * Uden satsenhed («Manuelt angivet», hvor brugeren taster grundlønnen uden enhed) hedder kolonnen
  * «Grundløn» som på skærmen. Programmet ved ikke, om beløbet er en time- eller månedsløn; overskriften
- * efter TAF-enheden påstod det alligevel (BB-309).
+ * efter TAF-enheden ville påstå det alligevel.
  */
 const resolveReguleringsvaerdierLoenHeader = (
   segments: readonly LoenudviklingSegment[] | undefined
@@ -227,7 +227,7 @@ const resolveReguleringsvaerdierLoenHeader = (
 const REGULERINGSVAERDIER_FRA_DATO_HEADER = 'Fra-dato';
 /**
  * Kolonneoverskrifterne for Store Bededagstillæg og arbejdsgivers pension – samme navne som dokumenternes
- * øvrige tabeller (BB-309). Eksporteret af samme grund som feriesatsens navn nedenfor: højrejusteringen i
+ * øvrige tabeller. Eksporteret af samme grund som feriesatsens navn nedenfor: højrejusteringen i
  * UI og PDF matcher på overskriftsstrengen.
  */
 export const REGULERINGSVAERDIER_STORE_BEDEDAG_HEADER = 'Store Bededagstillæg';
@@ -410,8 +410,8 @@ const buildEvaluatedPackageTable = (params: Readonly<{
       formatDateShort(date), wageSupplement !== undefined && wageSupplement > 0 && wageBaseValue !== undefined
         ? `${formatCurrency(wageBaseValue)} (+ ${formatCurrency(wageSupplement)} kr.)`
         : formatCurrency(components.baseValue),
-      // Alle former viser satserne med to decimaler – før stod en overenskomstsats som «12,5 %» og samme
-      // sats under «Manuelt angivet» som «12,50 %» (BB-318).
+      // Alle former viser satserne med to decimaler, så samme sats ikke står som «12,5 %» under én form
+      // og «12,50 %» under en anden.
       ...visibleColumns.map(([key]) => formatPercentCellFromRaw(components[key])),
     ]), { preserveFirstColumnValues: buildPreservedDateLabels(params.anvendtReguleringsdato) }),
     tidligsteSatsGaelderFra: resolveTidligsteSatsGaelderFra(firstDate, params.anvendtReguleringsdato),
@@ -595,7 +595,7 @@ export const buildReguleringIndexRows = (params: Readonly<{
       loenudvikling = bevis.periodePct === undefined ? '' : `${formatAsAmount(bevis.periodePct, 2)} %`;
     } else {
       // Indekset og procenten viser den faktor, der faktisk anvendes efter formens afrunding.
-      // Før blev de genberegnet fra en separat inputprojektion, mens beløbet brugte en anden.
+      // De genberegnes ikke fra en separat inputprojektion: så kunne de afvige fra beløbet.
       indeks = formatIndexValue(100 + bevis.appliedDeltaPct);
       loenudvikling = isEffectivelyZero(bevis.appliedDeltaPct) ? ''
         : `${bevis.appliedDeltaPct > 0 ? '+ ' : '- '}${formatAsAmount(Math.abs(bevis.appliedDeltaPct), 2)} %`;

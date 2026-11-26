@@ -56,7 +56,7 @@ describe('createManualLoadSource – capability og fallback', () => {
     restorePickerCapabilities();
   });
 
-  // TD-017: Ved den faktiske Hent-grænse skal fallbacken vælges, når open-picker-værdien
+  // Ved den faktiske Hent-grænse skal fallbacken vælges, når open-picker-værdien
   // ikke er en funktion.
   it.each([
     ['showOpenFilePicker', undefined],

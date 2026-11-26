@@ -2,7 +2,7 @@
 /// <reference types="vitest/globals" />
 
 /**
- * NÅBARHEDS-PRØVE for dokument-lagets pladsholdere (brugerregel 2026-08-07).
+ * NÅBARHEDS-PRØVE for dokument-lagets pladsholdere.
  *
  * Reglen: et dokument må ALDRIG kunne dannes med en fejl i indholdet. En manglende eller
  * ubrugelig værdi skal blokere download, ikke blive til «Fejl (…)», «—» eller et substitueret
@@ -115,7 +115,7 @@ const buildAngivetMaanedsloenCase = (
   };
 };
 
-describe('nåbarhed: «Fejl (…)» i Beregningsgrundlag (kortlægningens A1)', () => {
+describe('nåbarhed: «Fejl (…)» i Beregningsgrundlag', () => {
   it('BLOKERET: et tomt «Månedslønnen udgør» blokerer download frem for at nå dokumentet', () => {
     const blocked = gatesFor(buildAngivetMaanedsloenCase(undefined));
 
@@ -144,7 +144,7 @@ describe('nåbarhed: «Fejl (…)» i Beregningsgrundlag (kortlægningens A1)', 
   });
 });
 
-describe('nåbarhed: «—» som Beregnet krav og som «I alt» (kortlægningens A4/A5)', () => {
+describe('nåbarhed: «—» som Beregnet krav og som «I alt»', () => {
   /**
    * `opgoerelseSection` har to grene, der skriver «—» i stedet for et beløb: den bolde
    * «Beregnet krav ..... —» og «I alt ..... —» med sumstreg over. Begge udløses af, at en af
@@ -186,14 +186,13 @@ describe('nåbarhed: «—» som Beregnet krav og som «I alt» (kortlægningens
   });
 });
 
-describe('nåbarhed: droppet øvrige-krav-række vs. totalen (kortlægningens A12)', () => {
+describe('nåbarhed: droppet øvrige-krav-række vs. totalen', () => {
   /**
-   * `buildOevrigeKravModel` sprang tidligere en række over, hvis dato ELLER beskrivelse var tom – men
-   * `parsed.totalOre` summerer ALLE rækker. En droppet række efterlod derfor en «I alt», der ikke kunne
-   * afstemmes med posterne ovenfor, og kun validatorens «Dato mangler» holdt den ude af en dannet fil.
+   * `parsed.totalOre` summerer ALLE rækker. Springer `buildOevrigeKravModel` en række over, fordi dato
+   * eller beskrivelse er tom, efterlader det en «I alt», der ikke kan afstemmes med posterne ovenfor.
    *
-   * Datoen er nu valgfri (udviklerafgørelse 2026-09-23, BB-229). Prøven vender derfor: en udateret række
-   * kan hentes, og den SKAL da stå på listen, så totalen er summen af posterne.
+   * Datoen er valgfri, så en udateret række kan hentes, og den SKAL da stå på listen, så totalen er
+   * summen af posterne.
    */
   const buildOevrigeKravCase = (dato: string | undefined): ErstatningsopgoerelseValues => {
     const base = createErstatningsopgoerelseInitialValues();
@@ -229,7 +228,7 @@ describe('nåbarhed: droppet øvrige-krav-række vs. totalen (kortlægningens A1
   });
 });
 
-describe('nåbarhed: det slugende catch i regulerings-bilaget (kortlægningens A6)', () => {
+describe('nåbarhed: det slugende catch i regulerings-bilaget', () => {
   /**
    * `eoBilagSections` fanger ALT fra `buildOffentligeYdelserReguleringTableData` og skriver
    * «…fordi en nødvendig reguleringssats mangler» – en gættet diagnose, der kasserer den
@@ -267,7 +266,7 @@ describe('nåbarhed: det slugende catch i regulerings-bilaget (kortlægningens A
   });
 });
 
-describe('nåbarhed: substitueret nul i «Samlet»-kolonnen (kortlægningens A7)', () => {
+describe('nåbarhed: substitueret nul i «Samlet»-kolonnen', () => {
   /**
    * `amountValueToNumber` returnerer `undefined` BÅDE for et tomt felt og for et beløbsudtryk,
    * hvis værdi ikke er finit. I offentligeYdelserSection bliver det til `?? 0` og lægges sammen i

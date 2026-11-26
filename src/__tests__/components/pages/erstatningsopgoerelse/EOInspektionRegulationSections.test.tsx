@@ -136,7 +136,7 @@ describe('EOInspektionRegulationSections - Phase 4.5 UI', () => {
   });
 
   // Kun «Dato» omdøbes. Lønkolonnen bærer sit navn fra præsentationen; «Grundløn» må ikke blive til
-  // «Timeløn»/«Månedsløn», fordi enheden ikke kendes ved «Manuelt angivet» (BB-309).
+  // «Timeløn»/«Månedsløn», fordi enheden ikke kendes ved «Manuelt angivet».
   it('omdøber kun Dato til Fra-dato og beholder Grundløn', () => {
     const sections: RegulationInspektionSection[] = [
       {

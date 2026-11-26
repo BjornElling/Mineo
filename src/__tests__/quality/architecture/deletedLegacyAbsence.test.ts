@@ -168,10 +168,10 @@ describe('slettet legacy er faktisk fraværende (fraværsreglernes modstykke)', 
   /**
    * NAVNEUAFHÆNGIG facade-detektion.
    *
-   * Kontrollen ovenfor leder efter `@deprecated` og efter `Legacy`/`Compat` i EKSPORTNAVNE. Den kunne
-   * derfor ikke se de interne facader, der faktisk fandtes: tre filer, som selv erklærede deres formål i en
-   * kommentar ("Compat wrapper", "så eksisterende imports er uændrede", "for bagudkompatibilitet"),
-   * men eksporterede neutralt navngivne symboler videre fra det kanoniske modul.
+   * Kontrollen ovenfor leder efter `@deprecated` og efter `Legacy`/`Compat` i EKSPORTNAVNE. Den kan
+   * derfor ikke se en intern facade, der erklærer sit formål i en kommentar ("Compat wrapper", "så
+   * eksisterende imports er uændrede", "for bagudkompatibilitet"), men eksporterer neutralt navngivne
+   * symboler videre fra det kanoniske modul.
    *
    * Denne kontrol måler STRUKTUREN i stedet for navnet: en ikke-barrel-fil, hvis hele offentlige flade
    * består af `export … from`, tilføjer ingen betydning – den holder kun gamle importstier i live.

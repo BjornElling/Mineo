@@ -12,7 +12,7 @@ import { faellesAarsloenAslAarsloenField } from '../../inputCore/catalog/faelles
 import { stamdataSkadedatoField } from '../../inputCore/catalog/stamdataDescriptors';
 import type { EetIssue } from '../erhvervsevnetab/eetTypes';
 
-// Forsørgertabs beregningsafvisende issues → den FELTADRESSE, brugeren skal rette (BB-117).
+// Forsørgertabs beregningsafvisende issues → den FELTADRESSE, brugeren skal rette.
 //
 // Baggrund, som koden ikke selv afslører: ASL-motoren producerer feltløse `EetIssue`s – `{ id, severity,
 // message }` uden nogen adresse. Et af dem, `forsoergertab-alder-missing`, opstod hver gang den efterladte
@@ -93,7 +93,7 @@ const ISSUE_FIELDS: Readonly<Record<string, (resolveLabel: ForsoergertabFieldLab
 
 /**
  * De issue-ID'er, der har en feltadresse. Eksporteret, så testen kan holde motorens faktiske issue-katalog
- * op mod denne tabel – et nyt tavst issue er præcis den regression, BB-117 var.
+ * op mod denne tabel – et nyt issue uden feltadresse ville være tavst for brugeren.
  */
 export const FORSOERGERTAB_FIELD_BOUND_ISSUE_IDS: readonly string[] = Object.keys(ISSUE_FIELDS);
 

@@ -36,7 +36,7 @@ const stamdata: StamdataValues = {
   skadelidteFodselsdato: toISODateString('1980-01-01'),
 };
 
-// Tabellen vises kun ved kravvalget «Ja»; ellers er cellerne skjulte og dermed ikke udfyldt (BB-228).
+// Tabellen vises kun ved kravvalget «Ja»; ellers er cellerne skjulte og dermed ikke udfyldt.
 const eoWith = (rows: OevrigeKravRow[]): ErstatningsopgoerelseValues => ({
   ...createErstatningsopgoerelseInitialValues(),
   kravPaaOevrigeErstatningskrav: 'Ja',
@@ -95,7 +95,7 @@ describe('OevrigeKravTable', () => {
     expect(within(bodyRows[0]).getByDisplayValue('Medicin')).toBeInTheDocument();
   });
 
-  it('giver en dato uden for opgørelsens periode en gul, ikke-blokerende ring (BB-235)', () => {
+  it('giver en dato uden for opgørelsens periode en gul, ikke-blokerende ring', () => {
     const rows: OevrigeKravRow[] = [
       { id: 'ok-1', dato: toISODateString('2022-05-01'), udgiftTil: 'Medicin', beloeb: asAmount(1500) },
       { id: 'ok-2', dato: toISODateString('2023-02-01'), udgiftTil: 'Transport', beloeb: asAmount(100) },
@@ -130,7 +130,7 @@ describe('OevrigeKravTable', () => {
     expect(read.status).toBe('error');
   });
 
-  it('et beløb på 0 kr. er rødt med sin egen tooltip-tekst (BB-232)', () => {
+  it('et beløb på 0 kr. er rødt med sin egen tooltip-tekst', () => {
     const reader = buildReader(
       eoWith([{ id: 'ok-1', dato: toISODateString('2022-05-01'), udgiftTil: 'Medicin', beloeb: asAmount(0) }]),
       stamdata
@@ -138,12 +138,12 @@ describe('OevrigeKravTable', () => {
     const read = reader.read(eoOevrigeKravBeloebField.bind('ok-1'));
     expect(read.status).toBe('error');
     if (read.status !== 'error') return;
-    // Eksklusiv nedre bounds-grænse (NY-12c-4); `bounds` vises ordret i tooltippet ligesom `rule`.
+    // Eksklusiv nedre bounds-grænse; `bounds` vises ordret i tooltippet ligesom `rule`.
     expect(read.issue.reason).toBe('bounds');
     expect(read.issue.message).toBe('Beløbet skal være større end 0 kr.');
   });
 
-  it('et negativt udtryksresultat får samme besked som 0 – ikke «0 kr. eller højere» (NY-12c-4)', () => {
+  it('et negativt udtryksresultat får samme besked som 0 – ikke «0 kr. eller højere»', () => {
     const reader = buildReader(
       eoWith([{
         id: 'ok-1',
@@ -159,7 +159,7 @@ describe('OevrigeKravTable', () => {
     expect(read.issue.message).toBe('Beløbet skal være større end 0 kr.');
   });
 
-  it('en skjult celle er ikke udfyldt og bliver ikke rød (BB-228)', () => {
+  it('en skjult celle er ikke udfyldt og bliver ikke rød', () => {
     const reader = buildReader(
       { ...eoWith([{ id: 'ok-1', dato: toISODateString('2021-01-01'), udgiftTil: 'Medicin', beloeb: asAmount(0) }]), kravPaaOevrigeErstatningskrav: 'Skjul' },
       stamdata

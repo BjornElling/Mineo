@@ -14,9 +14,9 @@ import { useDialogFocusRestore } from './useDialogFocusRestore';
  * **Hvad hooken ejer**
  *
  *  1. **Escape lukker** – men kun det ØVERSTE overlay, så to lag ikke lukker på ét tryk.
- *  2. **Musens/browserens tilbage-knap lukker** (brugerkrav 2026-08-15). Uden dette navigerede
- *     tilbage-knappen SIDEN væk under et åbent vindue: målt gik `/mineo` → `/mineo/stamdata` med
- *     licensvinduet åbent, så brugeren mistede både vinduet og sin plads.
+ *  2. **Musens/browserens tilbage-knap lukker**. Uden dette navigerer
+ *     tilbage-knappen SIDEN væk under et åbent vindue (fx `/mineo` → `/mineo/stamdata` med
+ *     licensvinduet åbent), så brugeren mister både vinduet og sin plads.
  *  3. **Fokus-restore ved lukning** – videredelegeret til `useDialogFocusRestore`, som fortsat er den
  *     ene implementering (`keyboard-navigation.md` §Popup-fokus-restore). Hooken erstatter den ikke;
  *     den samler den med resten, så en flade kun har ét sted at hente hele adfærden.
@@ -27,7 +27,7 @@ import { useDialogFocusRestore } from './useDialogFocusRestore';
  *
  * **Tilbage-knappen og historikken.** Et åbent overlay skubber ét `history`-trin. Lukkes overlayet ad
  * en anden vej (Escape, X, backdrop), fjernes trinnet igen, så historikken ikke vokser med et dødt
- * trin pr. åbning. Udviklerbeslutning 2026-08-15: ét tilbage-tryk lukker ét overlay, og først når der
+ * trin pr. åbning. Bevidst valg: ét tilbage-tryk lukker ét overlay, og først når der
  * ikke er flere åbne, går tilbage til forrige side.
  */
 export type UseOverlayBehaviorOptions<TTrigger extends HTMLElement = HTMLElement> = Readonly<{

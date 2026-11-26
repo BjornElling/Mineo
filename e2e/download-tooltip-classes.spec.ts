@@ -3,14 +3,14 @@ import { type Locator } from '@playwright/test';
 import { expect, login, openPage, setFieldValueAndSettle, setVerbatimFieldValueAndSettle, test } from './support/mineoTest';
 
 /**
- * Download-knappens tooltip: de tre brugerrettede klasser (udviklerbeslutning 2026-08-13).
+ * Download-knappens tooltip: de tre brugerrettede klasser (bevidst valg).
  *
  *  (a) Fejlen står i sidens fejl-/advarselsboks → «Opgørelse kan ikke hentes, når der er fejl ovenfor»
  *  (b) Et rødt felt blokerer                    → «Fejl i indtastning»
  *  (c) Et påkrævet felt er TOMT                 → «Indtastning mangler»
  *
- * Testen findes, fordi de tre tidligere kunne kollapse: en side kunne svare «Indtastning mangler» på et
- * felt, der var udfyldt med en ugyldig værdi, og Renteberegning viste gate-INTERNE strenge direkte. Kun en
+ * De tre må ikke kollapse: en side må ikke svare «Indtastning mangler» på et felt, der er udfyldt med en
+ * ugyldig værdi, og Renteberegning må ikke vise gate-INTERNE strenge direkte. Kun en
  * browsertest ser den faktiske tooltip, brugeren læser – unit-testene hævder gate-klassen, ikke DOM'en.
  *
  * Den dækker samtidig, at dokumentaffordancen BLIVER stående på en blokeret revision: en skjult knap gør en
@@ -131,12 +131,12 @@ test.describe('Download-tooltip – de tre klasser', () => {
   });
 
   /**
-   * Brugerfundet 2026-08-15, målt fra brugerens side af skærmen.
+   * Målt fra brugerens side af skærmen.
    *
-   * En lønrække med komplet periode (`11`/`2012`) og INTET beløb blokerede downloaden med «Fejl i
-   * indtastning». Det er en ren mangel: brugeren blev sendt ud at lede efter en ugyldig værdi, der ikke
-   * fandtes. Årsagen var, at gaten kollapsede HELE tabelvalideringen til én hardkodet klasse, selv om
-   * `TableError.issue` allerede skelnede `invalid` fra `partial_period`/`missing_amount`.
+   * En lønrække med komplet periode (`11`/`2012`) og INTET beløb er en ren mangel og skal blokere med
+   * «Indtastning mangler», ikke «Fejl i indtastning» – ellers sendes brugeren ud at lede efter en ugyldig
+   * værdi, der ikke findes. Gaten må derfor ikke kollapse tabelvalideringen til én klasse; den skal følge
+   * `TableError.issue`, der skelner `invalid` fra `partial_period`/`missing_amount`.
    *
    * Testen måler BEGGE retninger i samme flow – mangel, gyldig, ugyldig – så en rettelse, der blot bytter
    * om på de to tekster, ikke kan være grøn.
@@ -159,7 +159,7 @@ test.describe('Download-tooltip – de tre klasser', () => {
     // Tom tabel → intet at hente, og der mangler indtastning.
     await expectDisabledDownloadTooltip(download, MISSING_INPUT);
 
-    // (c) Brugerfundets tilstand: komplet periode, intet beløb.
+    // (c) Komplet periode, intet beløb.
     await setFieldValueAndSettle(maaned, '11');
     await setFieldValueAndSettle(aar, '2012');
     await expectDisabledDownloadTooltip(download, MISSING_INPUT);
@@ -178,8 +178,8 @@ test.describe('Download-tooltip – de tre klasser', () => {
   });
 
   /**
-   * Dokumentaffordancen skal blive stående på en blokeret revision (auditfundene om Årsløn/EET, hvor
-   * beregnings- og downloadfladen forsvandt helt fra DOM'en ved en stamdatafejl). En skjult knap gør
+   * Dokumentaffordancen skal blive stående på en blokeret revision – også på Årsløn/EET, hvor
+   * beregnings- og downloadfladen ellers kan forsvinde helt fra DOM'en ved en stamdatafejl. En skjult knap gør
    * blokeringen tavs – der er da ingen tooltip at læse.
    */
   test('Årsløn og EET beholder en synlig, inaktiv downloadknap ved stamdatafejl', async ({ page, runtimeErrors }) => {

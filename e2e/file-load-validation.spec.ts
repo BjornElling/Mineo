@@ -98,7 +98,7 @@ test.describe('Filvalidering ved Hent', () => {
     await preflightDialog.getByRole('button', { name: 'Indlæs trods fejl' }).click();
 
     // Preflight er ikke i sig selv en erstatning. Den aktive sag må først ændres efter den anden,
-    // særskilte bekræftelse – det er præcis den kombination, der tidligere blev meldt som usikker.
+    // særskilte bekræftelse.
     const overwriteDialog = page.getByRole('dialog').filter({
       hasText: 'Erstat de aktuelle indtastninger?',
     });

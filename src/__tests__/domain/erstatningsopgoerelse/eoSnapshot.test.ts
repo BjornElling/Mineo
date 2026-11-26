@@ -388,7 +388,7 @@ describe('computeEoSnapshot', () => {
   });
 
   // «Løse ferie-/feriefridage» ud over periodens arbejdsdage vurderes ikke længere af validatoren, men
-  // projekteres til feltet i readerprojektionen (BB-264); dækket i `beregningsgrundlagBrugerblik12f.test.ts`.
+  // projekteres til feltet i readerprojektionen; dækket i `beregningsgrundlagGraenserOgAdvarsler.test.ts`.
 
   it('behandler manglende lønregulering som valideringsfejl og ikke som fail_closed runtimefejl', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();

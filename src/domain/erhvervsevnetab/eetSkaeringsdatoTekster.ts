@@ -8,7 +8,7 @@ import { capitalizeFirstCharDa } from '../../utils/formatUtils';
  *
  * Skærmen og dokumentet skrev før hver sin ordrette kopi med «Skaden er sket/indtrådt …» – også ved en
  * erhvervssygdom, som ikke «sker», men er anmeldt. Teksterne bor nu ét sted og udleder formuleringen af
- * beregningens egen `skadestype` gennem `resolveStamdataDatoReference` (M-02).
+ * beregningens egen `skadestype` gennem `resolveStamdataDatoReference`.
  */
 
 /** De to linjer under «Løbende ASL-ydelser» i differencekravet. */

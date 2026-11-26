@@ -18,11 +18,10 @@ type PasteCodec = Readonly<{
  * hele teksten (Ctrl+A) – er der ingen kontekst at splice ind i, og feltets egen normalisering fra tom
  * draft er den rigtige. Efterlader den noget, skal teksten splices ind i det, der bliver stående.
  *
- * **Hvorfor helperen findes.** Konteksten blev før udtrykt som `ctl.isOpen ? ctl.displayText : ''` på
- * hvert kaldssted, altså kun på editorens tilstand. «Markér alt og indsæt» – den naturlige måde at
- * rette en dato på – faldt derfor i splice-grenen: samme tekst `010623` blev `01-06-2023` i et tomt
- * felt og `01` med rød ring i et udfyldt. Samme udklipsholder, samme håndbevægelse, to udfald
- * (BB-042), i strid med `input-field-behavior-contract.md` §1.2a punkt 7, som kræver, at et pastes
+ * **Hvorfor helperen findes.** Udtrykkes konteksten som `ctl.isOpen ? ctl.displayText : ''` på hvert
+ * kaldssted, altså kun på editorens tilstand, falder «Markér alt og indsæt» – den naturlige måde at
+ * rette en dato på – i splice-grenen: samme tekst `010623` bliver `01-06-2023` i et tomt felt og `01`
+ * med rød ring i et udfyldt. Samme udklipsholder, samme håndbevægelse, to udfald, i strid med `input-field-behavior-contract.md` §1.2a punkt 7, som kræver, at et pastes
  * resultat er uafhængigt af, om feltet var tomt.
  *
  * Beslutningen bor her frem for i de to surfaces, fordi det ER én regel: to kaldssteder med hver sin
@@ -58,9 +57,9 @@ export const normalizePasteForDraft = (
   existingDraft: string,
 ): string => {
   // Typografiske minustegn bliver ASCII '-' FØR familiens tegnfilter, så `10−1` ikke mister sit
-  // minus og bliver `101` (BB-430). Gælder både et tomt felt og en splice i en åben draft.
+  // minus og bliver `101`. Gælder både et tomt felt og en splice i en åben draft.
   //
-  // Et typed felt bruger kun teksten frem til første tabulator eller linjeskift (BB-439): ved tastning
+  // Et typed felt bruger kun teksten frem til første tabulator eller linjeskift: ved tastning
   // afslutter Tab og Enter feltets indtastning, så to regnearksceller må ikke smelte sammen til ét tal.
   // Reglen gælder uanset draftkontekst, så samme paste giver samme resultat (§1.2a punkt 7 og 8).
   const genericNormalized = codec.family === 'text' || codec.family === 'optionalText'

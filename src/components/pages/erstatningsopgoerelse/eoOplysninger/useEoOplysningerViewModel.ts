@@ -67,7 +67,7 @@ export function useEoOplysningerViewModel(
   fane: Readonly<{
     isActive: boolean;
     indkomstBeregningKanSkjules: boolean;
-    /** Sidens reader-projektion: TAF efter en delvist endelig kapitalisering (BB-187). */
+    /** Sidens reader-projektion: TAF efter en delvist endelig kapitalisering. */
     tafEfterKapitaliseringAdvarsler: readonly TafEfterKapitaliseringAdvarsel[];
   }>,
 ) {
@@ -88,7 +88,7 @@ export function useEoOplysningerViewModel(
   const loentrinFinder = useLoentrinFinder();
   // "Antal dage" viser rækkens bidrag til opgørelsen – altså dagene INDEN FOR EO-perioden, ikke
   // rækkens egen længde. Opgørelsen betaler kun for det afgrænsede, og kolonnen er det eneste tal,
-  // brugeren ser mens han taster (BB-217). Kolonneoverskriften bærer årsagen, så det lavere tal
+  // brugeren ser mens han taster. Kolonneoverskriften bærer årsagen, så det lavere tal
   // ikke fremstår som en tavs reduktion.
   // Der clampes mod EO-perioden ALENE – ikke mod ménafgørelsens cutoff, som er en fejlgivende
   // grænse med rød celle og egen besked; den skal ikke også tælle dage ned bag om ryggen.
@@ -115,8 +115,8 @@ export function useEoOplysningerViewModel(
     })),
   }), [values.svieSmertePerioder, eoPeriodeBounds]);
   const tafDerived = React.useMemo(() => buildTafDerived({ values, tafPerioder: values.tafPerioder, ferieperioder: values.ferieperioder, skadedatoISO }), [skadedatoISO, values]);
-  // Periodetabellernes gule ringe: en TAF-periode uden arbejdsdage (BB-257), en sammenhængende periode
-  // skrevet i to rækker og TAF efter en delvist endelig kapitalisering (BB-187) – samme regler og tekster som
+  // Periodetabellernes gule ringe: en TAF-periode uden arbejdsdage, en sammenhængende periode
+  // skrevet i to rækker og TAF efter en delvist endelig kapitalisering – samme regler og tekster som
   // linjerne i «Fejl og advarsler».
   const tafCellWarnings = React.useMemo(() => buildFieldWarningMap([
     ...values.tafPerioder
@@ -133,7 +133,7 @@ export function useEoOplysningerViewModel(
     [values],
   );
   // Ferietabellernes kolonne tæller de feriedage, beregningen fradrager – inden for TAF-perioderne hhv.
-  // beregningsperioden – og overskriftens tooltip følger samme ramme (BB-249, BB-344).
+  // beregningsperioden – og overskriftens tooltip følger samme ramme.
   const tafFerieRamme = React.useMemo(
     () => resolveTafFerieRamme(values, skadedatoISO),
     [skadedatoISO, values],
@@ -151,10 +151,10 @@ export function useEoOplysningerViewModel(
     [beregningsperiodeFerieRamme, values.fravaerPerioder],
   );
   const visTafLoseFeriedage = erTafLoseFeriedageRelevant(values);
-  // Beregningsperiodens ferie og løse dage virker kun i arbejdsdage og skjules ellers (BB-263).
+  // Beregningsperiodens ferie og løse dage virker kun i arbejdsdage og skjules ellers.
   const visBeregningsperiodeFerie = erBeregningsperiodeFerieRelevant(values);
-  // Beregningsgrundlagets gule ringe – samme regler og tekster som linjerne i «Fejl og advarsler» (BB-259,
-  // BB-268, BB-269). Fradragsadvarslen sidder på hvert indtastet fradrag, der æder perioden.
+  // Beregningsgrundlagets gule ringe – samme regler og tekster som linjerne i «Fejl og advarsler».
+  // Fradragsadvarslen sidder på hvert indtastet fradrag, der æder perioden.
   const beregningsgrundlagAdvarsler = React.useMemo(() => {
     const fradrag = evaluateBeregningsgrundlagFradragAdvarsel(
       resolveBeregningsgrundlagFradrag(values, computeTafBeregningsenhed(values)),
@@ -219,14 +219,14 @@ export function useEoOplysningerViewModel(
     verserendeKlageMen: values.verserendeKlageMen === 'Ja', verserendeKlageEet: values.verserendeKlageEet === 'Ja',
     skjulIndtaegtFoerSkadenBeregning,
     indtaegtFoerSkadenSectionTitle: `Indtægt før ${referencedato.labelLower}`,
-    // Bestemt form af både lønnen og referencedatoen (BB-271): «månedslønnen» og «skadedatoen». En bøjning
-    // ved strengsammensætning (`'månedsløn' + 'en'`) gav før «månedslønen».
+    // Bestemt form af både lønnen og referencedatoen: «månedslønnen» og «skadedatoen». En bøjning ved
+    // strengsammensætning (`'månedsløn' + 'en'`) ville give «månedslønen».
     angivetLoenOpreguleringLabel: `Det angivne beløb afspejler ${values.beregnesUdFra === 'Angivet månedsløn' ? 'månedslønnen' : 'dagslønnen'} per dato (hvis forskellig fra ${referencedato.labelLower})`,
     aktivAngivetLoenOpreguleresFraDato, visLoenudviklingFraEO, eoLoenudvikling, loentrinFinder,
     loenudviklingBasis, erOffentligOverenskomst,
-    // Brugerens eget enhedsvalg – samme felt, som «Satsen angives per» binder (afklaringslog 10a).
+    // Brugerens eget enhedsvalg – samme felt, som «Satsen angives per» binder.
     eoAnciennitetSatsPerTekst: eoLoenudvikling.anciennitetstillaegSatsAngivesPer === 'Time' ? 'time' : 'måned',
-    // Samme prædikat som felternes relevans (BB-301, BB-315), så synlighed og læsning ikke kan drive fra hinanden.
+    // Samme prædikat som felternes relevans, så synlighed og læsning ikke kan drive fra hinanden.
     showEoAnciennitetstillaegSection: erLoenudviklingFeltRelevant('anciennitet', loenudviklingRelevansInput),
     visLoenPaaHelligdage: erLoenudviklingFeltRelevant('loenPaaHelligdageVedAngivetLoen', loenudviklingRelevansInput),
     loenudviklingWarnings,

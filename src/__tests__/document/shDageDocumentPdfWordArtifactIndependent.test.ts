@@ -64,7 +64,7 @@ const expectedContent = [
   'Helligdage, der falder i weekenden, fremgår af tabellen men medregnes ikke.',
 ] as const;
 
-describe('TD-014/TD-018 – SH-dage gennem faktiske PDF- og Word-artefakter', () => {
+describe('SH-dage gennem faktiske PDF- og Word-artefakter', () => {
   it('bevarer helligdagsrækker, weekendmarkering og total i begge kanaler', async () => {
     const pdfArtifact = await withDocumentUnavailable(async () => {
       const session = await createRealPdfDocumentSessionForTest();

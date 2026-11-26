@@ -65,7 +65,7 @@ export const collectMissingLoenudviklingReguleringsdatoIssues = (
 const danish = (iso: ISODateString): string => isoToDanish(iso) ?? iso;
 
 // Beskederne om reguleringsgrundlagets dækning. Validatoren bruger de samme, så sikkerhedsnettet i «Fejl og
-// advarsler» genkender linjen som dækket og ikke gentager den (BB-306).
+// advarsler» genkender linjen som dækket og ikke gentager den.
 
 /** Reguleringsdatoen ligger før reguleringsgrundlagets første sats. */
 export const formatReguleringsdatoFoerKildeBesked = (
@@ -89,10 +89,9 @@ export const formatReguleringsdatoEfterKildeBesked = (kildeNavn: string, daekket
 
 /**
  * Reguleringsgrundlagets dækning holdt op mod reguleringsdatoen og TAF-perioden – én linje pr. problem, med ringen
- * på det felt, brugeren skal ændre (BB-306). Det er næsten altid «Lønudvikling beregnes ud fra»: datoen er rigtig,
- * men formen dækker den ikke. Undtagelsen er en «Evt. særlig fra-dato for regulering», som brugeren selv har sat
- * – den er en reel udvej og bærer ringen. Før stod ringen på beregningsperiodens «Til og med», og samme problem
- * gav en linje mere fra kontroltabellen med et internt rækkenavn.
+ * på det felt, brugeren skal ændre. Det er næsten altid «Lønudvikling beregnes ud fra»: datoen er rigtig,
+ * men formen dækker den ikke – ringen hører derfor ikke på beregningsperiodens «Til og med». Undtagelsen er en
+ * «Evt. særlig fra-dato for regulering», som brugeren selv har sat – den er en reel udvej og bærer ringen.
  */
 export const collectLoenudviklingCoverageIssues = (
   values: ErstatningsopgoerelseValues,
@@ -135,7 +134,7 @@ export const collectLoenudviklingCoverageIssues = (
     if (date < foersteSats) {
       // En privat overenskomst, der både giver kortets satser og lønudviklingen, melder allerede datoen med
       // «… har ingen satser før X – vælg en senere reguleringsdato» ved «Vælg overenskomst». To linjer med hver
-      // sit råd om ét problem forvirrede; satsernes linje står alene (udviklerafgørelse 2026-10-23, BB-306).
+      // sit råd om ét problem forvirrer; satsernes linje står alene (bevidst valg).
       if (isEmployment && basis === 'Overenskomst' && erReguleringsdatoUdenOverenskomstSatserMeldt(source, date)) continue;
       add(dateField, formatReguleringsdatoFoerKildeBesked(kildeNavn, date, foersteSats));
     } else if (tafStart !== undefined && tafStart < foersteSats) {

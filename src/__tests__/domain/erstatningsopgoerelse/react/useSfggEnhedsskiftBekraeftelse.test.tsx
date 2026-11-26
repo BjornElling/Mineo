@@ -36,7 +36,7 @@ import {
   testRowOrigin,
 } from '../../../inputCore/testCatalog';
 
-// BB-449: et valg, der skifter fraværsdagenes enhed, committes først efter bekræftelse – med præcis den dispatch,
+// Et valg, der skifter fraværsdagenes enhed, committes først efter bekræftelse – med præcis den dispatch,
 // feltet selv ville have sendt. Feltadapterne er de ægte (`ChoiceField`/`ToggleField`); sagen, bekræftelsen
 // sammenligner, er en EO-sag med 7 fraværsdage på Firma A, hvor testens «skiftende» værdi slår «Løn på
 // helligdage» over i «Ingen».

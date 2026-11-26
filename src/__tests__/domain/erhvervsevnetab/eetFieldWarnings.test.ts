@@ -86,9 +86,9 @@ describe('resolveEetAslAarsloenMaxWarning', () => {
     expect(resolveEetAslAarsloenMaxWarning(aslAarsloen, ealAarsloen, skadedato)).toBeUndefined();
   });
 
-  // BB-183: den anden halvdel af samme regel. Feltet fik tidligere kun en gul ring, når det var TOMT
-  // og ASL-årslønnen stod på maksimum; stod maksimum i feltet SELV, var det neutralt, og advarslen
-  // fandtes kun som en linje i «Fejl og advarsler» på to resultatfaner.
+  // Den anden halvdel af samme regel: feltet får også en gul ring, når maksimum står i feltet SELV –
+  // ikke kun når det er TOMT og ASL-årslønnen står på maksimum. Ellers fandtes advarslen kun som en
+  // linje i «Fejl og advarsler» på to resultatfaner.
   it('viser en gul feltadvarsel når EAL-årslønnen selv er skadesårets ASL-maksimum', () => {
     const skadedato = toISODateString('2024-07-01');
     const maks = amount(aarsloenAslMax[2024]!);
@@ -147,11 +147,11 @@ describe('resolveEetTitrinWarning', () => {
   });
 
   it('kalder ikke værdien ugyldig og påstår ikke noget om beregningens lovlighed', () => {
-    // BB-158: programmet accepterer værdien, regner på den og trykker den, så «ugyldig» og
-    // programmets egen adfærd kunne ikke begge være rigtige.
-    // BB-173: halen «– beregningen er derfor ikke lovmæssig» er fjernet igen. Hvad der kan bruges
-    // juridisk, er brugerens vurdering; advarslen navngiver grænsen og lader det blive ved det.
-    // Halen gav desuden to advarsler om SAMME 15 %-grænse hver sin alvorsgrad.
+    // Programmet accepterer værdien, regner på den og trykker den, så «ugyldig» og programmets egen
+    // adfærd kan ikke begge være rigtige.
+    // Ingen hale som «– beregningen er derfor ikke lovmæssig»: hvad der kan bruges juridisk, er brugerens
+    // vurdering; advarslen navngiver grænsen og lader det blive ved det. En sådan hale ville desuden give
+    // to advarsler om SAMME 15 %-grænse hver sin alvorsgrad.
     for (const warning of [EET_TITRIN_FRA_2024_WARNING, EET_UNDER_15_WARNING, KAPITALISERING_UNDER_15_WARNING]) {
       expect(warning).not.toContain('ugyldig');
       expect(warning).not.toContain('lovmæssig');
@@ -183,7 +183,7 @@ describe('resolveDatoEfterBeregningsdatoWarning', () => {
   });
 
   it('navngiver årsagen én gang i boksens linje', () => {
-    // BB-159: tre linjer om ét forhold læses som tre problemer, hvor der er ét.
+    // Tre linjer om ét forhold læses som tre problemer, hvor der er ét.
     expect(formatDatoEfterBeregningsdatoWarning(beregningsdato))
       .toBe('En eller flere datoer i ASL-afgørelserne ligger efter beregningsdatoen (01-01-2021).');
   });
@@ -228,7 +228,7 @@ describe('resolveKapDatoFeltWarning – kapitaliseringsdato efter afgørelsesdat
   });
 });
 
-// Født 01-07-1955: folkepension 01-07-2022, toårsgrænse 01-07-2020 (udviklerafgørelse 2026-11-13).
+// Født 01-07-1955: folkepension 01-07-2022, toårsgrænse 01-07-2020.
 describe('resolveKapDatoFeltWarning – kapitalisering inden for de sidste to år før folkepension', () => {
   const skadedato = toISODateString('2019-04-01');
   const fodselsdato = toISODateString('1955-07-01');

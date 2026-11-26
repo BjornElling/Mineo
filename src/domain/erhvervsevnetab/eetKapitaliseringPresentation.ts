@@ -1,6 +1,6 @@
 /**
  * Faktoren i grundydelsens formel. Den er aldrig afgørelsens fulde EET: en kapitalisering regner med den
- * kapitaliserede andel, en proformakapitalisering med det resterende EET (BB-416). «EET» fik en læser, der
+ * kapitaliserede andel, en proformakapitalisering med det resterende EET. «EET» fik en læser, der
  * indsatte afgørelsens procent, til at få en dobbelt så stor grundydelse.
  */
 export type KapitaliseringGrundydelseFaktor = 'kapitaliseringsprocent' | 'rest-eet';
@@ -49,8 +49,8 @@ export const buildKapitaliseringOpreguleringTil2024Expression = (
 
 /**
  * Om linjen «Årlig ydelse (…) = …» skal vises. Uden reguleringsprocent (kapitalisering i
- * referenceåret 2024) gentager den blot beløbet fra linjen over og udelades (udviklerafgørelse
- * 2026-11-20). Med regulering ER linjen beregningen og vises altid; ligeså hvis beløbene mod
+ * referenceåret 2024) gentager den blot beløbet fra linjen over og udelades (bevidst
+ * valg). Med regulering ER linjen beregningen og vises altid; ligeså hvis beløbene mod
  * forventning afviger, så en forskel aldrig skjules.
  */
 export const visKapitaliseringAarsydelseLinje = (args: Readonly<{

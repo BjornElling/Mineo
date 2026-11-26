@@ -116,7 +116,7 @@ describe('Forsoergertab – reader-projektion + download-gate', () => {
   /**
    * «Mangler (angiv i Stamdata)» skal PEGE på feltet – ikke kun skifte side.
    *
-   * Linkene navigerede tidligere blot til Stamdata og efterlod brugeren dér uden anvisning, selv om det er
+   * Navigerede linkene blot til Stamdata, stod brugeren dér uden anvisning, selv om det er
    * den reneste form for «en indtastning mangler»: feltet findes, det er blot tomt, og dets descriptor er
    * allerede bundet i viewmodellen. Begge rækker har hver SIT felt, så testen dækker dem hver for sig –
    * ellers kunne ét fælles mål bestå for den forkerte række.
@@ -241,7 +241,7 @@ describe('Forsoergertab – reader-projektion + download-gate', () => {
   /**
    * Oplysningen om ASL-maksimum skal NÅ brugeren.
    *
-   * Beskeden blev udledt i snapshottet før rettelsen, men ingen komponent læste den – derfor er det netop
+   * Beskeden udledes i snapshottet, men det beviser ikke, at en komponent læser den – derfor er det netop
    * en test gennem den ægte side, der er beviset. En snapshot-unittest kunne ikke skelne "udledt" fra "vist".
    */
   const ASL_MAX_NOTICE = 'Når Skadelidtes årsløn (efter ASL) svarer til maksimum, skal den faktiske årsløn indtastes.';
@@ -279,8 +279,8 @@ describe('Forsoergertab – reader-projektion + download-gate', () => {
  *  2. tooltippet er den universelle tekst, og
  *  3. et KLIK på den inaktive knap giver INGEN besked – hverken under knappen eller i rækken.
  *
- * Punkt 3 er udviklerbeslutningen 2026-07-31, gjort universel for hele programmet: en deaktiveret
- * download-knap svarer aldrig med tekst. Knappen var synligt inaktiv, og brugeren har haft tooltippet;
+ * Punkt 3 er en bevidst, universel regel for hele programmet: en deaktiveret
+ * download-knap svarer aldrig med tekst. Knappen er synligt inaktiv, og brugeren har haft tooltippet;
  * en besked oveni ville forklare det, brugeren allerede kunne se.
  */
 describe('Forsoergertab – gate-årsagen vises kun i tooltippet', () => {
@@ -309,7 +309,7 @@ describe('Forsoergertab – gate-årsagen vises kun i tooltippet', () => {
    * `runDocumentPreflight` gater FØRST efter commit-barrieren (`documentLifecycle.ts:168-171`), så et klik
    * på en ENABLED knap med en åben editor kan blokere, fordi settlet netop gjorde værdien ugyldig.
    *
-   * Det er præcis den sti, der tidligere producerede en besked i udfaldsrækken. Under den universelle regel
+   * Det er præcis den sti, der ellers ville give en besked i udfaldsrækken. Under den universelle regel
    * skal også DEN være tavs: `gate-blocked` bærer ingen brugerbesked, uanset hvornår den opdages. Testen er
    * det eneste sted, der kan fremkalde stien – den skriver en ugyldig værdi i det åbne felt og klikker
    * DIREKTE på den (stadig aktiverede) knap, så settlet og gaten sker i samme aktivering.

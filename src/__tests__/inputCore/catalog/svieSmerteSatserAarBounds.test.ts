@@ -11,7 +11,7 @@ const boundsIssue = (year: number) =>
 
 /**
  * «Indsæt årstal» vælger satsåret én måned efter opgørelsesdatoen. I december med næste års satser indlagt
- * må feltet derfor ikke afvise næste år (udviklerens afgørelse 2026-11-18).
+ * må feltet derfor ikke afvise næste år (bevidst valg).
  */
 describe('eoSvieSmerteSatserAarField – loft', () => {
   afterEach(() => {

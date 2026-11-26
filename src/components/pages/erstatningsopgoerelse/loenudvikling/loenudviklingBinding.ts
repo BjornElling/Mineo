@@ -76,8 +76,7 @@ export type LoenudviklingBinding<
  * Bindingerne for den fælles Anciennitetstillæg-blok (`AnciennitetstillaegFields.tsx`).
  *
  * Alle tre felter er fælles for begge overflader. Enhedsvalget (`anciennitetstillaegSatsAngivesPer`)
- * fandtes tidligere kun på Lønindkomst, mens EO-oplysninger tvang enheden efter «Beregnes ud fra»;
- * den forskel er besluttet væk (afklaringslog 10a i `docs/review/regulering-taf-gennemgang-2026-10-13.md`).
+ * findes bevidst på begge og udledes aldrig af «Beregnes ud fra».
  *
  * Modsat `LoenudviklingBinding` er felterne her IKKE generiske. Det er ikke en inkonsekvens:
  * valg-felterne dér bærer hver sin literal-union pr. overflade, mens begge overflader her

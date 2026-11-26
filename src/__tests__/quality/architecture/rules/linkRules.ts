@@ -355,7 +355,7 @@ const findHandBuiltTextLinks = (entry: SourceEntry): readonly Finding[] => {
           message:
             'Håndsammensat tekstlink (`icon-text-link`). Brug `TextLinkButton` til et link, der udfører en '
             + 'handling, eller `ExternalLink`/`InternalLink` til et web-link. Et hjemmelavet tekstlink mangler '
-            + 'typisk `data-mineo-focusable-button` og kan da hverken nås med Tab eller aktiveres med Enter (BB-463/BB-464).',
+            + 'typisk `data-mineo-focusable-button` og kan da hverken nås med Tab eller aktiveres med Enter.',
         });
       }
     }
@@ -369,10 +369,9 @@ const findHandBuiltTextLinks = (entry: SourceEntry): readonly Finding[] => {
 /**
  * Det interne tekstlink, der udfører en handling, har ÉN kilde: `TextLinkButton`.
  *
- * Reparationslinkene i «Fejl og advarsler» og Stamdata-linket var håndsammensatte `<Typography
- * component="button">` og et `<span onClick>` uden Containerens opt-in-markør. De lå derfor uden for den
- * app-ejede Tab-ring, og Enter på et fokuseret link flyttede fokus til sidens første felt i stedet for at
- * følge linket (BB-463/BB-464, M-08). Reglen gør det umuligt at genindføre et sådant link: klassen
+ * Et håndsammensat `<Typography component="button">` eller `<span onClick>` uden Containerens opt-in-markør
+ * ligger uden for den app-ejede Tab-ring, og Enter på et fokuseret link flytter da fokus til sidens første
+ * felt i stedet for at følge linket. Reglen gør det umuligt at genindføre et sådant link: klassen
  * `icon-text-link` må kun stå på link-primitiverne og inde i `TextLinkButton`.
  */
 export const textLinkButtonSingleSourceRule = defineRule({

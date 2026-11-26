@@ -43,7 +43,7 @@ const EetMerErstatningEventRows = ({ event, koen }: { event: MerErstatningPensio
   <>
     {/*
       Overskriften nævner forhøjelsen; rækken under den den kapitalisering, forhøjelsen regulerer
-      (BB-193) – som i bilaget (udviklerafgørelse 2026-11-20).
+      – som i bilaget (bevidst valg).
     */}
     <HoverRow underlined
       text={buildMerErstatningForhoejelseTitel({
@@ -102,8 +102,8 @@ const EetMerErstatningEventRows = ({ event, koen }: { event: MerErstatningPensio
     {/*
       Parentesen bærer SATSÅRET og ikke en dato: forhøjelsen sker altid lige før et årsskifte, og
       afgørelserne om den træffes i løbet af det følgende kalenderår, som satsen slås op i
-      (`satsAar` = året 1 måned efter forhøjelsesdatoen). Formen er efterprøvet og fastholdt af
-      udvikleren 2026-09-09 (BB-198) – naboboksens dato-form skal derfor ikke overføres hertil.
+      (`satsAar` = året 1 måned efter forhøjelsesdatoen). Formen er efterprøvet og bevidst
+      fastholdt – naboboksens dato-form skal derfor ikke overføres hertil.
     */}
     {event.aarsydelseReguleringsPctRounded4 !== null && (
       <Box className="row--label-right-hover">
@@ -132,7 +132,7 @@ const EetMerErstatningEventRows = ({ event, koen }: { event: MerErstatningPensio
 
     {/*
       Faktoropslagets forudsætninger navngives som i naboboksen «Proformakapitalisering af rest-EET»
-      (BB-194): alderen på forhøjelsesdatoen er den ENESTE nøgle ind i de to faktortabeller, og uden
+      : alderen på forhøjelsesdatoen er den ENESTE nøgle ind i de to faktortabeller, og uden
       den kan hverken brugeren eller modparten slå 10,157 og 10,689 op og kontrollere fradraget – som
       ER hele mer-erstatningen. Folkepensionsalderen står i de to underoverskrifter nedenfor og
       gentages derfor ikke som egen række.
@@ -233,7 +233,7 @@ export const EetMerErstatningPensionsalderBox = ({ computation, koen }: MerErsta
     {/*
       Summen læses fra beregningen selv frem for at genadderes her: `samletMerErstatningOre` ER det
       beløb, differencekravet fratrækker, og hvert event-beløb er allerede afrundet til hele kroner,
-      så «vist = beregnet» holder. Samme række står i specifikationen og i dokumentets bilag (BB-201).
+      så «vist = beregnet» holder. Samme række står i specifikationen og i dokumentets bilag.
     */}
     {computation.events.length > 1 && (
       <Box className="row--label-right-hover" sx={{ mt: 2 }}>

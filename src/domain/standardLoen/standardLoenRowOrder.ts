@@ -6,7 +6,7 @@ import { parseAarsloenRowInterval } from '../aarsloen/aarsloenRowInterval';
  * Løntabellens rækker i kronologisk orden – efter periodens start, dernæst dens slutning.
  *
  * Bruges af dokumenterne, som altid trykker rækkerne kronologisk, uanset hvordan brugeren har sorteret
- * tabellen på skærmen (udviklerafgørelse 2026-10-19, BB-294). Skærmens sortering er en ren visningsdetalje: et
+ * tabellen på skærmen (bevidst valg). Skærmens sortering er en ren visningsdetalje: et
  * klik på «Måned» sorterer efter månedsnummeret alene, og en glemt måned, der tilføjes nederst, står nederst.
  *
  * Sorteringen er stabil: rækker med samme periode (to lønsedler for samme måned) beholder tabellens indbyrdes

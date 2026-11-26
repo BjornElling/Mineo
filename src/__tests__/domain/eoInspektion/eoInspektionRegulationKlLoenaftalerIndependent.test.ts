@@ -60,7 +60,7 @@ const buildTimeline = (): RegulationIndexTimeline => ({
   }],
 });
 
-describe('CALC-006 – uafhængigt facit for KL-lønaftalers EO-viewmodel', () => {
+describe('uafhængigt facit for KL-lønaftalers EO-viewmodel', () => {
   it('viser ingen egen genberegning uden canonical segmenter', () => {
     const sections = buildRegulationInspektionSections({
       timeline: buildTimeline(),

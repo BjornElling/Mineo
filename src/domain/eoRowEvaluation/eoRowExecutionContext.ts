@@ -36,9 +36,8 @@ export type EoRowEvaluationContext = {
    * fra tilladt til blokeret.
    *
    * Typen er `EoRowPolicy` og ikke `AppSettings`: rækkeevaluering er BEREGNINGSLOGIK og skal hverken
-   * kende UI-indstillinger eller dokument-layoutlaget. Feltet bar tidligere en bred dokument-DTO med
-   * format- og brevhovedfelter, som er fuldstændig irrelevante for, om en række er gyldig; den DTO
-   * findes ikke længere. `EoRowPolicy` er samtidig hovedappens GATE-settings for
+   * kende UI-indstillinger eller dokument-layoutlaget; format- og brevhovedfelter er irrelevante for,
+   * om en række er gyldig. `EoRowPolicy` er samtidig hovedappens GATE-settings for
    * dokumentdefinitionerne, så beregningen og dokumentgaten deler præcis den samme,
    * indsnævrede politik.
    *

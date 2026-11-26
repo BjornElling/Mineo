@@ -162,10 +162,10 @@ describe('LicenseModal', () => {
     /**
      * Tab-FANGSTEN måles bevidst IKKE her, men i `e2e/overlay-behaviour.spec.ts`.
      *
-     * En tidligere jsdom-test her påstod at måle den og var grøn – mens fokus i den rigtige browser
-     * vandrede ud af vinduet ved hvert eneste Tab. JSDOM implementerer ikke browserens
-     * tab-traversering, så testen kunne kun bekræfte, at `FocusTrap` var MONTERET; den kunne ikke se,
-     * at sidens egen navigation overtog tasten og kørte forbi trap'ens vagtposter. En test, der ikke
+     * En jsdom-test kan være grøn, mens fokus i den rigtige browser vandrer ud af vinduet ved hvert
+     * eneste Tab. JSDOM implementerer ikke browserens tab-traversering, så en test her kan kun
+     * bekræfte, at `FocusTrap` er MONTERET; den kan ikke se, om sidens egen navigation overtager
+     * tasten og kører forbi trap'ens vagtposter. En test, der ikke
      * kan observere den mekanisme, den påstår at måle, er værre end ingen test.
      */
 

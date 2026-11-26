@@ -282,7 +282,7 @@ export const buildOffentligYdelsePeriodiseringsGrundlag = (args: {
 
 /**
  * Antal af ydelsesrækkens periodiseringsdage, der ligger i `range` – tælleren i
- * {@link periodiserBeloebForOffentligYdelseMedGrundlag}. Bilagets linje om delvist medregnede ydelser (BB-293) læser
+ * {@link periodiserBeloebForOffentligYdelseMedGrundlag}. Bilagets linje om delvist medregnede ydelser læser
  * samme tal, så linjen og beregningen ikke kan tælle dagene forskelligt.
  */
 export const countOffentligYdelseOverlapDage = (args: {

@@ -174,12 +174,12 @@ const EET_KLAGE_REGULERINGSLINJE =
 const createEmployment = (overrides: Record<string, unknown> = {}) => ({
   ...createDefaultLoenindkomstAnsaettelsesforhold(),
   id: 'af-base',
-  // Procent-tilstand med lønrækker kræver feriegodtgørelsen (BB-274).
+  // Procent-tilstand med lønrækker kræver feriegodtgørelsen.
   feriePct: 12.5,
   ...overrides,
 });
 
-// Referenceperioden december 2023 skal have løn – en periode uden løn spærrer (BB-319).
+// Referenceperioden december 2023 skal have løn – en periode uden løn spærrer.
 const medReferenceloenDecember2023 = (eo: ReturnType<typeof createErstatningsopgoerelseInitialValues>) => {
   const employment = eo.loenindkomstAnsaettelsesforhold[0]!;
   eo.loenindkomstAnsaettelsesforhold[0] = {
@@ -457,7 +457,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
 
   it('skriver maksimum-sætningen i stedet for et misvisende "(reduceret til max)" ved 0 kr.', () => {
     // Maksimum var brugt op af tidligere opgørelser, så kravet er ikke reduceret TIL maksimum –
-    // det bortfalder. Tilstanden er den samme som togglen og skrives ordret ens (BB-219).
+    // det bortfalder. Tilstanden er den samme som togglen og skrives ordret ens.
     const { stamdata, eo } = buildBaseInput();
     eo.eoNummer = '2';
     eo.kravPaaSvieSmerteGodtgoerelse = 'Ja';
@@ -479,7 +479,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
   });
 
   it('tier om et indtastet 0 i "tidligere opgjort", præcis som ved et tomt felt', () => {
-    // `0` er ikke et svar (BB-220): advarslen står, og papiret må derfor ikke samtidig oplyse
+    // `0` er ikke et svar: advarslen står, og papiret må derfor ikke samtidig oplyse
     // modparten om et beløb, programmet siger mangler.
     const { stamdata, eo } = buildBaseInput();
     eo.eoNummer = '2';
@@ -501,8 +501,8 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
   });
 
   it('trykker det forligsreducerede loft, så læseren ikke selv skal gange', () => {
-    // Før stod kun de ureducerede tal, og det loft beregningen faktisk bruger, fandtes intet
-    // sted i papiret (BB-219).
+    // Uden det står kun de ureducerede tal, og det loft, beregningen faktisk bruger, findes intet
+    // sted i papiret.
     const { stamdata, eo } = buildBaseInput();
     eo.kravPaaSvieSmerteGodtgoerelse = 'Ja';
     eo.tidligereSsMax = 'Nej';
@@ -990,8 +990,8 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     expect(bilagBlock).toContain(closingText);
   });
 
-  // BB-233 (udviklerafgørelse 2026-09-23): forbeholdene står sidst i TAF-beregningen under «Forbehold» –
-  // også når øvrige krav står på sin standard «Skjul», hvor de før forsvandt.
+  // Bevidst valg: forbeholdene står sidst i TAF-beregningen under «Forbehold» – også når øvrige krav
+  // står på sin standard «Skjul».
   it('trykker kontanthjælps-forbeholdet under "Forbehold" sidst i TAF-afsnittet', () => {
     const { stamdata, eo } = buildBaseInput();
     expect(eo.kravPaaOevrigeErstatningskrav).toBe('Skjul');
@@ -1246,7 +1246,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     expect(feriepengeHvisIkkeSkadeIndex).toBeGreaterThan(sfggPeriodeIndex);
   });
 
-  it('trykker ingen regulering uden regulering og skriver procenter og beløb i opgørelsens form (BB-327, BB-328)', () => {
+  it('trykker ingen regulering uden regulering og skriver procenter og beløb i opgørelsens form', () => {
     const { stamdata, eo } = buildBaseInput();
     medReferenceloenDecember2023(eo);
     eo.loenindkomstAnsaettelsesforhold[0] = { ...eo.loenindkomstAnsaettelsesforhold[0]!, pensionPct: 8 };
@@ -1275,9 +1275,9 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     const texts = collectTextStrings(MockJsPDF.lastInstance);
     const sfggTexts = getTextsFromLastHeader(texts, 'Sygeferiegodtgørelse');
 
-    // BB-327: lønudvikling «Ingen» – ingen «… x 1 / 1».
+    // Lønudvikling «Ingen» – ingen «… x 1 / 1».
     expect(sfggTexts).not.toContain('Regulering af referencesatsen');
-    // BB-328: procenter med to decimaler, beløb med øre og «kr.», ingen «=» foran fradraget.
+    // Procenter med to decimaler, beløb med øre og «kr.», ingen «=» foran fradraget.
     expect(sfggTexts.some((text) => text.startsWith('Referencesats (10.000,00 x 12,50 % / '))).toBe(true);
     expect(sfggTexts).toContain('Feriepenge modtaget i perioden (+ AG-pension)');
     expect(sfggTexts).not.toContain('Feriepenge modtaget i perioden (+ AG-pension) =');

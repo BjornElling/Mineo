@@ -113,7 +113,7 @@ export const resolveReguleringssatsForAar = (
  * tjekker bevidst HVERT år i intervallet [min(kildeår,målår); max(...)] for dækning –
  * præcis samme fremgangsmåde som den akkumulerede motor (metode 2), så de to motorer
  * ikke har hver sit dæknings-krav. Dette er en **processuel forenkling, ikke en
- * matematisk nødvendighed** (bruger-beslutning 2026-07-07): det holder dæknings-logikken
+ * matematisk nødvendighed** (bevidst valg): det holder dæknings-logikken
  * ensartet og fjerner en særskilt endepunkts-kun-gren.
  *
  * Det er tal-neutralt for enhver faktisk beregning: `aarsloenAslMax` har en interiort-hul-

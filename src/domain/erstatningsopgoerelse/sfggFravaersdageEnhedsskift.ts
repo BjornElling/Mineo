@@ -6,7 +6,7 @@ import { ansaettelsesforholdNavne, resolveAnsaettelsesforholdNavn } from './help
 import { computeTafBeregningsenhed } from './helpers/tafBeregningsenhed';
 
 /**
- * Om et valg skifter enheden for sygeferiegodtgørelsens «Evt. ferie- og fraværsdage uden løn» (BB-449, M-68).
+ * Om et valg skifter enheden for sygeferiegodtgørelsens «Evt. ferie- og fraværsdage uden løn».
  *
  * BAGGRUND: Enheden er ikke et valg på feltet, men følger opgørelsen: kalenderdage, når kortets kilde går via en
  * referenceperiode OG TAF opgøres i måneder – ellers arbejdsdage (`resolveSfggDayBasis`). TAF-enheden er sagsbred

@@ -1,6 +1,6 @@
 // Aldersreduktionens etiket i mellemregningerne.
 //
-// **Ved 0 % er der ingen formel (BB-129).** Funktionen returnerede før `'0 ='`, som indsat i skabelonen
+// **Ved 0 % er der ingen formel.** Funktionen returnerede før `'0 ='`, som indsat i skabelonen
 // «Aldersreduktion {formel}» blev til «Aldersreduktion 0 =» – ikke et regnestykke, men en påstand om et
 // lighedstegn uden venstreside, hvor 45-års-tilfældet giver «Aldersreduktion (45 - 29) =». Ved nul er der
 // intet at regne, så rækken hedder blot «Aldersreduktion».

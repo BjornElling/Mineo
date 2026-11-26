@@ -64,7 +64,7 @@ describe('historisk regulering og nedre dækningsgrænse', () => {
   };
 
   // Ringen sidder på det felt, brugeren skal ændre: reguleringsformen – undtagen ved en særlig fra-dato, som brugeren
-  // selv har sat (BB-306). Beregningsperiodens «Til og med» er rigtig og bærer ingen ring.
+  // selv har sat. Beregningsperiodens «Til og med» er rigtig og bærer ingen ring.
   it('markerer reguleringsvalget ved TAF-start eller basis før dækning, og en særlig fra-dato på sig selv', () => {
     const { values, employment } = setupCoverage();
     const collect = () => collectLoenudviklingCoverageIssues(values, STAMDATA_INITIAL_VALUES);
@@ -97,7 +97,7 @@ describe('historisk regulering og nedre dækningsgrænse', () => {
     expect(issues.map((issue) => issue.field.descriptor.id)).toEqual(['eo.sfggAnsaettelsesforhold.sfggReferenceperiodeTil']);
   });
 
-  it('angivet løn med en for tidlig basisdato markerer reguleringsformen, ikke den rigtige dato (BB-306)', () => {
+  it('angivet løn med en for tidlig basisdato markerer reguleringsformen, ikke den rigtige dato', () => {
     const { values } = setupCoverage();
     values.beregnesUdFra = 'Angivet dagsløn';
     values.angivetDagsloenOpreguleresFraDato = iso('2010-01-01');

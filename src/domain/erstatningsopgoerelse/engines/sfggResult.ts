@@ -53,7 +53,7 @@ export type SygeferiegodtgoerelseAnsaettelsesforholdResult = Readonly<{
   alleredeBetaltOre: MoneyOre;
   sfggVisningsperiode: readonly IsoRange[];
   sfggReferenceperiode: Readonly<{ fra: ISODateString; til: ISODateString }> | null;
-  /** Sat, når satsen reguleres fra reguleringsdatoen i stedet for referenceperiodens slutdato (BB-453). */
+  /** Sat, når satsen reguleres fra reguleringsdatoen i stedet for referenceperiodens slutdato. */
   sfggReguleringsdatoForReference: ISODateString | null;
   sfggReferencesats: SfggReferencesatsCalculable;
   sfggReferencesatsFormula: SfggReferencesatsFormula | null;
@@ -61,8 +61,7 @@ export type SygeferiegodtgoerelseAnsaettelsesforholdResult = Readonly<{
   capReachedDate: ISODateString | null;
   /**
    * Første dag med krav, som ikke kunne få en sats (fx før overenskomstens første direkte sats). Dagene indgår
-   * ikke i beregningen; feltet er sat, så valideringen kan spærre i stedet for, at dagene udelades uden besked
-   * (værdiklasse-gennemgangen 2026-11-24, fund C, godkendt af udvikleren 2026-11-25).
+   * ikke i beregningen; feltet er sat, så valideringen kan spærre i stedet for, at dagene udelades uden besked.
    */
   foersteDagUdenSats?: ISODateString;
 }>;

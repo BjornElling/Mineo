@@ -7,7 +7,7 @@ type Props = Readonly<{
   /**
    * Videreført RÅT til knappens `onMouseDown`. Bruges af flader, hvor et åbent, ugyldigt draft-felt
    * kunne blurre og committe (og dermed disable knappen) FØR click-eventet når den – et `preventDefault()`
-   * her bevarer fokus på draft-feltet til click, så klikket ikke går tabt (BB-069). Ingen anden
+   * her bevarer fokus på draft-feltet til click, så klikket ikke går tabt. Ingen anden
    * kaldsside skal bruge denne; den er en lokal undtagelse, ikke en ny standardadfærd.
    */
   onMouseDown?: (e: React.MouseEvent<HTMLButtonElement>) => void;
@@ -29,11 +29,10 @@ type Props = Readonly<{
  * når formatet injiceres udefra (fx den standalone MinProcesrente-app uden AppSettingsProvider,
  * eller en CSV-download hvor dokumentformatet er irrelevant).
  *
- * **Ingen shake.** Knappen havde tidligere en `shake`-prop, der rystede den ved en blokeret
- * aktivering. Knapper ryster ikke (udviklerbeslutning 2026-08-15; kun toggles gør, jf.
- * `page-component-contract.md` §11.1): knappen er synligt inaktiv med årsagen i tooltippet. Fokusspringet til det
- * blokerende felt er bevaret – det er den del af den gamle feedback, der faktisk pegede brugeren
- * et sted hen. Genindfør ikke en shake-prop her.
+ * **Ingen shake.** En `shake`-prop, der ryster knappen ved en blokeret aktivering, er slettet. Knapper ryster
+ * ikke (bevidst valg; kun toggles gør, jf. `page-component-contract.md` §11.1): knappen er synligt inaktiv med
+ * årsagen i tooltippet. Fokusspringet til det blokerende felt bevares – det peger brugeren et sted hen.
+ * Genindfør ikke en shake-prop her.
  */
 const DownloadIconButton = ({ onClick, onMouseDown, disabled = false, tooltip, ariaLabel, dataTestId }: Props) => (
   <Tooltip title={tooltip}>

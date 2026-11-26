@@ -99,7 +99,7 @@ export default function OverenskomstVaelger({
             {overenskomster.length === 0
               // Filtrene udelukker hinanden (fx RLTN + Dansk Metal): listen siger det i stedet for kun at vise
               // placeholderen. Linjen er deaktiveret, så hverken klik, piletaster, typeahead eller paste kan vælge
-              // den, og et allerede valgt id bevares urørt (BB-435).
+              // den, og et allerede valgt id bevares urørt.
               ? <MenuItem key={INGEN_MATCH_VALUE} value={INGEN_MATCH_VALUE} disabled>{INGEN_MATCH_TEXT}</MenuItem>
               : overenskomster.map((meta) => (
                 <MenuItem key={meta.id} value={meta.id}>{formatOverenskomstMetaDisplay(meta)}</MenuItem>

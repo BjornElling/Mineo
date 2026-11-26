@@ -33,7 +33,7 @@ export type ForligsgradEvaluation =
   | Readonly<{ status: 'invalid'; forlig: null; reason: 'both' | 'broek' | 'broekUnderMinimum'; message: string }>;
 
 /**
- * En brøk under 1/100 er udtryk for en fejl, ligesom en procent under 1 (NY-12a-4): de to felter er to
+ * En brøk under 1/100 er udtryk for en fejl, ligesom en procent under 1: de to felter er to
  * måder at taste samme ansvarsgrad og skal derfor have samme nedre grænse. Teksten følger procentfeltets
  * «Procent skal være mellem 1 og 100».
  */

@@ -1,10 +1,9 @@
 /**
  * Forbeholdene i opgørelsens afsnit «Tabt arbejdsfortjeneste».
  *
- * Begge stod tidligere under «Øvrige krav», hvor de forsvandt tavst, fordi en ny sag starter med øvrige krav
- * på «Skjul» – og hvor de heller ikke hørte hjemme: klagen handler om EET-afgørelsen, og ydelsesforbeholdet
- * om indtægterne i TAF-perioden (BB-233). Udviklerafgørelse 2026-09-23: de trykkes sidst i TAF-beregningen
- * under underoverskriften «Forbehold», hvert på sin egen linje.
+ * De hører ikke under «Øvrige krav», hvor de ville forsvinde tavst, fordi en ny sag starter med øvrige krav
+ * på «Skjul»: klagen handler om EET-afgørelsen, og ydelsesforbeholdet om indtægterne i TAF-perioden. Bevidst
+ * valg: de trykkes sidst i TAF-beregningen under underoverskriften «Forbehold», hvert på sin egen linje.
  */
 
 export const EET_KLAGE_FORBEHOLD_LINJE =

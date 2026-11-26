@@ -15,7 +15,7 @@ const group = { afgoerelsesdato: toISODateString('2026-06-01'), virkningsdato: t
 const values = (midlertidigtEETAfgorelse: 'Ja' | 'Nej', midlertidigtEetFraEetSiden: 'Ja' | 'Nej' = 'Ja') =>
   ({ midlertidigtEETAfgorelse, midlertidigtEetFraEetSiden });
 
-describe('resolveMidlertidigtEetUdenAfgoerelseIssue (BB-372)', () => {
+describe('resolveMidlertidigtEetUdenAfgoerelseIssue', () => {
   it('siger, at intet fradrages, når togglen intet henter', () => {
     const issue = resolveMidlertidigtEetUdenAfgoerelseIssue({ values: values('Nej'), result: { groups: [], issues: [] } });
     expect(issue).toMatchObject({
@@ -53,7 +53,7 @@ describe('resolveMidlertidigtEetUdenAfgoerelseIssue (BB-372)', () => {
   });
 });
 
-describe('bilagsvalget «Midlertidigt EET», når togglen intet henter (BB-372)', () => {
+describe('bilagsvalget «Midlertidigt EET», når togglen intet henter', () => {
   const eoValues = {
     ...createErstatningsopgoerelseInitialValues(),
     kravPaaTabtArbejdsfortjeneste: 'Ja' as const,

@@ -111,8 +111,8 @@ export type EoBilagAvailabilityState =
 export type EoBilagAvailabilityMap = Readonly<Record<EoBilagDynamicSelectionKey, EoBilagAvailabilityState>>;
 
 // Bilagsvalgenes tooltips: ÉN kort sætning uden punktum, jf. `page-component-contract.md` §10.5 punkt 3.
-// De to første er også de tre TAF-dokumenters årsag, når der intet er at fordele (BB-371): samme tilstand, samme ord.
-// Fladen siger «EO-perioden» – den korte form – i boks, bilagsvalg og tooltips (BB-375).
+// De to første er også de tre TAF-dokumenters årsag, når der intet er at fordele: samme tilstand, samme ord.
+// Fladen siger «EO-perioden» – den korte form – i boks, bilagsvalg og tooltips.
 export const EO_INGEN_TAF_PERIODER_I_EO_PERIODEN = 'Der er ingen TAF-perioder i EO-perioden';
 
 export const EO_INGEN_TAF_KRAV_I_EO_PERIODEN = 'Der er ikke krav på tabt arbejdsfortjeneste i EO-perioden';
@@ -254,9 +254,9 @@ export const getEoBilagAvailability = (params: Readonly<{
   const eoBilagMode = eoValues.eoBilagLoenindkomstOgOffentligeYdelserIndgaar ?? 'Perioden';
 
   // Uden TAF-krav dokumenterer ingen af disse bilag noget: de hører alene til TAF-beregningen, og lønindkomst
-  // og ydelser er ikke relevante ved TAF «Nej» (BB-360). Alle dynamiske valg deaktiveres derfor med samme grund –
-  // også ved «Alle». Undtagelsen for «Alle» gav ét valg, der lovede et bilag, som ikke kom, og grunde, der ikke
-  // passede på sagen (BB-373).
+  // og ydelser er ikke relevante ved TAF «Nej». Alle dynamiske valg deaktiveres derfor med samme grund –
+  // også ved «Alle». En undtagelse for «Alle» ville give ét valg, der lovede et bilag, som ikke kom, og grunde,
+  // der ikke passede på sagen.
   if (eoValues.kravPaaTabtArbejdsfortjeneste !== 'Ja') {
     const disabled: EoBilagAvailabilityState = { enabled: false, disabledReason: EO_INGEN_TAF_KRAV_I_EO_PERIODEN };
     return {
@@ -305,8 +305,8 @@ export const getEoBilagAvailability = (params: Readonly<{
             ? EO_INGEN_TAF_PERIODER_I_EO_PERIODEN
             : 'Der er ingen offentlige ydelser i TAF-perioden',
         },
-    // Henter togglen intet, trykkes bilaget ikke (`eoBilagSections`). Valget stod alligevel markeret og aktivt, og
-    // papiret så færdigt ud (BB-372).
+    // Henter togglen intet, trykkes bilaget ikke (`eoBilagSections`), og valget deaktiveres, så papiret ikke
+    // ser færdigt ud uden bilaget.
     midlertidigEet: !midlertidigtEetFraEetSiden
       ? {
           enabled: false,
@@ -340,7 +340,7 @@ export const getEoBilagAvailability = (params: Readonly<{
   };
 };
 
-/** Er der tastet et beløb i cellen? En eksplicit 0 tæller med – 0 kr. er en oplysning (BB-098). */
+/** Er der tastet et beløb i cellen? En eksplicit 0 tæller med – 0 kr. er en oplysning. */
 export const hasLoenAmountInput = (value: StandardLoenTableRow['col2']): boolean => {
   const numeric = amountValueToNumber(value);
   return numeric !== undefined;
@@ -360,8 +360,8 @@ export const shouldIncludeLoenRowInEoBilag = (params: Readonly<{
   // PDF må kun vise rækker uden valideringsfejl.
   if (errorRowIds.has(row.id)) return false;
   // I Beløb-tilstand er tillægs- og pensionsbeløbene selv indtastede beløb, som beregningen regner med. En række
-  // med KUN et tillæg (en særskilt feriepengeudbetaling) stod i grundlagets «Feriepenge m.v.», men ikke i bilaget
-  // (BB-292).
+  // med KUN et tillæg (en særskilt feriepengeudbetaling) står i grundlagets «Feriepenge m.v.» og skal derfor
+  // også med i bilaget.
   const hasAnyIncomeInput =
     hasLoenAmountInput(row.col2) ||
     hasLoenAmountInput(row.col3) ||
@@ -395,8 +395,7 @@ export const shouldIncludeOffentligYdelseRowInEoBilag = (params: Readonly<{
  * De reguleringskilder, bilaget «Regulering» viser – med deres plads i kildelisten.
  *
  * Bilaget dokumenterer reguleringen af beregningsgrundlaget. Et ansættelsesforhold, der kun har løn i
- * erstatningsperioden, indgår ikke i grundlaget og blev alligevel vist med reguleringsværdier (samme fejltype som
- * BB-420). Gaten nedenfor og rendereren bruger derfor samme afgrænsning. Uden en brugbar beregningsperiode, eller
+ * erstatningsperioden, indgår ikke i grundlaget og må ikke vises med reguleringsværdier. Gaten nedenfor og rendereren bruger derfor samme afgrænsning. Uden en brugbar beregningsperiode, eller
  * når ingen kilde har løn i den, vises alle regulerede kilder som hidtil.
  */
 export const resolveReguleringBilagKilder = (

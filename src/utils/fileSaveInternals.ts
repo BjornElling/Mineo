@@ -207,7 +207,7 @@ export const verifySaveArtifact = async (
 
 
     // En tom sagsdel (fx Stamdata ved et rent satsopslag) er en gyldig, forventet sag – ikke en kodefejl.
-    // Filen er nu dekrypteret, schema-valideret og identisk med det forventede indhold (BB-393).
+    // Filen er nu dekrypteret, schema-valideret og identisk med det forventede indhold.
     return {
       success: true,
       verified: true,

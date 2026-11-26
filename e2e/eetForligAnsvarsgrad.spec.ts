@@ -11,8 +11,8 @@ import type { Page } from '@playwright/test';
 /**
  * Forlig om ansvarsgrad på Erhvervsevnetab.
  *
- * Felterne er flyttet fra Differencekrav-fanen til «EET oplysninger» under «Erstatningsansvarsloven»
- * (udviklerens beslutning 2026-09-09), fordi forliget nu reducerer BEGGE de krav, siden opgør. Specen
+ * Felterne står på «EET oplysninger» under «Erstatningsansvarsloven», ikke på Differencekrav-fanen,
+ * fordi forliget reducerer BEGGE de krav, siden opgør. Specen
  * måler den grænse, der betyder penge:
  *
  *  - «EET efter EAL» reducerer sit EGET krav: forlig x EAL-krav.
@@ -90,7 +90,7 @@ test.describe('Forlig om ansvarsgrad – to faner, to grundlag', () => {
     await setupSag(page);
     const procent = page.locator('input[name="forligAnsvarsgradProcent"]');
 
-    // BB-200: feltet stod som «50,00» og læstes som en præcisionsangivelse, brugeren ikke gav.
+    // Feltet stod som «50,00» og læstes som en præcisionsangivelse, brugeren ikke gav.
     await setFieldValueAndSettle(procent, '50');
     await expect(procent).toHaveValue('50');
     // Decimaler kan fortsat indtastes – 12,5 % er et virkeligt forlig.
@@ -158,7 +158,7 @@ test.describe('Forlig om ansvarsgrad – to faner, to grundlag', () => {
       await eetTab(page, fane).click();
       const issueRow = row(page, 'Forlig om ansvarsgrad');
       await expect(issueRow.first()).toBeVisible();
-      // BB-196: den konkrete regel, ikke «indeholder en ugyldig værdi».
+      // Den konkrete regel, ikke «indeholder en ugyldig værdi».
       await expect(issueRow.first()).toContainText('Kan ikke udfylde både procent og brøk');
       // Henvisningen fører til den sektion, felterne nu står i.
       await expect(issueRow.first()).toContainText('Erstatningsansvarsloven');

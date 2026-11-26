@@ -49,7 +49,7 @@ export const resolveEoValidationPathAddress = (
 /**
  * Ansættelsesforhold med en rød issue i en af de tre nested løntabeller.
  *
- * Entity-id'et udledes af den faktiske adresse; der konstrueres ikke længere `${id}:loenindkomst`-nøgler.
+ * Entity-id'et udledes af den faktiske adresse; der konstrueres ingen `${id}:loenindkomst`-nøgler.
  */
 export const selectBlockingLoenindkomstEntityIds = (
   issues: FieldIssueSet
@@ -66,9 +66,9 @@ export const selectBlockingLoenindkomstEntityIds = (
  * Feltissues på et ansættelsesforholds EGNE felter (navn, datoer, satser, anciennitet, løntrin) – ikke
  * cellerne i de nested tabeller – grupperet pr. ansættelsesforhold i feltkatalogets rækkefølge.
  *
- * Findes, så en rød værdi på kortet får sin egen linje med feltets navn og link i «Fejl og advarsler». Før nåede
- * en bounds-fejl som «Arbejdsgivers pensionsbidrag» `150` kun boksen gennem sikkerhedsnettet: én linje uden
- * feltnavn, kortets navn eller link, og den forsvandt helt, så snart en anden fejl stod i boksen (BB-277).
+ * Findes, så en rød værdi på kortet får sin egen linje med feltets navn og link i «Fejl og advarsler». Uden den
+ * når en bounds-fejl som «Arbejdsgivers pensionsbidrag» `150` kun boksen gennem sikkerhedsnettet: én linje uden
+ * feltnavn, kortets navn eller link, og den forsvinder helt, så snart en anden fejl står i boksen.
  */
 export const selectLoenindkomstKortFieldIssues = (
   issues: FieldIssueSet
@@ -91,8 +91,8 @@ export const selectLoenindkomstKortFieldIssues = (
 /**
  * Feltissues i sygeferiegodtgørelsens afsnit, grupperet pr. ansættelsesforhold (afsnittets rækker identificeres
  * af `ansaettelsesforholdId`). Findes af samme grund som `selectLoenindkomstKortFieldIssues`: en rød værdi får sin
- * egen linje med feltets navn og link. Før nåede afsnittets røde felter kun boksen gennem sikkerhedsnettet – og
- * kun når intet andet stod der (BB-322, BB-323).
+ * egen linje med feltets navn og link frem for kun at nå boksen gennem sikkerhedsnettet – og kun når intet andet
+ * står der.
  */
 export const selectSfggFieldIssues = (
   issues: FieldIssueSet
@@ -139,9 +139,8 @@ export const selectBlockingLoenindkomstFieldIssues = (
 /**
  * De røde celler i de to MANUELLE reguleringstabeller pr. ejer: ansættelsesforholdets id eller den angivne løns id.
  *
- * Reguleringslinjerne skal kun pege på deres egne tabeller. Før genbrugte de også en rød celle i indtægtstabellen,
- * så samme fejl stod to gange i «Fejl og advarsler» (M-33). Hver rød celle får sin egen linje (BB-307, BB-308),
- * også under angivet løn, hvor de før ikke nåede boksen.
+ * Reguleringslinjerne skal kun pege på deres egne tabeller. Genbruger de en rød celle i indtægtstabellen, står
+ * samme fejl to gange i «Fejl og advarsler». Hver rød celle får sin egen linje, også under angivet løn.
  */
 export const selectManualReguleringFieldIssues = (
   issues: FieldIssueSet
@@ -162,7 +161,7 @@ export const selectManualReguleringFieldIssues = (
   return Object.freeze(byOwner);
 };
 
-/** Den angivne løns egne felter (ikke tabellernes celler) med en rød værdi – så de får en linje (BB-306). */
+/** Den angivne løns egne felter (ikke tabellernes celler) med en rød værdi – så de får en linje. */
 export const selectAngivetLoenFieldIssues = (issues: FieldIssueSet): readonly FieldIssue[] =>
   issues.all.filter((issue) => {
     const path = issue.field.address.path;
@@ -171,7 +170,7 @@ export const selectAngivetLoenFieldIssues = (issues: FieldIssueSet): readonly Fi
 
 /**
  * Indtægtstabellens røde celler pr. ansættelsesforhold, så hver fejlbehæftet lønrække kan få sin egen linje
- * med cellens egen tekst og et link til cellen (BB-291).
+ * med cellens egen tekst og et link til cellen.
  */
 export const selectLoenindkomstTableFieldIssues = (
   issues: FieldIssueSet
@@ -192,7 +191,7 @@ export const selectLoenindkomstTableFieldIssues = (
   return Object.freeze(byEmployment);
 };
 
-/** Offentlige ydelsers røde celler – til ydelseslinjernes egen tekst og link (BB-291). */
+/** Offentlige ydelsers røde celler – til ydelseslinjernes egen tekst og link. */
 export const selectOffentligeYdelserFieldIssues = (issues: FieldIssueSet): readonly FieldIssue[] =>
   issues.all.filter((issue) => {
     const [segment] = issue.field.address.path;

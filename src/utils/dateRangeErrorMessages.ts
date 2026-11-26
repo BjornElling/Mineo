@@ -34,12 +34,11 @@ export type DateRangeSpecialErrors = {
    * Når sat, overskriver den den generiske max-dato-fejl med "[fieldLabel] kan senest være 31. december ÅÅÅÅ".
    * Året udtrækkes fra maxDate. Bruges til EET-felter afgrænset af data-dækningsår.
    *
-   * `'dagsDato'` er den eksplicitte erklæring om, at loftet ER kalenderen. Den findes, fordi grenen
-   * tidligere blev genkendt på `bounds.kind === 'static'` plus `maxDate === getToday()`, altså på
-   * grænsens VÆRDI i stedet for dens ophav: et felt, hvis MIN-grænse var skærpet af skadedatoen, fik
-   * `kind: 'derived'` og faldt derfor igennem til den bare «mellem X og Y», selv om dets max stadig var
-   * dags dato (BB-208). Erklæringen er samtidig det, der holder BB-043 lukket: en max udledt af et andet
-   * felt sætter `'efterFelt'` og navngiver kilden frem for at tilskrive grænsen kalenderen.
+   * `'dagsDato'` er den eksplicitte erklæring om, at loftet ER kalenderen. Grenen må ikke genkendes på
+   * `bounds.kind === 'static'` plus `maxDate === getToday()`, altså på grænsens VÆRDI i stedet for dens
+   * ophav: et felt, hvis MIN-grænse er skærpet af skadedatoen, får `kind: 'derived'` og ville falde igennem
+   * til den bare «mellem X og Y», selv om dets max stadig er dags dato. Omvendt sætter en max udledt af et
+   * andet felt `'efterFelt'` og navngiver kilden frem for at tilskrive grænsen kalenderen.
    */
   maxBoundKind?: 'eetDataMax' | 'dataCoverageMax' | 'foerAfgoerelsesdato' | 'foerFoersteTafFraDato' | 'skadedato' | 'efterFelt' | 'dagsDato';
   /** Feltlabelet brugt i maxBoundKind-fejlbeskeden, fx "Beregningsdato". */
@@ -59,7 +58,7 @@ const formatISOForTooltip = (iso: ISODateString): string => isoToDanish(iso) ?? 
  * Erklæringen (`maxBoundKind: 'dagsDato'`) er det primære svar. Værdi-genkendelsen bevares for de felter,
  * hvis grænser er rene konfigurationskonstanter og derfor ikke går gennem en `special`-funktion: der KAN
  * en max lig dags dato kun komme fra kalenderen. Et `'efterFelt'`-max navngiver sin kilde og må aldrig
- * tilskrives kalenderen, heller ikke når den tilfældigvis lander på i dag (BB-043).
+ * tilskrives kalenderen, heller ikke når den tilfældigvis lander på i dag.
  */
 const isDagsDatoMax = (
   special: DateRangeSpecialErrors | undefined,
@@ -75,7 +74,7 @@ const isDagsDatoMax = (
  * «… og dags dato (DD-MM-ÅÅÅÅ)» i stedet for en bar dato.
  *
  * Reglen «en opgørelse kan ikke være lavet i fremtiden» er umiddelbart forståelig; et tal, brugeren selv
- * skal genkende som i dag, er den ikke (BB-208). Formen er den samme overalt, hvor loftet er kalenderen,
+ * skal genkende som i dag, er den ikke. Formen er den samme overalt, hvor loftet er kalenderen,
  * så de to halvdele af samme felts grænse ikke taler i hver sin stilart.
  */
 const formatMaxForTooltip = (maxDate: ISODateString, erDagsDato: boolean): string =>
@@ -135,7 +134,7 @@ export const resolveDateRangeErrorMessage = (args: {
   // Er max udledt af et andet felt (`kind: 'derived'`), navngiver `maxBoundFieldLabel`-grenen nedenfor
   // kilden i stedet. Uden det forbehold tilskrev beskeden grænsen det forkerte ophav i netop det
   // hyppigste tilfælde: en beregningsdato sat med «Indsæt dags dato» er dags dato, og brugeren fik at
-  // vide, at datoen lå i fremtiden, mens han i virkeligheden skulle flytte beregningsdatoen (BB-043).
+  // vide, at datoen lå i fremtiden, mens han i virkeligheden skulle flytte beregningsdatoen.
   if (isDagsDatoMax(special, bounds, maxDate) && maxDate && iso > maxDate) {
     return `Datoen er efter dags dato (${formatISOForTooltip(maxDate)})`;
   }
@@ -192,8 +191,8 @@ export const resolveDateRangeErrorMessage = (args: {
   }
 
   // Grænsen er et ANDET felts værdi. Beskeden navngiver kilden frem for at lade brugeren gætte, hvor
-  // tallet kommer fra – og frem for at tilskrive det kalenderen, når det tilfældigvis er dags dato
-  // (BB-043). `maxBoundFieldLabel` er feltets brugervendte navn i mundret, bestemt form.
+  // tallet kommer fra – og frem for at tilskrive det kalenderen, når det tilfældigvis er dags dato.
+  // `maxBoundFieldLabel` er feltets brugervendte navn i mundret, bestemt form.
   if (special?.maxBoundKind === 'efterFelt' && maxDate && iso > maxDate) {
     const reference = special.maxBoundReferenceISO ?? maxDate;
     const label = special.maxBoundFieldLabel ?? 'den senest tilladte dato';
@@ -215,7 +214,7 @@ export const resolveDateRangeErrorMessage = (args: {
 
   // Intervalteksten nævner BEGGE grænser, også når det kun er den ene, der er overtrådt. Er loftet
   // kalenderen, skal det derfor også her sige «dags dato», så feltets to grænser ikke taler i hver sin
-  // stilart (BB-208). Resten af formen er `validateISODateRange`s egen, så de to ikke kan drifte.
+  // stilart. Resten af formen er `validateISODateRange`s egen, så de to ikke kan drifte.
   if (minDate && maxDate && isDagsDatoMax(special, bounds, maxDate) && (iso < minDate || iso > maxDate)) {
     return `Dato skal være mellem ${formatISOForTooltip(minDate)} og ${formatMaxForTooltip(maxDate, true)}`;
   }

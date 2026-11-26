@@ -184,7 +184,7 @@ describe('renderShDageSection – beregningsperiode for første opgørelse', () 
     expect(renderSubheader).not.toHaveBeenCalledWith('Beregningsperiode', expect.anything());
   });
 
-  // BB-280: grundlaget i arbejdsdage trækker beregningsperiodens SH-dage fra; bilaget skal dokumentere dem,
+  // Grundlaget i arbejdsdage trækker beregningsperiodens SH-dage fra; bilaget skal dokumentere dem,
   // også når sygeferiegodtgørelsen ikke regner i arbejdsdage.
   it('viser Beregningsperiode, når beregningsgrundlaget fratrækker SH-dage – uden SFGG i arbejdsdage', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();

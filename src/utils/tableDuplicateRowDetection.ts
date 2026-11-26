@@ -2,10 +2,10 @@ import type { AmountValue } from '../schemas/amountExpressionSchema';
 import { isAmountValueStrict } from './tableValidationCommon';
 
 /**
- * Kryds-række-dublet-detektion – ÉN kerne for alle periodetabeller (brugerkrav 2026-08-26).
+ * Kryds-række-dublet-detektion – ÉN kerne for alle periodetabeller.
  *
- * **Reglen.** To rækker i samme tabel, hvis SAMMENLIGNEDE felter alle er ens, skal ses af brugeren. Siden
- * udviklerafgørelsen 2026-10-19 (BB-289) er det en gul, IKKE-blokerende advarsel på alle flader: dobbelt løn
+ * **Reglen.** To rækker i samme tabel, hvis SAMMENLIGNEDE felter alle er ens, skal ses af brugeren. Det er
+ * bevidst en gul, IKKE-blokerende advarsel på alle flader: dobbelt løn
  * eller ydelse for samme periode kan i sjældne tilfælde være reel. Det gælder både
  * periodefelterne (fra/til) og beløbsfelterne. Reglen er bevidst SNÆVER: den rammer kun den ordrette
  * gentagelse, ikke to rækker der blot overlapper i tid.
@@ -35,8 +35,8 @@ type NormalizedCellValue = string | number | null;
  * enhver tom form – `undefined`, `null`, `''`, whitespace, et ikke-endeligt tal – bliver `null`.
  *
  * Bemærk at en eksplicit `0` IKKE er tom her. Det er med vilje: to rækker med samme periode og 0 kr. i
- * begge er ordret den samme oplysning to gange, og 0 er en bevidst indtastning (jf. udviklerbeslutningen om,
- * at 0 kr. i en beløbstabel bevares som en oplysning).
+ * begge er ordret den samme oplysning to gange, og 0 er en bevidst indtastning (jf. reglen om, at 0 kr. i
+ * en beløbstabel bevares som en oplysning).
  */
 export const normalizeCellValueForDuplicateComparison = (value: unknown): NormalizedCellValue => {
   if (value === undefined || value === null) return null;
@@ -105,7 +105,7 @@ export const findDuplicateRows = <TRow>(
 
 /**
  * Advarselsteksten. ÉN ordlyd for alle tabeller, så reglen læses ens uanset hvilken tabel brugeren står i.
- * Den beder om et blik, ikke om en rettelse – rækken kan være rigtig (BB-289).
+ * Den beder om et blik, ikke om en rettelse – rækken kan være rigtig.
  */
 export const DUPLICATE_ROW_WARNING =
   'Rækken er identisk med en tidligere række – kontrollér, at den ikke er indtastet to gange';

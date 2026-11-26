@@ -67,7 +67,7 @@ describe('erstatningsopgørelse → Word-indhold', () => {
     expect(text).toContain('03-04-2025 - 22-02-2026');
   });
 
-  // NY-12a-1: brugerens fritekst og identifikatorer gengives tegn for tegn – også når de
+  // Brugerens fritekst og identifikatorer gengives tegn for tegn – også når de
   // indeholder et ISO-dato-formet fragment. Kun programmets egne datofelter formateres.
   it('gengiver journalnummer og særlige bemærkninger ordret, også med ISO-formet fragment', async () => {
     const stamdata = baseStamdata();
@@ -131,9 +131,9 @@ describe('erstatningsopgørelse → Word-indhold', () => {
     expect(hasWatermark).toBe(false);
   });
 
-  // Supplerende multi-sektions-fixture (jf. udskudt fund fra 10.7): den oprindelige EO-paritetstest
-  // kørte kun med `opgoerelse: true`, så bilag-sektionerne (Lønindkomst, SH-dage) var IKKE Word-dækket
-  // via generator-paritet. Her aktiveres de med reelt datagrundlag, så et skjult indholdstab i en
+  // Supplerende multi-sektions-fixture: EO-paritetstesten kører kun med `opgoerelse: true`, så
+  // bilag-sektionerne (Lønindkomst, SH-dage) er ikke Word-dækket via generator-paritet. Her aktiveres
+  // de med reelt datagrundlag, så et skjult indholdstab i en
   // bilag-sektion under Word fanges.
   it('skriver bilag-sektionerne (Lønindkomst, SH-dage) til .docx', async () => {
     const stamdata: StamdataValues = {
@@ -202,12 +202,11 @@ describe('erstatningsopgørelse → Word-indhold', () => {
     expect(text).toContain('SH-dage');
   });
 
-  // Regression: ved angivet løn er loenudvikling.perAnsaettelse tom (hele forløbet ligger i de
-  // globale segmenter), så regulering-sektionens per-ansættelse-opslag fandt intet og
-  // "Beregnet regulering"-tabellen blev tom ("Ingen reguleringsrækker i perioden."), selvom
-  // reguleringsforløbet var korrekt beregnet og vist under Forventet indkomst. Reproduceres her
-  // med ASL-årslønsmaksimum (det spor brugeren observerede), men fejlen ramte alle
-  // reguleringsformer under angivet løn.
+  // Ved angivet løn er loenudvikling.perAnsaettelse tom (hele forløbet ligger i de globale
+  // segmenter). Et per-ansættelse-opslag i regulering-sektionen ville finde intet, og "Beregnet
+  // regulering"-tabellen ville stå tom ("Ingen reguleringsrækker i perioden."), selvom
+  // reguleringsforløbet er beregnet og vist under Forventet indkomst. Prøvet med
+  // ASL-årslønsmaksimum; risikoen gælder alle reguleringsformer under angivet løn.
   it('genererer Beregnet regulering-tabellen for angivet løn med ASL-årslønsmaksimum', async () => {
     const stamdata: StamdataValues = {
       ...structuredClone(STAMDATA_INITIAL_VALUES),

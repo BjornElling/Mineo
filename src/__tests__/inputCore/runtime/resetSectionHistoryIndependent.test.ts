@@ -19,7 +19,7 @@ const key = getCurrentInputEnvelopeStorageKey();
 
 const storedInput = () => parseCurrentEnvelope(sessionStorage.getItem(key) ?? '');
 
-describe('INPUT-001 – sektionsreset som reversibel runtime-command', () => {
+describe('Sektionsreset som reversibel runtime-command', () => {
   it('ændrer kun målsektionen og gendanner hele inputtilstanden gennem undo og redo', () => {
     sessionStorage.clear();
     const catalog = createTestCatalog();

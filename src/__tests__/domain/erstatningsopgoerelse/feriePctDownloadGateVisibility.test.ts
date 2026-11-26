@@ -14,7 +14,7 @@ import { TILLAEG_ANGIVES_SOM } from '../../../types/loen';
  * synlig fejl i «Fejl og advarsler».
  *
  * Feriegodtgørelsen er påkrævet, når kortet har lønoplysninger i procent-tilstand – uanset reguleringsform og
- * beregningsmåde (BB-274). ÉT prædikat (`isFeriePctPaakraevet`) driver både validatorens blokering og
+ * beregningsmåde. ÉT prædikat (`isFeriePctPaakraevet`) driver både validatorens blokering og
  * række-motorens `satserSkadestidspunkt`-fejlrække. Testen beviser at de to sider ALTID er enige.
  */
 
@@ -111,7 +111,7 @@ describe('feriegodtgørelse: download-blokering ⟺ synlig fejl (ingen usynlig b
   });
 
   it('et ferietillæg (under 12 %) ved løn under ferie giver en gul, ikke-blokerende satsrække', () => {
-    // Standardkortet har løn under ferie; udviklerafgørelse 2026-11-04: kun en advarsel, aldrig en blokering.
+    // Standardkortet har løn under ferie: kun en advarsel, aldrig en blokering.
     const values = buildScenario({ grundlag: 'Overenskomst', feriePct: 10 });
     expect(feriePctBlocksInValidator(values)).toBe(false);
     const section = buildIndkomstSectionStatuses(values)[0];

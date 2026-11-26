@@ -25,7 +25,7 @@ import {
   testLocation,
 } from '../../inputCore/testCatalog';
 
-// UDVIKLERBESLUTNING 2026-08-15 (`input-field-behavior-contract.md` §2.6 og §2.7):
+// BEVIDST VALG (`input-field-behavior-contract.md` §2.6 og §2.7):
 //
 //   «Hvert tastetryk, der ændrer valget, er sin egen handling i undo/redo.»
 //
@@ -96,7 +96,7 @@ const renderEnhedDropdown = () => {
   return screen.getByRole('combobox');
 };
 
-describe('dropdown: hvert tastedrevet valg er sit eget undo-trin (§2.6, udviklerbeslutning)', () => {
+describe('dropdown: hvert tastedrevet valg er sit eget undo-trin (§2.6, bevidst valg)', () => {
   it('to bogstavtryk i en LUKKET dropdown giver to fortryd-trin', async () => {
     const combobox = renderEnhedDropdown();
     await act(async () => combobox.focus());
@@ -183,7 +183,7 @@ const renderEnhedRadio = () => {
   );
 };
 
-describe('radiogruppe: hvert tastedrevet valg er sit eget undo-trin (§2.7, udviklerbeslutning)', () => {
+describe('radiogruppe: hvert tastedrevet valg er sit eget undo-trin (§2.7, bevidst valg)', () => {
   it('to tastedrevne valg giver to fortryd-trin', async () => {
     const user = userEvent.setup();
     renderEnhedRadio();

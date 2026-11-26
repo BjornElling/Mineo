@@ -19,7 +19,7 @@ const eoWith = (overrides: Partial<ErstatningsopgoerelseValues>): Erstatningsopg
   ...overrides,
 });
 
-describe('resolveForligDatoEfterOpgoerelseMessage (NY-12a-3)', () => {
+describe('resolveForligDatoEfterOpgoerelseMessage', () => {
   it('advarer med opgørelsens dato, når forliget er dateret efter den', () => {
     expect(resolveForligDatoEfterOpgoerelseMessage(eoWith({ forligDato: iso('2024-02-02') })))
       .toBe('Forliget er dateret efter opgørelsens dato (01-02-2024)');
@@ -39,7 +39,7 @@ describe('resolveForligDatoEfterOpgoerelseMessage (NY-12a-3)', () => {
   });
 });
 
-describe('resolveStatusDatoEfterOpgoerelseMessage (NY-12a-5)', () => {
+describe('resolveStatusDatoEfterOpgoerelseMessage', () => {
   // Statusdatoen er dagen efter periodens slutdato: til-dato 31-01-2024 → status 01-02-2024.
   const medStatus = (overrides: Partial<ErstatningsopgoerelseValues>) => eoWith({
     kravPaaSvieSmerteGodtgoerelse: 'Ja',
@@ -99,7 +99,7 @@ describe('resolveStatusDatoEfterOpgoerelseMessage (NY-12a-5)', () => {
 });
 
 describe('Beregning: «Fejl og advarsler»-rækkerne', () => {
-  it('giver forligsdatoen en ikke-blokerende advarsel efter opgørelsens dato (NY-12a-3)', () => {
+  it('giver forligsdatoen en ikke-blokerende advarsel efter opgørelsens dato', () => {
     const rows = buildEoForligRows(
       eoWith({ forligAnsvarsgradProcent: 50, forligDato: iso('2024-03-01') }),
       EMPTY_FIELD_ISSUE_SET
@@ -121,7 +121,7 @@ describe('Beregning: «Fejl og advarsler»-rækkerne', () => {
     expect(rows.find((row) => row.id === 'forlig.dato')?.status).toBe('ok');
   });
 
-  it('giver begge valgte statusfelter en ikke-blokerende advarsel (NY-12a-5)', () => {
+  it('giver begge valgte statusfelter en ikke-blokerende advarsel', () => {
     const rows = buildEoErstatningsopgoerelseRows(eoWith({
       opgørelseLavetDen: iso('2024-01-04'),
       kravPaaSvieSmerteGodtgoerelse: 'Ja',

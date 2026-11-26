@@ -115,8 +115,8 @@ const integerCodec = (minValue: number, maxValue: number, maxDigits: number): Fi
 
 /**
  * Lønindkomst-fanen hører til kravet på tabt arbejdsfortjeneste: ved TAF «Nej»/«Skjul» bruges intet fra den, og en
- * ufærdig lønrække må hverken spærre opgørelsen eller trykkes – heller ikke med bilagsvalget «Alle» (udviklerafgørelse
- * 2026-10-29, BB-360 – samme regel som Offentlige ydelser). Hvert felt under et ansættelsesforhold – også rækkerne i
+ * ufærdig lønrække må hverken spærre opgørelsen eller trykkes – heller ikke med bilagsvalget «Alle» (samme regel som
+ * Offentlige ydelser). Hvert felt under et ansættelsesforhold – også rækkerne i
  * dets tabeller – får derfor TAF-sektionen som forudsætning oven i sin egen relevans. Fanen viser kun en forklaring.
  */
 const withEmploymentTafRelevance = <T,>(
@@ -229,8 +229,8 @@ const emp = <T>(
   relevance?: RelevanceRule<T | undefined>,
 ) => optField<T>(EMP_ID, employmentPath, field, label, controlKind, codec, validators, relevance);
 
-// Delt canonical bounds-validator for procentfelterne (0..100). Codecet afviser ikke længere out-of-bounds;
-// grænsen er nu et afledt bounds-issue (§1.6).
+// Delt canonical bounds-validator for procentfelterne (0..100). Codecet afviser ikke out-of-bounds;
+// grænsen er et afledt bounds-issue (§1.6).
 const empPercentBounds = (field: string): readonly FieldValidator<number | undefined>[] =>
   [percentBoundsValidator(`${EMP_ID}.${field}.bounds`, { minValue: 0, maxValue: 100, allowDecimals: true })];
 // Feriesatsen har sit eget loft: feriegodtgørelse er aldrig over 25 % (`feriepenge-begreber-contract.md` §2d). Samme
@@ -275,8 +275,8 @@ const employmentRelevance = <T,>(
 };
 
 /**
- * Lønudviklingens og anciennitetens felter på et ansættelsesforhold er relevante efter blokkens egen synlighed
- * (BB-301): blokken vises kun ved «Beregningsperiode», og hver reguleringsform åbner sine egne felter.
+ * Lønudviklingens og anciennitetens felter på et ansættelsesforhold er relevante efter blokkens egen synlighed:
+ * blokken vises kun ved «Beregningsperiode», og hver reguleringsform åbner sine egne felter.
  * Prædikatet læser de styrende felter rå og tjekker selv deres relevans i rækkefølge (blok → form → toggle).
  */
 const employmentLoenudviklingRelevance = <T,>(felt: LoenudviklingFelt): RelevanceRule<T> => (field, view) => {
@@ -291,7 +291,7 @@ const employmentLoenudviklingRelevance = <T,>(felt: LoenudviklingFelt): Relevanc
 
 /**
  * «Sidste dag i ansættelsesforholdet» kan ikke ligge før skadedatoen, når skadelidte var ansat på
- * skadestidspunktet – én af de to oplysninger er da forkert (udviklerafgørelse 2026-10-06, BB-283). Feltet er
+ * skadestidspunktet – én af de to oplysninger er da forkert (bevidst valg). Feltet er
  * kun relevant (og valideres derfor kun), når både «Ansat på …» og «Opsagt fra stillingen» er slået til. Et
  * ansættelsesforhold, der sluttede før skaden, angives med «Ansat på …» slået fra.
  */
@@ -309,7 +309,7 @@ const sidsteDagEfterSkadedatoValidator: FieldValidator<ISODateString | undefined
 
 /**
  * Den særlige fra-dato må ikke ligge før den valgte PRIVATE overenskomsts første satsperiode: programmet har
- * da ingen satser at regne tillæggene med (udviklerafgørelse 2026-10-06, BB-275). I beløb-tilstand bruges
+ * da ingen satser at regne tillæggene med. I beløb-tilstand bruges
  * satserne ikke, og datoen markeres ikke.
  */
 const saerligFraDatoOverenskomstDaekningValidator: FieldValidator<ISODateString | undefined> = (value, field, view) => {
@@ -330,8 +330,8 @@ const saerligFraDatoOverenskomstDaekningValidator: FieldValidator<ISODateString 
 
 /**
  * Satsfelterne vises kun ved «Tillæg angives som» = «Procent», som Årslønstabellens tvilling (`aarsloenDescriptors.ts`).
- * Uden relevans blev skjulte satser ved med at fodre overenskomstreguleringen og sygeferiegodtgørelsens pension, og
- * en rød sats spærrede med et link til et felt, brugeren ikke kunne se (udviklerafgørelse 2026-10-23, BB-301).
+ * Uden relevans bliver skjulte satser ved med at fodre overenskomstreguleringen og sygeferiegodtgørelsens pension, og
+ * en rød sats spærrer med et link til et felt, brugeren ikke kan se.
  */
 const empSatsRelevance = <T,>(): RelevanceRule<T> => (field, view) =>
   view.readCanonical(eoEmploymentFields.tillaegAngivesSom.bind(employmentIdFromField(field))) !== 'beloeb';
@@ -342,9 +342,8 @@ export const eoEmploymentFields = {
   navnPaaArbejdssted: emp<string>('navnPaaArbejdssted', 'Navn på arbejdssted', 'text', optionalTextCodec),
   harOverenskomst: createField<boolean>({ ownerId: EMP_ID, path: employmentPath, field: 'harOverenskomst', label: 'Overenskomst', controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false }),
   overenskomstId: emp<string>('overenskomstId', 'Vælg overenskomst', 'choice', optionalTextCodec),
-  // `contextualLabel` som naboen `harAnciennitetstillaegEfterSkadedatoen` (BB-121): den kontekstfrie label
-  // var den eneste, der stadig sagde «skadestidspunktet» ved en erhvervssygdom. UI'en byggede allerede
-  // selv det rigtige navn to steder, så det var descriptorens label, der drev fra dem.
+  // `contextualLabel` som naboen `harAnciennitetstillaegEfterSkadedatoen`: en kontekstfri label siger
+  // «skadestidspunktet» ved en erhvervssygdom og driver fra det navn, UI'en viser.
   ansatPaaSkadestidspunktet: createField<boolean>({ ownerId: EMP_ID, path: employmentPath, field: 'ansatPaaSkadestidspunktet', label: `Ansat på ${STAMDATA_DATO_REFERENCE_DEFAULT.tidspunktBestemt}`, contextualLabel: (view) => `Ansat på ${resolveStamdataDatoReferenceFromView(view).tidspunktBestemt}`, controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false }),
   ansaettelsesforholdOphoert: createField<boolean>({ ownerId: EMP_ID, path: employmentPath, field: 'ansaettelsesforholdOphoert', label: 'Opsagt fra stillingen', controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false, relevance: employmentRelevance(erAnsaettelsesforholdOphoertRelevant) }),
   sidsteArbejdsdag: empDate('sidsteArbejdsdag', 'Sidste dag i ansættelsesforholdet', systemrammeSpec, employmentRelevance(erSidsteArbejdsdagRelevant), [sidsteDagEfterSkadedatoValidator]),
@@ -376,9 +375,9 @@ export const eoEmploymentFields = {
       });
     },
   }),
-  // Reguleringsdatoen er den dato, lønnen afspejler – en senere dato end i dag er en tastefejl (BB-282).
+  // Reguleringsdatoen er den dato, lønnen afspejler – en senere dato end i dag er en tastefejl.
   // Labelen er skærmens («Evt. særlig fra-dato …»), så linjen i «Fejl og advarsler» navngiver feltet, som det står.
-  // Vises kun ved «Beregningsperiode», som resten af lønudviklingen (BB-301).
+  // Vises kun ved «Beregningsperiode», som resten af lønudviklingen.
   saerligFraDatoRegulering: empDate(
     'saerligFraDatoRegulering', 'Evt. særlig fra-dato for regulering', systemrammeTilDagsDatoSpec,
     employmentLoenudviklingRelevance('grundlag'),
@@ -479,8 +478,7 @@ const stdString = (
   createField<string | undefined>({
     ownerId: STD_ID, path: stdRowPath, field, label, controlKind: 'text', codec, emptyValue: '', isEmpty: isEmptyString,
     // Samme værn som Årsløns kolonner: en `.eo`-fil kan bære en schema-gyldig streng som «1.5», codecet ikke
-    // kan fortolke. Uden værnet læste beregningen den med `parseInt` som januar, mens cellen viste «1.5»
-    // (værdiklasse-gennemgangen 2026-11-24, fund G, godkendt af udvikleren 2026-11-25).
+    // kan fortolke. Uden værnet læser beregningen den med `parseInt` som januar, mens cellen viser «1.5».
     validators: [canonicalStringCodecValidator(`${STD_ID}.${field}.schema`, codec), ...validators],
     relevance,
   });
@@ -492,8 +490,7 @@ const stdAmount = (
   optField<AmountValue>(STD_ID, stdRowPath, field, label, 'text', tableAmountCodec, undefined, relevance);
 
 // Kolonnenavnene er ét sandt sted (`STANDARD_LOEN_COLUMN_LABELS`, §3.2a): descriptor-labelen ER
-// gridoverskriften, så en fejl på en celle navngiver den kolonne, brugeren faktisk ser. `col4`/`col5` hed
-// tidligere «Løn (3)»/«Løn (4)» her, mens overskriften sagde noget andet.
+// gridoverskriften, så en fejl på en celle navngiver den kolonne, brugeren faktisk ser.
 const stdLabel = STANDARD_LOEN_COLUMN_LABELS;
 
 export const eoStandardRowFields = {
@@ -532,7 +529,7 @@ const standardRowsOf = (employmentId: string): CollectionRef => createCollection
 /**
  * Lønindkomstens ansættelsesforhold, som `computeTafBeregningsenhed` læser dem, bygget fra en `CanonicalView`.
  * Bruges af relevansreglen for TAF-periodernes «Løse ferie-/feriefridage», hvis relevans følger
- * beregningsenheden (BB-247).
+ * beregningsenheden.
  *
  * Rækkerne og deres felter læses DOVENT: reglen kaldes, hver gang en reader dannes, og et lønindkomsttræ kan
  * have flere hundrede rækker. Afgørelsen stopper ved første række med løn i beregningsperioden og læser kun
@@ -589,8 +586,8 @@ export type ManualBindings = Readonly<{
 
 /**
  * Grundlønnen i en manuel række skal være større end 0: en løn på 0 eller derunder kan ikke reguleres ud fra, og
- * motoren afviser den. Reglen stod før kun i validatoren og spærrede uden rød celle – og først når alt andet var
- * rettet (BB-308, samme form som BB-232).
+ * motoren afviser den. Reglen står på feltet, ikke kun i validatoren; ellers spærrer den uden rød celle – og først
+ * når alt andet er rettet.
  */
 const manualGrundloenPositiveValidator = (code: string): FieldValidator<AmountValue | undefined> =>
   positiveAmountBoundsValidator(code, 'Grundløn');
@@ -622,8 +619,8 @@ const createManualBindings = (
   const manualId = `${ownerId}.loenudviklingManuelTableData`;
   const manualPercentId = `${ownerId}.loenudviklingManuelProcentsatsTableData`;
 
-  // Tabellernes celler er kun relevante, mens deres form er valgt og blokken vises (BB-301): en rød celle i en
-  // fravalgt tabel spærrede før opgørelsen med en linje uden et sted at rette den.
+  // Tabellernes celler er kun relevante, mens deres form er valgt og blokken vises: ellers spærrer en rød celle i
+  // en fravalgt tabel opgørelsen med en linje uden et sted at rette den.
   const angivet = <T,>(): RelevanceRule<T> => relevance<T>('manueltAngivet');
   const procentsats = <T,>(): RelevanceRule<T> => relevance<T>('manuelProcentsats');
   const pctBounds = (id: string) => [percentBoundsValidator(id, { minValue: 0, maxValue: 100, allowDecimals: true })];
@@ -666,8 +663,8 @@ const employmentManual = eoEmploymentManual;
 const EO_LOEN_ID = 'eo.eoAngivetLoenLoenudvikling';
 
 /**
- * Den angivne løns lønudvikling vises kun under sin egen gren af «Beregnes ud fra» med TAF-sektionen aktiv
- * (BB-301); felterne indenfor følger reguleringsformen som på ansættelsesforholdet. Komprimeringen ved EO 2+
+ * Den angivne løns lønudvikling vises kun under sin egen gren af «Beregnes ud fra» med TAF-sektionen aktiv;
+ * felterne indenfor følger reguleringsformen som på ansættelsesforholdet. Komprimeringen ved EO 2+
  * skjuler blokken, men gør den ikke irrelevant (`eoInputRelevance.ts`).
  */
 const eoLoenudviklingRelevance = <T,>(felt: LoenudviklingFelt): RelevanceRule<T> => (_field, view) =>
@@ -706,7 +703,7 @@ export const eoAngivetLoenFields = {
   // Samme required-choice-kontrakt som ansættelsesforholdets tvilling (`eoEmploymentFields.loenPaaHelligdage`).
   // Tomværdien er den samme konkrete sats, som schemaets `.default()` giver: en tomværdi på `undefined` ville
   // føde motoren en tilstand, den erklærer umulig. Feltet vises og læses kun ved de reguleringsformer, der regner
-  // med helligdagene (BB-315); ved de øvrige fik brugeren et valg, der intet ændrede.
+  // med helligdagene; ved de øvrige ville brugeren få et valg, der intet ændrer.
   loenPaaHelligdage: reqChoiceField(EO_LOEN_ID, eoLoenPath, 'loenPaaHelligdage', 'Løn på helligdage', loenPaaHelligdageEnum.options, 'Almindelig løn', 'choice', eoLoenudviklingRelevance('loenPaaHelligdageVedAngivetLoen')),
   // Skjult input bevares; descriptoren giver alle læsere tomværdien, når valget er uden virkning.
   beregnStoreBededagstillaeg: createField<boolean>({

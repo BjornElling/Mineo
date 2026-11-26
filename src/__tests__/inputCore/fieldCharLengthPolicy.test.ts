@@ -30,17 +30,13 @@ import {
 //
 // Baggrund. `input-field-behavior-contract.md` §1.2 erklærer reglen universelt: «Et inputfelt skal have en
 // effektiv blokering mod, at der overhovedet kommer tegn ind i feltet, som ikke stemmer med feltets
-// erklærede tegnsæt og maksimale længde.» Reglen var kun håndhævet dér, hvor nogen huskede den. Målingen
-// 2026-08-15 fandt:
+// erklærede tegnsæt og maksimale længde.» En regel, der kun håndhæves dér, hvor nogen husker den, efterlader
+// tekstfelter uden grænse (en indsat tekst på 50.000 tegn går uændret ind i sagen), heltalsfelter uden
+// ciffergrænse og grænser skrevet i hånden i komponenten frem for læst fra codecet – hvor et årsfelt let
+// griber DATO-konstanten (16 tegn) i stedet for 4.
 //
-//   - 28 af 31 tekstfelter uden nogen grænse (bl.a. `Skadelidte`, `Journalnr.`, `Særlige bemærkninger`
-//     og alle syv bilagsnumre-felter). En indsat tekst på 50.000 tegn gik uændret ind i sagen.
-//   - 8 af 12 heltalsfelter uden ciffergrænse – heriblandt `Méngrad`, hvis eget maksimum er 120.
-//   - Brøk-, år- og ugefelternes grænse skrevet i hånden i komponenten frem for læst fra codecet;
-//     `GridYearCell` greb ved en fejl DATO-konstanten (16 tegn) til et årsfelt, mens `YearField` brugte 4.
-//
-// Det er nøjagtig samme fejlmåde som datofelternes manglende grænser (`dateFieldsDeclareBounds.test.ts`,
-// 31 af 54), og den er lukket på samme måde: erklæringen er gjort PÅKRÆVET i typen, og adfærden måles her.
+// Det er samme fejlmåde som datofelternes manglende grænser (`dateFieldsDeclareBounds.test.ts`), og den er
+// lukket på samme måde: erklæringen er PÅKRÆVET i typen, og adfærden måles her.
 //
 // Værnet måler ADFÆRD, ikke kildekode: for hvert felt hentes den grænse, de to flader faktisk håndhæver,
 // og der pastes en tekst, der er ét tegn for lang. Består feltet, er den overskydende tekst faktisk væk.
@@ -64,7 +60,7 @@ describe('felter håndhæver deres erklærede tegn- og længdegrænse', () => {
   it('finder tastede felter i produktionskataloget (værnet kan ikke være grønt af tomhed)', () => {
     // Uden denne kontrol ville værnet bestå, hvis familielisten blev tømt eller kataloget forsvandt.
     expect(typedFields.length).toBeGreaterThanOrEqual(150);
-    // Og hver af de familier, fundet handlede om, skal faktisk være med.
+    // Og hver af de familier, reglen handler om, skal faktisk være med.
     const families = new Set(typedFields.map((field) => field.codec.family));
     for (const family of ['optionalText', 'integer', 'fraction', 'year', 'date', 'amount', 'percent']) {
       expect(families.has(family as never), `familien ${family} mangler i måleområdet`).toBe(true);

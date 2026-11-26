@@ -196,7 +196,8 @@ const migrateMissingStoreBededagToggle = (value: unknown): unknown => {
 
 /**
  * Første persisted-data-version, hvor begge kronetillæg i reguleringen bærer en gemt enhed, som er
- * brugerens eget valg (afklaringslog 10a og 12 i `docs/review/regulering-taf-gennemgang-2026-10-13.md`).
+ * brugerens eget valg. Enheden gemmes med beløbet og udledes aldrig af et andet felt; et kronetillæg regnes
+ * altid om til pakkens enhed («Ansættelse» ved offentlig overenskomst), aldrig til TAF-enheden.
  */
 const FIRST_VERSION_WITH_KRONETILLAEG_ENHEDER = '3.15';
 
@@ -251,7 +252,8 @@ const addMissingEkstraGrundloenEnhed = (source: unknown): unknown => {
  *    anciennitetsenhed var synlig og valgt af brugeren og migreres ikke.
  *
  * Den ændrede fortolkning af forhøjet grundløn (beløbet regnes nu i den enhed, feltet viste, ikke i
- * TAF-enheden) er godkendt af udvikleren uden preflight eller advarsel ved indlæsning (afklaringslog 12).
+ * TAF-enheden) gælder bevidst uden preflight eller advarsel ved indlæsning: det rammer kun sjældne,
+ * undtagelsesvise grænsetilfælde.
  */
 const migrateHistoricalKronetillaegEnheder = (value: unknown): unknown => {
   if (!isRecord(value)) return value;
@@ -476,7 +478,7 @@ const PERSISTED_LOAD_ADAPTER_REGISTRY = {
   ),
 } satisfies PersistedLoadAdapterRegistry;
 
-// Udviklerbeslutning 2026-10-27: ældre årslønssager beholder tal og valg uden ny advarsel.
+// Bevidst valg: ældre årslønssager beholder tal og valg uden ny advarsel.
 // De nye overenskomstfelter er tomme; hverken satsopslag eller Store Bededag aktiveres ved load.
 const MISSING_PERSISTED_FIELD_POLICIES: readonly MissingPersistedFieldPolicy[] = [
   'overenskomstId', 'overenskomstLoenmodtager', 'overenskomstArbejdsgiver', 'reguleringsdato', 'beregnStoreBededagstillaeg',

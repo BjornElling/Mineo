@@ -61,10 +61,10 @@ const tastRaekke = async (page: Page, index: number, maaned: string, aar: string
 
 const errorBox = (page: Page) => page.locator('.content-box').filter({ hasText: 'Fejl og advarsler' });
 
-// Flade 12h (BB-289–BB-299): indtægtstabellens rækker. Basisbanen er nok – intet her afhænger af motor eller
+// Indtægtstabellens rækker. Basisbanen er nok – intet her afhænger af motor eller
 // viewport.
 test.describe('Erstatningsopgørelse – indtægtsoplysninger', () => {
-  test('sortering giver ikke et ekstra Ctrl+Z-trin og bliver stående (BB-337)', async ({
+  test('sortering giver ikke et ekstra Ctrl+Z-trin og bliver stående', async ({
     page,
     runtimeErrors,
     runtimeSignals,
@@ -102,7 +102,7 @@ test.describe('Erstatningsopgørelse – indtægtsoplysninger', () => {
     expect(runtimeSignals).toEqual([]);
     expect(externalRequests).toEqual([]);
   });
-  test('viser kun den navngivne fejl, når lønnen samlet er negativ (BB-333)', async ({
+  test('viser kun den navngivne fejl, når lønnen samlet er negativ', async ({
     page,
     runtimeErrors,
     runtimeSignals,
@@ -110,7 +110,7 @@ test.describe('Erstatningsopgørelse – indtægtsoplysninger', () => {
   }, testInfo) => {
     await login(page);
     await fillSag(page);
-    // Afgræns til den måned, hvor rækken ligger, så testen kun måler den negative kilde og ikke også BB-260's
+    // Afgræns til den måned, hvor rækken ligger, så testen kun måler den negative kilde og ikke også den
     // uafhængige advarsel om de øvrige elleve måneder uden indkomst.
     await setDate(page.locator("input[name='tafBeregningsperiodeFra']"), '01-07-2017');
     await setDate(page.locator("input[name='tafBeregningsperiodeTil']"), '31-07-2017');
@@ -145,7 +145,7 @@ test.describe('Erstatningsopgørelse – indtægtsoplysninger', () => {
     await tastRaekke(page, 2, '6', '2017', '30000');
     await tastRaekke(page, 3, '13', '2017', '30000');
 
-    // BB-289: den gentagne række er gul, ikke rød, og tooltippen beder om et blik.
+    // Den gentagne række er gul, ikke rød, og tooltippen beder om et blik.
     const dublettensLoen = loenRaekke(page, 2).locator('input[data-mineo-field-address]').nth(2);
     await expect(dublettensLoen).toHaveAttribute('aria-invalid', 'false');
     await expect(dublettensLoen).toHaveAccessibleDescription(/identisk med en tidligere række/);
@@ -153,7 +153,7 @@ test.describe('Erstatningsopgørelse – indtægtsoplysninger', () => {
 
     await page.getByRole('tab', { name: 'Beregning', exact: true }).click();
     await expect(errorBox(page)).toContainText('Lønrækken 06-2017 er identisk med en tidligere række');
-    // BB-291: rækken navngives, cellens egen tekst står i linjen, og der er ingen «ikke angivet» om en rød værdi.
+    // Rækken navngives, cellens egen tekst står i linjen, og der er ingen «ikke angivet» om en rød værdi.
     const roedLinje = page.locator('.row--label-right-hover').filter({ hasText: 'Række 4: Måned –' });
     await expect(roedLinje).toBeVisible();
     await expect(errorBox(page)).not.toContainText('Måned er ikke angivet');
@@ -172,7 +172,7 @@ test.describe('Erstatningsopgørelse – indtægtsoplysninger', () => {
     expect(externalRequests).toEqual([]);
   });
 
-  test('to identiske lønrækker uden beløb får hver sin advarselslinje (BB-291)', async ({
+  test('to identiske lønrækker uden beløb får hver sin advarselslinje', async ({
     page,
     runtimeErrors,
     runtimeSignals,
@@ -228,7 +228,7 @@ test.describe('Erstatningsopgørelse – indtægtsoplysninger', () => {
     expect(externalRequests).toEqual([]);
   });
 
-  test('bilaget forklarer under tabellen de lønsedler og ydelser, som en periode skærer igennem (BB-293)', async ({
+  test('bilaget forklarer under tabellen de lønsedler og ydelser, som en periode skærer igennem', async ({
     page,
     runtimeErrors,
     externalRequests,

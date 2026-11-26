@@ -6,8 +6,8 @@ import { collectSourceFiles, toRepoRelativePath } from '../testUtils';
 /**
  * Kanonisk kilde-graf for arkitektur- og tekstværn.
  *
- * Motivet (greenfield #48): de gamle quality-guards genopfandt hver især en
- * directory-walk + `fs.readFileSync` + regex/substring-scan. Denne modul ejer ÉN
+ * Motivet: ellers genopfinder hvert quality-værn sin egen directory-walk +
+ * `fs.readFileSync` + regex/substring-scan. Denne modul ejer ÉN
  * cache af alle produktions-kildefiler under `src/` – læst præcis én gang og AST-parset
  * højst én gang pr. fil ved første strukturelle adgang – som både AST-regler og de få bevidst
  * tekstbaserede kontraktværn forbruger. AST'en gør grænserne strukturelle

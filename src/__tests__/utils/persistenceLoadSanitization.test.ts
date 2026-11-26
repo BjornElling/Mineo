@@ -152,7 +152,7 @@ describe('persistenceLoadSanitization', () => {
     expect(erstatningsopgoerelseSchema.safeParse(result.sanitized).success).toBe(true);
   });
 
-  // Regression for de historiske schemaændringer 2026-06-03 (PERSISTED_DATA_VERSION 1.9 → 3.3):
+  // Schemaændringerne i PERSISTED_DATA_VERSION 1.9 → 3.3:
   // De gamle Ja/Nej-feltnavne skal migreres til de nye tre-tilstands-navne. De fire
   // øvrige historiske felter/tabeller er godkendt som udviklingsrester, der ignoreres uden preflight.
   it('migrerer historiske EO-feltnavne og ignorerer gamle udviklingsdata', () => {

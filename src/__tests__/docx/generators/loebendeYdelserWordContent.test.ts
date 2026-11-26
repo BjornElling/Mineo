@@ -44,8 +44,7 @@ describe('loebendeYdelser → Word-indhold', () => {
     const text = xmlToPlainText(documentXml);
     expect(text).toContain('Udvidet specifikation');
     expect(text).toContain('ASL-årsløn');
-    // Udviklerafgørelse 2026-11-20: hverken årslønnens beregningsprincipper eller afrundingsnoten
-    // for «Ydelse/md.» gengives.
+    // Bevidst valg: hverken årslønnens beregningsprincipper eller afrundingsnoten for «Ydelse/md.» gengives.
     expect(text).not.toContain('afrundet til nærmeste 1000');
     expect(text).not.toContain('Ydelse/md. beregnes');
     // Konkret beløb på den udfyldte sti: den anvendte ASL-årsløn (400.000) og grundlønnen

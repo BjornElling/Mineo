@@ -10,7 +10,7 @@ import type { IsoRange } from '../../../utils/isoDateHelpers';
 
 export type TafDerivedResult = Readonly<{
   derivedById: Record<string, number | null>;
-  /** Rækker, hvis periode inden for opgørelsen ikke har én arbejdsdag (kun i arbejdsdage, BB-257). */
+  /** Rækker, hvis periode inden for opgørelsen ikke har én arbejdsdag (kun i arbejdsdage). */
   ingenArbejdsdageById: Record<string, boolean>;
   kolonneOverskrift: string;
   beregningsenhed: TafBeregningsenhed;
@@ -28,7 +28,7 @@ export const buildTafDerived = (args: {
   const beregningsenhed = computeTafBeregningsenhed(args.values);
   const visAntalMaaneder = beregningsenhed === TAF_BEREGNES_SOM.MAANEDER;
   // Kolonnen tæller rækkens del inden for EO-perioden. Tabellen viser rammen i et info-tooltip, så en række
-  // på tolv måneder, der står med 6, ikke fremstår som en tavs reduktion (BB-250, BB-217's form).
+  // på tolv måneder, der står med 6, ikke fremstår som en tavs reduktion.
   const kolonneOverskrift = visAntalMaaneder ? 'TAF-måneder' : 'TAF-arbejdsdage';
   const tafBounds = resolveTafConstraintBounds(args.values, { skadedatoISO: args.skadedatoISO });
 
@@ -62,8 +62,7 @@ export const buildTafDerived = (args: {
 /**
  * Ferietabellernes kolonne: de feriedage i hver række, beregningen faktisk fradrager – rækkens fællesmængde
  * med TAF-perioderne (TAF-afsnittets ferie) eller med beregningsperioden (beregningsgrundlagets ferie).
- * Overskriften siger rammen, så et tal lavere end rækkens længde ikke fremstår som en tavs reduktion (BB-249,
- * BB-217's form).
+ * Overskriften siger rammen, så et tal lavere end rækkens længde ikke fremstår som en tavs reduktion.
  *
  * Findes rammen slet ikke endnu – ingen gyldig TAF-række, eller beregningsperioden er ikke udfyldt – tælles
  * rækken for sig, som svie/smerte-tabellen gør uden en EO-periode. Findes rammen, men ligger ferien uden for

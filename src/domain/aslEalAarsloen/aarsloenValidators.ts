@@ -32,11 +32,11 @@ export const resolveAslAarsloensmaksimumForSkadedato = (
 /**
  * ASL-årslønnens loft for skadesåret.
  *
- * `skadestype` styrer, om beskeden siger «skadesåret» eller «anmeldelsesåret» (BB-121) – samme navneregel
+ * `skadestype` styrer, om beskeden siger «skadesåret» eller «anmeldelsesåret» – samme navneregel
  * som resten af programmet. Den er valgfri, fordi flere kaldere kun har datoen; udelades den, bruges
  * «skadesår», som er reglens udgangspunkt.
  *
- * Beskeden er nu den, brugeren FAKTISK ser (BB-125). Den var før uopnåelig, fordi feltet også havde et
+ * Beskeden er nu den, brugeren FAKTISK ser. Den var før uopnåelig, fordi feltet også havde et
  * generisk bounds-loft med samme grænse, og bounds-validatoren kørte først og vandt med «Værdi skal være
  * mellem 1000 og 551000». Det dublerede loft er fjernet fra descriptoren; denne besked er den ene, der
  * navngiver, hvor grænsen kommer fra.

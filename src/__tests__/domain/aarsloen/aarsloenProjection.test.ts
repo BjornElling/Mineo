@@ -158,10 +158,10 @@ describe('resolveAarsloenFieldErrorGate (spejler resolveAarsloenCanonicalRangeIs
 });
 
 /**
- * M-37 (udviklerafgørelse 2026-10-30): en tom feriesats regnes ikke længere stille som 0 %. Reglen er den FÆLLES
- * med EO's BB-274 (`domain/loen/feriePctKrav.ts`): ingen rød ring, men en blokerende mangel med samme ordlyd.
+ * En tom feriesats regnes ikke stille som 0 % (bevidst valg). Reglen er den FÆLLES
+ * med EO's (`domain/loen/feriePctKrav.ts`): ingen rød ring, men en blokerende mangel med samme ordlyd.
  */
-describe('Feriegodtgørelse/-tillæg er påkrævet uden fuld løn under ferie (M-37)', () => {
+describe('Feriegodtgørelse/-tillæg er påkrævet uden fuld løn under ferie', () => {
   const medLoenraekke = (input: SettledInput): SettledInput => {
     let next = dispatch(input, insert(emptyRow('r1')));
     next = dispatch(next, settle(aarsloenTableCol0MaanedField.bind('r1'), '1'));
@@ -198,8 +198,8 @@ describe('Feriegodtgørelse/-tillæg er påkrævet uden fuld løn under ferie (M
     expect(projection.fieldIssues).toHaveLength(0);
   });
 
-  it('skjult «Fuld løn under ferie» tæller som sin tomværdi, også hvis den er gemt som fra (M-32)', () => {
-    // Omregningen slås fra igen: i Procent er valget nu skjult (BB-353), så det gemte «fra» må ikke kræve feltet.
+  it('skjult «Fuld løn under ferie» tæller som sin tomværdi, også hvis den er gemt som fra', () => {
+    // Omregningen slås fra igen: i Procent er valget nu skjult, så det gemte «fra» må ikke kræve feltet.
     let input = udenFuldLoen(medLoenraekke(empty()));
     input = dispatch(input, setImmediateField(aarsloenOmregningTilFuldtAarField.bind(), false) as AnyInputCommand);
     const projection = buildAarsloenReaderProjection(reader(input));
@@ -269,7 +269,7 @@ describe('buildAarsloenReaderProjection', () => {
     input = dispatch(input, settle(aarsloenTableCol1MaanedField.bind('r1'), '2024'));
     input = dispatch(input, settle(col2Ref('r1'), '1000'));
     input = dispatch(input, settle(aarsloenAntalFeriedageField.bind(), '24'));
-    // Uden fuld løn under ferie er satsen påkrævet (M-37); uden den findes der intet resultat at afgrænse.
+    // Uden fuld løn under ferie er satsen påkrævet; uden den findes der intet resultat at afgrænse.
     input = dispatch(input, settle(feriePctRef, '12,5'));
 
     const projection = buildAarsloenReaderProjection(reader(input));
@@ -282,9 +282,9 @@ describe('buildAarsloenReaderProjection', () => {
   /**
    * Aggregatet må ikke fremstilles som gyldigt, når en medregnet række har en ukendt værdi.
    *
-   * Scenariet er fundets egen runtime-probe: to rækker, hvor kun den anden har en ugyldig `col2`. Readeren
-   * skjuler den røde celle bag sin tomværdi, så motoren fik tidligere KUN række 1's 1.000 og siden viste
-   * "1.000 kr." som Beregnet årsløn – en deltotal, der stille udelod række 2.
+   * Scenariet: to rækker, hvor kun den anden har en ugyldig `col2`. Readeren skjuler den røde celle bag sin
+   * tomværdi, så uden blokeringen ville motoren kun få række 1's 1.000 og vise "1.000 kr." som Beregnet
+   * årsløn – en deltotal, der stille udelader række 2.
    */
   it('ugyldig celle i en medregnet række blokerer det samlede resultat', () => {
     let input = dispatch(empty(), settle(feriePctRef, '12'));
@@ -306,7 +306,7 @@ describe('buildAarsloenReaderProjection', () => {
   });
 
   /**
-   * BB-440: division med 0 skal forklares både ved cellen og i «Fejl og advarsler». `TableError` bærer kun AT
+   * Division med 0 skal forklares både ved cellen og i «Fejl og advarsler». `TableError` bærer kun AT
    * cellen er ugyldig, så projektionen fører cellens eget issue med; en ren formfejl siger fortsat «ugyldig værdi».
    */
   it('division med 0 i en celle forklares i tooltip og i «Fejl og advarsler»', () => {

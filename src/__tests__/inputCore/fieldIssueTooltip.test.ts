@@ -9,7 +9,7 @@ import {
 import { resolveFieldIssueText } from '../../inputCore/react/fieldIssueText';
 import type { AnyFieldRef } from '../../inputCore/fieldDescriptor';
 
-// Brugerkravet 2026-07-30: tooltippet og "Fejl og advarsler" viser ikke længere samme tekst. Testene her pinner
+// Tooltippet og "Fejl og advarsler" viser ikke samme tekst. Testene her pinner
 // SELVE reason→tekst-tabellen, så en ny reason eller en ændret ordlyd ikke kan glide igennem. Fladerne
 // (skallerne + de tolv feltkomponenter) testes i fieldShells.test.tsx; her måles beslutningen isoleret.
 

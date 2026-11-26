@@ -14,7 +14,7 @@ import { jsPDF } from 'jspdf';
  * mens andre filtyper går uændret igennem.
  *
  * Den mest kritiske test er `doc.save()`-stien: det er præcis den kode jsPDF's
- * Node-build kører, og som tidligere lagde rigtige PDF'er i projektroden.
+ * Node-build kører, og som ellers lægger rigtige PDF'er i projektroden.
  */
 describe('Værn: ingen dokument-artefakter på disk under test', () => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mineo-artefakt-guard-'));

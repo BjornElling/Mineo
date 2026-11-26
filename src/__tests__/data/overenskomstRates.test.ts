@@ -406,9 +406,8 @@ describe('assertValidSfggPolicy (vacuous-pass-værn)', () => {
 /**
  * Den KANONISKE overenskomst-etiket: navn OG parter, ét sted.
  *
- * Formlen stod før udskrevet i hånden seks steder, mens de to EO-PDF-sektioner og sagsniveauet viste
- * navnet ALENE – så samme overenskomst hed to forskellige ting i dokumentet og på skærmen.
- * Udviklerbeslutning 2026-07-31 ensartede dem; testen pinner den ene formel, alle nu deler.
+ * Skrives formlen i hånden flere steder, kommer samme overenskomst til at hedde to forskellige ting i
+ * dokumentet og på skærmen. Testen pinner den ene formel, alle deler.
  */
 describe('resolveOverenskomstDisplay', () => {
   it('undefined, tom streng og whitespace → default-fallback "-"', () => {

@@ -1,16 +1,15 @@
 // @vitest-environment jsdom
 //
-// Shellens to globale genveje og dens ENE beskedboks – de to fund fra brugerblikket på global shell,
-// som lever i selve `MainLayout`:
+// Shellens to globale genveje og dens ENE beskedboks – de to regler, der lever i selve `MainLayout`:
 //
-//  - **BB-050 (Ctrl+S):** genvejen er registreret på `window` og havde aldrig hørt om overlay-stakken,
-//    så et Ctrl+S bag en åben bekræftelsesdialog startede et helt gem – med filvælger og det hele –
-//    mens dialogen blev stående og spurgte om noget andet. Undo/redo-halvdelen af samme fund måles i
+//  - **Ctrl+S:** genvejen er registreret på `window` og skal respektere overlay-stakken. Ellers starter
+//    et Ctrl+S bag en åben bekræftelsesdialog et helt gem – med filvælger og det hele – mens dialogen
+//    bliver stående og spørger om noget andet. Undo/redo-halvdelen af samme regel måles i
 //    `inputCore/react/useUndoRedoShortcuts.test.tsx`; her måles Ctrl+S.
-//  - **BB-053:** beskedboksens nedtælling blev kun startet forfra, når beskedens TYPE skiftede. To
-//    beskeder af samme type i træk delte derfor den førstes nedtælling, og en besked, der ankom under
-//    udtoningen, var reelt usynlig. Det ramte præcis den bruger, der trykkede igen, fordi han ikke nåede
-//    at læse svaret første gang – og gjorde det til at ligne, at knappen ikke virkede.
+//  - **Nedtælling pr. besked:** beskedboksens nedtælling startes forfra for hver ny besked, ikke kun når
+//    beskedens TYPE skifter. Ellers deler to beskeder af samme type i træk den førstes nedtælling, og en
+//    besked, der ankommer under udtoningen, er reelt usynlig. Det rammer præcis den bruger, der trykker
+//    igen, fordi han ikke nåede at læse svaret første gang – og får knappen til at ligne, at den ikke virker.
 import { hydrateSlimInputStoreForTest } from '../../../test/actSafeInputStore';
 import React from 'react';
 import { render, screen, waitFor, act } from '@testing-library/react';
@@ -136,7 +135,7 @@ describe('MainLayout – filkonflikt ved Gem', () => {
   });
 });
 
-describe('MainLayout – overlayet ejer Ctrl+S (BB-050)', () => {
+describe('MainLayout – overlayet ejer Ctrl+S', () => {
   it('gør intet ved Ctrl+S, mens en bekræftelsesdialog står åben', async () => {
     renderLayout();
 
@@ -170,7 +169,7 @@ describe('MainLayout – overlayet ejer Ctrl+S (BB-050)', () => {
   });
 });
 
-describe('MainLayout – hver besked får sin egen nedtælling (BB-053)', () => {
+describe('MainLayout – hver besked får sin egen nedtælling', () => {
   /**
    * Beskedens identitet er det, der gør den anden besked til en frisk boks. Prøven kan ikke måles på
    * teksten alene – den er ordret den samme begge gange – så den måles på DOM-identiteten: er noden

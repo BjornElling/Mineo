@@ -71,7 +71,7 @@ export const buildTaftContext = (
   // skjult, er det pr. definition ikke udfyldt og må ikke kunne påvirke noget: en stale «Ja»
   // slukkede ellers differencekravets cutoff, så `taf.ophoerSkyldes` skiftede fra en ok-række til
   // en advarsel, og TAF-/ferieperiodernes grænsevalidering blev lempet – alt sammen styret af et
-  // felt, brugeren ikke kan se (BB-222's regel).
+  // felt, brugeren ikke kan se (et skjult felt er ikke udfyldt).
   const verserendeKlageEet =
     erEETKlageRelevant(erstatningsopgoerelseValues) &&
     erstatningsopgoerelseValues.verserendeKlageEet === 'Ja';

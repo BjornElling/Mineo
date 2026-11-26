@@ -14,7 +14,7 @@ import type { DocumentDiagnostics } from '../../document/definition/documentOutc
 
 const diagnostics: DocumentDiagnostics = { outputId: 'rente', phase: 'renderer-load' };
 
-describe('DOC-001 – dynamic import-fejl fra rendererens load-grænse', () => {
+describe('Dynamic import-fejl fra rendererens load-grænse', () => {
   let stopMonitor: (() => void) | null = null;
   let errorSpy: ReturnType<typeof vi.spyOn> | null = null;
 

@@ -26,7 +26,7 @@ describe('eetKapitaliseringPresentation', () => {
     ).toBe('351.539 kr. x 50 % x 83 % x 92 % = 134.998,98 kr.');
   });
 
-  it('navngiver proformaens faktor som det resterende EET, ikke afgørelsens EET (BB-416)', () => {
+  it('navngiver proformaens faktor som det resterende EET, ikke afgørelsens EET', () => {
     expect(buildKapitaliseringGrundydelseLabel('15 %', 8, 'rest-eet')).toBe(
       'Grundydelse (15 %): Grundløn x Rest-EET x Erstatningsniveau x (100 % − AM-bidrag)'
     );

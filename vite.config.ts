@@ -60,12 +60,12 @@ type ChunkGroup = Readonly<{ name: string; test: RegExp; priority?: number }>;
  * egen gruppe med højere prioritet.
  */
 export const SHARED_CHUNK_GROUPS: readonly ChunkGroup[] = [
-  // Babel-hjælpere, som jsPDF, MUI og andre deler. Lå de i jsPDF-chunken (sådan var det), importerede
-  // entry'en fra den, og hele jsPDF (~400 KB) blev hentet og evalueret ved hver opstart.
+  // Babel-hjælpere, som jsPDF, MUI og andre deler. Lå de i jsPDF-chunken, importerede entry'en fra
+  // den, og hele jsPDF (~400 KB) blev hentet og evalueret ved hver opstart.
   { name: 'vendor-babel-runtime', test: /[\\/]node_modules[\\/]@babel[\\/]runtime[\\/]/, priority: 10 },
   // Vites egen hjælper til dynamiske imports (`__vitePreload`). jsPDF importerer selv dynamisk, så
-  // uden denne gruppe lå hjælperen i jsPDF-chunken, og ENHVER dynamisk import i programmet – også
-  // entry'ens – trak jsPDF med ved opstart.
+  // uden denne gruppe ville hjælperen ligge i jsPDF-chunken, og ENHVER dynamisk import i programmet – også
+  // entry'ens – ville trække jsPDF med ved opstart.
   { name: 'vite-preload-helper', test: /vite[\\/]preload-helper/, priority: 10 },
   // `branded.ts` har ingen imports og kaldes af tabellerne nedenfor ved indlæsning. Uden sin egen gruppe
   // ville al øvrig kode importere den fra en datachunk, hvis hash så skiftede ved hver ændring i modulet.
@@ -104,6 +104,7 @@ export default defineConfig({
     },
   ],
   define: {
+    'import.meta.env.VITE_APP_RELEASE': defineBuildEnv('VITE_APP_RELEASE'),
     'import.meta.env.VITE_APP_VERSION': defineBuildEnv('VITE_APP_VERSION'),
     'import.meta.env.VITE_APP_COMMIT_HASH': defineBuildEnv('VITE_APP_COMMIT_HASH'),
     'import.meta.env.VITE_APP_COMMIT_SHORT': defineBuildEnv('VITE_APP_COMMIT_SHORT'),

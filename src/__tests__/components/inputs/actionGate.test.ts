@@ -10,9 +10,9 @@ import {
   DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE,
 } from '../../../document/layout/documentGateTypes';
 
-// Den delte grammatik for en DEAKTIVERET HANDLING. Reglen fandtes i forvejen for de deaktiverede
-// downloadknapper (`page-component-contract.md` §11.1); udviklerbeslutningen 2026-08-15 gjorde den
-// universel for enhver grå knap – herunder at en generisk årsag er god nok.
+// Den delte grammatik for en DEAKTIVERET HANDLING. Reglen for de deaktiverede downloadknapper
+// (`page-component-contract.md` §11.1) gælder for enhver grå knap – herunder at en generisk årsag er
+// god nok.
 
 describe('actionGate: teksterne er DELT med downloadgaten, ikke kopieret', () => {
   it('bruger nøjagtig samme strenge som downloadknappernes to universelle klasser', () => {
@@ -24,7 +24,7 @@ describe('actionGate: teksterne er DELT med downloadgaten, ikke kopieret', () =>
   });
 
   it('de to klasser er FORSKELLIGE tekster – «mangler» og «forkert» kollapser ikke til én', () => {
-    // Skelnen er et brugerkrav (2026-07-30): de sender brugeren to forskellige steder hen.
+    // Skelnen er et brugerkrav: de sender brugeren to forskellige steder hen.
     expect(ACTION_BLOCKED_MISSING_INPUT_MESSAGE).not.toBe(ACTION_BLOCKED_INVALID_INPUT_MESSAGE);
   });
 });

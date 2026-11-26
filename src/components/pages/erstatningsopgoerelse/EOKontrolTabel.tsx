@@ -26,8 +26,7 @@ const ROW_HEIGHT = 28;
 
 /**
  * Tabellen dannes af sagens perioder, og listen nævner præcis de seks kilder, modellen læser
- * (`eoInspektionKontrolModel.ts`, `sources`). Før stod skadedatoen på listen, selv om tabellen ikke bygges af den,
- * og tre af de virksomme veje manglede (BB-380).
+ * (`eoInspektionKontrolModel.ts`, `sources`) – hverken flere eller færre.
  */
 const INGEN_PERIODER_TEKST =
   'Kontroltabellen dannes af sagens perioder. Udfyld mindst én af: «Vedrører perioden», beregningsperioden, en TAF- '
@@ -127,7 +126,7 @@ const EOKontrolTabel = React.memo(({ inspektionSnapshot = null, isActive = false
         case 'error':
           return <ErrorOutline sx={{ color: 'var(--color-status-error)', fontSize: 20 }} />;
         case 'tom':
-          // Intet er kontrolleret; et grønt ✓ ville påstå det modsatte (BB-386).
+          // Intet er kontrolleret; et grønt ✓ ville påstå det modsatte.
           return null;
       }
     };
@@ -273,7 +272,7 @@ const EOKontrolTabel = React.memo(({ inspektionSnapshot = null, isActive = false
   }, [canDownloadKontrolTabel, snapshot]);
 
   const renderSammentaellingTable = (firstHeader: string, rows: readonly StandardDisplayTableRow[]): React.ReactNode =>
-    // En gruppe uden rækker står ikke som en tom overskrift, der ligner noget, der ikke er indlæst (BB-386).
+    // En gruppe uden rækker står ikke som en tom overskrift, der ligner noget, der ikke er indlæst.
     rows.length === 0 ? null : (
       <StandardDisplayTable
         useSmallFont
@@ -303,7 +302,7 @@ const EOKontrolTabel = React.memo(({ inspektionSnapshot = null, isActive = false
               ]}
               rows={summaryRows}
             />
-            {/* Forklaringen står her, hvor knappen er grå – før stod den nederst under to tabeller med `-` (BB-380). */}
+            {/* Forklaringen står her, hvor knappen er grå – ikke nederst under to tabeller med `-`. */}
             {snapshot.model.rowCount === 0 && (
               <Alert severity="info" sx={{ borderRadius: '10px', mt: 1 }}>
                 {INGEN_PERIODER_TEKST}
@@ -323,7 +322,7 @@ const EOKontrolTabel = React.memo(({ inspektionSnapshot = null, isActive = false
           </>
         ) : showPendingSnapshotInfo ? (
           // Tilstanden opstår kun, når beregningen er stoppet, og den forsvinder først, når fejlen er rettet. Teksten
-          // lovede før, at «snapshottet bygges automatisk ved første visit» (BB-389). Samme tekst som EO-kontrol.
+          // lover derfor ikke, at snapshottet bygges automatisk. Samme tekst som EO-kontrol.
           <Alert severity="info" sx={{ borderRadius: '10px' }}>
             <AlertTitle sx={{ fontWeight: 500 }}>Kontroltabellen kan ikke vises, fordi beregningen er stoppet</AlertTitle>
             Se «Fejl og advarsler» under Beregning.
@@ -359,7 +358,7 @@ const EOKontrolTabel = React.memo(({ inspektionSnapshot = null, isActive = false
             scrollMode="ancestor"
             stickyHeader
             stickyHeaderTop={stickyHeaderTop}
-            // «Ugedag» og «Dato» bliver stående, når brugeren ruller vandret hen til løn og ydelser (BB-467).
+            // «Ugedag» og «Dato» bliver stående, når brugeren ruller vandret hen til løn og ydelser.
             stickyLeadingColumns={2}
             stickyLeadingColumnsLeft={stickyColumnLeft}
           />

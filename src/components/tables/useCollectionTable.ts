@@ -61,7 +61,7 @@ export const useCollectionTable = <TRow extends Readonly<{ id: string }>>({
    *
    * PÅKRÆVET – både feltet og `route`. Var de valgfrie, kunne en ny tabel lydløst få rækkehandlinger uden
    * destination: dataene ville blive gendannet ved undo, men brugeren ville blive efterladt på en vilkårlig side
-   * (§3.7). `tabKey: null` udtrykker eksplicit "siden har ingen faner"; udeladelse er ikke længere lovlig.
+   * (§3.7). `tabKey: null` udtrykker eksplicit "siden har ingen faner"; udeladelse er ikke lovlig.
    */
   locationNav: Readonly<{ route: string; tabKey: string | null }>;
 }>) => {

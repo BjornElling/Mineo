@@ -12,7 +12,7 @@ const row = (id: string, renterFra: string | undefined, tillaegstid?: number): R
 });
 
 /**
- * «Indsæt dags dato» i Renteberegning må ikke gøre en række rød (M-49): rækkens rentedato må højst være
+ * «Indsæt dags dato» i Renteberegning må ikke gøre en række rød: rækkens rentedato må højst være
  * beregningsdatoen, så den seneste rentedato er beregningsdatoens reelle nedre grænse.
  */
 describe('resolveSenesteRentedato', () => {

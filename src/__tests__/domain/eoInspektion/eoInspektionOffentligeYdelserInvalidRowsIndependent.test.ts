@@ -22,9 +22,9 @@ const valuesWithRows = (rows: readonly OffentligeYdelserRow[]): Erstatningsopgoe
   offentligeYdelserRows: [...rows],
 });
 
-describe('CALC-006 – uafhængigt facit for ugyldige offentlige ydelsesrækker', () => {
-  // De tidligere urenderede tekst-issues om rækkerne er fjernet (12m, udviklerafgørelse 2026-10-30): kontrolfanen
-  // er passiv. Facit er nu alene, at ingen af rækkerne giver en kolonne.
+describe('uafhængigt facit for ugyldige offentlige ydelsesrækker', () => {
+  // Kontrolfanen er passiv og melder ingen tekst-issues om rækkerne. Facit er alene, at ingen af rækkerne giver
+  // en kolonne.
   it('giver ingen kolonne for rækker uden type, med ukendt type eller med ugyldigt interval', () => {
     const rows: OffentligeYdelserRow[] = [
       {

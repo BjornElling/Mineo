@@ -15,10 +15,9 @@ import type { RentekravRow } from '../../../schemas/formSchemas';
 import { toISODateString } from '../../../types/branded';
 import type { TillaegstidEnhed } from '../../../schemas/formSchemas/enumSchemas';
 
-// De to feltregler, brugerfundene BB-037 og BB-038 førte til. Begge findes, fordi motorens afvisning
-// (`validateInterestCalculation`) blev kastet væk: rækken mistede tavst sin beregning, hele sidens
-// download blev grå med «Indtastning mangler», og INTET felt var rødt. Reglerne flytter afvisningen
-// hen til det felt, brugeren skal rette.
+// To feltregler for motorens afvisning (`validateInterestCalculation`). Uden dem kastes afvisningen
+// væk: rækken mister tavst sin beregning, hele sidens download bliver grå med «Indtastning mangler»,
+// og INTET felt er rødt. Reglerne flytter afvisningen hen til det felt, brugeren skal rette.
 
 const catalog = getProductionInputCatalog();
 const ROW_ID = 'row-1';
@@ -50,23 +49,23 @@ const buildReader = (
   return createInputEvaluation({ input, catalog, sourceToken }).reader;
 };
 
-describe('rentekravBelobField – nulbeløb (BB-038)', () => {
+describe('rentekravBelobField – nulbeløb', () => {
   it('markerer et beløb på 0 kr. rødt med en konkret ordret tooltip', () => {
     const reader = buildReader({ belob: { kind: 'number', value: 0 } }, '2026-08-19');
     const read = reader.read(rentekravBelobField.bind(ROW_ID));
 
     expect(read.status).toBe('error');
     if (read.status !== 'error') return;
-    // Grænsen er en EKSKLUSIV nedre bounds-grænse (NY-12c-4). `bounds` står på allowlisten af reasons,
+    // Grænsen er en EKSKLUSIV nedre bounds-grænse. `bounds` står på allowlisten af reasons,
     // hvis fulde besked vises ordret – netop fordi den fortæller HVAD rettelsen er.
     expect(read.issue.reason).toBe('bounds');
     expect(read.issue.message).toBe('Beløbet skal være større end 0 kr.');
     expect(resolveFieldIssueTooltip(read.issue)).toBe('Beløbet skal være større end 0 kr.');
   });
 
-  it('giver SAMME besked for et negativt udtryksresultat – ikke «0 kr. eller højere» (NY-12c-4)', () => {
-    // `100-200` → -100. Før ramte værdien både en inklusiv grænse på 0 og «> 0»-reglen, og bounds-beskeden
-    // vandt efter §1.8's prioritet – en påstand om, at 0 er tilladt, i et felt hvor 0 afvises.
+  it('giver SAMME besked for et negativt udtryksresultat – ikke «0 kr. eller højere»', () => {
+    // `100-200` → -100. Med både en inklusiv grænse på 0 og en «> 0»-regel ville bounds-beskeden vinde
+    // efter §1.8's prioritet – en påstand om, at 0 er tilladt, i et felt hvor 0 afvises.
     const reader = buildReader(
       { belob: { kind: 'expression', expression: '100-200', value: -100 } },
       '2026-08-19'
@@ -90,7 +89,7 @@ describe('rentekravBelobField – nulbeløb (BB-038)', () => {
   });
 });
 
-describe('rentekravTillaegstidField – rentedato efter beregningsdato (BB-037)', () => {
+describe('rentekravTillaegstidField – rentedato efter beregningsdato', () => {
   it('markerer tillægstiden rødt og navngiver den senest mulige rentedato', () => {
     // 99 måneder efter 01-01-2020 er 01-04-2028 – efter beregningsdatoen 19-08-2026.
     const reader = buildReader({ tillaegstid: 99, enhed: 'maaneder' }, '2026-08-19');
@@ -132,7 +131,7 @@ describe('rentekravTillaegstidField – rentedato efter beregningsdato (BB-037)'
   });
 });
 
-describe('rentekravRenterFraField – grænsens afsender (BB-043)', () => {
+describe('rentekravRenterFraField – grænsens afsender', () => {
   it('navngiver beregningsdatoen frem for at kalde grænsen «dags dato»', () => {
     // Beskeden genkendte grænsen på dens VÆRDI: var beregningsdatoen dags dato – det hyppigste
     // tilfælde, fordi der er en knap til det – tilskrev den grænsen kalenderen og sagde, at datoen

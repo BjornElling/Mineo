@@ -275,10 +275,9 @@ export const persistenceCommittedMirror = defineRule({
 
 // --- Form-kontrakt: ingen microtask-/Promise-tick i commit-sensitiv kode -------
 
-// `src/rowDrafts/` og `src/criticalActions/` står IKKE på listen: begge mapper er slettet
-// i greenfield-cutoveren, så de var død konfiguration, der stille ville udvide grænsen igen, hvis en fil
-// med samme sti nogensinde opstod. Greenfields egen barriere ligger i `src/inputCore/runtime/`, som er
-// tilføjet i stedet – den er commit-sensitiv i præcis den forstand, reglen handler om.
+// `src/rowDrafts/` og `src/criticalActions/` står IKKE på listen: begge mapper er slettet, så de ville
+// være død konfiguration, der stille udvidede grænsen igen, hvis en fil med samme sti nogensinde opstod.
+// Barrieren ligger i `src/inputCore/runtime/` – den er commit-sensitiv i præcis den forstand, reglen handler om.
 const COMMIT_SENSITIVE_PREFIXES = [
   'src/components/',
   'src/hooks/',
@@ -355,10 +354,9 @@ export const promiseTickBoundary = forbidCalls({
  * mønster inde i selve barrieren. `document.activeElement` (fokus-mål-capture, ikke deltager-
  * opdagelse) er en property-access og rammes derfor ikke.
  */
-// Scopet var `src/criticalActions/` – en mappe, der er slettet. Dødt-værn-
-// detektorens scan-rod-kontrol fangede det: reglen scannede en tom rod og var inert, selv om dens
-// fixtures (som lå på syntetiske `src/criticalActions/`-stier) blev ved med at bestå. Barrieren bor nu
-// i `criticalActionCoordinator.ts` under greenfield-runtimen, og kontrakt §2's løfte gælder den.
+// Barrieren bor i `criticalActionCoordinator.ts` under input-runtimen, og kontrakt §2's løfte gælder den.
+// (Den slettede mappe `src/criticalActions/` ville være en tom scan-rod, hvor reglen er inert, mens dens
+// fixtures på syntetiske stier blev ved med at bestå.)
 const CRITICAL_ACTION_MODULE = 'src/inputCore/runtime/criticalActionCoordinator.ts';
 
 const isCriticalActionModule = (relativePath: string): boolean =>
@@ -700,8 +698,8 @@ export const sfggSegmenteringImportBoundary = forbidImports({
   id: 'domain/sfgg-segmentering-import-boundary',
   description:
     'SFGG-segmentmatematik må kun bruges af engine-lagets to orkestratorer, referenceperiode-reglen og advarslen om '
-    + 'en manuel dagssats over en dags løn (BB-450). De to sidste skal summere lønnen med præcis samme beregner som '
-    + 'motoren (BB-319), så reglen og satsen aldrig er uenige.',
+    + 'en manuel dagssats over en dags løn. De to sidste skal summere lønnen med præcis samme beregner som '
+    + 'motoren, så reglen og satsen aldrig er uenige.',
   liveTarget: {
     kind: 'precondition',
     probe: (entry) => entry.relativePath.endsWith('/sfggSegmentering.ts'),
@@ -730,7 +728,7 @@ export const sfggWarningsImportBoundary = forbidImports({
   id: 'domain/sfgg-warnings-import-boundary',
   description:
     'SFGG-advarslerne forbruges kun af snapshot, den fælles row-builder, feltadvarsels-projektionen (gul ring på en '
-    + 'gammel referenceperiode, BB-324, og en høj manuel dagssats, BB-450) og Lønindkomst-afledningen (seksmånedersteksten på kortet, BB-325).',
+    + 'gammel referenceperiode og en høj manuel dagssats) og Lønindkomst-afledningen (seksmånedersteksten på kortet).',
   liveTarget: {
     kind: 'precondition',
     probe: (entry) => entry.relativePath.endsWith('/sfggWarnings.ts'),
@@ -1102,15 +1100,14 @@ export const rowCommandDestinationRule = defineRule({
  * Navigationsfladerne (`Container` og grid-navigationen) må IKKE hver især afgøre "er dette en popup-
  * kontrol, og er den åben?". De skal spørge `popupWidgetSemantics`.
  *
- * Baggrund: grid'et havde sin egen klassifikation, som genkendte celle-dropdowns på en PRIVAT
- * markør-attribut (`data-mineo-table-dropdown`) fra en slettet komponent. Ingen produktionskontrol satte
- * attributten, så alle fem celle-dropdowns fik Enter kapret af grid-navigationen frem for at åbne deres
- * menu. Samtidig fandtes ARIA-opslaget i to næsten identiske kopier.
+ * Baggrund: en egen klassifikation, der genkender celle-dropdowns på en PRIVAT markør-attribut (fx den
+ * slettede `data-mineo-table-dropdown`), kan ikke se en kontrol, der ikke sætter attributten – så Enter
+ * kapres af grid-navigationen frem for at åbne menuen. To kopier af ARIA-opslaget driver fra hinanden.
  *
  * Reglen har to ben, fordi kun ét af dem alene kunne bæres:
  * 1. FRAVÆR: en privat popup-markør-attribut må ikke genindføres nogen steder i interaktionsfladerne.
  * 2. LOKAL KOPI: en navigationsflade må ikke selv slå ARIA-popup-semantikken op (`role="combobox"` /
- *    `aria-haspopup` i en selector). Den slags kopi var netop den drift, fundet beskrev – og den ville
+ *    `aria-haspopup` i en selector). Den slags kopi er netop den drift, reglen forhindrer – og den ville
  *    ikke blive fanget af ben 1, fordi den ikke bruger nogen markør.
  *
  * `liveTarget` er en precondition med `requiredPaths`: BEGGE konsumenter skal stadig importere modulet.
@@ -1119,14 +1116,13 @@ export const rowCommandDestinationRule = defineRule({
  */
 const POPUP_SEMANTICS_MODULE = 'src/components/inputs/popupWidgetSemantics.ts';
 const POPUP_SEMANTICS_CONSUMERS = [
-  // Sidens navigationsflade. Var `layout/Container.tsx` indtil greenfield #26 flyttede
-  // tasteoversættelsen – og dermed popup-undtagelserne – ud i containerNavigation/.
-  // Grænsen er den samme; kun filen der repræsenterer fladen er flyttet.
+  // Sidens navigationsflade: tasteoversættelsen – og dermed popup-undtagelserne – ligger i
+  // containerNavigation/, ikke i `layout/Container.tsx`.
   'src/components/layout/containerNavigation/useContainerKeyboardNavigation.ts',
   'src/components/tables/gridCore/tableKeyboardNavigation.ts',
 ] as const;
 const POPUP_SEMANTICS_IMPORT = /popupWidgetSemantics$/;
-/** Privat markør-attribut som popup-KLASSIFIKATION – den fejlform, fundet handlede om. */
+/** Privat markør-attribut som popup-KLASSIFIKATION – den fejlform, reglen forhindrer. */
 const PRIVATE_POPUP_MARKER = /data-mineo-[a-z-]*dropdown/;
 /**
  * Rå ARIA-popup-opslag i en selector: en lokal kopi af den delte klassifikation.
@@ -2436,7 +2432,7 @@ export const choiceFieldValueTypeInferredRule = defineRule({
     return findings;
   },
   violatingFixtures: [
-    // Den præcise form, de fem guards fandtes for at reparere.
+    // Den præcise form, reglen forbyder.
     {
       relativePath: 'src/components/pages/XPage.tsx',
       code: 'const X = () => <StyledDropdown value={v} onChange={(e: StyledDropdownChangeEvent<string>) => set(e.target.value)} />;',
@@ -2741,8 +2737,8 @@ const STANDARD_LOEN_LABEL_OWNER = 'src/types/table.ts';
 
 /**
  * Modulerne, der legitimt FORBRUGER kolonnenavnene: de to descriptor-kataloger (som `label`) og
- * overskrifts-modulet (som gridoverskrift). Reglen kontrollerer netop disse tre, fordi det er dem, der
- * tidligere hver havde sin egen navneliste.
+ * overskrifts-modulet (som gridoverskrift). Reglen kontrollerer netop disse tre, fordi hver af dem
+ * ellers fristes til at have sin egen navneliste.
  */
 const STANDARD_LOEN_LABEL_CONSUMERS: readonly string[] = [
   'src/inputCore/catalog/erstatningsopgoerelseLoenDescriptors.ts',

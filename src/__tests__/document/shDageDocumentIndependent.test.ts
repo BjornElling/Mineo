@@ -22,7 +22,7 @@ const createFixtureSession = (): Readonly<{
   return { session, requests };
 };
 
-describe('DOC-001/DOC-003 – SH-dage-output fra håndskrevet helligdagsfacit', () => {
+describe('SH-dage-output fra håndskrevet helligdagsfacit', () => {
   it('skriver hverdagsmarkering, weekend-dæmpning og samlet SH-dagetotal i tabellen', async () => {
     const { session, requests } = createFixtureSession();
     const artifact = await generateSHDageDocument(

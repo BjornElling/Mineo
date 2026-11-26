@@ -25,11 +25,10 @@ import { buildFerieCutoffErrorMessage } from './validation/tafPeriodConstraints'
 import { buildTafLoseFeriedageMaxMessage, resolveTafLoseFeriedageMaksimum } from './validation/tafRowRules';
 
 // TAF- og ferierækkernes regler, som ikke kan ligge på descriptoren, projekteret til de konkrete celler –
-// inklusive beregningsperiodens to datoer, når de overlapper en TAF-periode (BB-262).
+// inklusive beregningsperiodens to datoer, når de overlapper en TAF-periode.
 //
-// Tre regler spærrede opgørelsen uden en eneste rød celle (M-20 i BB-218's form): overlap i begge tabeller
-// (BB-251), for mange løse feriedage (BB-252) og en ferieperiode uden for sit vindue (BB-248). Descriptoren
-// kan ikke bære dem: de afhænger af andre rækker, af beregningens clamping og af domæneudledte afskæringer.
+// Tre regler skal have en rød celle, ikke kun spærre: overlap i begge tabeller, for mange løse feriedage og
+// en ferieperiode uden for sit vindue. Descriptoren kan ikke bære dem: de afhænger af andre rækker, af beregningens clamping og af domæneudledte afskæringer.
 // Samme vej som `tafCutoffDateIssues`: domænet binder selv feltadressen, UI'et leverer issuet til cellen via
 // `collectionRuleIssue`, og issuet blokerer TAF-grenen som enhver rød cellefejl.
 
@@ -47,8 +46,8 @@ const danish = (iso: ISODateString): string => isoToDanish(iso) ?? iso;
 
 /**
  * En ferieperiodes grænser – de samme som TAF-periodens, fordi ferien kun fradrages inden for TAF: tidligst
- * skadedatoen, senest dags dato og dagen før en afskæring. Udviklerafgørelse 2026-09-25 (BB-248): alle tre
- * SPÆRRER fortsat – også når ferien ikke påvirker den aktuelle beregning – så brugeren retter den, før en
+ * skadedatoen, senest dags dato og dagen før en afskæring. Bevidst valg: alle tre
+ * SPÆRRER – også når ferien ikke påvirker den aktuelle beregning – så brugeren retter den, før en
  * senere ændret periode gør den virksom. Hver dato prøves for sig og bærer sin egen besked i fladens sprog.
  */
 const collectFerieperiodeBoundIssues = (
@@ -99,9 +98,8 @@ const collectTafLoseFeriedageIssues = (
 
 /**
  * TAF-periodernes overlap – indbyrdes OG mod beregningsperioden – i ét kald, så en TAF-celle, der overlapper
- * begge, får ét issue med begge modparter (§1.8). Beregningsperioden spærrede før uden en rød celle og med et
- * link kun til sektionen (BB-262); nu farves dens to datoer og den overlappende TAF-rækkes to datoer, og hver
- * tooltip navngiver modparten. Beregningsperiodens datoer er readerens: uden «Beregningsperiode» er de tomme.
+ * begge, får ét issue med begge modparter (§1.8). Ved overlap med beregningsperioden farves dens to datoer og
+ * den overlappende TAF-rækkes to datoer, og hver tooltip navngiver modparten. Beregningsperiodens datoer er readerens: uden «Beregningsperiode» er de tomme.
  */
 const collectTafOverlapIssues = (values: ErstatningsopgoerelseValues): readonly FieldIssue[] => {
   const tafSource = tableOverlapSource(

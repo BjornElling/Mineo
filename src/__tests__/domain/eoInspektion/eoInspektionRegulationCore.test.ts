@@ -51,7 +51,7 @@ describe('eoInspektionRegulationCore', () => {
     expect(buildRegulationTimeline(input).ansaettelser).toEqual([]);
   });
 
-  it('navngiver efter den kanoniske regel og positionen i hele listen (BB-466)', () => {
+  it('navngiver efter den kanoniske regel og positionen i hele listen', () => {
     const input = fixture();
     const [reguleret] = input.eoValues.loenindkomstAnsaettelsesforhold;
     // Første kort er ureguleret og navnløst; det regulerede andet kort hedder det samme som det første korts standardnavn.

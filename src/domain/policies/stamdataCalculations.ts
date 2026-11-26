@@ -9,7 +9,7 @@ export type StamdataDatoReference = Readonly<{
   label: SkadestypeDatoLabel;
   labelLower: 'anmeldelsesdatoen' | 'skadedatoen';
   /**
-   * Tidspunktsformen: «Skadelidtes alder på **skadestidspunkt**» / «… **anmeldelsestidspunkt**» (BB-121).
+   * Tidspunktsformen: «Skadelidtes alder på **skadestidspunkt**» / «… **anmeldelsestidspunkt**».
    *
    * Formen lå før som en inline ternary på `kind` i `MenberegningTab.tsx` og `varigeMenDocument.ts`, mens
    * seks andre brugervendte tekster hardkodede «skadestidspunkt» – på flader, hvor rækken lige ovenfor
@@ -24,7 +24,7 @@ export type StamdataDatoReference = Readonly<{
   /*
    * Sætningsled om, HVORNÅR skaden ligger. «Skaden» er fællesbetegnelsen for arbejdsulykker og
    * erhvervssygdomme og bevares derfor; udsagnsordet følger skadestypen: kun en arbejdsulykke «sker» eller
-   * «indtræder», en erhvervssygdom er «anmeldt» (udviklerafgørelse 2026-11-17). Sætningsstart via
+   * «indtræder», en erhvervssygdom er «anmeldt». Sætningsstart via
    * `capitalizeFirstCharDa`.
    */
   /** «Da **skaden er** før 1/1-2011» / «Da **skaden er anmeldt** før 1/1-2011». */
@@ -62,7 +62,7 @@ export const resolveSkadestypeDatoLabel = (
 /**
  * DEN ENE KILDE til enhver brugervendt formulering om sagens skade-/anmeldelsesdato – navnet, de bøjede
  * former, tidspunkts- og årsformen og sætningsleddene «skaden er sket/indtrådt» / «skaden er
- * anmeldt». Udviklerens regel (2026-08-16, M-02): formuleringen følger ALTID den indtastede skadestype –
+ * anmeldt». Regel: formuleringen følger ALTID den indtastede skadestype –
  * «anmeld…» ved Erhvervssygdom, ellers «skade…».
  *
  * Værnet `src/__tests__/quality/skadedatoTerminologyGuard.test.ts` afviser disse ord som tekstliteraler

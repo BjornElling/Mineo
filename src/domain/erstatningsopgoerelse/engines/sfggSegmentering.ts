@@ -92,8 +92,8 @@ export const buildEmploymentSfggCalculator = (
     if (!interval) continue;
     const derived = calculateStandardLoenRowDerived(row, satser);
     // En negativ lønseddel (en tilbagebetaling, en efterregulering) modregnes også her, så sygeferiegodtgørelsen
-    // bygger på samme løn som den tabte arbejdsfortjeneste (udviklerafgørelse 2026-10-19, BB-290). Før sprang
-    // `<= 0` rækken over. Kun en række på 0 kr. bidrager intet. Dagens feriepenge (`buildFeriepengeOreForDate`)
+    // bygger på samme løn som den tabte arbejdsfortjeneste. Rækken må derfor ikke springes over ved `<= 0`;
+    // kun en række på 0 kr. bidrager intet. Dagens feriepenge (`buildFeriepengeOreForDate`)
     // forbliver ikke-negative: en dag, hvis rækker samlet er negative, giver 0 kr. i modtagne feriepenge.
     if (!Number.isFinite(derived.loenPlusLoen2PlusIkkePensLoen) || derived.loenPlusLoen2PlusIkkePensLoen === 0) continue;
     const intervalFra = dateToISO(interval.start);
@@ -275,8 +275,8 @@ const resolveSfggAgPensionPctDecimalForDate = (
     applyAlmindeligLoenPaaShDageRegel: employment.loenPaaHelligdage === 'Almindelig løn',
   });
   // En privat overenskomst låser pensionen. Før dens første satsperiode har programmet ingen sats, og den
-  // regnes da som 0 – samme regel som lønrækkerne (BB-275). Før faldt den tilbage til kortets pensionsfelt,
-  // som enten var tomt eller satsen på en helt anden dato.
+  // regnes da som 0 – samme regel som lønrækkerne. Kortets pensionsfelt er ikke et fald-tilbage: det er enten
+  // tomt eller satsen på en helt anden dato.
   return resolvePctDecimalFromSatsOrInput(satser?.agPension ?? 0, employment.pensionPct);
 };
 
@@ -441,7 +441,7 @@ const assertKlKaedeloenMatcherRegulering = (vaerdi: ReguleringsVaerdi): void => 
   if (kaedeloen === undefined) return;
   const { regulering } = vaerdi;
   const deltaPct = regulering.appliedDeltaPct;
-  // En positiv indtastet løn kan afrundes til nul pr. enhed. Godkendt 2026-10-15: KL-resolverens
+  // En positiv indtastet løn kan afrundes til nul pr. enhed. Bevidst valg: KL-resolverens
   // nulresultat er gyldigt, når de faktiske nulbeløb og den neutrale regulering stemmer overens.
   if (kaedeloen.basisLoenOre === 0 && kaedeloen.reguleretLoenOre === 0 && deltaPct === 0
     && isKlNulbasis(regulering)
@@ -458,8 +458,8 @@ const assertKlKaedeloenMatcherRegulering = (vaerdi: ReguleringsVaerdi): void => 
 
 /**
  * Datoen, SFGG-satsen reguleres fra. Manuelle former har intet niveau før deres basisdato (reguleringsdatoen), så en
- * ældre referenceperiode behandles som reguleringsdatoens niveau (afklaringslog 8a). Én kilde for beregningen og
- * bilagets tekst, så bilaget ikke siger «fra referenceperiodens slutdato», når der regnes fra reguleringsdatoen (BB-453).
+ * ældre referenceperiode behandles som reguleringsdatoens niveau. Én kilde for beregningen og
+ * bilagets tekst, så bilaget ikke siger «fra referenceperiodens slutdato», når der regnes fra reguleringsdatoen.
  */
 export const resolveSfggReguleringFraDato = (
   reguleringOpslag: Pick<ReguleringOpslag, 'manuelBasisDato'>,
@@ -487,15 +487,15 @@ const resolveAdjustedRate = (
   if (!referenceTil) throw new Error('SFGG kan ikke beregnes: referenceperiodens slutdato mangler');
   const vaerdi = kraevReguleringPaaDato(reguleringOpslag, iso);
   // Manuelle former har intet historisk niveau. En ældre referenceperiode har
-  // eksplicit reguleringsdatoens niveau (afklaringslog 8a).
+  // eksplicit reguleringsdatoens niveau.
   const referenceDato = resolveSfggReguleringFraDato(reguleringOpslag, referenceTil).dato;
   const reference = kraevReguleringPaaDato(reguleringOpslag, referenceDato);
   assertKlKaedeloenMatcherRegulering(vaerdi);
   assertKlKaedeloenMatcherRegulering(reference);
   if (vaerdi.klKaedeloen) {
-    // Godkendt 2026-10-16: SFGG har sin egen KL-kæde fra referenceperiodens slutdato.
-    // Lønnens kædeforhold ville ellers overføre afrundingen af et andet beløb, og
-    // gav slet intet reguleringsgrundlag, når jobbet ingen løn havde i beregningsperioden.
+    // SFGG har sin egen KL-kæde fra referenceperiodens slutdato. Lønnens kædeforhold ville ellers
+    // overføre afrundingen af et andet beløb og give slet intet reguleringsgrundlag, når jobbet ingen
+    // løn har i beregningsperioden.
     const resolver = buildKlLoenaftalerReguleretLoenResolver(toKroner(baseRateOre), referenceTil);
     return {
       satsOre: fromKroner(resolver.loenAt(iso)),
@@ -563,7 +563,7 @@ export const resolveSfggSegmentBoundaryStarts = (args: Readonly<{
       .forEach((start) => starts.add(start));
   }
 
-  // Reguleringens brudpunkter fra opslaget – alle trin, også trin uden TAF-arbejdsdage (fund A4).
+  // Reguleringens brudpunkter fra opslaget – alle trin, også trin uden TAF-arbejdsdage.
   if (sfggKildeUsesReferenceperiode(args.sfggSource.kind)) {
     args.reguleringOpslag?.segmenter.forEach((segment) => {
       starts.add(segment.fra);

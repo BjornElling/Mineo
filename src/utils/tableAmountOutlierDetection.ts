@@ -1,6 +1,5 @@
 /**
- * Rimelighedskontrol af beløbsrækker – ÉN kerne for løntabellerne og offentlige ydelser (BB-297,
- * udviklerafgørelse 2026-10-19).
+ * Rimelighedskontrol af beløbsrækker – ÉN kerne for løntabellerne og offentlige ydelser.
  *
  * **Reglen.** En række, hvis beløb er over ti gange MEDIANEN af de øvrige rækker i samme gruppe, får en gul,
  * ikke-blokerende advarsel. Typisk et nul for meget: 300.000 kr. i en måned blandt måneder à 30.000 kr.

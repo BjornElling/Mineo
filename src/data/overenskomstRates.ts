@@ -9,7 +9,7 @@
  * - Satser er organiseret kronologisk med præcis ikrafttrædelsesdato
  * - En PRIVAT overenskomst fastsætter alle tre tillæg (SH/SO, fritvalg, AG-pension) som et tal, herunder
  *   0 for et tillæg, overenskomsten ikke giver: den dikterer, hvilke tillæg der gives, og brugeren kan ikke
- *   tilføje andre (udviklerafgørelse 2026-10-06, BB-275). Håndhævet ved modul-load
+ *   tilføje andre. Håndhævet ved modul-load
  *   (`assertPrivatOverenskomstFastsaetterTillaeg`).
  * - Kun de OFFENTLIGE overenskomster kan have null (brugeren angiver selv satsen).
  */
@@ -1520,9 +1520,9 @@ overenskomster.forEach((overenskomst) =>
 );
 
 /**
- * En privat overenskomst skal fastsætte alle tre tillæg i hver satsperiode. Et null betød før «brugeren
- * angiver selv satsen» og åbnede feltet for egen indtastning – men en privat overenskomst dikterer, hvilke
- * tillæg der gives, og brugeren må ikke kunne tilføje andre (BB-275). Et tillæg, overenskomsten ikke giver,
+ * En privat overenskomst skal fastsætte alle tre tillæg i hver satsperiode. Et null betyder «brugeren
+ * angiver selv satsen» og åbner feltet for egen indtastning – men en privat overenskomst dikterer, hvilke
+ * tillæg der gives, og brugeren må ikke kunne tilføje andre. Et tillæg, overenskomsten ikke giver,
  * skrives derfor som 0.
  */
 export const assertPrivatOverenskomstFastsaetterTillaeg = (overenskomst: Overenskomst): void => {
@@ -1568,11 +1568,9 @@ export const getOverenskomstMetaById = (id: string): OverenskomstMeta | undefine
 /**
  * Overenskomstens KANONISKE etiket: navn efterfulgt af de to overenskomstparter.
  *
- * Ét sandt sted for formlen `navn (lønmodtagerpart / arbejdsgiverpart)`. Den stod før udskrevet i hånden
- * seks steder – to dropdowns (`getOptionLabel` + `MenuItem`) på hver af de to sider, viewmodellen og
- * reguleringsdefinitionen – mens de to EO-PDF-sektioner og sagsniveauet i stedet viste NAVNET ALENE. Den
- * uensartethed var synlig for brugeren: samme overenskomst hed to forskellige ting i dokumentet og på
- * skærmen. Udviklerbeslutning 2026-07-31: navn OG parter, alle steder.
+ * Ét sandt sted for formlen `navn (lønmodtagerpart / arbejdsgiverpart)`, så samme overenskomst hedder det
+ * samme i dropdowns, viewmodeller, reguleringsdefinitionen og dokumenterne. Bevidst valg: navn OG parter,
+ * alle steder. Skriv aldrig formlen i hånden.
  *
  * Kun den FØRSTE part pr. side vises, selv om begge lister kan have flere. Det er bevidst – etiketten skal
  * være læsbar i en dropdown og på en dokumentlinje, ikke udtømmende.
@@ -1613,8 +1611,8 @@ export const formatOverenskomstMetaDisplay = (meta: OverenskomstMeta): string =>
  * - Privat overenskomst: overenskomstens egen `grundloenAngivetPer`; `offentligLoenType` bruges ikke.
  *
  * TAF-beregningsenheden indgår bevidst ikke. Den beskriver, hvordan TAF-grundlaget tælles, ikke hvilken
- * enhed satsen har, og den blev tidligere brugt her med forkerte reguleringer til følge (afklaringslog 10a,
- * `docs/review/regulering-taf-gennemgang-2026-10-13.md`, fund A1/A2/C5). Parameteren er påkrævet, så hvert
+ * enhed satsen har; brugt her ville den give forkerte reguleringer.
+ * Parameteren er påkrævet, så hvert
  * kaldested tager stilling til ansættelsens løntype.
  */
 export const getGrundloenAngivetPerForOverenskomst = (

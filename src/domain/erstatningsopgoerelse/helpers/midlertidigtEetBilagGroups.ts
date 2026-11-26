@@ -34,9 +34,9 @@ const clampIsoRange = (range: IsoRange, fra: ISODateString, til: ISODateString):
  * (`roundHeleKroner`). Både bilaget (dokumentlaget) og TAF-fradraget
  * (`sumMidlertidigtEetBeregnetEetKronerForTafRanges` → `buildTafIndtaegterBeregning`)
  * afleder deres tal herfra for både hovedopgørelsen og årsfordelingen, så den viste bilagssum og det beløb
- * der faktisk trækkes fra er identiske bit for bit. Tidligere summerede fradraget de
- * urundede periodebeløb og rundede ÉN gang til sidst, hvilket kunne give 1 kr.'s
- * afvigelse fra bilaget (fx bilag 1.390 + 41.401 = 42.791 mod fradrag 42.790).
+ * der faktisk trækkes fra er identiske bit for bit. Summerede fradraget de urundede periodebeløb
+ * og rundede ÉN gang til sidst, kunne det give 1 kr.'s afvigelse fra bilaget (fx bilag
+ * 1.390 + 41.401 = 42.791 mod fradrag 42.790).
  * Se `eo-snapshot-contract.md` §13.
  */
 export const buildMidlertidigtEetPdfGroupsForTafRanges = (

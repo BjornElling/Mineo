@@ -63,7 +63,7 @@ export const EO_ROW_BUILDERS: readonly EoRowBuilderEntry[] = [
       buildEoStamdataRows(
         ctx.stamdataValues,
         ctx.stamdataErrors,
-        // Skadelidtes navn er kun UUNDVÆRLIGT, når opgørelsen afsluttes med en underskriftslinje (BB-214).
+        // Skadelidtes navn er kun UUNDVÆRLIGT, når opgørelsen afsluttes med en underskriftslinje.
         ctx.eoValues.erstatningsopgoerelseAfsluttesMed
       ),
   },

@@ -8,8 +8,7 @@ import type { EetIssue } from '../../../domain/erhvervsevnetab/eetTypes';
 /**
  * Direkte unit-test af reguleringsrate-opslaget.
  *
- * Tidligere var disse funktioner kun dækket integrationstest gennem
- * kapitaliserings- og løbende-ydelses-beregningerne. Den centrale invariant –
+ * Funktionerne bruges af kapitaliserings- og løbende-ydelses-beregningerne. Den centrale invariant –
  * at år 2024 KUN special-behandles (faktor 1) for skader før 2024-07-01, og
  * ellers slår op i Fra2024-tabellen – testes her isoleret.
  *

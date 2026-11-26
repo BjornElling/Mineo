@@ -43,7 +43,7 @@ export type EetIssueNavigationTarget =
 // `computeEetLoebendeYdelser` (`skadedato-missing`, `skadelidte-fodselsdato-missing`).
 // `field-skadedato`/`field-skadelidte-fodselsdato` produceres p.t. kun af EET-siden selv (ikke via
 // source-sporet), men beholdes defensivt, så de routes korrekt, hvis de senere flyder igennem her.
-// (`skadedato-invalid` fjernet 2026-06-30: ingen producent i kodebasen.)
+// (`skadedato-invalid` er bevidst ikke med: ingen producent i kodebasen.)
 const STAMDATA_ISSUE_IDS = new Set([
   'midlertidigt-eet-stamdata-schema-invalid',
   'midlertidigt-eet-stamdata-date-order',
@@ -56,15 +56,15 @@ const STAMDATA_ISSUE_IDS = new Set([
 ]);
 
 /**
- * Præfikset for EO's advarsel om TAF efter kapitaliseringen af en delvist endelig afgørelse (BB-187). Det står her,
+ * Præfikset for EO's advarsel om TAF efter kapitaliseringen af en delvist endelig afgørelse. Det står her,
  * fordi navigationen er dets eneste fortolker; producenten er `tafEfterKapitaliseringAdvarsel.ts`. Hver TAF-række
  * har sit eget id (`<præfiks>:<rækkens id>`), så invariant-id'erne er entydige.
  */
 export const TAF_EFTER_KAPITALISERING_ISSUE_ID_PREFIX = 'taf-efter-delvist-endelig-kapitalisering';
 
 /**
- * EO's advarsler om datoer på EO oplysninger, der ikke genfindes på Erhvervsevnetab-siden (udviklerafgørelse
- * 2026-11-04). Står her af samme grund som præfikset ovenfor; producenten er `eetAfgoerelseDatoAdvarsel.ts`.
+ * EO's advarsler om datoer på EO oplysninger, der ikke genfindes på Erhvervsevnetab-siden. Står
+ * her af samme grund som præfikset ovenfor; producenten er `eetAfgoerelseDatoAdvarsel.ts`.
  */
 export const EET_AFGOERELSE_DATO_UOVERENSSTEMMELSE_IDS = Object.freeze({
   midlertidig: 'eo-midlertidig-eet-dato-uden-eet-afgoerelse',
@@ -72,8 +72,8 @@ export const EET_AFGOERELSE_DATO_UOVERENSSTEMMELSE_IDS = Object.freeze({
 });
 
 /**
- * Linjerne om den midlertidige eller endelige EET-afgørelse på EO oplysninger (BB-372 og datoernes
- * uoverensstemmelse) – fører til «AES-afgørelser».
+ * Linjerne om den midlertidige eller endelige EET-afgørelse på EO oplysninger (midlertidigt EET uden
+ * afgørelse og datoernes uoverensstemmelse) – fører til «AES-afgørelser».
  */
 const EO_AES_ISSUE_IDS = new Set<string>([
   'midlertidigt-eet-uden-afgoerelse-intet-hentet',
@@ -119,7 +119,7 @@ const EET_SECTION_ID_BY_ISSUE_ID: Readonly<Record<string, string>> = {
   'eet-pct-missing': 'eet-oplysninger-eal',
   'eal-aarsloen-missing': 'eet-oplysninger-eal',
   'eal-aarsloen-zero': 'eet-oplysninger-eal',
-  // EO's egen advarsel om, at importen intet gav i TAF-perioden (BB-358): det, der mangler, er en afgørelse.
+  // EO's egen advarsel om, at importen intet gav i TAF-perioden: det, der mangler, er en afgørelse.
   'midlertidigt-eet-ingen-ydelser-i-taf': 'eet-oplysninger-asl',
 };
 
@@ -137,7 +137,7 @@ export const resolveMidlertidigtEetIssueNavigation = (
       ...(issue.focusTarget === undefined ? {} : { focusTarget: issue.focusTarget }),
     };
   }
-  // TAF efter en delvist endelig afgørelses kapitalisering (BB-187): id'et bærer rækkens id, så præfikset afgør.
+  // TAF efter en delvist endelig afgørelses kapitalisering: id'et bærer rækkens id, så præfikset afgør.
   // Linket fører til TAF-rækken på EO oplysninger – det er dér, brugeren tager stilling – ikke til EET-siden.
   if (issue.id.startsWith(`${TAF_EFTER_KAPITALISERING_ISSUE_ID_PREFIX}:`)) {
     return {

@@ -32,7 +32,7 @@ const buildValues = (): ErstatningsopgoerelseValues => {
   return values;
 };
 
-describe('CALC-006 / TD-020 – flere ledighedsydelsesrækker i EO-inspektionen', () => {
+describe('flere ledighedsydelsesrækker i EO-inspektionen', () => {
   it('bevarer hver kalenderdagspartition over månedsskifte og weekend', () => {
     const model = buildEOInspektionModel(buildValues(), { tafRanges: [] });
     const amounts = model.columnRawValues.get('offentlig:ledighedsydelse');

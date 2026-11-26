@@ -16,7 +16,7 @@ import { Box, Typography } from '@mui/material';
  * **Hvilken besked skal ind?** Altid `handle.errorMessage` råt. Hook'en har allerede filtreret: en
  * gate-blokering bærer ingen besked, fordi en deaktiveret knap ikke svarer med tekst – årsagen hører
  * kun i knappens tooltip. Fladen skal derfor ikke lægge egen politik oven på feltet, og der findes
- * ikke længere et valg mellem to kilder. Komponenten tager den færdige besked og vælger ikke selv politik.
+ * intet valg mellem to kilder. Komponenten tager den færdige besked og vælger ikke selv politik.
  *
  * Uventede runtimefejl routes centralt (§A5) og har bevidst ingen lokal tekst i hovedappen. Tilbage står
  * derfor i praksis kun et stale-afbrud og en død DEV-server.

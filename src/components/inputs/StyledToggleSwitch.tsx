@@ -72,7 +72,7 @@ type StyledToggleSwitchOwnProps = {
 type StyledToggleSwitchProps = StyledToggleSwitchOwnProps & AccessibleNameProps;
 
 /**
- * Afvisningsrystelse (udviklerbeslutning 2026-10-28): kontakten ryster SELV, når et klik ikke flytter
+ * Afvisningsrystelse (bevidst valg): kontakten ryster SELV, når et klik ikke flytter
  * den – når `onCommit` afviser ændringen (returnerer `false`), og når en inaktiv kontakt klikkes. Ingen
  * callsite skal huske at ryste; afvisningen ER signalet. Se `toggleRefusalShake.ts`.
  *
@@ -99,7 +99,7 @@ const StyledToggleSwitch = (props: StyledToggleSwitchProps) => {
   const nameAttributes = accessibleNameAttributes(props, `StyledToggleSwitch(${resolvedName})`);
   const { visibleLabel } = props;
   const inputRef = React.useRef<HTMLInputElement | null>(null);
-  // En programinaktiv kontakt vises slået fra, som `StyledCheckbox` (page-component-contract.md §10.5, BB-422):
+  // En programinaktiv kontakt vises slået fra, som `StyledCheckbox` (page-component-contract.md §10.5):
   // en inaktiv kontakt, der står «til», lover en virkning, valget ikke har. Den afsluttede værdi er urørt.
   const visibleChecked = disabled ? false : checked;
 

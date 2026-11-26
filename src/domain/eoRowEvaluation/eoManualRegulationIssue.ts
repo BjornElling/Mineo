@@ -62,8 +62,8 @@ const ownerSupplementField = (
   owner: ManualOwner,
   field: ManuelAngivetSupplementFelt,
 ): FieldDescriptor<number | undefined> | undefined => {
-  // Under angivet løn er basisrækkens procentceller brugerens egne; der er ingen satsfelter over tabellen. Linket
-  // pegede før på et felt uden editor, og intet blinkede (BB-307).
+  // Under angivet løn er basisrækkens procentceller brugerens egne; der er ingen satsfelter over tabellen. Ellers
+  // peger linket på et felt uden editor, og intet blinker.
   if (owner.kind === 'angivetLoen') return undefined;
 
   switch (field) {
@@ -129,7 +129,7 @@ const resolveManueltAngivetIssue = (
     if (!manglendeRow) continue;
 
     // Ved procenttillæg er basissats-cellerne låste og henter deres værdi fra felterne over tabellen.
-    // Det er netop den kobling, der ellers kun blev synlig som et blink på hele ansættelseskortet.
+    // Ellers bliver koblingen kun synlig som et blink på hele ansættelseskortet.
     const topField = ownerSupplementField(owner, field);
     if (manglendeRow === rows[0] && source.tillaegAngivesSom !== 'beloeb' && topField) {
       return createIssue(topField.label, fieldTarget(topField, owner));
@@ -149,7 +149,7 @@ const resolveManuelProcentsatsIssue = (
 ): ManualRegulationIssue | undefined => {
   const rows = (source.loenudviklingManuelProcentsatsTableData ?? []).slice(1);
   const aktiveRows = rows.filter(isManuelProcentsatsRowAktiv);
-  // En tabel uden en eneste sats regnes ellers som 0 % (BB-303). Linket fører til den første tomme række.
+  // En tabel uden en eneste sats regnes ellers som 0 %. Linket fører til den første tomme række.
   if (aktiveRows.length === 0) {
     return {
       message: MANUEL_PROCENTSATS_UDEN_SATSER_BESKED,

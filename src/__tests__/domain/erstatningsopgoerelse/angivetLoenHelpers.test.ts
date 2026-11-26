@@ -49,8 +49,8 @@ describe('resolveLoenudviklingKilde', () => {
     expect(result[0].loenPaaHelligdage).toBe(LOEN_PAA_HELLIGDAGE.SH_UDBETALING);
   });
 
-  // Afklaringslog 10a: enhederne er brugerens valg og udledes aldrig af «Beregnes ud fra». Tidligere tvang
-  // kilden Time ved dagsløn og Måned ved månedsløn, uanset den gemte værdi.
+  // Enhederne er brugerens valg og udledes aldrig af «Beregnes ud fra»: kilden må ikke tvinge Time ved dagsløn
+  // og Måned ved månedsløn, uanset den gemte værdi.
   it.each([
     ['Angivet dagsløn', 'Måned', 'Time'],
     ['Angivet dagsløn', 'Time', 'Måned'],

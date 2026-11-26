@@ -318,12 +318,10 @@ describe('architectureRules – AST-baseret arkitekturgrænse-harness', () => {
   // Under thread-poolen konkurrerer det arbejde med parallelle test-workere om kernerne, så
   // wall-clock kan strække sig langt forbi 30 s afhængigt af samtidig belastning.
   //
-  // Loftet blev hævet fra 120 s til 300 s 2026-08-07 på et MÅLT grundlag: under `test:coverage`
-  // instrumenterer V8 hele kilde-grafen, og prisen rammer netop denne case hårdest. Alene under
-  // coverage tager den ~143 s (mod ~74 s uden), og i den fulde suite – hvor den deler maskinen med
-  // 535 andre testfiler – blev den målt til ~239 s. Det gamle loft på 120 s gjorde derfor
-  // `verify:release` deterministisk rødt, uden at nogen arkitekturregel var overtrådt. Fejlen var
-  // latent: gaten stoppede altid tidligere på `check:runtime`, så timeoutet blev aldrig nået.
+  // Loftet er sat efter målinger: under `test:coverage` instrumenterer V8 hele kilde-grafen, og prisen
+  // rammer netop denne case hårdest. Alene under coverage tager den ~143 s (mod ~74 s uden), og i den
+  // fulde suite, hvor den deler maskinen med alle andre testfiler, ~239 s. Et loft på 120 s gør derfor
+  // `verify:release` rødt, uden at nogen arkitekturregel er overtrådt.
   //
   // Arbejdet er endeligt og cachet – ikke en hængning – så et rundhåndet loft fjerner den falske
   // rødfarvning uden at skjule en ægte deadlock: en reel hængning rammer stadig loftet.
@@ -436,9 +434,7 @@ describe('architectureRules – AST-baseret arkitekturgrænse-harness', () => {
   // fremstår som dækning, den ikke leverer. Detektoren gør det princip maskinelt frem for en vane
   // pr. regel.
   //
-  // Den er selv mutationstestet af virkeligheden: da den blev indført, rapporterede den tre døde
-  // værn i manifestet, hvis mål var slettet eller omdøbt under dem. Det var observerede fejl, ikke
-  // fixtures – og hvert af de tre værn fremstod grønt indtil da.
+  // Et værn, hvis mål slettes eller omdøbes under det, fremstår ellers grønt uden at kontrollere noget.
   it('dødt værn: hver forudsætningsregel har stadig en fil, den ville kontrollere', { timeout: 300000 }, () => {
     const entries = getSourceGraph();
     const dead: string[] = [];

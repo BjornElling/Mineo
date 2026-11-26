@@ -100,7 +100,7 @@ describe('collectSourcesOverlapIssues', () => {
     }],
   });
 
-  it('farver både det skalare datopar og den overlappende række og navngiver hinanden (BB-262)', () => {
+  it('farver både det skalare datopar og den overlappende række og navngiver hinanden', () => {
     const issues = collectSourcesOverlapIssues(
       [tafSource([{ id: 't1', fra: iso('2018-06-01'), til: iso('2018-06-30') }]), beregningsperiode('2017-07-01', '2018-06-30')],
       [['bp', 'taf']],

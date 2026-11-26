@@ -347,7 +347,7 @@ describe('Styrende valg: gyldigt bevares, skjult+rødt ryddes (§1.9, §3.6, §7
   // tavst, fordi en rød fejl brugeren ikke kan SE, ikke kan rettes – og ellers kunne blokere `.eo`-save
   // eller en beregning fra et usynligt felt.
   //
-  // '999' > max 100 er efter kravændringen 2026-07-18 IKKE rejected: værdien committes canonical (999) og
+  // '999' > max 100 er IKKE rejected: værdien committes canonical (999) og
   // bærer en rød bounds-feltfejl (§1.6). Undtagelsen dækker BEGGE fejlformer – canonical bounds/rule OG
   // rejected råtekst.
   const seedRowWithBoundsTillaegstid = (): State => {

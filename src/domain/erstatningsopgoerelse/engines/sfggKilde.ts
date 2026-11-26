@@ -12,10 +12,8 @@ import { harAktivOverenskomst, resolveAktivOverenskomst } from '../../loen/aktiv
 /**
  * SFGG-kildemodulet: ét sted der definerer, hvad hver af de fem SFGG-beregningskilder "er".
  *
- * Baggrund: Kildens adfærd var tidligere udsmurt som parallelle gren-tests
- * (`kind === 'ferielov' || ...`)
- * i ~8 motor-funktioner og genudledt i validator og kontrol-lag. Den samme partition – "hvilke
- * kilder beregnes via en referenceperiode?" – var restated uafhængigt fem steder og kunne drive
+ * Baggrund: Udsmøres kildens adfærd som parallelle gren-tests (`kind === 'ferielov' || ...`) i motor,
+ * validator og kontrol-lag, kan partitionen – "hvilke kilder beregnes via en referenceperiode?" – drive
  * fra hinanden. Registeret her er den ENESTE sandhedskilde for den partition: en kilde er ét
  * exhaustivt opslag, ikke en gren i hver funktion.
  *

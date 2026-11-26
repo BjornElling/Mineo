@@ -8,13 +8,10 @@
  * kalder feltet det ene håndhævede krav i skabelonen, så stemplet bærer i praksis hele vægten af påstanden
  * «kontrakten er stadig sand» – uden at nogen kontrol kan se, om den er indfriet.
  *
- * **Det var ikke teoretisk.** Ved gennemgangen 2026-08-07 havde SEKS kontrakter et stempel, der lå FØR deres
- * egen seneste redigering: `amount-contract.md`, `app-shell-contract.md`, `auth-gate-contract.md`,
- * `error-contract.md`, `form-contract.md` og `periodisering-contract.md`. `auth-gate-contract.md` er det
- * tydeligste tilfælde: stemplet sagde 2026-07-28, mens filen selv blev ændret 2026-08-01. Nogen havde altså
- * redigeret kontraktens tekst uden at forny påstanden om, at teksten er sand – og feltets eneste kontrol
- * kunne per konstruktion ikke se det. Dertil delte 14 filer ét og samme bulk-stempel (2026-08-01), hvilket
- * er signaturen på en dato, der sættes som ritual frem for efter en reel verifikation.
+ * Fejlformen er konkret: en kontrakts tekst redigeres uden at forny påstanden om, at teksten er sand, så
+ * stemplet ligger FØR kontraktens egen seneste redigering – og en ren formatkontrol kan per konstruktion
+ * ikke se det. Mange filer med ét og samme bulk-stempel er tilsvarende signaturen på en dato, der sættes
+ * som ritual frem for efter en reel verifikation.
  *
  * **Reglen.** Stemplet må ikke være ældre end den seneste commit, der ændrede kontraktfilen. Det er den
  * svageste regel, der fanger fejlen – og bevidst svagere end «stemplet skal være friskt»: en kontrakt, som

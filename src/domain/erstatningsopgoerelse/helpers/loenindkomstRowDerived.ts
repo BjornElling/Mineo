@@ -54,8 +54,8 @@ const buildAllocationDates = (
   if (tafBeregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE) {
     // Samme fald-tilbage som beregningen (`indtaegtPerioder.ts`), kontroltabellen og sygeferiegodtgørelsen
     // (periodisering-contract.md §3A): en række uden arbejdsdage – en weekend, en periode helt i ferie – fordeles
-    // på fald-tilbage-dage. Uden den viste tabellen og bilaget rækken som 0,00 kr., mens grundlaget regnede
-    // dens løn med (BB-292).
+    // på fald-tilbage-dage. Uden den viser tabellen og bilaget rækken som 0,00 kr., mens grundlaget regner
+    // dens løn med.
     const { days } = resolveIncomeAllocationDays(
       { fra, til },
       buildLoenArbejdsdageSet({ fra, til }, resolveIndkomstFerieperioder(context))

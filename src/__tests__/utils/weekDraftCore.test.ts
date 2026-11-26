@@ -31,7 +31,7 @@ describe('parseWeekDraftForCommit', () => {
   });
 
   it('uge over årets maksimum → "Uge skal være mellem 1 og N i <år>"', () => {
-    // 2021 har 52 uger; året står i teksten, fordi grænsen afhænger af det (BB-296).
+    // 2021 har 52 uger; året står i teksten, fordi grænsen afhænger af det.
     expect(parseWeekDraftForCommit('53/2021', config)).toEqual({
       ok: false,
       invalidKind: 'weekNumber',

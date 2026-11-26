@@ -361,9 +361,9 @@ describe('computeForsoergertabAslYdelser', () => {
   });
 
   it('tæller allerede udbetalte måneder dagbaseret – én dag er 1/31 måned, ikke en hel måned', () => {
-    // TÆLLEMETODE (afgjort 2026-09-04): de udbetalte måneder er tabellens egen dagbaserede sum.
+    // TÆLLEMETODE (bevidst valg): de udbetalte måneder er tabellens egen dagbaserede sum.
     // Virkningsdato = beregningsdato = 1. marts er ÉN dag af martsʼ 31, altså 0,0323 måneder – ikke
-    // den hele kalendermåned, den tidligere optælling gav.
+    // en hel kalendermåned.
     const result = computeForsoergertabAslYdelser({
       skadedato: toISODateString('2020-05-01'),
       beregningsdato: toISODateString('2026-03-01'),
@@ -375,7 +375,7 @@ describe('computeForsoergertabAslYdelser', () => {
     });
 
     expect(result.computation).not.toBeNull();
-    // Uafrundet månedsbrøk (udviklerens afgørelse 2026-11-19).
+    // Uafrundet månedsbrøk (bevidst valg).
     expect(result.computation?.alleredeUdbetaltMaaneder).toBeCloseTo(1 / 31, 10);
     expect(result.computation?.resterendeMaanederTotal).toBeCloseTo(12 - 1 / 31, 10);
   });
@@ -398,7 +398,7 @@ describe('computeForsoergertabAslYdelser', () => {
     const tabelSum = computation.lobendeYdelser.reduce((sum, r) => sum + r.maaneder, 0);
 
     expect(computation.alleredeUdbetaltMaaneder).toBeCloseTo(tabelSum, 10);
-    // Den målte sag fra brugerblik-gennemgangen: 60,7323 udbetalt, 59,2677 tilbage – ikke 62/58.
+    // En konkret målt sag: 60,7323 udbetalt, 59,2677 tilbage – ikke 62/58.
     expect(computation.alleredeUdbetaltMaaneder).toBeCloseTo(60.7323, 4);
     expect(computation.resterendeMaanederTotal).toBeCloseTo(59.2677, 4);
     // Tabelopslaget afkorter til hele år og måneder: 4 år og 11 måneder.

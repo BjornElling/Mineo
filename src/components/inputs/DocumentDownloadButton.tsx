@@ -5,7 +5,7 @@ import DownloadIconButton from './DownloadIconButton';
 
 type Props = Readonly<{
   onClick?: () => void;
-  /** Videreført råt til `DownloadIconButton` – se dens dokumentation (BB-069-undtagelsen). */
+  /** Videreført råt til `DownloadIconButton` – se dens dokumentation (mousedown-undtagelsen). */
   onMouseDown?: (e: React.MouseEvent<HTMLButtonElement>) => void;
   disabled?: boolean;
   /** Kort årsag der vises i stedet for "Download som …", når knappen er deaktiveret. */

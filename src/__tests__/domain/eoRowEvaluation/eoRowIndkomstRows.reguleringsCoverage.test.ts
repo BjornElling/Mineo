@@ -43,7 +43,7 @@ describe('buildEoIndkomstRows regulering details', () => {
     expect(reguleringsvaerdiRow?.message).toMatch(/^er ikke angivet/);
   });
 
-  it('advarer gult – uden at spærre – når den manuelle tabel ikke er ændret i over et år (BB-302)', () => {
+  it('advarer gult – uden at spærre – når den manuelle tabel ikke er ændret i over et år', () => {
     const values = cloneInitialValues();
     values.beregnesUdFra = 'Beregningsperiode';
     values.vedroererPeriodeFra = iso('2024-01-01');
@@ -396,7 +396,7 @@ describe('buildEoIndkomstRows alleVaerdier – manuel-form-domæneforskel (U6)',
     return values;
   };
 
-  it('nul aktive rækker spærrer i begge manuelle former – en tom procentsats er ikke 0 % (BB-303)', () => {
+  it('nul aktive rækker spærrer i begge manuelle former – en tom procentsats er ikke 0 %', () => {
     const procentsatsValues = buildManualValues('Manuel procentsats');
     const afP = procentsatsValues.loenindkomstAnsaettelsesforhold[0];
     afP.loenudviklingManuelProcentsatsTableData = [{ id: 'base', dato: undefined, procent: 0 }];

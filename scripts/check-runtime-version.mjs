@@ -5,7 +5,7 @@
  * **Hvorfor der er brug for dette ud over `engine-strict` og `devEngines`.** `engine-strict=true` rammer kun
  * installationen, og `devEngines.runtime` får npm til at afvise `npm run` på forkert Node – men ingen af dem
  * kontrollerer npm-versionen ved en almindelig kørsel. Gaten skal enten være kørt på den erklærede toolchain,
- * eller slet ikke være kørt (R0-F01). Lagdelingen er beskrevet i `runtime-requirements.mjs`.
+ * eller slet ikke være kørt. Lagdelingen er beskrevet i `runtime-requirements.mjs`.
  *
  * `--warn-only` findes bevidst IKKE. En advarsel ville gøre kontrollen til støj, man scroller forbi.
  */

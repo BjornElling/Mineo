@@ -40,9 +40,9 @@ const renterFraBoundsSpec: DateBoundsSpec = {
   max: () => dateRanges_renteberegning.renteTil.max,
   // Renter kan ikke løbe fra en dato efter den, der beregnes til.
   narrowMax: (context) => context.view.readCanonical(renteberegningBeregningsdatoField.bind()),
-  // Beskeden navngiver kilden, så snart skærpelsen faktisk er aktiv. Uden den stod fejlen enten uden
-  // afsender («Dato skal være mellem … og 30-06-2026») eller tilskrev grænsen kalenderen, når
-  // beregningsdatoen tilfældigvis var dags dato (BB-043).
+  // Beskeden navngiver kilden, så snart skærpelsen faktisk er aktiv. Uden den står fejlen enten uden
+  // afsender («Dato skal være mellem … og 30-06-2026») eller tilskriver grænsen kalenderen, når
+  // beregningsdatoen tilfældigvis er dags dato.
   special: (context) => {
     const beregningsdato = context.view.readCanonical(renteberegningBeregningsdatoField.bind());
     return beregningsdato === undefined
@@ -98,13 +98,13 @@ const rowTemplate = (field: string) => ({
 /**
  * Et rentekrav på 0 kr. er ikke et beløb, der kan påløbe rente.
  *
- * Feltets nedre grænse var erklæret som 0 (den fælles beløbsregel: ikke-negativ), mens
- * `validateInterestCalculation` kræver `> 0`. De to var uenige, og uenigheden ramte brugeren som en
- * tavs blokering: `0` blev canonical og grønt, rækken mistede sin beregning, og hele sidens
- * download blev grå med «Indtastning mangler» – også for de øvrige, gyldige rækker (BB-038).
+ * `validateInterestCalculation` kræver `> 0`. Med den fælles beløbsregel (ikke-negativ, 0 tilladt) ville feltet
+ * og motoren være uenige, og uenigheden ville ramme brugeren som en tavs blokering: `0` bliver canonical og grønt,
+ * rækken mister sin beregning, og hele sidens download bliver grå med «Indtastning mangler» – også for de øvrige,
+ * gyldige rækker.
  *
  * Grænsen erklæres som ÉN eksklusiv nedre grænse, så et negativt udtryksresultat (`100-200`) får samme
- * sande besked som 0 i stedet for «Værdi skal være 0 kr. eller højere» (NY-12c-4).
+ * sande besked som 0 i stedet for «Værdi skal være 0 kr. eller højere».
  */
 const rentekravBelobPositiveValidator = positiveAmountBoundsValidator('renteberegning.rentekravRows.belob.bounds');
 
@@ -137,9 +137,9 @@ export const rentekravRenterFraField = defineStructuralField<ISODateString | und
  *
  * Rentedatoen er «Forfaldsdato» + tillægstid i den valgte enhed, og den er den dato, renten løber FRA.
  * Ligger den efter beregningsdatoen, findes der ingen renteperiode, og `validateInterestCalculation`
- * afviser rækken med `INVALID_DATE_ORDER`. Den afvisning nåede aldrig brugeren: motoren kaster fejlen
- * væk, rækkens «Beregnet rente» blev bare `-`, rækkens downloadikon forsvandt, og hele sidens
- * download blev grå – uden ét rødt felt og uden besked nogen steder (BB-037).
+ * afviser rækken med `INVALID_DATE_ORDER`. Den afvisning når ikke selv brugeren: motoren kaster fejlen
+ * væk, rækkens «Beregnet rente» bliver bare `-`, rækkens downloadikon forsvinder, og hele sidens
+ * download bliver grå – uden ét rødt felt og uden besked nogen steder.
  *
  * Reglen ligger på TILLÆGSTID, fordi det er det felt, der flyttede datoen. «Forfaldsdato» har allerede
  * sin egen grænse mod beregningsdatoen (`renterFraBoundsSpec`), så en tillægstid er den eneste vej

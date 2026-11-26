@@ -46,7 +46,7 @@ const FALLBACK_MESSAGE: Record<EoDocumentKey, string> = {
   tafKravGraf: 'Visuel graf over indtægtsniveau kan ikke genereres for den aktuelle sag',
 };
 
-/** Dokumentets navn, som knappen står ved – tooltippens subjekt, når fejlboksen spærrer (BB-370, BB-376). */
+/** Dokumentets navn, som knappen står ved – tooltippens subjekt, når fejlboksen spærrer. */
 export const EO_DOCUMENT_NAME: Readonly<Record<EoDocumentKey, string>> = {
   erstatningsopgoerelse: 'Opgørelse',
   tafFordeltPaaAar: 'TAF fordelt på kalenderår',
@@ -72,7 +72,7 @@ type EoRowBlocking = Readonly<{ blockingRowMessage: string | null; hasBlockingRo
 /**
  * Opgørelsen blokeres af alle fejlrækker. De tre TAF-dokumenter bygges kun af TAF og blokeres derfor ikke af
  * fejl i afsnit, de ikke bruger: svie/smerte, øvrige krav, særlige kommentarer og bilagsnumre
- * (BB-419-princippet, udviklerens afgørelse 2026-11-19). EET-importens fejl vedrører TAF og blokerer fortsat.
+ * (bevidst valg: et dokument spærres kun af fejl i det, det bygger på). EET-importens fejl vedrører TAF og blokerer.
  */
 type EoRowBlockingState = Readonly<{ opgoerelse: EoRowBlocking; taf: EoRowBlocking }>;
 

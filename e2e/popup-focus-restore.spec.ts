@@ -8,8 +8,8 @@ import { BROWSER_LANE_TAG } from './support/lanes';
  *
  * Testen kører i rigtige browsere, fordi netop de fælder, reglen findes for, ikke kan måles i
  * JSDOM: WebKit fokuserer ikke `<button>` ved klik, WebKit flytter ved `Escape` fokus til
- * popupens egen container, og MUI's transition slutter før portalen unmountes. Det var derfor
- * fokus endte på `body` i alle fire browsere i AUDIT-2026-08-14-21 (Q-001).
+ * popupens egen container, og MUI's transition slutter før portalen unmountes. Hver af dem
+ * kan ellers efterlade fokus på `body`.
  */
 
 /** Fanger produktfejl, så en restore ikke kan «lykkes» på bekostning af en runtimefejl. */

@@ -69,7 +69,7 @@ describe('createMineoDocumentEnvironment – kildesnapshottets friskhed', () => 
     settingsRevision = 2;
 
     const captured = environment.captureSource();
-    // Kernen i fundet: capturen skal levere det NYE settingsobjekt, ikke det, miljøet blev bygget med.
+    // Kernen: capturen skal levere det NYE settingsobjekt, ikke det, miljøet blev bygget med.
     expect(captured.renderSettings.documentDownloadFormat).toBe('word');
     // …og den skal være PARRET med det nye token, så friskhedschecket måler én samlet kilde.
     expect(captured.evaluation.issues.sourceToken.settingsRevision).toBe(2);

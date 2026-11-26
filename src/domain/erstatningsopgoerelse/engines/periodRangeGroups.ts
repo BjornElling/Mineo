@@ -110,9 +110,8 @@ export const buildPeriodRangeGroups = (
   const tafRanges = buildTafRanges(eoValues);
 
   // Beregningsperiodens rækker hører med, når opgørelsen viser udregningen af lønnen før skaden – i 1. opgørelse og i
-  // en senere opgørelse med «Skjul beregning efter første opgørelse: Nej». Før fulgte gruppen alene opgørelsens
-  // nummer, så opgørelse nr. 2 viste udregningen uden de lønsedler, den bygger på (udviklerafgørelse 2026-10-19,
-  // BB-293).
+  // en senere opgørelse med «Skjul beregning efter første opgørelse: Nej». Fulgte gruppen alene opgørelsens
+  // nummer, ville opgørelse nr. 2 vise udregningen uden de lønsedler, den bygger på.
   if (!skalKomprimereIndkomstBeregning(eoValues) && beregningsperiodeRange) {
     groups.push({ label: 'Beregningsperiode', ranges: [beregningsperiodeRange] });
   }

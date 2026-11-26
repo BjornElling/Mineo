@@ -6,11 +6,11 @@ import { PAGE_BOUNDARY_RULES } from './architecture/architectureRules';
 import { assertPathExists } from './testUtils';
 
 /**
- * Page-lagets persisterede sektionsadgang håndhæves nu STRUKTURELT af den AST-baserede
- * regel `domain/page-section-access-boundary` (greenfield #48): den beviser, at hver
+ * Page-lagets persisterede sektionsadgang håndhæves STRUKTURELT af den AST-baserede
+ * regel `domain/page-section-access-boundary`: den beviser, at hver
  * page-fil med sektionsadgang ligger under en PAGE_BOUNDARY_RULE-rod (coverage-
- * completeness) og kun rammer rodens autoriserede sektioner. Den forbud-halvdel er
- * derfor flyttet til manifestet; den direkte formPersistenceStore-import i page-laget
+ * completeness) og kun rammer rodens autoriserede sektioner. Den forbud-halvdel ligger
+ * derfor i manifestet; den direkte formPersistenceStore-import i page-laget
  * dækkes af den globale `persistence/form-persistence-store-import`-regel.
  *
  * Tilbage her står de POSITIVE assertioner, der ikke er forbud-grænser:

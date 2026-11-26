@@ -107,8 +107,7 @@ export const kontrolTabelColumnId = {
 
 /**
  * Kontroltabellens lønkolonner. Navnene er tabellens egne (`STANDARD_LOEN_COLUMN_LABELS`), så samme beløb hedder
- * det samme her som på skærmen og i dokumenterne (BB-299, udviklerafgørelse 2026-10-19). Før stod «Pension» og
- * «Ikke-pens. givende løn» som egne navne.
+ * det samme her som på skærmen og i dokumenterne (bevidst valg).
  *
  * - `header` er overskriften med layoutets linjeskift: skærmens form, undtagen «Ikke-pensionsgivende løn», der
  *   bruger den erklærede dokument-form – skærmformens «Ikke-pensions-» er for bred til kontroltabellens smallere

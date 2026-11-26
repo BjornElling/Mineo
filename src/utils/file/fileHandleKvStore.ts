@@ -129,8 +129,7 @@ export const writeFileHandleValues = async (
     async (transaction) => {
       const store = transaction.objectStore(STORE_NAME);
       // Alle put's i samme transaction; `runTransaction` venter på commit, så en delvis
-      // skrivning ikke kan observeres (tidligere blev det koordineret med manuelle
-      // `handleDone`/`metaDone`-flag pr. request).
+      // skrivning ikke kan observeres.
       await Promise.all(
         Object.entries(entries).map(([key, value]) =>
           awaitRequest(store.put(value, key))

@@ -88,13 +88,13 @@ export const buildEoTaftRows = (
   const tafBeregnesSom = computeTafBeregningsenhed(values);
   const perioder = values.tafPerioder ?? [];
   // Cellernes aktive feltissues: en celle med en rød værdi er udfyldt – forkert – selv om readeren giver
-  // den som tom, og den meldes med sin egen tekst frem for som manglende (BB-253, BB-230's form).
+  // den som tom, og den meldes med sin egen tekst frem for som manglende.
   const cellIssue = <T,>(descriptor: FieldDescriptor<T>, rowId: string) =>
     activeFieldIssue(errors, serializeFieldAddress(descriptor.bind(rowId).address));
 
   // Blokering (komplethed, dato-grænser, cutoff, overlap, rækkefølge, røde celler) afgøres af den delte,
   // autoritative TAF-periode-validering i domænets validerings-lag (`tafPeriodeValidation`) – ÉN
-  // sandhedskilde (jf. B9). Denne builder RENDERER kun resultatet; dens `error`-rækker gater PDF.
+  // sandhedskilde. Denne builder RENDERER kun resultatet; dens `error`-rækker gater PDF.
   const aktivMidlertidigEETBeregnetDato = resolveMidlertidigEetDatoHvisAktiv({
     ...values,
     skadedatoISO: context.skadedatoISO,
@@ -118,7 +118,7 @@ export const buildEoTaftRows = (
 
   if (!harPerioder) {
     // Uden TAF-række indgår ferien ikke, og en påbegyndt ferierække blokerer ikke. Dens manglende dato vises
-    // alligevel som gul linje med link til feltet, så den ikke forsvinder tavst (BB-429).
+    // alligevel som gul linje med link til feltet, så den ikke forsvinder tavst.
     const ferieDatoMangler: EoRowModel[] = (values.ferieperioder ?? []).flatMap((periode) => {
       const mangel = resolveFerieperiodeDatoMangel(periode, {
         fra: cellIssue(eoFerieperiodeFraField, periode.id),
@@ -198,7 +198,7 @@ export const buildEoTaftRows = (
   // Afskæringsdatoerne hentes fra SAMME opslag, som rød-celle-valideringen og motorens clamping bruger.
   // Rækken havde før sin egen kopi af klage-betingelsen og lagde den også på differencekravet, som klagen
   // IKKE ophæver: med en verserende EET-klage blev et TAF-ophør ved differencekravet til advarslen «Der er
-  // ikke rejst TAF-krav for hele EO-perioden», som ingen lovlig indtastning kunne rydde (BB-238, M-34).
+  // ikke rejst TAF-krav for hele EO-perioden», som ingen lovlig indtastning kunne rydde.
   const tafCutoffSource: TafConstraintSource = {
     ...values,
     skadedatoISO: context.skadedatoISO,
@@ -207,7 +207,7 @@ export const buildEoTaftRows = (
   const tafCutoffs = resolveTafCutoffDates(tafCutoffSource);
 
   // Dækningsadvarslen venter, mens en dato, den hviler på, er afvist: rækkernes egne datoer og de afskæringer,
-  // der kunne flytte TAF-kravets slutning (NY-12b-4, BB-426). Kalenderfejlen står allerede med sit link.
+  // der kunne flytte TAF-kravets slutning. Kalenderfejlen står allerede med sit link.
   const afskaeringerDerKanGaelde = resolveTafAfskaeringerDerKanGaelde(tafCutoffSource);
   const tafDaekningKanIkkeVurderes = kanDaekningIkkeVurderesPgaAfvistInput(errors, [
     ...perioder.flatMap((periode) => [eoTafPeriodeFraField.bind(periode.id), eoTafPeriodeTilField.bind(periode.id)]),
@@ -230,7 +230,7 @@ export const buildEoTaftRows = (
     if (manglerTafVedStartAfIkkeFoersteEo) return tafDaekningKanIkkeVurderes ? undefined : { label: tafIkkeRejstLabel };
 
     // Kandidaterne er de afskæringer, TAF faktisk slutter dagen før. Valget mellem dem – også ved samme dato –
-    // er dokumentets eget (`vaelgTafOphoersgrund`), så kontrol og papir nævner samme grund (BB-425).
+    // er dokumentets eget (`vaelgTafOphoersgrund`), så kontrol og papir nævner samme grund.
     const kandidater: Array<Readonly<{ kilde: TafCutoffKilde; referenceDato: ISODateString }>> = [];
     for (const [kilde, datoISO] of [
       ['differencekrav', tafCutoffs.differencekravDato],
@@ -268,7 +268,7 @@ export const buildEoTaftRows = (
   // 1) Periode-rækker fra tabellen.
   const ferieperioder = values.ferieperioder ?? [];
 
-  // En periode uden én arbejdsdag bidrager med nul og er næsten altid en tastefejl (BB-257). Advarslen
+  // En periode uden én arbejdsdag bidrager med nul og er næsten altid en tastefejl. Advarslen
   // blokerer ikke, og samme tekst står som gul ring ved rækkens datoceller (samme prædikat som tabellen).
   const pushIngenArbejdsdageAdvarsel = (periode: (typeof perioder)[number]): void => {
     if (tafBeregnesSom === TAF_BEREGNES_SOM.MAANEDER) return;

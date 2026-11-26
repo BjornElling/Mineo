@@ -406,7 +406,7 @@ describe('dispatchInput – restoredOrigin surfaces kun ved en gennemført undo/
       ['collection med tom route', { kind: 'collection', collection: 'rentekravRows', editorLocationId: 'x', route: '', tabKey: null }],
       ['field uden feltadresse', { kind: 'field', editorLocationId: 'x', route: '/r', tabKey: null }],
       ['tom editorLocationId', { kind: 'collection', collection: 'rentekravRows', editorLocationId: '', route: '/r', tabKey: null }],
-      // Re-review T3: en UKENDT `kind` faldt før ned i rækkehandlings-grenen og passerede som noget, den ikke er.
+      // En UKENDT `kind` må ikke falde ned i rækkehandlings-grenen og passere som noget, den ikke er.
       ['ukendt kind med collection-felter', {
         kind: 'bogus', collection: 'rentekravRows', editorLocationId: 'x', route: '/r', tabKey: null,
       }],
@@ -1012,9 +1012,8 @@ describe('initializeInputRuntime – hydration og fail-closed (§1.12/§3.10)', 
     // Den STRUKTURELLE halvdel af punkt 10's draft-ben: envelopen kan kun bære `sections` +
     // `rejectedInputs`, så der findes ikke et sted, en åben draft KUNNE gemmes.
     //
-    // NB: denne test hed tidligere "en åben draft overlever IKKE
-    // reload", men den åbnede aldrig en editor – navnet påstod mere end assertionen bar. Den ADFÆRDSMÆSSIGE
-    // halvdel (en rigtig åben draft, der ikke genopstår efter reload) ligger nu i
+    // Testen åbner ingen editor og påstår derfor intet om adfærd. Den ADFÆRDSMÆSSIGE
+    // halvdel (en rigtig åben draft, der ikke genopstår efter reload) ligger i
     // `react/useFieldEditor.openDraftNotPersisted.test.tsx`, hvor en editor faktisk kan åbnes.
     dispatchInput(store, catalog, settleField(aargangField.bind(), '2020'), { now: 1 });
     const stored = readStoredInput();
@@ -1024,8 +1023,8 @@ describe('initializeInputRuntime – hydration og fail-closed (§1.12/§3.10)', 
 
   it('en placeholder-promoveret række med fejlende felt overlever reload (punkt 11, §1.11/§10-kriterium 18)', () => {
     // Kæden i sin helhed: første fejlende settle i en endnu ikke oprettet række → atomisk rækkeoprettelse →
-    // serialisering → `initializeInputRuntime`. Den var tidligere kun asserteret som ét snapshot i storen;
-    // F5-benet gennem den ægte envelope var udækket.
+    // serialisering → `initializeInputRuntime`. Et snapshot i storen alene dækker ikke F5-benet gennem den
+    // ægte envelope.
     const rowId = 'placeholder-raekke-1';
     dispatchInput(
       store,

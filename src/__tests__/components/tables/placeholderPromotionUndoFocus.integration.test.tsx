@@ -188,8 +188,8 @@ describe('placeholder-promotion → undo → fokus', () => {
     act(() => { dispatchInput(store, catalog, { kind: 'undo' }); });
     expect(committedRowIds()).toEqual([]);
 
-    // 4) DET AFGØRENDE: originens fokusmål skal stadig kunne findes. Før rettelsen var det promoverede id
-    //    kastet væk, den viste placeholder havde et nyt id, og `findRestoreTarget` returnerede null.
+    // 4) DET AFGØRENDE: originens fokusmål skal stadig kunne findes. Kastes det promoverede id
+    //    væk, får den viste placeholder et nyt id, og `findRestoreTarget` returnerer null.
     const target = origin === undefined ? null : findRestoreTarget(origin);
     expect(target).not.toBeNull();
     // Og det er cellen i den nu tomme indtastningsrække – samme identitet, brugeren skrev i.

@@ -76,7 +76,7 @@ describe('autoritativt reguleringsgrundlag', () => {
     }
   });
 
-  // Fund C5: satsens enhed bæres af beviset, så ingen visning skal udlede den af TAF-enheden.
+  // Satsens enhed bæres af beviset, så ingen visning skal udlede den af TAF-enheden.
   it('mærker lønpakken med satsens egen enhed', () => {
     const privat = byggReguleringsResultat(packageCommon).segmenter;
     expect(privat.every((segment) => segment.regulering.wageUnit === 'Time')).toBe(true);
@@ -109,8 +109,8 @@ describe('autoritativt reguleringsgrundlag', () => {
     const evidence = result.segmenter.at(-1)?.regulering;
     expect(evidence?.periodValue).toBe(102.705);
     expect(evidence?.rawDeltaPct).toBe(2.7049999999999983);
-    // 1,002 × 1,025 = 1,02705. Kommatallet 2,7049999… gav før 2,70, mens indeksforholdet lå over 2,705; nu
-    // giver begge 2,71 (fund A, godkendt af udvikleren 2026-11-25).
+    // 1,002 × 1,025 = 1,02705. Kommatallet 2,7049999… ville give 2,70, mens indeksforholdet ligger over
+    // 2,705; begge giver 2,71.
     expect(evidence?.appliedDeltaPct).toBe(2.71);
     expect(evidence && (evidence.rawFactor - 1) * 100).toBeGreaterThan(2.705);
   });

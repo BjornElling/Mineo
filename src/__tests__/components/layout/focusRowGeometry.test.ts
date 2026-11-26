@@ -9,12 +9,12 @@ import {
 } from '../../../components/layout/containerNavigation/focusRowGeometry';
 
 /**
- * Det VARIGE net under `Container`s pil-navigation (#26).
+ * Det VARIGE net under `Container`s pil-navigation.
  *
- * Værdien ligger i at geometrien nu er en ren funktion: før omlægningen kunne disse regler
- * kun rammes gennem en fuld render, hvor jsdom ikke har layout – alle rects var 0×0, så
- * række-tolerancen, den vandrette sortering og prioriteten mellem DOM-række og visuel linje
- * var i praksis udækkede. Her er de tabelsatte, med præcise koordinater.
+ * Værdien ligger i at geometrien er en ren funktion: gennem en fuld render har jsdom intet
+ * layout – alle rects er 0×0, så række-tolerancen, den vandrette sortering og prioriteten
+ * mellem DOM-række og visuel linje ville i praksis være udækkede. Her er de tabelsatte, med
+ * præcise koordinater.
  *
  * `Container.test.tsx` dækker fortsat den observerbare tastatur-kontrakt gennem DOM;
  * dette dækker beslutningen om HVEM der er nabo.
@@ -92,7 +92,7 @@ describe('resolveRowMembers', () => {
   });
 
   it('er ASYMMETRISK: fra et container-løst felt ses kun andre container-løse felter', () => {
-    // Bevaret arv fra den oprindelige Container (#26 ændrede den bevidst ikke): et
+    // Bevidst bevaret adfærd: et
     // container-løst felt kan nås fra rækken, men kan ikke pile tilbage ind i den.
     // Casen står her, så en fremtidig ændring af reglen bliver et synligt valg.
     const inRow = candidate('inRow', 20, 100, 'r1');

@@ -1,11 +1,10 @@
 /**
  * Differencekravets bilagsvalg: et afkrydset felt er et løfte om en side i papiret.
  *
- * Baggrund (BB-188): tre af de fem valg var altid aktive (`unavailableReason={null}`) og udgik enten
- * tavst af dokumentet eller gav en «ingen»-side, mens to andre blev inaktive med årsagen i
- * tooltippet. Netop «Kapitalisering» kunne stå afkrydset og aktivt i en sag helt uden
- * kapitaliseringer, fordi `no-endelig-afgoerelser` bevidst filtreres væk fra fane 5 – og brugeren
- * kunne ikke skelne «bilaget var tomt» fra «noget faldt ud».
+ * Hvert valg, hvis bilag ikke findes, er inaktivt med en årsag i tooltippet. Et altid aktivt valg
+ * (`unavailableReason={null}`) ville enten udgå tavst af dokumentet eller give en «ingen»-side – fx
+ * «Kapitalisering» i en sag uden kapitaliseringer, fordi `no-endelig-afgoerelser` bevidst filtreres
+ * væk fra fane 5 – og brugeren kunne ikke skelne «bilaget var tomt» fra «noget faldt ud».
  */
 import {
   EET_DIFFERENCEKRAV_BILAG_KEYS,
@@ -93,7 +92,7 @@ describe('getEetDifferencekravBilagAvailability', () => {
   });
 
   it('deaktiverer udvidet-spec-togglen, når løbende-ydelsesbilaget findes men er fravalgt', () => {
-    // Togglen styrede tidligere ingenting i netop denne tilstand: bilaget fravalgt, togglen slået til.
+    // Ellers ville togglen stå aktiv uden at styre noget: bilaget fravalgt, togglen slået til.
     const availability = getEetDifferencekravBilagAvailability({
       computation: computationWith({
         loebendeComputation: withAfgoerelser(1) as unknown as EetDifferencekravComputation['loebendeComputation'],
@@ -152,7 +151,7 @@ describe('getEetDifferencekravBilagAvailability', () => {
     });
   });
 
-  it('giver hvert utilgængeligt valg en årsag – et inaktivt felt uden forklaring er selve fundet', () => {
+  it('giver hvert utilgængeligt valg en årsag – et inaktivt felt uden forklaring er en fejl', () => {
     const availability = getEetDifferencekravBilagAvailability({
       computation: computationWith({}),
       indregnMerErstatningVedForhoejetPensionsalder: false,

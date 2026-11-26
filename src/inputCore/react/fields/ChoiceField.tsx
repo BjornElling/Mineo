@@ -38,10 +38,9 @@ export type ChoiceFieldProps<
  * Om det tomme placeholder-valg tilbydes.
  *
  * **Udledes af feltets codec.** Et `requiredChoice`-codec HAR en gyldig tomværdi ('dage', 'maaned' …) og
- * kan derfor pr. konstruktion ikke ryddes; et `selection`-codec kan. Reglen stod før som en håndskrevet
- * `allowEmpty={false}` pr. kaldssted, og de to kunne ikke komme fra hinanden på nogen målbar måde: en
- * glemt prop lod brugeren rydde et påkrævet felt med Delete, og fejlen dukkede først op som et kast langt
- * senere. Proppen kan stadig SKÆRPE et valgfrit felt (et domæne, der kræver et valg), men aldrig løsne et
+ * kan derfor pr. konstruktion ikke ryddes; et `selection`-codec kan. Et håndskrevet `allowEmpty={false}` pr.
+ * kaldssted er skrøbeligt: en glemt prop lader brugeren rydde et påkrævet felt med Delete, og fejlen dukker
+ * først op som et kast langt senere. Proppen kan stadig SKÆRPE et valgfrit felt (et domæne, der kræver et valg), men aldrig løsne et
  * påkrævet – det afvises.
  */
   allowEmpty?: boolean;
@@ -53,7 +52,7 @@ export type ChoiceFieldProps<
   /** Domænespecifik atomisk immediate-commit, når valget samtidig skal ændre rækkestruktur. */
   immediateCommitOverride?: ImmediateCommitOverride<TCanonical>;
   /**
-   * Et projekteret kryds-felt-issue (fx reguleringsgrundlagets dækning, BB-306), som domænet adresserer til
+   * Et projekteret kryds-felt-issue (fx reguleringsgrundlagets dækning), som domænet adresserer til
    * netop dette valg. Feltets eget issue har forrang (§1.8) – samme kontrakt som `DateField`.
    */
   crossFieldIssue?: FieldIssue;

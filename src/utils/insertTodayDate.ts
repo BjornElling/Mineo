@@ -25,9 +25,9 @@ export type InsertTodayLowerBound = Readonly<{ date: ISODateString; labelBestemt
 /**
  * Årsagen til, at «Indsæt dags dato» er inaktiv – eller `undefined`, når dags dato er en gyldig værdi.
  *
- * Knappen må aldrig kunne indsætte en dato, feltet selv afviser (M-49). BB-068 viste det ved den ØVRE
- * grænse (satsdækningen slutter før dags dato); BB-405 ved den NEDRE: på Forsørgertab kan en fremtidig
- * virkningsdato være gyldig, og et klik erstattede da en gyldig beregningsdato med en rød. De nedre
+ * Knappen må aldrig kunne indsætte en dato, feltet selv afviser – hverken ved den ØVRE grænse
+ * (satsdækningen slutter før dags dato) eller ved den NEDRE: på Forsørgertab kan en fremtidig
+ * virkningsdato være gyldig, og et klik ville da erstatte en gyldig beregningsdato med en rød. De nedre
  * grænser gives i prioriteret rækkefølge; den første, dags dato ligger før, navngives i årsagen.
  */
 export const resolveInsertTodayDisabledReason = (params: Readonly<{

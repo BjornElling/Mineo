@@ -60,7 +60,7 @@ const buildProjection = () => {
   return buildForsoergertabReaderProjection(evaluation.reader);
 };
 
-describe('CALC-005 – uafhængigt håndberegnet totalsag', () => {
+describe('uafhængigt håndberegnet totalsag', () => {
   it('fører kønsvalg, dagbrøk og EAL/ASL-facitter gennem projection og download-gate', () => {
     const projection = buildProjection();
     const { snapshot } = projection;

@@ -4,7 +4,7 @@ import {
 } from '../../../../../components/pages/erstatningsopgoerelse/eoBeregning/eoBeregningSummaryTexts';
 
 describe('eoBeregningSummaryTexts', () => {
-  it('skriver samme ord for et fravalgt krav, uanset hvilket af de tre krav det er (BB-227, BB-234)', () => {
+  it('skriver samme ord for et fravalgt krav, uanset hvilket af de tre krav det er', () => {
     expect(resolveKravIkkeRejstTekst('Nej')).toBe('Ikke rejst');
     expect(resolveKravIkkeRejstTekst('Skjul')).toBe('Ikke rejst (skjult)');
     expect(resolveKravIkkeRejstTekst('Ja')).toBeUndefined();
@@ -17,7 +17,7 @@ describe('eoBeregningSummaryTexts', () => {
     [{ kravvalg: 'Ja', harFejl: false, antalPoster: 0 }, 'Ingen poster angivet'],
     [{ kravvalg: 'Ja', harFejl: false, antalPoster: 1 }, '1 post'],
     [{ kravvalg: 'Ja', harFejl: false, antalPoster: 2 }, '2 poster'],
-  ] as const)('øvrige krav %o → «%s» (BB-234)', (args, forventet) => {
+  ] as const)('øvrige krav %o → «%s»', (args, forventet) => {
     expect(resolveOevrigeKravSummaryText(args)).toBe(forventet);
   });
 });

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 //
-// «Skjul beregning efter første opgørelse» på den ægte EO-side (udviklerafgørelse 2026-10-24): et tomt grundlag
+// «Skjul beregning efter første opgørelse» på den ægte EO-side (bevidst valg): et tomt grundlag
 // vises trods togglen, det forsvinder ikke, mens brugeren udfylder det, og det skjules, når brugeren vender
 // tilbage til fanen eller selv slår togglen til.
 import { screen, render, waitFor } from '@testing-library/react';

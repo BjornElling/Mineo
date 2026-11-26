@@ -55,7 +55,7 @@ const EetIssuesBox = ({ issues, onGoToEetOplysninger }: Props) => {
       <Typography className="section-header">Fejl og advarsler</Typography>
 
       {issues.map((issue) => {
-        // Et issue, der selv kender sin celle (fx hver rød celle i afgørelsestabellen, BB-406), fører dertil;
+        // Et issue, der selv kender sin celle (fx hver rød celle i afgørelsestabellen), fører dertil;
         // ellers opløses målet ud fra issue-id'et.
         const sectionNavigation = resolveEetIssueNavigation(issue.id);
         const navigation = sectionNavigation !== null && issue.focusTarget !== undefined

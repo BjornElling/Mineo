@@ -169,18 +169,18 @@ describe('computeForsoergertabSnapshot', () => {
   });
 
   /**
-   * BB-117, målt med rapportens egne værdier: en efterladt ægtefælle født `20-08-2008` er 16 år på
+   * En efterladt ægtefælle født `20-08-2008` er 16 år på
    * beregningsdatoen, og kapitaliseringstabellen har kun aldersrækker fra 18 år.
    *
-   * Før rettelsen forsvandt hele ASL-halvdelen tavst: ingen rød celle, ingen advarsel, og
-   * downloadknappen stod uændret aktiv. Dokumentet blev trykt med kun «Beregnet EAL-krav», altså uden de
-   * ASL-ydelser, der trak over en million fra – kravet fremstod tolv gange for stort, og fejlen kunne
+   * Uden blokeringen forsvinder hele ASL-halvdelen tavst: ingen rød celle, ingen advarsel, og
+   * downloadknappen står aktiv. Dokumentet trykkes med kun «Beregnet EAL-krav», altså uden de
+   * ASL-ydelser, der trækker over en million fra – kravet fremstår tolv gange for stort, og fejlen kan
    * først opdages af modparten.
    *
-   * De tre påstande dækker fundets tre lag: beskeden får en FELTADRESSE, gaten BLOKERER, og dokumentets
+   * De tre påstande dækker fejlens tre lag: beskeden får en FELTADRESSE, gaten BLOKERER, og dokumentets
    * projektion bærer ikke en halv beregning videre.
    */
-  it('blokerer download og markerer feltet, når efterladtes alder er uden for tabellen (BB-117)', () => {
+  it('blokerer download og markerer feltet, når efterladtes alder er uden for tabellen', () => {
     const snapshot = computeForsoergertabSnapshot({
       values: createValues({
         beregningsdato: toISODateString('2025-07-01'),
@@ -211,9 +211,9 @@ describe('computeForsoergertabSnapshot', () => {
   });
 
   /**
-   * Den NEGATIVE retning af BB-117's fail-closed gate, og den vigtigste af de to.
+   * Den NEGATIVE retning af aldersgatens fail-closed blokering, og den vigtigste af de to.
    *
-   * Da gaten blev fail-closed på severity alene, spærrede den den almindeligste gyldige sag på fladen: en
+   * En gate, der er fail-closed på severity alene, spærrer den almindeligste gyldige sag på fladen: en
    * bruger, der bevidst kun regner EAL-delen. Årsagen er, at ASL-motoren mærker ALLE sine issues
    * `severity: 'error'` – også de rene «feltet er ikke udfyldt». Et fail-closed værn må ikke kunne
    * blokere det, det ikke er sat til at fange, så testen står her permanent.
@@ -237,10 +237,10 @@ describe('computeForsoergertabSnapshot', () => {
   });
 
   /**
-   * BB-404: et kønsvalg er ikke en påbegyndt ASL-ydelse. Før spærrede valget et færdigt EAL-dokument med
-   * «Indtastning mangler» – også efter at en beregningsdato fra 1. marts 2015 havde skjult feltet.
+   * Et kønsvalg er ikke en påbegyndt ASL-ydelse og må ikke spærre et færdigt EAL-dokument med
+   * «Indtastning mangler» – heller ikke når en beregningsdato fra 1. marts 2015 skjuler feltet.
    */
-  describe('kønsvalg uden påbegyndt ASL-ydelse (BB-404)', () => {
+  describe('kønsvalg uden påbegyndt ASL-ydelse', () => {
     const ealOnly = (beregningsdato: string) => computeForsoergertabSnapshot({
       values: createValues({
         beregningsdato: toISODateString(beregningsdato),

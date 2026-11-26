@@ -80,8 +80,8 @@ const readRowEngineInput = (
  * Den seneste rentedato blandt rækkerne – den tidligste beregningsdato, der lader alle rækker stå gyldige.
  *
  * Beregningsdatoen har selv et statisk interval, men hver rækkes rentedato (forfaldsdato plus tillægstid)
- * må højst være beregningsdatoen. «Indsæt dags dato» kunne derfor gøre en række rød, når den lå efter
- * dags dato (M-49, samme fejlklasse som BB-405; udviklerens afgørelse 2026-11-18: knappen gøres inaktiv).
+ * må højst være beregningsdatoen. «Indsæt dags dato» kan derfor gøre en række rød, når den ligger efter
+ * dags dato; knappen gøres da bevidst inaktiv.
  * Navnet følger brugerens ord: uden tillægstid er rentedatoen selve forfaldsdatoen.
  */
 export const resolveSenesteRentedato = (

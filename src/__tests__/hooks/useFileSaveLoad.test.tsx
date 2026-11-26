@@ -127,7 +127,7 @@ const renderHook = (
     hasData?: boolean;
     rejected?: boolean;
     openEditorFailsSettle?: boolean;
-    /** Den åbne editor bærer en faktisk ændret, uafsluttet draft (BB-397). */
+    /** Den åbne editor bærer en faktisk ændret, uafsluttet draft. */
     openEditorDraftChanged?: boolean;
   } = {}
 ): HarnessHandles => {
@@ -485,7 +485,7 @@ describe('useFileSaveLoad', () => {
       expect(applyAuthoritativeLoadSnapshotMock).toHaveBeenCalledTimes(1);
     });
 
-    it('spørger før en tom sag med en ændret, åben indtastning erstattes – uden at settle den (BB-397)', async () => {
+    it('spørger før en tom sag med en ændret, åben indtastning erstattes – uden at settle den', async () => {
       const handles = renderHook({ hasData: false, openEditorDraftChanged: true });
       loadFromFileMock.mockResolvedValue(successfulLoad());
 

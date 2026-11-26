@@ -41,7 +41,7 @@ const row = (rows: readonly EoRowModel[], id: string): EoRowModel | undefined =>
 
 // ── TAF ─────────────────────────────────────────────────────────────────────────────────────────
 
-/** BB-426's sag: erstatningsperiode hele 2024, TAF til 30-06-2024. */
+/** Grundsag: erstatningsperiode hele 2024, TAF til 30-06-2024. */
 const tafValues = (patch: Partial<ErstatningsopgoerelseValues> = {}): ErstatningsopgoerelseValues => ({
   ...createErstatningsopgoerelseInitialValues(),
   vedroererPeriodeFra: iso('2024-01-01'),
@@ -59,7 +59,7 @@ const tafRows = (values: ErstatningsopgoerelseValues, fieldIssues: FieldIssueSet
 
 const TAF_IKKE_REJST = 'Der er ikke rejst TAF-krav for hele EO-perioden';
 
-describe('buildEoTaftRows – dækningsadvarslen venter på en afvist dato (NY-12b-4, BB-426)', () => {
+describe('buildEoTaftRows – dækningsadvarslen venter på en afvist dato', () => {
   it('forklarer ophøret med en gyldig differencekravsdato', () => {
     expect(row(tafRows(tafValues({ differencekravDato: iso('2024-07-01') })), 'taf.ophoerSkyldes')).toMatchObject({
       displayValue: 'Differencekrav opgjort (01-07-2024)',
@@ -127,7 +127,7 @@ describe('buildEoTaftRows – dækningsadvarslen venter på en afvist dato (NY-1
 
 // ── Svie/smerte ─────────────────────────────────────────────────────────────────────────────────
 
-/** NY-12b-4's sag: erstatningsperioden januar 2024, «Sygemeldt», krav «Ja». */
+/** Grundsag: erstatningsperioden januar 2024, «Sygemeldt», krav «Ja». */
 const ssValues = (patch: Partial<ErstatningsopgoerelseValues> = {}): ErstatningsopgoerelseValues => ({
   ...createErstatningsopgoerelseInitialValues(),
   vedroererPeriodeFra: iso('2024-01-01'),
@@ -144,7 +144,7 @@ const ssRows = (values: ErstatningsopgoerelseValues, fieldIssues: FieldIssueSet 
 
 const SS_IKKE_REJST = 'Ikke rejst svie/smerte-krav for hele perioden';
 
-describe('buildEoSvieSmerteRows – dækningsadvarslen venter på en afvist dato (NY-12b-4, BB-426)', () => {
+describe('buildEoSvieSmerteRows – dækningsadvarslen venter på en afvist dato', () => {
   it('advarer om dækningen, når perioderne slutter før EO-perioden', () => {
     expect(row(ssRows(ssValues()), 'sviesmerte.ophoerSkyldes')).toMatchObject({ displayValue: SS_IKKE_REJST, status: 'warning' });
   });
@@ -173,9 +173,9 @@ describe('buildEoSvieSmerteRows – dækningsadvarslen venter på en afvist dato
   });
 });
 
-// ── Ferie uden TAF-række (BB-429) ───────────────────────────────────────────────────────────────
+// ── Ferie uden TAF-række ───────────────────────────────────────────────────────────────
 
-describe('buildEoTaftRows – ferierække med kun Fra (BB-429)', () => {
+describe('buildEoTaftRows – ferierække med kun Fra', () => {
   const ferie = [{ id: 'ferie-1', fra: iso('2024-01-03'), til: undefined }];
   const BESKED = 'Ferieperioden fra 03-01-2024: Til-dato er ikke angivet';
 

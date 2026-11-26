@@ -154,11 +154,9 @@ export const getStandardLoenTableHeaders = (loenperiode: Loenperiode): readonly 
  * med kolonnernes erklærede dokument-form. ENESTE kilde for både Årsløns dokument og erstatningsopgørelsens
  * lønindkomst-bilag.
  *
- * Bilaget havde før sin egen oversættelse af skærmens overskrifter, så ATP-kolonnen hed «ATP og løn u.
- * till./pens.» i bilaget og «ATP mv. u. tillæg» i Årsløns dokument – samme beløb med to navne (BB-299,
- * udviklerafgørelse 2026-10-19: samme beløb skal have samme navn, når det kan ske uden visuelle fejl). Den
- * fælles form er kortere end bilagets gamle på begge linjer, så kolonnen hverken bliver bredere eller ombrydes
- * mere.
+ * Bilaget har ingen egen oversættelse af skærmens overskrifter: samme beløb skal have samme navn, når det kan
+ * ske uden visuelle fejl (bevidst valg). Den fælles form er kort nok til, at bilagets kolonne hverken bliver
+ * bredere eller ombrydes mere.
  */
 export const getStandardLoenDocumentTableHeaders = (loenperiode: Loenperiode): readonly string[] => [
   ...PERIOD_HEADERS[loenperiode],

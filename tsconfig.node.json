@@ -24,12 +24,11 @@
   },
 
   /*
-   * KUN byggekonfigurationen. Alle tre vite-konfigurationer står her; de to app-specifikke lå før
-   * uden for ethvert projekt og blev derfor hverken typechecket eller placeret rigtigt af editoren.
+   * KUN byggekonfigurationen. Alle tre vite-konfigurationer står her; uden for ethvert projekt bliver
+   * de hverken typechecket eller placeret rigtigt af editoren.
    *
-   * `src/test/setup.ts` stod her også og hører ikke hjemme: den er testinfrastruktur og dækkes
-   * allerede af `tsconfig.test.json`, som har både DOM- og vitest-typerne. At den lå her, var
-   * usynligt, indtil konfigurationen for første gang blev kørt – den havde aldrig været det.
+   * `src/test/setup.ts` hører ikke hjemme her: den er testinfrastruktur og dækkes af
+   * `tsconfig.test.json`, som har både DOM- og vitest-typerne.
    */
   "include": [
     "vite.config.ts",

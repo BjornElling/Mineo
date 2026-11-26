@@ -45,9 +45,9 @@ describe('standardLoenTableColumns', () => {
     ]);
   });
 
-  it('giver dokumenterne én fælles overskriftsform – samme navn for samme beløb i begge dokumenter (BB-299)', () => {
-    // Erstatningsopgørelsens lønindkomst-bilag og Årsløns dokument læser begge denne liste. Bilaget kaldte før
-    // ATP-kolonnen «ATP og løn u. till./pens.»; den fælles form er kortere på begge linjer.
+  it('giver dokumenterne én fælles overskriftsform – samme navn for samme beløb i begge dokumenter', () => {
+    // Erstatningsopgørelsens lønindkomst-bilag og Årsløns dokument læser begge denne liste, så samme beløb
+    // har samme overskrift i begge dokumenter.
     expect(getStandardLoenDocumentTableHeaders('dag')).toEqual([
       'Dato fra',
       'Dato til',
@@ -120,7 +120,7 @@ describe('resolveStandardLoenPeriodColumns', () => {
       col0_dag: toISODateString('2022-10-01'),
       col1_dag: toISODateString('2022-10-31'),
     });
-    // Regressionsvagt: dag-perioden lækkede tidligere rå ISO (ÅÅÅÅ-MM-DD) til dokumentet.
+    // Regressionsvagt: dag-perioden må ikke lække rå ISO (ÅÅÅÅ-MM-DD) til dokumentet.
     expect(resolveStandardLoenPeriodColumns(row, 'dag')).toEqual(['01-10-2022', '31-10-2022']);
   });
 

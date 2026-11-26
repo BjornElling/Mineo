@@ -22,8 +22,7 @@ export const supplerendeKildePdfFiler = ['Bkg. 1339 2013.pdf'] as const;
 // `udeladteKildetabeller` med begrundelse, så ingen udeladelse er tavs.
 // Bilag 1 er affattet på ny ved BEK nr. 1339 af 28/11/2013 (i kraft 1/1-2014), der tilføjer
 // forsørgertabstabellerne F og G; tabel A-E er uændrede. F og G er udtrukket fra den PDF.
-// Særfaktoren står med fire decimaler («1,2514») og registreres som skrevet (udviklerens afgørelse
-// 2026-11-12). BEK nr. 229 af 12/03/2014 retter den til 1,251 fra 15/3-2014 – se 229-2014.ts.
+// Særfaktoren står med fire decimaler («1,2514») og registreres bevidst som skrevet. BEK nr. 229 af 12/03/2014 retter den til 1,251 fra 15/3-2014 – se 229-2014.ts.
 
 export const kildetabeller = ['A', 'B', 'C', 'D', 'E', 'F', 'G'] as const;
 

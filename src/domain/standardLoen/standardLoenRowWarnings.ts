@@ -16,19 +16,18 @@ import type { StandardLoenTableFieldSet } from './standardLoenTableFieldSet';
 // på begge flader.
 //
 // Tre regler:
-//  - `duplicateRow` – rækken gentager en tidligere række ordret (BB-096/BB-289). Udviklerafgørelse
-//    2026-10-19: det spærrer IKKE – dobbelt løn for samme periode kan i sjældne tilfælde være reel – men skal
+//  - `duplicateRow` – rækken gentager en tidligere række ordret. Det spærrer bevidst IKKE – dobbelt løn for samme periode kan i sjældne tilfælde være reel – men skal
 //    ses. Sammenligningen er `findDuplicateRows`' (beregnet beløb, kun den 2., 3., … forekomst).
-//  - `futurePeriod` – en periodecelle ligger helt efter dags dato (BB-115/BB-298). Lovligt (en lønseddel kan
+//  - `futurePeriod` – en periodecelle ligger helt efter dags dato. Lovligt (en lønseddel kan
 //    udstedes forud), men oftest en tastefejl i året. En månedscelle er «efter», når hele måneden er det; den
 //    igangværende måned er altså ikke markeret.
-//  - `negativeTotal` – rækkens samlede løn er negativ (BB-290, kun EO). Rækken regnes med og modregnes;
+//  - `negativeTotal` – rækkens samlede løn er negativ. Rækken regnes med og modregnes;
 //    advarslen er der, fordi en negativ lønseddel er sjælden nok til at fortjene et blik.
-//  - `amountOutlier` – rækkens løn er over ti gange højere end de øvrige rækker i samme periode (BB-297). Typisk et
+//  - `amountOutlier` – rækkens løn er over ti gange højere end de øvrige rækker i samme periode. Typisk et
 //    nul for meget; reglen og dens værn mod falske advarsler står i `tableAmountOutlierDetection.ts`.
 
 //  - `ingenArbejdsdage` – rækkens periode har løn, men ingen arbejdsdage, når TAF opgøres i arbejdsdage (kun EO;
-//    bygges i `eoIncomeRowWarnings.ts`, fordi reglen kræver sagens ferie og beregningsenhed – BB-365).
+//    bygges i `eoIncomeRowWarnings.ts`, fordi reglen kræver sagens ferie og beregningsenhed).
 
 export type StandardLoenRowWarningKind = 'duplicateRow' | 'futurePeriod' | 'negativeTotal' | 'amountOutlier' | 'ingenArbejdsdage';
 
@@ -157,7 +156,7 @@ const futurePeriodCells = (
   });
 };
 
-/** Datorækker kortere end en uge vurderes ikke for et usandsynligt højt beløb (BB-297). */
+/** Datorækker kortere end en uge vurderes ikke for et usandsynligt højt beløb. */
 const OUTLIER_MIN_DATO_DAGE = 7;
 
 /**
@@ -225,12 +224,12 @@ export type ResolveStandardLoenRowWarningsParams = Readonly<{
   /** Rækker, der allerede har en rød fejl – de får ingen gul advarsel oveni (rød vinder alligevel). */
   errorRowIds?: ReadonlySet<string>;
   /**
-   * Rækkens samlede løn, som fladen viser den. Kun EO leverer den (BB-290); uden den vurderes negative rækker
+   * Rækkens samlede løn, som fladen viser den. Kun EO leverer den; uden den vurderes negative rækker
    * ikke.
    */
   rowTotal?: (row: StandardLoenTableRow) => number;
   /**
-   * Rimelighedskontrollen (BB-297). `rowTotal` er rækkens samlede løn, som fladen viser den; `group` lægger rækken i
+   * Rimelighedskontrollen. `rowTotal` er rækkens samlede løn, som fladen viser den; `group` lægger rækken i
    * sin periode – der sammenlignes kun inden for samme gruppe – og `sammenligning` navngiver, hvad rækken er
    * sammenlignet med («ansættelsesforholdets øvrige lønrækker i perioden»).
    */

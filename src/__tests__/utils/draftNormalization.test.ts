@@ -8,7 +8,7 @@ import {
 } from '../../utils/draftNormalization';
 
 describe('normalizeMinusCharacters', () => {
-  it('erstatter hvert genkendt minustegn med ASCII-minus og bevarer længden (BB-430)', () => {
+  it('erstatter hvert genkendt minustegn med ASCII-minus og bevarer længden', () => {
     expect(normalizeMinusCharacters('10−1')).toBe('10-1');
     expect(normalizeMinusCharacters('10–1')).toBe('10-1');
     expect(normalizeMinusCharacters('—1‑2')).toBe('-1-2');

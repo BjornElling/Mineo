@@ -272,13 +272,11 @@ describe('B9: katalog over række-evalueringens unikke gate-bidrag (golden maste
   });
 
   it('en nominelt gyldig TAF-basissag bærer INGEN EO-række-gate', () => {
-    // Denne sag bar tidligere en satser-fejl: Store Bededagstillægget stod på et default-AF's nulværdi,
-    // mens den anvendte reguleringsdato lå efter lovens ikrafttræden, og satsvurderingen kaldte det en
-    // afvigelse. Fejlen var reel for netop DENNE fixture, som konstruerer værdierne direkte – men den kunne
-    // ikke opstå i produktionen: reader-projektionen udleder satsen fra den aktuelle lovregel, før
-    // beregning og dokumenter læser modellen.
+    // En satser-fejl på et default-AF's nulværdi for Store Bededagstillægget (reguleringsdato efter lovens
+    // ikrafttræden) kan kun opstå i en fixture, der konstruerer værdierne direkte – ikke i produktionen:
+    // reader-projektionen udleder satsen fra den aktuelle lovregel, før beregning og dokumenter læser modellen.
     //
-    // Afvigelsesreglen for de låste satser er derfor fjernet frem for bevaret: den kunne kun rammes af en
+    // Der findes derfor bevidst ingen afvigelsesregel for de låste satser: den kunne kun rammes af en
     // tilstand, ingen vej ind i systemet kan producere, og et værn, hvis eneste udløser er en umulig
     // tilstand, beskytter intet. Projektionstesten beviser samtidig, at et historisk slot ignoreres.
     const c = CASES.find((entry) => entry.name === 'taf:gyldig')!;

@@ -25,7 +25,7 @@ export const reguleringsbevisSchema = z.object({
   /**
    * Enheden for pakkens grundløn (og dermed `referenceWage*`/`wage*`): «Ansættelse» ved offentlig
    * overenskomst, overenskomstens `grundloenAngivetPer` ved privat. Producenten sætter den, og alle
-   * visninger læser den herfra i stedet for at udlede den af TAF-enheden (fund C5).
+   * visninger læser den herfra i stedet for at udlede den af TAF-enheden.
    */
   wageUnit: z.enum(['Måned', 'Time']).optional(),
   periodePct: z.number().finite().optional(),
@@ -63,7 +63,7 @@ export const buildReguleringsbevis = (
   periodValue: number,
   detail: Omit<Reguleringsbevis, 'referenceValue' | 'periodValue' | 'rawFactor' | 'rawDeltaPct' | 'appliedDeltaPct'> & Readonly<{ rawDeltaPct?: number }>,
 ): Reguleringsbevis => {
-  // Godkendt 2026-10-15: en løn afrundet til nul beregnes som nul. Beviset registrerer de faktiske
+  // Bevidst valg: en løn afrundet til nul beregnes som nul. Beviset registrerer de faktiske
   // nulbeløb og resolverens neutrale regulering i stedet for at danne 0/0.
   const rawFactor = isKlNulbasis({ kind: detail.kind, referenceValue, periodValue }) ? 1 : periodValue / referenceValue;
   // Den oprindelige procentberegning skal bevares: algebraisk ens omskrivninger kan flytte en halvgrænse.

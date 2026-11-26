@@ -80,7 +80,7 @@ export const parsePercentDraftForCommit = (
   const unsigned = isNegative ? compact.slice(1) : compact;
   if (unsigned.includes('-')) return { ok: false, errorMessage: 'Ugyldig procent' };
   if (/\s/.test(trimmed) && unsigned.includes('.')) return { ok: false, errorMessage: 'Ugyldig procent' };
-  // En decimaldel AFVISES ikke i et decimalløst procentfelt (BB-118) – den afrundes nedenfor.
+  // En decimaldel AFVISES ikke i et decimalløst procentfelt – den afrundes nedenfor.
   // Afvisningen var uopnåelig for brugeren, fordi tegnfilteret sprang kommaet over, så «15,00 %» nåede
   // hertil som `1500` og blev afvist af 0-100-grænsen i stedet.
 
@@ -103,7 +103,7 @@ export const parsePercentDraftForCommit = (
   }
 
   /**
-   * Parse ved den SKREVNE præcision, og afrund derefter eksplicit (BB-118).
+   * Parse ved den SKREVNE præcision, og afrund derefter eksplicit.
    *
    * `parseDanishNumberString`s `precision` er et sikkerhedsværn – ikke en afrunding: den afviser et tal,
    * hvis decimaler ikke kan rummes sikkert i den angivne præcision. Blev den brugt som afrunder, ville

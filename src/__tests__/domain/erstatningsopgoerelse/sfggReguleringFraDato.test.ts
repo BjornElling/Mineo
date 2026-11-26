@@ -3,7 +3,7 @@ import { toISODateString } from '../../../types/branded';
 
 const iso = toISODateString;
 
-// Bilagets «reguleret … fra …» og beregningens referencedato læses fra samme regel (BB-453).
+// Bilagets «reguleret … fra …» og beregningens referencedato læses fra samme regel.
 describe('resolveSfggReguleringFraDato', () => {
   it('regulerer fra reguleringsdatoen, når en manuel form har en ældre referenceperiode', () => {
     expect(resolveSfggReguleringFraDato({ manuelBasisDato: iso('2023-02-28') }, iso('2022-02-27')))

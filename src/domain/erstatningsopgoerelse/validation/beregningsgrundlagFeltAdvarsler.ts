@@ -3,12 +3,12 @@ import { amountValueToNumber } from '../../../utils/expressionAmount';
 
 /**
  * Beregningsgrundlagets IKKE-blokerende feltadvarsler – én tekst for feltets gule ring og linjen i «Fejl og
- * advarsler», så de aldrig siger to forskellige ting (samme form som AES-datoernes advarsel, BB-242).
+ * advarsler», så de aldrig siger to forskellige ting (samme form som AES-datoernes advarsel).
  *
  * Værdierne er readerens: et skjult felt er tomt og giver ingen advarsel.
  */
 
-// ── Øvrigt fravær uden løn (BB-269) ─────────────────────────────────────────────────────────────
+// ── Øvrigt fravær uden løn ─────────────────────────────────────────────────────────────────────
 
 export const OEVRIGE_FRAVAERSDAGE_IKKE_ANGIVET_MESSAGE = 'Antal fraværsdage er ikke angivet';
 export const OEVRIGE_FRAVAERSDAGE_ER_NUL_MESSAGE = 'Antal fraværsdage er sat til 0';
@@ -23,9 +23,9 @@ const erOevrigtFravaerAktivt = (values: OevrigtFravaerInput): boolean =>
   values.beregnesUdFra === 'Beregningsperiode' && values.oevrigtFravaerUdenLoen === 'Ja';
 
 /**
- * «Antal fraværsdage» sat til 0 er en oplysning, ikke en mangel (M-13), men forekommer tvivlsomt, når togglen er
+ * «Antal fraværsdage» sat til 0 er en oplysning, ikke en mangel, men forekommer tvivlsomt, når togglen er
  * slået til. En TOM værdi er derimod en mangel og spærrer: den får ingen ring, som programmets øvrige manglende
- * input (BB-083), men står i boksen.
+ * input, men står i boksen.
  */
 export const resolveOevrigeFravaersdageAdvarsel = (values: OevrigtFravaerInput): string | undefined =>
   erOevrigtFravaerAktivt(values) && values.oevrigeFravaersdage === 0 ? OEVRIGE_FRAVAERSDAGE_ER_NUL_MESSAGE : undefined;
@@ -35,17 +35,17 @@ export const resolveOevrigtFravaerAarsagAdvarsel = (values: OevrigtFravaerInput)
     ? OEVRIGT_FRAVAER_AARSAG_IKKE_UDFYLDT_MESSAGE
     : undefined;
 
-// ── Angivet løn: rimelighedsadvarsler (BB-268, BB-432) ─────────────────────────────────────────
+// ── Angivet løn: rimelighedsadvarsler ──────────────────────────────────────────────────────────
 
 /**
- * Grænserne er udviklerens (2026-10-02): en dagsløn OVER 10.000 kr. og en månedsløn UNDER 2.500 kr. ligner den
+ * Bevidst valgte grænser: en dagsløn OVER 10.000 kr. og en månedsløn UNDER 2.500 kr. ligner den
  * anden lønform. Felterne står samme sted og ser ens ud, og forvekslingen koster en faktor 21 – som skærmen ikke
- * viser (BB-226), så kun papiret ville afsløre den.
+ * viser, så kun papiret ville afsløre den.
  */
 export const ANGIVET_DAGSLOEN_ADVARSEL_OVER_KR = 10_000;
 export const ANGIVET_MAANEDSLOEN_ADVARSEL_UNDER_KR = 2_500;
 /**
- * En positiv dagsløn UNDER 100 kr. ligner en tastefejl i kroner og øre (BB-432, udviklerens grænse 2026-11-22).
+ * En positiv dagsløn UNDER 100 kr. ligner en tastefejl i kroner og øre (bevidst valgt grænse).
  * Lave lønninger forekommer i bijob, så det er en kontrolbesked, ikke en fejl; 100,00 kr. advares ikke.
  */
 export const ANGIVET_DAGSLOEN_ADVARSEL_UNDER_KR = 100;
@@ -61,12 +61,12 @@ export const resolveAngivetLoenAdvarsel = (
     const dagsloen = amountValueToNumber(values.dagsloenenUdgoer);
     if (dagsloen === undefined) return undefined;
     if (dagsloen > ANGIVET_DAGSLOEN_ADVARSEL_OVER_KR) return ANGIVET_DAGSLOEN_HOEJ_MESSAGE;
-    // 0 kr. er en rød fejl (BB-258) og advares ikke oveni.
+    // 0 kr. er en rød fejl og advares ikke oveni.
     return dagsloen > 0 && dagsloen < ANGIVET_DAGSLOEN_ADVARSEL_UNDER_KR ? ANGIVET_DAGSLOEN_LAV_MESSAGE : undefined;
   }
   if (values.beregnesUdFra === 'Angivet månedsløn') {
     const maanedsloen = amountValueToNumber(values.maanedsloenenUdgoer);
-    // 0 kr. er en rød fejl (BB-258) og advares ikke oveni.
+    // 0 kr. er en rød fejl og advares ikke oveni.
     return maanedsloen !== undefined && maanedsloen > 0 && maanedsloen < ANGIVET_MAANEDSLOEN_ADVARSEL_UNDER_KR
       ? ANGIVET_MAANEDSLOEN_LAV_MESSAGE
       : undefined;

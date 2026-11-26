@@ -36,7 +36,7 @@ export const resolveValgtReguleringDisplayForPdf = (
 
 /**
  * Reguleringsgrundlagets navn i en sætning om dets satser («… den første sats i SBLON2, som er fra …»). Statistikkens
- * og satstabellens kildeangivelse i parentes udelades, så sætningen ikke får to parenteser efter hinanden (BB-306).
+ * og satstabellens kildeangivelse i parentes udelades, så sætningen ikke får to parenteser efter hinanden.
  */
 export const resolveReguleringskildeNavn = (
   ansaettelsesforhold: Pick<

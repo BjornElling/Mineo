@@ -31,8 +31,8 @@ import { toISODateString, type ISODateString } from '../../../../types/branded';
 // placeholder-række OG dens committede rækker – kan renderes. Cellernes dataidentitet er nested (ejerens id +
 // rækkens id), og hver synlig celle kunne være første fejlsted, hvis en surface bandt med for få entity-led.
 //
-// Denne test findes, fordi den fælles StandardLoenTable tidligere KUN blev integrationsdækket i sin top-level
-// Årsløn-variant. Den variant kræver ét entity-led og kunne derfor ikke afsløre et manglende ejer-id.
+// Denne test findes, fordi den fælles StandardLoenTables top-level Årsløn-variant kun kræver ét entity-led og
+// derfor ikke kan afsløre et manglende ejer-id.
 
 const ASYNC_TEST_TIMEOUT_MS = 30_000;
 

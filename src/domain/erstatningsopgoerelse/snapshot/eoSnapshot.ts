@@ -140,9 +140,9 @@ export type EoSnapshot = Readonly<{
    * De UAFHÆNGIGE grenes resultater, som stadig kunne beregnes sikkert, selv om aggregatet er blokeret.
    *
    * Findes KUN på den blokerede sti; på den grønne sti er `data` autoritativ og bærer alt. Formålet er
-   * udviklerbeslutning 2: et rødt svie/smerte-felt må ikke fjerne den GYLDIGE TAF-periodisering fra
-   * Beregning-fanen. Fanen læste tidligere udelukkende `data`, som er `null` her, så de gyldige grene
-   * kunne slet ikke nå frem – de levede alene i `inspektionSnapshot`, som Beregning-fanen ikke ser.
+   * den bevidste regel, at et rødt svie/smerte-felt ikke må fjerne den GYLDIGE TAF-periodisering fra
+   * Beregning-fanen. `data` er `null` her, og `inspektionSnapshot` ser Beregning-fanen ikke, så uden dette
+   * felt kunne de gyldige grene slet ikke nå frem.
    *
    * ⚠️ Grenene er IKKE autoritative: de indgår ikke i nogen sum, intet `canonicalOutput` og ingen PDF.
    * Det krydsgående aggregat forbliver alt-eller-intet (`data: null`), fordi en samlet total eller et
@@ -282,7 +282,7 @@ const buildBeregningsperiodeProjectionForInspektion = (
  * maksimum og total med faktoren (`:251-254`). En rød forligsprocent maskeres af readeren til `undefined`
  * og ville derfor blive regnet som "intet forlig", dvs. 100 % – et falsk tal bag en rød feltmarkering.
  *
- * Grundlaget består: udviklerbeslutning 1 (2026-07-25) kræver udtrykkeligt, at "før-forlig-resultater består".
+ * Grundlaget består: det er en bevidst regel, at "før-forlig-resultater består" (eo-snapshot-contract.md).
  * Vi nulstiller derfor KUN de skalerede felter og lader `satserPerDagFoerForligOre`/`satserMaxFoerForligOre`,
  * dagene og de indtastede beløb stå. `totalOre` er skaleret og bliver `null`-ækvivalenten nul, fordi typen
  * ikke er nullable – consumeren læser `forligFactor === null` sammen med `blockedDependencies.forlig`.
@@ -380,7 +380,7 @@ export const computeEoSnapshot = (args: Readonly<{
    */
   midlertidigtEetImportContext?: EetImportContext;
   /**
-   * Gule advarsler om TAF efter kapitaliseringen af en delvist endelig EET-afgørelse (BB-187), dannet af
+   * Gule advarsler om TAF efter kapitaliseringen af en delvist endelig EET-afgørelse, dannet af
    * `resolveTafEfterKapitaliseringAdvarsler` i reader-projektionen. Uafhængige af togglen ovenfor og uden
    * virkning på beregningen; se `domain-boundary-contract.md` §9 pkt. 11.
    */
@@ -555,22 +555,22 @@ export const computeEoSnapshot = (args: Readonly<{
       // for gyldige rækker selv om andre TAF-rækker blokerer den autoritative beregning. Hvis alle
       // rækker er ugyldige eller clampes bort, er [] den forventede fail-closed kontrol-basis.
       //
-      // BEVIDST UDELADT (udviklerbeslutning, reviewkandidat #23): reguleringsforløbet vises IKKE i denne
-      // fejl-tilstand. Efter #23 er det viste reguleringsforløb udelukkende den kanoniske serie fra det
+      // BEVIDST UDELADT: reguleringsforløbet vises IKKE i denne
+      // fejl-tilstand. Det viste reguleringsforløb er udelukkende den kanoniske serie fra det
       // autoritative pdfModel (ingen re-derivation) – som netop ikke bygges her. Kontrolfanen fail-closer
       // derfor reguleringsafsnittet til placeholders, indtil valideringsfejlen er løst. Dette er valgt
       // frem for at genindføre en separat serie-beregning (der ville kunne vise en tabel, som ikke svarer
       // til nogen autoritativ beregning). Genindfør IKKE et fejl-tilstands-forløb uden en ny beslutning.
-      // ⚠️ F2 (R1): en motor må IKKE køre, hvis en af DENS EGNE afhængigheder er rød. Readeren maskerer en rød
-      // værdi til `undefined`, så et ugatet kald her viste fx et "Beregnet svie/smerte"-beløb regnet som om
-      // "tidligere udbetalt" var 0 – præcis det falske tal, udviklerbeslutningen 2026-07-25 kræver erstattet af `-`.
+      // ⚠️ En motor må IKKE køre, hvis en af DENS EGNE afhængigheder er rød. Readeren maskerer en rød
+      // værdi til `undefined`, så et ugatet kald her ville vise fx et "Beregnet svie/smerte"-beløb regnet som om
+      // "tidligere udbetalt" var 0 – et falsk tal, der bevidst skal vises som `-`.
       //
       // Gaten er dependency-specifik: en rød TAF-afhængighed rører ikke
       // S/S-visningen, og en rød S/S-afhængighed rører ikke TAF-ranges. Kun grenens egne felter gater grenen.
       // Autoriteten er de STRUKTURELLE feltissues, ikke `eoErrors`-mappet: sidstnævnte kender kun 11
       // top-level feltnavne, så en rød rækkecelle ville være usynlig her.
       // Forligsgraden skalerer S/S-satserne (`svieSmerteEngine.ts:234-254`), så en rød forligsprocent er en
-      // reel S/S-afhængighed. Den blokerer dog KUN efter-forlig-resultatet: udviklerbeslutning 1 kræver, at
+      // reel S/S-afhængighed. Den blokerer dog KUN efter-forlig-resultatet: det er en bevidst regel, at
       // før-forlig-resultater består.
       const svieSmerteForInspektion = blockedDependencies.svieSmerte
         ? undefined
@@ -607,10 +607,10 @@ export const computeEoSnapshot = (args: Readonly<{
         // Det AUTORITATIVE aggregat (samlet total + canonicalOutput + pdfModel) forbliver `null`: en sum eller
         // et fuldt dokument kan ikke være autoritativt, når bare ét led er blokeret.
         // De uafhængige grene, der STADIG kan beregnes, eksponeres gennem `inspektionSnapshot` ovenfor – det er
-        // dér udviklerbeslutning 2 realiseres: en rød S/S-afhængighed fjerner ikke den gyldige TAF-visning.
+        // dér, en rød S/S-afhængighed ikke fjerner den gyldige TAF-visning.
         data: null,
         blockedDependencies,
-        // Udviklerbeslutning 2 realiseres HER, ikke kun i `inspektionSnapshot`: Beregning-fanen læser
+        // Samme regel gælder HER, ikke kun i `inspektionSnapshot`: Beregning-fanen læser
         // udelukkende snapshottet og skal fortsat kunne vise den gyldige TAF-periodisering, når et
         // svie/smerte-felt er rødt.
         readyBranches: Object.freeze({

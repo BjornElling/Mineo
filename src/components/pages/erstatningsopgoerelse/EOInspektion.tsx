@@ -50,8 +50,7 @@ const EOInspektion = ({ eoSnapshot = null, manuelReguleringInputErrors }: EOInsp
     settings
   );
 
-  // Afsnittene hedder det samme som sektionerne på EO oplysninger, så et kryds kan føres tilbage til sit felt
-  // (BB-383). Før stod «AES», «Svie og smerte» og «TAF beregningsgrundlag».
+  // Afsnittene hedder det samme som sektionerne på EO oplysninger, så et kryds kan føres tilbage til sit felt.
   return (
     <Box>
       <EOInspektionRowsSection title="Stamdata" rows={pageView.stamdataRows} />

@@ -81,8 +81,7 @@ export const sessionStorageBoundary = forbidMemberAccess({
     probe: (entry) => hasIdentifier(entry, 'sessionStorage'),
     rationale: 'mindst én fil rører sessionStorage – ellers har grænsen ingen trafik at regulere',
   },
-  // Kun den kanoniske helper tilbage: de øvrige poster var stale efter greenfield-cutoveren (filerne er
-  // slettet, eller de rører ikke længere sessionStorage direkte). Anti-rot-testen håndhæver, at hver post
+  // Kun den kanoniske helper. Anti-rot-testen håndhæver, at hver post
   // stadig udløser reglen, så listen ikke stille kan vokse til død konfiguration.
   allow: [
     'src/utils/safeSessionStorage.ts',
@@ -203,7 +202,7 @@ export const caseResetPolicyOwnership = forbidCalls({
 });
 
 /**
- * `Slet alt` afsluttes INDE i appen (udviklerbeslutning).
+ * `Slet alt` afsluttes INDE i appen (bevidst valg).
  *
  * Den fulde `window.location`-genindlæsning er fjernet: load og hel-sags-clear bruger samme
  * autoritative replacement-grænse og skal ikke ende to forskellige steder. Reglen er en
@@ -326,7 +325,7 @@ export const defaultDirectoryNameSingleSource = defineRule({
  *
  * Præcisionskrav: `Styled*Field` rammer den gamle feltvej, men IKKE de bevarede UI-primitiver
  * (`StyledTextFieldBase`/`StyledTextAreaBase`) eller de øvrige bevarede kontroller (dropdown/toggle/radio/
- * checkbox). `criticalActions/` rammer den gamle mappe, men ikke greenfields egen
+ * checkbox). `criticalActions/` rammer den gamle mappe, men ikke input-runtimens
  * `inputCore/runtime/criticalActionCoordinator`.
  */
 const DELETED_LEGACY_INPUT_MODULES =
@@ -392,7 +391,7 @@ export const LEGACY_MODULE_PATH_SELFTEST = {
 /**
  * Den slettede legacy-inputarkitektur må ikke genopstå.
  *
- * Efter greenfield-cutoveren findes der ÉN autoritativ inputtilstand (§3.1), ÉN editor (§3.5) og ÉN
+ * Der findes ÉN autoritativ inputtilstand (§3.1), ÉN editor (§3.5) og ÉN
  * write-grænse (§3.6). Den gamle store-/editor-/fejl-/command-klynge er slettet – ikke deaktiveret. Denne regel
  * forbyder ethvert import af dens moduler, så en ny feature ikke kan genindføre en parallel inputvej (heller
  * ikke ved at genskabe en fil med samme navn). Der er BEVIDST ingen allowlist: en undtagelse ville være en

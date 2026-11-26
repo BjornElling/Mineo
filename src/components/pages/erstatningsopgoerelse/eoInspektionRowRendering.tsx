@@ -29,7 +29,7 @@ export const INSPEKTION_REGULATION_ROW_LABEL_WIDTH = '250px';
  * Statusikon for en kontrol-række ud fra dens max-severity.
  *
  * En `ok`-række, hvis værdi er `-`, har intet at kontrollere og får intet mærke – et grønt ✓ ved siden af «-»
- * påstod, at noget var kontrolleret og i orden (samme princip som sammentællingen, BB-386). Pladsen bevares,
+ * ville påstå, at noget er kontrolleret og i orden (samme princip som sammentællingen). Pladsen bevares,
  * så værdierne i kolonnen står lige.
  */
 export const getStatusIcon = (status: EoRowStatus, displayValue?: string): React.ReactElement => {

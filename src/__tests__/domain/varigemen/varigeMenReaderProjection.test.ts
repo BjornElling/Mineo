@@ -100,9 +100,9 @@ describe('buildVarigeMenReaderProjection', () => {
    * Motoren må ALDRIG kaldes i en blokeret projektion (§3.9).
    *
    * ÆRLIG AFGRÆNSNING af hvad denne test beviser. Med de fire aktuelle dependencies kommer ENHVER blokering
-   * fra en `unavailable`-læsning, som den gamle form også standsede på – den gamle og den nye form er derfor
-   * runtime-ækvivalente i dag, præcis som fundet selv konstaterede. Denne test er altså ikke det, der
-   * skelner dem; den pinner invarianten mod en FREMTIDIG blokeringskilde (fx `collector.warn`-baseret eller
+   * fra en `unavailable`-læsning, som en manuel guard også ville standse på – de to former er derfor
+   * runtime-ækvivalente i dag. Denne test er altså ikke det, der skelner dem; den pinner invarianten mod
+   * en FREMTIDIG blokeringskilde (fx `collector.warn`-baseret eller
    * en kryds-felt-regel), hvor et kald inde i kroppen ville køre trods `blocked`.
    *
    * Den egentlige garanti er en TYPEGRÆNSE, ikke denne test: motorinputtet er en navngiven type, som kun

@@ -130,8 +130,8 @@ describe('useCollectionTable.buildRenderRows', () => {
   });
 
   it('viser flere tomme rækker op til `minimumVisibleRows` – alle sammen', () => {
-    // Den tidligere reconciliation genfandt placeholderen med `.find` og tog kun den FØRSTE, så
-    // en tabel med flere tomme rækker tabte resten tavst. Her skal alle tre komme med.
+    // En reconciliation, der genfinder placeholderen med `.find`, tager kun den FØRSTE, så
+    // en tabel med flere tomme rækker taber resten tavst. Her skal alle tre komme med.
     const model = renderModel({ committedRows: [], minimumVisibleRows: 3 });
 
     expect(model.map((r) => r.rowId)).toEqual(['ph-1', 'ph-2', 'ph-3']);

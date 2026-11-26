@@ -3,10 +3,10 @@
  * Udruller én Cloudflare-konfiguration med det låste `wrangler` fra package-lock.json og gentager
  * forsøget, når Cloudflares API svarer med en forbigående fejl.
  *
- * Baggrund: 2026-10-12 fejlede deploy-jobbet efter en grøn release-gate og grøn E2E-matrix, fordi
- * `POST .../assets-upload-session` svarede «504 Gateway Timeout» fra Cloudflares egen kant. Intet
- * var galt med artefaktet; en ny kørsel af samme job ville være gået igennem. `wrangler-action`
- * kan ikke gentage et forsøg, og den installerede samtidig en nyere wrangler end den låste.
+ * Baggrund: deploy-jobbet kan fejle efter en grøn release-gate og grøn E2E-matrix, fordi fx
+ * `POST .../assets-upload-session` svarer «504 Gateway Timeout» fra Cloudflares egen kant, selv om
+ * intet er galt med artefaktet. `wrangler-action` kan ikke gentage et forsøg og installerer samtidig
+ * en nyere wrangler end den låste.
  *
  * Kun forbigående udfald gentages (5xx, 429, netværksfejl, et svar der ikke er JSON). En ægte fejl –
  * forkert token, ugyldig konfiguration, manglende assets-mappe – fejler med det samme, så den ikke

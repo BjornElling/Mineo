@@ -49,7 +49,7 @@ type EetInputIssues = Readonly<{
   erhvervsevnetab: Partial<Record<Exclude<keyof ErhvervsevnetabComposedValues, 'aslAfgoerelser'>, FieldIssueMessage>>;
   faellesAarsloen: Partial<Record<keyof FaellesAarsloenValues, FieldIssueMessage>>;
   /**
-   * ALLE røde celler i ASL-afgørelsestabellen, én linje pr. celle med cellen som mål (BB-406). Tabellen er ét
+   * ALLE røde celler i ASL-afgørelsestabellen, én linje pr. celle med cellen som mål. Tabellen er ét
    * input med mange felter; en enkelt besked her lod fanerne vise den første fejl og skjule resten.
    */
   aslAfgoerelser?: readonly EetIssue[];
@@ -64,7 +64,7 @@ export type EetForligInput = Readonly<{
   dato?: ISODateString;
   datoErrorMessage?: string;
   // Feltets EGEN besked, når readeren har afvist procenten/brøken. Bæres med, så «Fejl og
-  // advarsler» kan skrive den konkrete regel frem for en generisk «ugyldig værdi» (BB-196).
+  // advarsler» kan skrive den konkrete regel frem for en generisk «ugyldig værdi».
   procentErrorMessage?: string;
   broekErrorMessage?: string;
   hasRejectedInput: boolean;
@@ -146,7 +146,7 @@ const createFieldIssues = (
  *
  * Motorerne melder en rækkemangel ved id alene. Uden rækkerne faldt fejloversigten tilbage til FØRSTE række, så
  * «angiv kapitaliseringsdato» kunne fremhæve en allerede udfyldt, korrekt kapitalisering, mens den tomme celle
- * stod i en anden række (BB-413). EO's import af midlertidigt EET opløser allerede målet på samme måde.
+ * stod i en anden række. EO's import af midlertidigt EET opløser allerede målet på samme måde.
  */
 const withRowFocusTargets = (issues: readonly EetIssue[], input: EetSnapshotInput): readonly EetIssue[] => {
   const context = {
@@ -159,7 +159,7 @@ const withRowFocusTargets = (issues: readonly EetIssue[], input: EetSnapshotInpu
     if (issue.focusTarget !== undefined) return issue;
     const focusTarget = resolveEetIssueFocusTarget(issue.id, context);
     if (focusTarget === undefined) return issue;
-    // Med flere afgørelser navngives den, der mangler oplysningen (BB-413), som ved røde celler (BB-406).
+    // Med flere afgørelser navngives den, der mangler oplysningen, som ved røde celler.
     const rowId = focusTarget.kind === 'rowId'
       ? focusTarget.rowId
       : focusTarget.kind === 'fieldAddress' ? aslRowIdOfAddress(focusTarget.address) : undefined;
@@ -226,14 +226,14 @@ const buildGatedProjection = <TComputation>(
   };
 };
 
-/** Afgørelsestabellens røde celler – hver sin linje (BB-406). Tom, når tabellen ikke har nogen. */
+/** Afgørelsestabellens røde celler – hver sin linje. Tom, når tabellen ikke har nogen. */
 const aslAfgoerelserIssues = (input: EetSnapshotInput): readonly EetIssue[] =>
   input.fieldErrors.aslAfgoerelser ?? [];
 
 /**
  * Kapitaliseringskolonnerne læses ikke af EAL-motoren: den vælger afgørelse ud fra afgørelsesdato, virkningsdato og
- * type og bruger kun dens EET %. En rød kapitaliseringsdato på en anden afgørelse stoppede alligevel EAL-kravet
- * (BB-419). De øvrige kolonner kan ændre, hvilken afgørelse der vælges, og blokerer derfor fortsat.
+ * type og bruger kun dens EET %. En rød kapitaliseringsdato på en anden afgørelse må derfor ikke stoppe
+ * EAL-kravet. De øvrige kolonner kan ændre, hvilken afgørelse der vælges, og blokerer derfor fortsat.
  */
 const EAL_ULAESTE_ASL_KOLONNER: ReadonlySet<string> = new Set([
   aslAfgoerelseKapDatoField.template.field,
@@ -311,7 +311,7 @@ const isUsableEetPct = (pct: number | undefined): boolean => pct !== undefined &
 // Forlig om ansvarsgrad-fejl (delt kilde med EO-fanen). Et ugyldigt forlig – "begge udfyldt",
 // en brøk over 1, eller et ikke-committbart rå draft – skal blokere både EAL- og differencekrav-outputtet.
 //
-// Beskeden er feltets EGEN, når readeren har afvist indtastningen (BB-196): den generiske «indeholder en
+// Beskeden er feltets EGEN, når readeren har afvist indtastningen: den generiske «indeholder en
 // ugyldig værdi» sagde kun AT noget var galt, hvor programmet i samme øjeblik kendte HVAD – og tre
 // forskellige regler fik samme tekst. `evaluateForligsgrad`s egen besked er sidste udvej for de tilfælde,
 // hvor ingen feltfejl er sat.
@@ -382,7 +382,7 @@ const buildForligBlockingIssues = (input: EetSnapshotInput): Readonly<{
  * Forligsgraden, som fane 4 skal REDUCERE SIT EGET EAL-krav med.
  *
  * Kun et gyldigt forlig UNDER 100 % giver en reduktion – præcis samme `factor < 1`-regel som
- * differencekravet bruger, så et forlig på 100 % ikke skriver en forligsblok uden virkning (BB-197).
+ * differencekravet bruger, så et forlig på 100 % ikke skriver en forligsblok uden virkning.
  * Grundlaget er derimod fanens eget: her det rene EAL-krav, på differencekravet beløbet efter alle
  * fire ASL-fradrag. Se `eetEalForligSchema`.
  */
@@ -427,8 +427,7 @@ const buildEfterEalProjection = (input: EetSnapshotInput): EetSnapshot['efterEal
 
   return buildGatedProjection(input, blockingIssues, () => computeEetEalCalculation({
     // Samme afgrænsning som differencekravet: en afgørelse med virkning efter beregningsdatoen indgår ikke.
-    // Før valgte fanen den seneste afgørelse uanset beregningsdatoen, så samme sag gav to forskellige
-    // EAL-krav (værdiklasse-gennemgangen 2026-11-24, fund D, godkendt af udvikleren 2026-11-25).
+    // Valgtes den seneste afgørelse uanset beregningsdatoen, kunne samme sag give to forskellige EAL-krav.
     erhvervsevnetab: {
       ...input.values,
       aslAfgoerelser: [...filterAslRowsKnownAtBeregningsdato(

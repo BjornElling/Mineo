@@ -174,9 +174,9 @@ export const resolveSfggBaseRate = (
   }
   const loen = roundKroner(calculator.sumLoenInRangesKroner([{ fra: sfggRow.sfggReferenceperiodeFra, til: sfggRow.sfggReferenceperiodeTil }]));
   if (loen < 0) {
-    // Negative lønsedler modregnes (BB-290); er referenceperiodens løn SAMLET negativ, er der ingen positiv løn at
+    // Negative lønsedler modregnes; er referenceperiodens løn SAMLET negativ, er der ingen positiv løn at
     // modregne i, og en negativ referencesats giver ingen mening. Samme regel som en samlet negativ kilde i
-    // beregnings- og erstatningsperioden: opgørelsen spærrer med en navngiven fejl (udviklerafgørelse 2026-10-19).
+    // beregnings- og erstatningsperioden: opgørelsen spærrer med en navngiven fejl.
     return {
       sfggReferenceperiode: { fra: sfggRow.sfggReferenceperiodeFra, til: sfggRow.sfggReferenceperiodeTil },
       sfggReferencesatsOre: notCalculableSfggReferencesats('negative_reference_loen'),

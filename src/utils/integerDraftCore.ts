@@ -1,7 +1,6 @@
 // Delt commit-parse-kerne for HELTALS-inputs – brugt af BÅDE formularfeltet (`IntegerField`)
-// og tabel-cellen (`integerAdapter`). Tidligere var den identiske format-validering kopieret i begge
-// familier med divergerende fejltekster ("Ugyldigt heltal" vs "Ugyldigt format"); A2 samler den her,
-// med ÉN ensartet ordlyd.
+// og tabel-cellen (`integerAdapter`), så de to familier har samme format-validering og ÉN ensartet
+// ordlyd.
 //
 // Kernen dækker KUN format-validering (fortegn, cifre, max-cifre, parse til tal). Interval-validering
 // (min/max) holdes BEVIDST i de to wrappere, fordi de håndterer den forskelligt: formularen kan vise

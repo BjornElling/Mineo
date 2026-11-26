@@ -26,8 +26,7 @@ export type FractionFieldProps = Readonly<{
 
 const FractionField = React.forwardRef<HTMLDivElement, FractionFieldProps>(
   ({ field, location, name, width = 120, placeholder, disabled, singleStageClick = false, inputRef, sx }, ref) => {
-    // Ciffergrænse og fortegn kommer fra descriptorens codec gennem den DELTE resolver. Komponenten
-    // hardkodede før begge dele og satte slet intet råt længdeloft.
+    // Ciffergrænse, fortegn og råt længdeloft kommer fra descriptorens codec gennem den DELTE resolver.
     const { allowNegative, maxDigits, maxDraftLength } = resolveFractionCharPolicy(field);
     const admission = React.useMemo(
       () => fractionAdmission({ maxDigits, allowNegative }),

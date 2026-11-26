@@ -42,7 +42,7 @@ const vaelgBeregnesUdFra = async (
 const sektion = (page: Page) => page.locator('[data-section-id="taf-beregningsgrundlag"]');
 const errorBox = (page: Page) => page.locator('.content-box').filter({ hasText: 'Fejl og advarsler' });
 
-// Flade 12f (BB-258–BB-272): beregningsgrundlaget for TAF. Basisbanen er nok – intet her afhænger af motor
+// Beregningsgrundlaget for TAF. Basisbanen er nok – intet her afhænger af motor
 // eller viewport.
 test.describe('Erstatningsopgørelse – beregningsgrundlaget for TAF', () => {
   test('i måneder skjules ferien, og for meget fravær farver feltet frem for at give en intern fejl', async ({
@@ -57,7 +57,7 @@ test.describe('Erstatningsopgørelse – beregningsgrundlaget for TAF', () => {
     await setDate(page.locator("input[name='tafBeregningsperiodeTil']"), '31-05-2018');
 
     // Uden et ansættelsesforhold, der gør enheden til arbejdsdage, opgøres i måneder: ferie og løse dage
-    // fradrages ikke og vises ikke (BB-263).
+    // fradrages ikke og vises ikke.
     await expect(sektion(page).getByText('Ferie i beregningsperioden:')).toHaveCount(0);
     await expect(sektion(page).getByText('Løse ferie-/feriefridage')).toHaveCount(0);
 
@@ -70,7 +70,7 @@ test.describe('Erstatningsopgørelse – beregningsgrundlaget for TAF', () => {
     await page.getByRole('tab', { name: 'Beregning', exact: true }).click();
     await expect(errorBox(page)).toContainText('Fraværet overstiger beregningsperioden (højst 249 fraværsdage)');
     await expect(errorBox(page)).not.toContainText('intern beregningsfejl');
-    // Sektionslinket bærer skærmens overskrift (BB-270).
+    // Sektionslinket bærer skærmens overskrift.
     await expect(errorBox(page).getByRole('button', { name: 'Indtægt før skadedatoen', exact: true }).first()).toBeVisible();
 
     expect(runtimeErrors).toEqual([]);
@@ -148,7 +148,7 @@ test.describe('Erstatningsopgørelse – beregningsgrundlaget for TAF', () => {
     expect(externalRequests).toEqual([]);
   });
 
-  test('overlap mellem beregningsperioden og en TAF-periode farver begge datoer (BB-262)', async ({
+  test('overlap mellem beregningsperioden og en TAF-periode farver begge datoer', async ({
     page,
     runtimeErrors,
     externalRequests,

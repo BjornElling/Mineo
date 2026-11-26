@@ -49,7 +49,7 @@ const withDocumentUnavailable = async <T>(run: () => Promise<T>): Promise<T> => 
   }
 };
 
-describe('TD-014/DOC-002 – rente-oversigtens færdige PDF- og Word-artefakter', () => {
+describe('Rente-oversigtens færdige PDF- og Word-artefakter', () => {
   it('bevarer det samme håndskrevne indhold i PDF og Word', async () => {
     const render = (session: Parameters<typeof generateRenteOversigtDocument>[0]) =>
       generateRenteOversigtDocument(session, toISODateString('2024-02-01'), rows);

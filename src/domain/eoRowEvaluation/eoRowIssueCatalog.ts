@@ -363,7 +363,7 @@ const focusByRowPattern = (row: EoRowModel, message: string): EoIssueFocusTarget
     return { kind: 'collectionField', template: eoOffentligeYdelserFraDatoField.template, row: 'entry' };
   }
 
-  // «Valgt regulering» og «KL-/RLTN-oplysninger» bærer selv deres feltmål fra builderen (BB-316).
+  // «Valgt regulering» og «KL-/RLTN-oplysninger» bærer selv deres feltmål fra builderen.
 
   const svieSmerteRowId = rowIdSuffix(row.id, 'sviesmerte.periode.');
   if (svieSmerteRowId) {
@@ -413,7 +413,7 @@ const focusByRowPattern = (row: EoRowModel, message: string): EoIssueFocusTarget
   }
 
   // Øvrige krav-rækkerne sætter selv deres `focusTarget` (den første celle med en mangel, jf.
-  // `assessOevrigeKravRow`), så kataloget gætter ikke længere cellen ud fra beskedens ordlyd.
+  // `assessOevrigeKravRow`), så kataloget gætter ikke cellen ud fra beskedens ordlyd.
 
   if (row.id === 'taf.beregningsgrundlag.indkomst') {
     // «Ingen indkomst i beregningsperioden»: summen er afledt af lønrækkerne OG beregningsperioden.
@@ -461,7 +461,7 @@ const focusByRowPattern = (row: EoRowModel, message: string): EoIssueFocusTarget
   if (row.id === 'erstatningsopgoerelse.vedroererPeriode') {
     // «Vedrører perioden» er to felter i én række. Er præcis den ene halvdel udfyldt, peger rækkens hint
     // på den TOMME – uden det markerede linket den udfyldte dato, og brugeren så på et felt, fejlen ikke
-    // handlede om (BB-205). Uden hint (begge tomme, eller et bounds-issue) er fra-feltet indgangen.
+    // handlede om. Uden hint (begge tomme, eller et bounds-issue) er fra-feltet indgangen.
     return target(dateFieldFromHint(hint, message, eoVedroererPeriodeFraField, eoVedroererPeriodeTilField).bind());
   }
 
@@ -564,7 +564,7 @@ const CATALOG: readonly EoIssueCatalogEntry[] = [
       { kind: 'id', id: 'taf.beregningsgrundlag.maaneder' },
       { kind: 'prefix', prefix: 'taf.beregningsgrundlag.ferie.' },
     ],
-    // Rækken bærer selv «Fejl og advarsler»'s ordlyd for en manglende periode (BB-385); overlap, rækkefølge og
+    // Rækken bærer selv «Fejl og advarsler»'s ordlyd for en manglende periode; overlap, rækkefølge og
     // ugyldig dato er ligeledes selvstændige sætninger.
     summaryText: (row, message) => message || fallbackIssueText(row, message),
   },
@@ -590,7 +590,7 @@ const CATALOG: readonly EoIssueCatalogEntry[] = [
     key: 'loenindkomst-regulering',
     match: { kind: 'regex', regex: /^(loenindkomst\.[^.]+\.regulering|taf\.beregningsgrundlag\.loenudvikling\.[^.]+)\.(valgt|valgtRegulering)$/ },
     when: 'Reguleringsmetoden for lønudvikling mangler eller peger på et ikke-valgt grundlag.',
-    // Builderen skriver selv linjen med feltets eget navn og link (BB-316); katalogets tidligere omskrivning
+    // Builderen skriver selv linjen med feltets eget navn og link; katalogets tidligere omskrivning
     // («Regulering er sat til 'KRL' …») talte programmets sprog.
     summaryText: (_row, message) => message || undefined,
   },
@@ -610,7 +610,7 @@ const CATALOG: readonly EoIssueCatalogEntry[] = [
         if (message === 'Intet valgt') return SFGG_BEREGNINGSKILDE_MANGLER_MESSAGE;
         if (message === 'Ukendt overenskomst-ID') return 'Den valgte overenskomst for sygeferiegodtgørelse er ukendt';
       }
-      // «Overenskomst» uden overenskomst bærer sin egen tekst og sit eget mål fra builderen (BB-330).
+      // «Overenskomst» uden overenskomst bærer sin egen tekst og sit eget mål fra builderen.
       if (row.id.startsWith('sfgg.satsvalg.') && message === 'Intet valgt') {
         return SFGG_SATSVALG_MANGLER_MESSAGE;
       }
@@ -642,7 +642,7 @@ const CATALOG: readonly EoIssueCatalogEntry[] = [
     match: { kind: 'id', id: 'aes.menAfgoerelseDato' },
     when: 'Varige mén er sat til Ja, men ménafgørelsens dato mangler.',
     summaryText: (_row, message) =>
-      // Feltets synlige navn, ikke et kaldenavn (BB-243).
+      // Feltets synlige navn, ikke et kaldenavn.
       message === 'Afgørelsesdato mangler' ? `${eoMenAfgoerelseDatoField.label} er ikke angivet` : undefined,
   },
   {

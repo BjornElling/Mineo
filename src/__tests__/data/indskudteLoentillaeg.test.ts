@@ -26,8 +26,8 @@ describe('indskudteLoentillaeg', () => {
 
   /**
    * Særligt ferietillæg er et rent FREMTIDIGT udviklingsprojekt og må ikke indregnes nogen steder
-   * (udviklerbeslutning 2026-07-31). Satstrappen lå tidligere i datafilen "forberedt, men ikke koblet ind";
-   * data der kun venter på at blive brugt, læses som en forudsætning om, at tillægget SKAL bruges.
+   * (bevidst valg). Data, der kun venter på at blive brugt – en satstrappe "forberedt, men ikke koblet ind" –
+   * læses som en forudsætning om, at tillægget SKAL bruges.
    *
    * Værnet er negativt og måler modulets faktiske eksportflade: en fremtidig agent, der genindfører
    * satserne "så de er klar", gør denne test rød. Se `indskudte-loentillaeg-contract.md` §6.

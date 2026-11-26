@@ -258,7 +258,7 @@ describe('eoSnapshotToTafKravGrafDocument', () => {
 
       expect(projection).toEqual({
         kind: 'blocked',
-        // Tilstanden er konkret, så knappen viser beskeden frem for «Indtastning mangler» (BB-461).
+        // Tilstanden er konkret, så knappen viser beskeden frem for «Indtastning mangler».
         message: 'Der er ingen indtægter at vise i grafen',
         invariants: [],
         specific: true,
@@ -962,7 +962,7 @@ describe('eoSnapshotToTafKravGrafDocument', () => {
     };
   };
 
-  it('forklarer at der ikke beregnes TAF når der ikke er TAF-perioder – med bilagsvalgenes ord (BB-371)', () => {
+  it('forklarer at der ikke beregnes TAF når der ikke er TAF-perioder – med bilagsvalgenes ord', () => {
     const projection = projectFixture(buildSnapshotUdenAarsfordeling(false));
 
     expect(projection.kind).toBe('blocked');

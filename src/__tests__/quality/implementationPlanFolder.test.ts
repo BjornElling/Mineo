@@ -2,14 +2,12 @@
  * `docs/implementation/` må kun rumme planer for arbejde, der IKKE er udført.
  *
  * **Hvorfor værnet findes.** Mappens regel står i dens `README.md`, men en regel, ingen kontrol måler, er
- * en hensigt. Begge fejlretninger er sket i praksis:
+ * en hensigt. Der er to fejlretninger:
  *
- *   - En plan blev **slettet, mens den var uindfriet**: dokumentationsoprydningen `83b1de11` (2026-07-31)
- *     fjernede hele mappen, fordi den var fuld af planer for afsluttet arbejde. `autofill-suggest.md`,
- *     hvis arbejde aldrig var begyndt, gik med i faldet og måtte gendannes 2026-08-14.
- *   - En plan blev **liggende, længe efter den var indfriet**: `docs/plan-opdateringsmodel.md` stod med
- *     `Status: IMPLEMENTERET` og duplikerede `app-shell-contract.md` §2.7–2.8, indtil den blev opdaget
- *     ved en tilfældig gennemgang.
+ *   - En plan **slettes, mens den er uindfriet**: ryddes en mappe fuld af planer for afsluttet arbejde i
+ *     ét hug, ryger en plan, hvis arbejde aldrig er begyndt, med i faldet.
+ *   - En plan **bliver liggende, længe efter den er indfriet**, med `Status: IMPLEMENTERET`, og duplikerer
+ *     den kontrakt, der nu ejer emnet.
  *
  * Statuslinjen er det ene signal, der adskiller de to tilstande, og den er derfor håndhævet her. En plan,
  * der erklærer sig implementeret, er udtjent: dens varige indhold hører i en kontrakt eller i
@@ -17,8 +15,7 @@
  *
  * **Hvad værnet IKKE kan.** Reglen om, at planer ikke må ligge løst i `docs/`-roden, måles på filnavnet
  * (`plan-*.md`). En plan, der navngives uden præfikset, slipper igennem. Det er bevidst det svageste
- * kriterium, der fanger den fejl, vi faktisk har set (`plan-opdateringsmodel.md`, `plan-ui-skalering.md`),
- * frem for en prosaparser, der skulle gætte et dokuments genre – og repoet har allerede lært, at dansk
+ * kriterium, der fanger løse planfiler (`plan-*.md`), frem for en prosaparser, der skulle gætte et dokuments genre – og repoet har allerede lært, at dansk
  * prosa bryder markørbaserede værn.
  *
  * Mappen kan legitimt være tom, når alt planlagt arbejde er udført og absorberet. Derfor hævder de

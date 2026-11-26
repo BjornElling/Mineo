@@ -4,18 +4,14 @@
  * **Hullet, dette lukker.** `contractCoverageMatrix.test.ts` er en linkage-guard: den kontrollerer, at
  * koblede TESTFILER og topologiens stier eksisterer, og at hver kontrakt har et
  * `**Senest verificeret mod kode:**`-felt i det rigtige FORMAT. Den læser aldrig kontrakternes brødtekst.
- * Alle ~230 fil- og ~430 symbolreferencer INDE i kontrakterne – det, en læser faktisk slår op i – stod
- * derfor helt uden dækning: hverken typecheck, lint, arkitektur-harnesset eller coverage-matrixen kan se
- * dem, fordi ingen af dem åbner en `.md`-fil.
+ * Fil- og symbolreferencerne INDE i kontrakterne – det, en læser faktisk slår op i – er derfor uden
+ * dækning: hverken typecheck, lint, arkitektur-harnesset eller coverage-matrixen kan se dem, fordi ingen af
+ * dem åbner en `.md`-fil. Ét bogstav galt i en normativ kontrakt (`SettledFieldState` for `SettledFieldView`,
+ * `satserSchema.ts` for `satserSchemas.ts`) er usynligt for hele værktøjskæden og kan få to kontrakter til
+ * at modsige hinanden om samme fil.
  *
- * Hullet var ikke teoretisk. Gennemgangen 2026-08-07 fandt to levende drift-tilfælde, begge i kontrakter
- * stemplet «Senest verificeret mod kode: 2026-08-01»: `mineo-field-pattern.md` navngav `SettledFieldState`
- * (hedder `SettledFieldView`), og `satser-contract.md` navngav `satserSchema.ts` (hedder `satserSchemas.ts`
- * – og var stavet rigtigt i `schema-evolution.md`, så to kontrakter modsagde hinanden om samme fil). Ét
- * bogstav galt i en normativ kontrakt, usynligt for hele værktøjskæden.
- *
- * **Hvorfor referencerne UDLEDES frem for at stå i et register.** Et håndholdt register over ~660
- * referencer ville selv skulle vedligeholdes, og en glemt post ville være et nyt hul af samme slags. Derfor
+ * **Hvorfor referencerne UDLEDES frem for at stå i et register.** Et håndholdt register over
+ * hundredvis af referencer ville selv skulle vedligeholdes, og en glemt post ville være et nyt hul af samme slags. Derfor
  * udtrækkes referencerne af kontraktteksten, og kun UNDTAGELSERNE skrives ned. En ny kontrakt er dermed
  * dækket i samme øjeblik den oprettes – ingen registrering, intet at glemme.
  *
@@ -124,8 +120,8 @@ const REFERENCE_EXCEPTIONS: readonly ContractReference[] = [
     reference: 'StyledToggleSwitchHandle',
     direction: 'absent',
     note:
-      'Slettet 2026-08-15. Handlet havde præcis ét medlem, `shake()`, som en gate skulle huske at kalde '
-      + 'ved en afvist aktivering. Togglens rystelse er genindført 2026-10-28, men ejes nu af '
+      'Slettet. Handlet havde præcis ét medlem, `shake()`, som en gate skulle huske at kalde '
+      + 'ved en afvist aktivering. Togglens rystelse ejes af '
       + '`StyledToggleSwitch` selv og udløses af afvisningen (§11.1b). Kontrakten navngiver handlet for '
       + 'at forbyde dets genkomst.',
   },
@@ -142,9 +138,8 @@ const REFERENCE_EXCEPTIONS: readonly ContractReference[] = [
     reference: 'blockedProjectionForInvalidInput',
     direction: 'absent',
     note:
-      'Slettet 2026-08-15 uden kaldssteder. Den hardkodede klassen «Fejl i indtastning» for en hel '
-      + 'projektionsblokering og var dermed en åben, uafprøvet vej til netop den fejlklasse, brugerfundet '
-      + 'samme dag afdækkede to andre steder. Kontrakten navngiver den for at forbyde dens genkomst; '
+      'Slettet uden kaldssteder. Den hardkodede klassen «Fejl i indtastning» for en hel '
+      + 'projektionsblokering og var dermed en åben, uafprøvet vej til en forkert fejlklasse. Kontrakten navngiver den for at forbyde dens genkomst; '
       + 'arkitekturreglen `document/gate-class-hardcoded-invalid-input` holder også kald ude.',
   },
   {
@@ -260,8 +255,8 @@ const REFERENCE_EXCEPTIONS: readonly ContractReference[] = [
   /**
    * De slettede mekanismers navne, som kontrakterne opremser NETOP for at forbyde dem.
    *
-   * Listen er den største gruppe undtagelser, og det er forventeligt: en greenfield-omlægning, der
-   * river en hel inputmodel ned, efterlader nødvendigvis kontrakter, hvis vigtigste udsagn er «dette
+   * Listen er den største gruppe undtagelser, og det er forventeligt: når en hel inputmodel er revet
+   * ned, er der nødvendigvis kontrakter, hvis vigtigste udsagn er «dette
    * findes ikke længere». Hver post håndhæves som en påstand – genopstår navnet i produktionskode,
    * bliver testen rød.
    */

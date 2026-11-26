@@ -245,10 +245,10 @@ describe('scrollToEoRow', () => {
   // ── Den endnu ikke oprettede indtastning ────────────────────────────────────────────────────────
   //
   // Fejlformen der begrunder disse tests: advarslen «Der er ikke angivet nogen TAF-periode i
-  // EO-perioden» handler om en række, brugeren IKKE har oprettet. Den bar tidligere et rækkeanker på
-  // sit eget synthetiske id, og da `data-mineo-row-id` kun sættes på virkelige collection-rækker,
-  // kunne opslaget aldrig finde noget: linket skiftede fane og blinkede intet. Tabellen viser til
-  // gengæld altid sin tomme indtastningsrække, hvis celler bærer en fuldt bundet feltadresse.
+  // EO-perioden» handler om en række, brugeren IKKE har oprettet. Et rækkeanker på et synthetisk id
+  // virker ikke: `data-mineo-row-id` sættes kun på virkelige collection-rækker, så linket ville skifte
+  // fane og blinke intet. Tabellen viser til gengæld altid sin tomme indtastningsrække, hvis celler
+  // bærer en fuldt bundet feltadresse.
 
   it('blinker den tomme indtastningsrækkes celle, når rækken endnu ikke findes', () => {
     // Placeholderens række-id dannes i UI'et og kan ikke kendes i domænet – her et vilkårligt slot-id.

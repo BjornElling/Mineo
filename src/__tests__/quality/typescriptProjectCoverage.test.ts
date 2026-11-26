@@ -8,14 +8,13 @@ import ts from 'typescript';
  * Værn for TypeScript-projekternes dækning.
  *
  * **Problemet det findes for.** Repoet har fire adskilte projekter, fordi de har forskellige globale
- * typer. Adskillelsen er rigtig, men den havde to tavse huller:
+ * typer. Adskillelsen er rigtig, men den har to tavse huller:
  *
- *  1. **Filer uden for ethvert projekt.** `vite.mineo.config.ts` og `vite.minprocesrente.config.ts` stod
- *     i ingen `include`. Ingen kommando typecheckede dem – og editoren kunne ikke placere dem, så den
- *     faldt tilbage på et «inferred project» uden vores indstillinger og viste fejl, der ikke fandtes.
- *     Det samme gjaldt hele `e2e/`, fordi tsserver kun leder efter filer ved navn `tsconfig.json`.
- *  2. **Et projekt uden en kommando.** `tsconfig.node.json` var ikke koblet på `check:types`. Da den
- *     for første gang blev kørt, fejlede den med 31 fejl, den havde båret uset.
+ *  1. **Filer uden for ethvert projekt.** En fil (fx en `vite.*.config.ts`), der står i ingen `include`,
+ *     typecheckes af ingen kommando – og editoren falder tilbage på et «inferred project» uden vores
+ *     indstillinger og viser fejl, der ikke findes. tsserver leder kun efter filer ved navn
+ *     `tsconfig.json`.
+ *  2. **Et projekt uden en kommando.** Et tsconfig, der ikke er koblet på `check:types`, bærer fejl uset.
  *
  * Begge huller er af samme slags: noget ser dækket ud, fordi det står i en fil, men ingen kører det.
  * Værnet måler den faktiske dækning i stedet – hvilke filer projekterne rent faktisk trækker ind, og

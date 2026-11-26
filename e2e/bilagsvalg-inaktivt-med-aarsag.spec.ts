@@ -6,9 +6,8 @@ import { expect, login, openPage, setFieldValueAndSettle, setVerbatimFieldValueA
  * Betingede bilagsvalg vises ALTID – inaktive og umarkerede med årsagen i tooltippet
  * (`page-component-contract.md` §10.5).
  *
- * Testen findes, fordi de to bilagsvalg på Differencekrav-fanen tidligere blev SKJULT, når bilaget ikke
- * fandtes i beregningen. Et valg, der forsvinder, efterlader brugeren i tvivl om, hvorvidt muligheden
- * findes i programmet – og en unit-test kan ikke se det: den kan hævde resolverens tekst, men ikke at
+ * Et bilagsvalg, der skjules, når bilaget ikke findes i beregningen, efterlader brugeren i tvivl om,
+ * hvorvidt muligheden findes i programmet – og en unit-test kan ikke se det: den kan hævde resolverens tekst, men ikke at
  * feltet faktisk står på skærmen med den tekst i et tooltip, brugeren kan hovere frem.
  *
  * Den dækker samtidig rangordenen (§10.5, punkt 4): brugerens eget fravalg forklares FØR beregningsårsagen.
@@ -17,7 +16,7 @@ import { expect, login, openPage, setFieldValueAndSettle, setVerbatimFieldValueA
 const FRAVALGT_DELTEKST = 'fravalgt nedenfor';
 const INGEN_FORHOEJELSE_DELTEKST = 'ikke forhøjet i perioden';
 const INGEN_KAPITALISERING_DELTEKST = 'Ingen kapitalisering på eller før beregningsdatoen';
-/** BB-191: ÉT navn for fradrag 4 – bilagsvalg, boks, specifikation, dokumentsektion og bilagstitel. */
+/** ÉT navn for fradrag 4 – bilagsvalg, boks, specifikation, dokumentsektion og bilagstitel. */
 const FORHOEJET_PENSIONSALDER = 'Forhøjet pensionsalder';
 const MIDLERTIDIGT_EET_FRA_EET_SIDEN_TEKST = 'Indstillingen «Midlertidigt EET indsættes fra Erhvervsevnetab-siden» er slået fra på fanen «Offentlige ydelser»';
 
@@ -26,8 +25,7 @@ const setDate = setVerbatimFieldValueAndSettle;
 
 /**
  * Tal-/tekstindtastning uden efterkontrol på den rå streng: felterne her er beløb og procenter, som
- * NORMALISERER deres visning ved settle (`400000` → `400.000`). Den oprindelige helper hævdede
- * bevidst heller ikke værdien bagefter.
+ * NORMALISERER deres visning ved settle (`400000` → `400.000`).
  */
 const setText = setFieldValueAndSettle;
 
@@ -85,10 +83,10 @@ test.describe('Bilagsvalg – inaktivt med årsag frem for skjult', () => {
 
   /**
    * Sagen har ingen kapitalisering, og DERFOR er der ingen mer-erstatning at beregne. Tooltippet
-   * skrev tidligere «Pensionsalderen er ikke forhøjet i perioden», og det var direkte usandt netop
-   * her: folkepensionsalderen blev forhøjet både 2015 og 2020, altså midt mellem sagens skadedato
-   * (01-01-2010) og beregningsdato (01-01-2025), og programmet kender datoerne. Brugeren havde slået
-   * beregningen TIL og fik et svar om lovgivningen frem for om sin sag (BB-189).
+   * må ikke sige «Pensionsalderen er ikke forhøjet i perioden»: det er usandt netop her, hvor
+   * folkepensionsalderen blev forhøjet både 2015 og 2020, midt mellem sagens skadedato (01-01-2010)
+   * og beregningsdato (01-01-2025). Brugeren har slået beregningen TIL og skal have et svar om sin
+   * sag, ikke om lovgivningen.
    */
   test('Mer-erstatning-bilaget bliver stående med årsag, når der ikke er nogen kapitalisering', async ({ page, runtimeErrors }) => {
     await login(page);
@@ -140,8 +138,8 @@ test.describe('Bilagsvalg – inaktivt med årsag frem for skjult', () => {
   });
 
   /**
-   * BB-188: «Kapitalisering» var altid aktivt og afkrydset, også i en sag helt uden kapitaliseringer,
-   * hvor bilaget derefter udgik TAVST af papiret. Brugeren kunne ikke skelne «bilaget var tomt» fra
+   * «Kapitalisering» må ikke være aktivt og afkrydset i en sag helt uden kapitaliseringer, hvor
+   * bilaget så udgår TAVST af papiret. Ellers kan brugeren ikke skelne «bilaget var tomt» fra
    * «noget faldt ud» – og netop den skelnen er det, gaten skal levere.
    */
   test('Kapitaliseringsbilaget gøres inaktivt med årsag i en sag uden kapitaliseringer', async ({ page, runtimeErrors }) => {

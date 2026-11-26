@@ -97,7 +97,7 @@ describe('Satser download-gate – afsluttet ugyldigt årstal blokerer download'
     await user.type(input, '123');
     await user.tab();
 
-    // Den rå ugyldige streng er nu afsluttet input (rejected), og gaten blokerer download – den tidligere gyldige
+    // Den rå ugyldige streng er nu afsluttet input (rejected), og gaten blokerer download – den forrige gyldige
     // canonical årgang er FJERNET fra current state (§1.5) og når hverken visning eller gate.
     expect(input).toHaveValue('123');
     expect(getDownloadButton()).toBeDisabled();

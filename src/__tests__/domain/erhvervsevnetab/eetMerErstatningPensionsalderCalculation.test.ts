@@ -311,7 +311,7 @@ describe('computeMerErstatningPensionsalder – betingelser', () => {
   });
 
   it('blokerer fail-closed når den nye bekendtgørelse mangler særfaktor under to år til folkepension', () => {
-    // Vejl. 9870/2020 har siden 2026-11-12 sin særfaktor (1,245) registreret; den fjernes her, så
+    // Vejl. 9870/2020 har sin særfaktor (1,245) registreret; den fjernes her, så
     // vagten for en bekendtgørelse uden særfaktor fortsat er dækket.
     const dataById = kapitaliseringsTabelDataById as Record<string, KapitaliseringsTabelData | undefined>;
     const original = dataById['9870/2020'];

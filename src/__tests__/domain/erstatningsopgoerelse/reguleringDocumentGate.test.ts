@@ -1,7 +1,7 @@
 /**
  * Gaten for de tre reguleringssats-outputs.
  *
- * To ting pinnes her, begge UDVIKLERGODKENDT 2026-07-26:
+ * To ting pinnes her, begge bevidste valg:
  *
  * 1. **Offentlig-løn-tjekket gælder KUN ved grundlaget `Overenskomst`.** Skjulte felter bevares
  *    bevidst ved grundlagsskift (`loenindkomstStateCleanup.ts`), så et tomt løntrin fra et tidligere
@@ -65,7 +65,7 @@ const dispatch = (input: SettledInput, command: AnyInputCommand): SettledInput =
 
 const settle = <T>(field: FieldRef<T>, raw: string): AnyInputCommand => settleField(field, raw) as AnyInputCommand;
 
-// Den angivne løns lønudvikling læses kun under sin egen gren af «Beregnes ud fra» (BB-301).
+// Den angivne løns lønudvikling læses kun under sin egen gren af «Beregnes ud fra».
 const angivetLoen = (): SettledInput => dispatch(empty(), settle(eoBeregnesUdFraField.bind(), 'Angivet månedsløn'));
 
 const contextOf = (input: SettledInput) => {
@@ -91,7 +91,7 @@ describe('reguleringssats-gaten – offentlig-løn-tjekket er bundet til grundla
   });
 
   /**
-   * Den situation reviewet fandt: brugeren vælger Overenskomst + en offentlig overenskomst uden at
+   * Situationen: brugeren vælger Overenskomst + en offentlig overenskomst uden at
    * udfylde løntrin, skifter derefter til KL-lønaftaler. De skjulte felter bevares.
    */
   const offentligUdenLoentrinDerefterKl = (): SettledInput => {

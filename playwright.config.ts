@@ -12,7 +12,7 @@ const useExternalWebServer = process.env.PLAYWRIGHT_SKIP_WEBSERVER === '1';
 const allowServiceWorkers = process.env.PLAYWRIGHT_ALLOW_SERVICE_WORKERS === '1';
 const runFullMatrix = process.env.PLAYWRIGHT_FULL_MATRIX === '1';
 
-// Playwrights viewportværdier er den indre CSS-viewport. Basisviewporten er den tidligere
+// Playwrights viewportværdier er den indre CSS-viewport. Basisviewporten er
 // desktopbaseline; de to minimumsviewporter er app-shell-kontraktens konkrete grænser.
 const baselineViewport = { width: 1536, height: 864 } as const;
 const compactMinimumViewport = { width: 1536, height: 730 } as const;
@@ -47,9 +47,9 @@ type ViewportDefinition = (typeof viewports)[number];
  */
 const ENGINE_SPECIFIC_SPECS = [
   '**/file-load-validation.spec.ts',
-  '**/audit-firefox-fallback-verification.spec.ts',
+  '**/firefox-fallback-filvaelger.spec.ts',
   '**/pwa-service-worker.spec.ts',
-  '**/ui-001-stamdata-save-load.spec.ts',
+  '**/stamdata-save-load.spec.ts',
 ] as const;
 
 /**
@@ -88,19 +88,17 @@ const buildEngineSpecificProject = (
 
 const engineSpecificProjects = [
   buildEngineSpecificProject('webkit-filindlaesning', engines[3], ENGINE_SPECIFIC_SPECS[0]),
-  buildEngineSpecificProject('firefox-fallback-audit', engines[2], ENGINE_SPECIFIC_SPECS[1]),
+  buildEngineSpecificProject('firefox-fallback-filvaelger', engines[2], ENGINE_SPECIFIC_SPECS[1]),
   buildEngineSpecificProject('chromium-service-worker', engines[0], ENGINE_SPECIFIC_SPECS[2]),
   buildEngineSpecificProject('firefox-stamdata-save-load', engines[2], ENGINE_SPECIFIC_SPECS[3]),
 ];
 
 /**
- * **Banemodellen.** Suiten kørte før hver eneste test i alle 16 kombinationer af fire browsere og
- * fire viewporter – 1232 kørsler af 77 tests. Det tog omkring tre kvarter, og langt det meste af
- * tiden gik til at bevise den samme browseruafhængige brugerrejse femten gange for meget. Det gjorde
- * suiten så dyr at køre, at den i praksis ikke blev kørt, og en kørsel der bliver afbrudt beskytter
- * ingenting.
+ * **Banemodellen.** At køre hver test i alle 16 kombinationer af fire browsere og fire viewporter
+ * beviser den samme browseruafhængige brugerrejse femten gange for meget og gør suiten så dyr, at
+ * den i praksis ikke bliver kørt – og en kørsel, der bliver afbrudt, beskytter ingenting.
  *
- * Nu vælger den enkelte test selv sin bane med et tag:
+ * Derfor vælger den enkelte test selv sin bane med et tag:
  *
  *  - **Ingen tag → basisbanen.** Kører én gang, i Chrome ved basisviewporten. Det er det rigtige
  *    valg for alt, der handler om Mineos egen adfærd: felter, dialoger, beregningsflader, fejl-UI.
@@ -112,7 +110,7 @@ const engineSpecificProjects = [
  * En test uden tag er altså ikke udækket – den er dækket ét sted. Det er et bevidst valg: en fejl,
  * der kun findes i én motor, findes af de tests der er tagget til at lede efter netop dét, og
  * browser-eksklusive specs kører én gang i deres dedikerede motorprojekt uden `skip`.
- * `PLAYWRIGHT_FULL_MATRIX=1` kører fortsat hele den gamle matrix, når en bred efterkontrol er
+ * `PLAYWRIGHT_FULL_MATRIX=1` kører hele matricen, når en bred efterkontrol er
  * formålet. `scripts/check-e2e-lane-tags.mjs` fanger et fejlstavet tag, som ellers tavst ville
  * betyde «kører ingen steder ekstra».
  */

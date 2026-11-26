@@ -230,7 +230,7 @@ describe('renderReguleringSection – ansættelsesforhold med regulering', () =>
   });
 });
 
-// Afklaringslog 10a: kronetillæg vises i den enhed, de er angivet i, og med omregningen til lønpakkens enhed
+// Kronetillæg vises i den enhed, de er angivet i, og med omregningen til lønpakkens enhed
 // («Ansættelse»), når de afviger – samme afrundede værdi, som motoren regner med (vist = beregnet).
 // PDF og Word deler denne dokumentmodel, så teksten gælder begge kanaler.
 describe('renderReguleringSection – kronetillæg og deres enheder', () => {

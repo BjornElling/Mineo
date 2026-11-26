@@ -35,8 +35,8 @@ const redIssue = <T,>(field: FieldDescriptor<T>, rowId: string, message: string)
 const focusOf = (field: { bind: (rowId: string) => { address: Parameters<typeof serializeFieldAddress>[0] } }, rowId: string) =>
   ({ kind: 'fieldAddress', address: field.bind(rowId).address });
 
-describe('CALC-006 – uafhængigt facit for øvrige kravrækker', () => {
-  it('kræver «Udgift til» og «Beløb», men ikke datoen (BB-229)', () => {
+describe('uafhængigt facit for øvrige kravrækker', () => {
+  it('kræver «Udgift til» og «Beløb», men ikke datoen', () => {
     const values = valuesWith([
       { id: 'komplet', dato: iso('2024-02-01'), udgiftTil: 'Behandling', beloeb: amount(1250.5) },
       { id: 'uden-dato', dato: undefined, udgiftTil: 'Transport', beloeb: amount(300) },
@@ -82,7 +82,7 @@ describe('CALC-006 – uafhængigt facit for øvrige kravrækker', () => {
     expect(rows[0]?.focusTarget).toEqual(focusOf(eoOevrigeKravUdgiftTilField, 'r1'));
   });
 
-  it('melder en rød celle med sin egen tekst og aldrig som tom (BB-230, BB-232)', () => {
+  it('melder en rød celle med sin egen tekst og aldrig som tom', () => {
     // Readeren maskerer en rød værdi til tom; rækken ser derfor ud til at mangle dato og beløb.
     const values = valuesWith([{ id: 'r1', dato: undefined, udgiftTil: 'Medicin', beloeb: undefined }]);
     const issues = buildFieldIssueSet([
@@ -128,7 +128,7 @@ describe('CALC-006 – uafhængigt facit for øvrige kravrækker', () => {
     ]);
   });
 
-  it('giver to rækker med samme beskrivelse og mangel hver sin linje (BB-231)', () => {
+  it('giver to rækker med samme beskrivelse og mangel hver sin linje', () => {
     const rows = buildEoOevrigeKravRows(
       valuesWith([
         { id: 'a', dato: iso('2024-03-15'), udgiftTil: 'Medicin', beloeb: undefined },
@@ -145,7 +145,7 @@ describe('CALC-006 – uafhængigt facit for øvrige kravrækker', () => {
     ]);
   });
 
-  it('skelner også mellem helt ens rækker, så ingen mangel skjules (BB-332)', () => {
+  it('skelner også mellem helt ens rækker, så ingen mangel skjules', () => {
     const rows = buildEoOevrigeKravRows(
       valuesWith([
         { id: 'a', dato: iso('2024-03-15'), udgiftTil: 'Medicin', beloeb: undefined },
@@ -164,7 +164,7 @@ describe('CALC-006 – uafhængigt facit for øvrige kravrækker', () => {
     ]);
   });
 
-  it('advarer uden at blokere, når datoen ligger uden for opgørelsens periode (BB-235)', () => {
+  it('advarer uden at blokere, når datoen ligger uden for opgørelsens periode', () => {
     const values = valuesWith([
       { id: 'foer', dato: iso('2019-06-15'), udgiftTil: 'Medicin', beloeb: amount(100) },
       { id: 'i', dato: iso('2024-06-15'), udgiftTil: 'Briller', beloeb: amount(200) },
@@ -193,7 +193,7 @@ describe('CALC-006 – uafhængigt facit for øvrige kravrækker', () => {
     expect(rows.map((row) => [row.status, row.message])).toEqual([['error', 'Medicin: «Beløb» er ikke udfyldt']]);
   });
 
-  it('advarer, når kravvalget er «Ja», men tabellen er tom (BB-236)', () => {
+  it('advarer, når kravvalget er «Ja», men tabellen er tom', () => {
     const rows = buildEoOevrigeKravRows(valuesWith([]), EMPTY_FIELD_ISSUE_SET);
 
     expect(rows).toEqual([

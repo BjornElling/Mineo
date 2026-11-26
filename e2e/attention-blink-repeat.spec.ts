@@ -8,12 +8,12 @@ import { BROWSER_LANE_TAG } from './support/lanes';
  *
  * Testen kører i rigtige browsere og tæller `animationstart`, fordi det er den ENESTE måde at se en
  * GENSTART. Både «klassen er til stede» og et skærmbillede ville se ens ud, uanset om animationen
- * faktisk kørte igen – og det var netop forskellen mellem fejlen og rettelsen: klassen stod der hele
- * tiden, men animationen var spillet af. Målt før rettelsen gav tre klik 1, 1, 1; efter: 1, 2, 3.
+ * faktisk kørte igen: klassen kan stå der hele tiden, mens animationen er spillet af. Tre klik skal
+ * give tællingerne 1, 2, 3 – ikke 1, 1, 1.
  */
 
 // Browserbanen: en genstartet CSS-animation er præcis dét, motorerne håndterer forskelligt, og
-// testen fandt i sin tid en flakiness, der kun viste sig i nogle af dem.
+// en flakiness kan vise sig i kun nogle af dem.
 test.describe('Gentagen feltmarkering', { tag: BROWSER_LANE_TAG }, () => {
   test('en afvist omregnings-aktivering ryster togglen og markerer cellen på stedet ved HVERT klik', async ({ page }) => {
     await login(page);

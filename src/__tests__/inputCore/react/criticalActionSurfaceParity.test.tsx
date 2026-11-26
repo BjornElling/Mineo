@@ -2,12 +2,11 @@
 /**
  * §7.5's kritiske handlinger med VIRKELIGE form- og grid-editorer.
  *
- * **Hvad fundet var.** Coordinator- og save/load-testene brugte SYNTETISKE `ActiveEditor`-objekter, og
- * dokumentlivscyklussens "åben draft"-cases castede instrumenterede resultater ind frem for at åbne en
- * editor. Der fandtes ingen grid-integration for de kritiske handlinger overhovedet. Konsekvensen: et brud
- * i `useFieldEditor`-registreringen, i adapterens settle/discard-livscyklus eller i grid-specifik
- * eventorden kunne passere, selv om den syntetiske coordinator-test var grøn – og udfaldet ville være en
- * tabt draft, et stale save eller en forkert kassering ved load.
+ * **Hvorfor suiten findes.** Coordinator- og save/load-testene bruger SYNTETISKE `ActiveEditor`-objekter, og
+ * dokumentlivscyklussens "åben draft"-cases caster instrumenterede resultater ind frem for at åbne en
+ * editor. Alene kan de lade et brud i `useFieldEditor`-registreringen, i adapterens settle/discard-livscyklus
+ * eller i grid-specifik eventorden passere, selv om den syntetiske coordinator-test er grøn – og udfaldet
+ * ville være en tabt draft, et stale save eller en forkert kassering ved load.
  *
  * **Hvad denne suite tilføjer, og hvad den IKKE erstatter.** De syntetiske tests beviser MEKANISMEN
  * (serialisering, fail-closed, fault-injection) og bliver stående: de kan injicere fejl, en ægte editor
@@ -16,8 +15,7 @@
  * §7.5's eksplicitte form/grid-paritetskrav, som en unit-test pr. konstruktion ikke kan bære.
  *
  * **Paritetslisten er ÉN funktion pr. handling, kørt for begge surfaces.** To lister, der tilfældigvis
- * hævdede det samme, ville kunne drifte fra hinanden – hvilket er præcis, hvordan dækningen så ud, da
- * fundet blev skrevet.
+ * hævdede det samme, ville kunne drifte fra hinanden.
  */
 import * as React from 'react';
 import { render, act, cleanup } from '@testing-library/react';
@@ -108,7 +106,7 @@ type MountedSurface<T> = Readonly<{
 
 /**
  * Monterer en ægte editor gennem et RIGTIGT komponenttræ og provider – ikke en `renderHook`-attrap uden
- * DOM. Det er den kæde, fundet påpegede som utestet: registrering + livscyklus + settle gennem
+ * DOM. Det er den kæde, syntetiske tests ikke dækker: registrering + livscyklus + settle gennem
  * coordinatoren.
  */
 const mountSurface = <T,>(kind: SurfaceKind, field: FieldRef<T>): MountedSurface<T> => {

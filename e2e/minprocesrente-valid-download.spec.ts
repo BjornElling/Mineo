@@ -18,7 +18,7 @@ test.describe('MinProcesrente – gyldig beregning, PDF og exit-guard', () => {
       '19-08-2026',
     );
 
-    // Værdierne følger den dokumenterede gyldige MinProcesrente-rejse i brugerblikket.
+    // Værdierne udgør en gyldig MinProcesrente-rejse.
     const row = page.locator('tbody tr[data-mineo-row-id]').first();
     await setFieldValueAndSettle(row.getByRole('textbox', { name: 'Beløb' }), '100000');
     await setVerbatimFieldValueAndSettle(

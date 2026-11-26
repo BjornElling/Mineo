@@ -12,7 +12,7 @@ import {
 import { toISODateString } from '../../../types/branded';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 
-// BB-228 (udviklerafgørelse 2026-09-22/23): et skjult felt er ikke udfyldt og må hverken påvirke beregning eller
+// Et skjult felt er ikke udfyldt og må hverken påvirke beregning eller
 // fejlmeddelelser. EO-felterne bag et valg bærer derfor descriptorens `relevance`, så ALLE læsere – validatoren,
 // rækkebyggerne, dependency-projektionen og motorerne – ser tomværdien. Testene går gennem den rigtige reader.
 
@@ -69,7 +69,7 @@ const blockingMessages = (snapshot: ReturnType<typeof project>['projection']['sn
 
 describe('EO-felter bag et valg (descriptor-relevans)', () => {
   describe.each(['Nej', 'Skjul'] as const)('øvrige krav på «%s»', (kravvalg) => {
-    it('lader en skjult, halvudfyldt række være tavs i både validator og rækkebygger (BB-228)', () => {
+    it('lader en skjult, halvudfyldt række være tavs i både validator og rækkebygger', () => {
       const { projection, rows } = project({
         ...baseEo(),
         kravPaaOevrigeErstatningskrav: kravvalg,

@@ -243,11 +243,10 @@ describe('loadInitialSettings', () => {
     expect(result).toHaveProperty('showContentBoxReportButton');
   });
 
-  // Parse-laget læser IKKE længere systempræferencen. Før BB-024 skrev det maskinens aktuelle
-  // tilstand ind som en konkret default (`'light'`/`'dark'`), fordi «følg computeren» ikke fandtes
-  // som gemt værdi – og netop dét frøs automatikken fast ved første settings-skrivning. Nu er
-  // `'system'` en ægte værdi, og oversættelsen sker først dér, hvor temaet males
-  // (`resolveThemeMode`). Testen måler, at defaults holder sig fra at gætte.
+  // Parse-laget læser IKKE systempræferencen. Skrev det maskinens aktuelle tilstand ind som en konkret
+  // default (`'light'`/`'dark'`), ville automatikken fryse fast ved første settings-skrivning. `'system'`
+  // er en ægte værdi, og oversættelsen sker først dér, hvor temaet males (`resolveThemeMode`). Testen
+  // måler, at defaults holder sig fra at gætte.
   it('ingen persisted settings → default er "system", uanset hvad computeren foretrækker', () => {
     writeLocalStorage(LOCAL_STORAGE_KEY, '');
     window.matchMedia = vi.fn().mockImplementation((query: string) => ({

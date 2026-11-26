@@ -33,7 +33,7 @@ const values: AarsloenValues = {
   loenPaaHelligdage: LOEN_PAA_HELLIGDAGE.INGEN,
 };
 
-describe('CALC-002 – uafhængigt facit for faktiske SH-dage i Metode A', () => {
+describe('uafhængigt facit for faktiske SH-dage i Metode A', () => {
   it('fratrækker tre april-helligdage fra både periodens arbejdsdage og årsomregningen', () => {
     const result = computeAarsloenBeregning({ values, omregningAktiveret: true });
 

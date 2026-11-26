@@ -4,18 +4,12 @@
  * **Hvorfor modulet findes.** `contractCoverageMatrix.test.ts` er en LINKAGE-guard: den kontrollerer, at
  * de koblede testfiler og topologiens stier eksisterer, og at hver kontrakt har et
  * `**Senest verificeret mod kode:**`-felt i det rigtige FORMAT. Ingen af delene siger noget om, hvorvidt
- * kontraktens egne påstande om koden er sande. En kontrakt kunne navngive en fil eller et symbol, der var
- * omdøbt for en måned siden, og hele suiten ville stå grøn – netop den fejlklasse, `acceptanceMatrix.test.ts`
+ * kontraktens egne påstande om koden er sande. En kontrakt kunne navngive en fil eller et symbol, der er
+ * omdøbt, og hele suiten ville stå grøn – netop den fejlklasse, `acceptanceMatrix.test.ts`
  * kalder «grøn af tomhed».
  *
- * Det er ikke hypotetisk. Ved gennemgangen 2026-08-07 fandtes to levende drift-tilfælde i kontrakter, der
- * begge var stemplet «Senest verificeret mod kode: 2026-08-01»:
- *
- *   - `mineo-field-pattern.md` navngav typen `SettledFieldState`; den hedder `SettledFieldView`.
- *   - `satser-contract.md` navngav `satserSchema.ts`; filen hedder `satserSchemas.ts` (og var stavet
- *     rigtigt i `schema-evolution.md`, så de to kontrakter modsagde hinanden).
- *
- * Begge er ét bogstav galt i en normativ kontrakt – usynligt for typecheck, lint, arkitektur-harnesset og
+ * Typisk drift er ét bogstav galt i en normativ kontrakt (`SettledFieldState` for `SettledFieldView`,
+ * `satserSchema.ts` for `satserSchemas.ts`) – usynligt for typecheck, lint, arkitektur-harnesset og
  * coverage-matrixen, fordi ingen af dem læser kontrakternes brødtekst.
  *
  * **Hvorfor ikke bare "enhver navngiven fil skal findes".** Kontrakterne bruger bevidst navne på ting, der

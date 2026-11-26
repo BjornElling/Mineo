@@ -6,17 +6,16 @@ import { resolveEoValidationPathAddress } from './eoInputIssues';
 /**
  * Hvilke autoritativt blokerende invarianter sikkerhedsnettet i «Fejl og advarsler» skal vise.
  *
- * Garantien er, at download aldrig blokeres uden en synlig fejl. Nettet viste før KUN noget, når boksen ellers
- * var tom for fejl – så en regel, der kun fandtes i validatoren, forsvandt, så snart en anden fejl stod i
- * boksen, og dukkede først op, når brugeren havde rettet den (BB-265). Brugeren rettede det, boksen viste, og
- * fik en ny fejl, han ikke kunne se før.
+ * Garantien er, at download aldrig blokeres uden en synlig fejl. Viste nettet KUN noget, når boksen ellers
+ * var tom for fejl, ville en regel, der kun findes i validatoren, forsvinde, så snart en anden fejl stod i
+ * boksen, og først dukke op, når brugeren havde rettet den – en ny fejl, brugeren ikke kunne se før.
  *
  * Nu gælder to trin:
  * 1. Er boksen ellers tom, vises alle (som før): de er den eneste forklaring på blokeringen.
  * 2. Ellers vises en VALIDATORREGEL om et navngivet EO-felt, medmindre en vist række allerede dækker den – fordi
  *    rækken peger på samme felt, eller fordi dens tekst indeholder reglens besked. Kravet om en feltsti holder
  *    nettet fra at gentage rækkeformede regler (TAF-rækker, lønindkomst, sygeferiegodtgørelse), som hver har
- *    deres egen linje; dækningsprøven holder det fra at gentage en linje om samme felt (udviklerkrav 2026-10-02:
+ *    deres egen linje; dækningsprøven holder det fra at gentage en linje om samme felt (bevidst krav:
  *    ingen dobbelte fejlmeddelelser, der begge skyldes og peger på samme felt).
  *
  * Funktionen er ren. Downloadgaten forudsætter dens garanti – at boksen altid viser en fejl, når en invariant

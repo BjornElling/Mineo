@@ -26,7 +26,7 @@ const EOOplysningerTab = React.memo(({
   loenudviklingIssues: FieldIssueSet;
   tafCellIssues: FieldIssueSet;
   svieSmerteCellIssues: FieldIssueSet;
-  /** `tafEfterKapitaliseringAdvarsler` fra sidens reader-projektion (BB-187). */
+  /** `tafEfterKapitaliseringAdvarsler` fra sidens reader-projektion. */
   tafEfterKapitaliseringAdvarsler: readonly TafEfterKapitaliseringAdvarsel[];
   /** Fanen er den aktive. Den er altid monteret, så et besøg afgrænses af dette flag, ikke af mount. */
   isActive: boolean;

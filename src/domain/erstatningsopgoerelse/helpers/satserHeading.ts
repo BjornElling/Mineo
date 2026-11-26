@@ -9,9 +9,8 @@ type Ansaettelsesforhold = ErstatningsopgoerelseValues['loenindkomstAnsaettelses
 /**
  * Overskriften over et ansættelsesforholds satser – «Satser ved beregningsperiodens udløb (31-05-2018)».
  *
- * ÉT sted for kortets satsafsnit, linjen i «Fejl og advarsler» og lønindkomstbilagets satslinjer. Boksen
- * skrev før fast «Satser på skadedatoen», mens skærmen nævnte den dato, satserne faktisk slås op på (BB-284),
- * og bilaget skrev satserne uden dato over rækker, der regner med månedens satser (BB-276).
+ * ÉT sted for kortets satsafsnit, linjen i «Fejl og advarsler» og lønindkomstbilagets satslinjer, så alle tre
+ * nævner den dato, satserne faktisk slås op på – også bilaget, hvis rækker regner med månedens satser.
  */
 export const resolveSatserHeading = (params: Readonly<{
   anvendtReguleringsdato: ISODateString | undefined;

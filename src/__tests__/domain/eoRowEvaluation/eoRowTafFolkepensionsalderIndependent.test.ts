@@ -116,7 +116,7 @@ const INDEPENDENT_FOLKEPENSIONSALDER_VALUES: ErstatningsopgoerelseValues = {
   bilagsnumreOevrigeErstatningskrav: undefined,
 };
 
-describe('CALC-006 – uafhængigt facit for TAF efter folkepensionsalder', () => {
+describe('uafhængigt facit for TAF efter folkepensionsalder', () => {
   it('viser en særskilt advarselsrække når TAF-perioden fortsætter efter folkepensionsdatoen', () => {
     const rows = buildEoTaftRows(INDEPENDENT_FOLKEPENSIONSALDER_VALUES, EMPTY_FIELD_ISSUE_SET, {
       skadedatoISO: iso('2023-01-01'),

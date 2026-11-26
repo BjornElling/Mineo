@@ -31,7 +31,7 @@ export type LoenudviklingManuelProcentsatsTableProps = Readonly<{
   committedRows: readonly LoenudviklingManuelProcentsatsRow[];
   /** Projekterede celleregler (dato før basisdatoen, dublet-dato) – rød ring på cellen. */
   ruleIssues: FieldIssueSet;
-  /** Gule celler: ingen ændringer i lang tid, en sats over 10 % (BB-302, BB-313). */
+  /** Gule celler: ingen ændringer i lang tid, en sats over 10 %. */
   cellWarnings?: ReadonlyMap<SerializedFieldAddress, FieldWarning>;
   baseDateDisplay: string;
   baseDateISO?: string;

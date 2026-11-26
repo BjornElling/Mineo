@@ -21,9 +21,8 @@ import {
   createSettingsRevision,
 } from '../../../inputCore/evaluationSource';
 
-// Den FULDE projektionsmatrix for Renteberegning (§1.10/§3.9). Suiten dækkede tidligere kun tre nominelle/tomme
-// cases; den beviste derfor ikke `blocked`-grenene – hverken at et rejected råinput blokerer, at blokeringen er
-// PER RÆKKE, eller at motoren ikke kaldes i en blokeret projektion.
+// Den FULDE projektionsmatrix for Renteberegning (§1.10/§3.9). Den beviser `blocked`-grenene: at et rejected
+// råinput blokerer, at blokeringen er PER RÆKKE, og at motoren ikke kaldes i en blokeret projektion.
 //
 // Matrixen her er: {gyldig, rejected råtekst, tom} × {rækkefelt, tværgående beregningsdato} × {række, aggregat}.
 
@@ -236,13 +235,13 @@ describe('Renteberegning projektionsmatrix: tomme og manglende værdier', () => 
     expect(projection.aggregateProjection.value.anyRowHasError).toBe(true);
   });
 
-  // BB-037/BB-038: de to tilstande, der før faldt i `anyRowHasError` med en TAVS blokering og teksten
-  // «Indtastning mangler», selv om alle felter var udfyldt. Nu bærer det felt, brugeren skal rette, et
+  // To tilstande, der ellers ville falde i `anyRowHasError` med en TAVS blokering og teksten
+  // «Indtastning mangler», selv om alle felter er udfyldt. Det felt, brugeren skal rette, bærer et
   // rødt issue – og et rødt issue gør projektionen `blocked`, hvilket er den gren, der giver «Fejl i
-  // indtastning». Det er samtidig beviset for, at `blockedByIncompleteRow`s præmis nu holder: grenen
+  // indtastning». Det er samtidig beviset for, at `blockedByIncompleteRow`s præmis holder: grenen
   // kan kun nås af en reelt ufuldstændig række.
 
-  it('et nulbeløb blokerer rækken som en FEJL, ikke som en mangel (BB-038)', () => {
+  it('et nulbeløb blokerer rækken som en FEJL, ikke som en mangel', () => {
     const projection = build(
       [createRow('r-nul', { belob: { kind: 'number', value: 0 } }), createRow('r-ok')],
       '2024-12-31'
@@ -256,7 +255,7 @@ describe('Renteberegning projektionsmatrix: tomme og manglende værdier', () => 
     expect(projection.aggregateProjection.status).toBe('blocked');
   });
 
-  it('en tillægstid, der skubber rentedatoen forbi beregningsdatoen, blokerer rækken som en FEJL (BB-037)', () => {
+  it('en tillægstid, der skubber rentedatoen forbi beregningsdatoen, blokerer rækken som en FEJL', () => {
     const projection = build(
       [createRow('r-sen', { tillaegstid: 99, enhed: 'maaneder' })],
       '2024-12-31'

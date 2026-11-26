@@ -346,7 +346,7 @@ export const buildLoenindkomstColumns = (args: {
   const ansaettelser = values.loenindkomstAnsaettelsesforhold ?? [];
   const globalPeriodiseringErKalenderdage = computeTafBeregningsenhed(values) === TAF_BEREGNES_SOM.MAANEDER;
 
-  // Ændret 2026-10-30 (BB-388, udviklerafgørelse): uden TAF-krav ingen ansættelsesforholdskolonner. Det er
+  // Bevidst valg: uden TAF-krav ingen ansættelsesforholdskolonner. Det er
   // præsentation, ikke parity: sammentællingens ansættelsesforholdsrækker følger samme gate.
   const kolonneAnsaettelser = medAnsaettelsesforholdKolonner ? ansaettelser : [];
   for (let afIndex = 0; afIndex < kolonneAnsaettelser.length; afIndex += 1) {

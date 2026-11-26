@@ -8,16 +8,15 @@ import type { LoenudviklingBeregningsgrundlag } from '../../../../schemas/formSc
 import type { ReguleringForloeb } from '../reguleringForloeb';
 
 // =============================================================================
-// R1 – Reguleringsform som selvindeholdt strategi-modul.
+// Reguleringsform som selvindeholdt strategi-modul.
 //
-// Kontrakten samler de tre steder en reguleringsform tidligere var *defineret* –
+// Kontrakten samler de tre steder, en reguleringsform *defineres* –
 // konsolidering (resolveReguleringsStrategi-grenen), segment-byggeri
 // (buildLoenudviklingFrom*) og dæknings-interval (resolveKildeReguleringsIntervalIso) –
 // i ét modul pr. form. Dispatch sker ét sted (FORM_REGISTRY, keyet på enum-værdien),
 // så en ændring i en eksisterende form rører dens modul frem for parallelle grene i
 // motor/coverage. Feature-fladen er låst: registeret er et statisk, exhaustivt register
-// over de eksisterende former, ikke et udvidelsespunkt (jf. AGENTS.md Konvergens og
-// reviewkandidat #23).
+// over de eksisterende former, ikke et udvidelsespunkt (jf. AGENTS.md Konvergens).
 // =============================================================================
 
 export type LoenudviklingStrategi =
@@ -130,7 +129,7 @@ export type KildeReguleringsInterval = Readonly<{
  * former der bærer en tidsserie – det autoritative visnings-`forloeb`. Hvert segment bærer
  * evaluerede reference-/periodeværdier og formelkomponenter til visning. Begge udspringer af
  * SAMME kilde-entries i ét kald, så motoren ikke dispatcher formen igen for at re-bygge forløbet
- * (afløser den tidligere parallelle `switch(strategi)`-IIFE i orkestratoren). Former uden
+ * (ingen parallel `switch(strategi)` i orkestratoren). Former uden
  * selvstændig kildeserie (overenskomst/manuel/ASL) udelader `forloeb` (undefined).
  */
 export type ReguleringResultat = Readonly<{
@@ -148,7 +147,7 @@ export interface ReguleringForm {
   /** Trin 1: uniformitetskontrol + byg formens `KonsolideretLoenudvikling`. */
   konsolider(ctx: FormKonsoliderContext): ResolvedStrategi;
   /**
-   * Trin 2: byg de relative deltaPct-segmenter + det autoritative visnings-forløb (R2).
+   * Trin 2: byg de relative deltaPct-segmenter + det autoritative visnings-forløb (`reguleringForloeb.ts`).
    *
    * `segmentRanges` er de intervaller, segmenterne bygges over – som standard TAF-perioden. Reguleringsopslaget
    * pr. dato (`reguleringOpslag.ts`) evaluerer formen på en enkelt dato uden for TAF-perioden ved at give et

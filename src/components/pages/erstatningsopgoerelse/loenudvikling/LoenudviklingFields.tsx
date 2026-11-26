@@ -25,11 +25,9 @@ import type { ReguleringDocumentAction } from '../../../../domain/erstatningsopg
  * Den fælles Lønudvikling-flade.
  *
  * Fladen findes på to overflader – pr. ansættelsesforhold på Lønindkomstfanen og for
- * «angivet løn» på EO-oplysningerfanen – og var tidligere kopieret ordret mellem
- * `AnsaettelsesforholdCard.tsx` og `IndtaegtFoerSkadenSection.tsx` (~290 linjer hver).
- * Kopierne var allerede drevet fra hinanden på tre punkter, som ingen havde besluttet:
- * feltbredden på «Navn på reguleringsform» (350 vs. 300), den manglende
- * basisdato-tooltip på EO-oplysninger, og en let omskrevet kommentar. Derfor ét sted.
+ * «angivet løn» på EO-oplysningerfanen. To kopier i `AnsaettelsesforholdCard.tsx` og
+ * `IndtaegtFoerSkadenSection.tsx` ville drive fra hinanden på punkter, ingen har besluttet
+ * (feltbredder, tooltips). Derfor ét sted.
  *
  * Overfladerne binder forskelligt (`field(...)`/`location(...)` pr. ansættelsesforhold
  * vs. `descriptor.bind()`/fast locationId), så bindingen injiceres som `binding`.
@@ -58,10 +56,10 @@ export type LoenudviklingFieldsProps<
   manualPercentRows: readonly LoenudviklingManuelProcentsatsRow[];
   /**
    * Lønudviklingens projekterede feltfejl (`loenudviklingIssues` i projektionen): de manuelle tabellers celler og
-   * reguleringsgrundlagets dækning på «Lønudvikling beregnes ud fra» (BB-306).
+   * reguleringsgrundlagets dækning på «Lønudvikling beregnes ud fra».
    */
   loenudviklingIssues: FieldIssueSet;
-  /** Lønudviklingens gule ringe: de manuelle tabellers celler og den forhøjede grundløn (BB-302, BB-313). */
+  /** Lønudviklingens gule ringe: de manuelle tabellers celler og den forhøjede grundløn. */
   manualCellWarnings: ReadonlyMap<SerializedFieldAddress, FieldWarning>;
   manualLocationPrefix: string;
   manualPercentLocationPrefix: string;
@@ -82,7 +80,7 @@ export type LoenudviklingFieldsProps<
    * (jf. `keyboard-navigation.md` §Popup-fokus-restore).
    */
   loentrinFinderTriggerRef: React.RefObject<HTMLButtonElement | null>;
-  /** Gruppefeltets input – fokus lander her, når et resultat fra finderen er sat ind (BB-310). */
+  /** Gruppefeltets input – fokus lander her, når et resultat fra finderen er sat ind. */
   gruppeInputRef: React.RefObject<HTMLInputElement | null>;
 
   /** Basisrækkens dato i de manuelle tabeller. */
@@ -90,9 +88,8 @@ export type LoenudviklingFieldsProps<
   baseDateISO: string | undefined;
   baseDateErrorMessage: string | undefined;
   /**
-   * Forklaringen bag basisdatoen. Påkrævet – ikke optional – fordi den tidligere var
-   * optional og derfor stiltiende manglede på EO-oplysningerfanen, selv om VM'en
-   * allerede beregnede teksten. Send `undefined` eksplicit, hvis den ikke findes.
+   * Forklaringen bag basisdatoen. Påkrævet – ikke optional – så en flade ikke stiltiende kan
+   * undlade den, selv om VM'en beregner teksten. Send `undefined` eksplicit, hvis den ikke findes.
    */
   baseDateInfoTooltipText: string | undefined;
 
@@ -157,7 +154,7 @@ export default function LoenudviklingFields<
   const name = (fieldName: string): string => `${fieldNamePrefix}${fieldName}`;
   const grundlag = binding.loenudviklingBeregningsgrundlag;
   const grundlagIssue = activeFieldIssue(loenudviklingIssues, serializeFieldAddress(grundlag.field.address));
-  // Gul ring, når den forhøjede grundløn er større end trinlønnen (BB-313).
+  // Gul ring, når den forhøjede grundløn er større end trinlønnen.
   const ekstraGrundloenWarning = manualCellWarnings.get(serializeFieldAddress(binding.offentligLoenEkstraGrundloen.field.address));
   const resolvedBaseDateErrorMessage = baseDateDisplay === '' ? baseDateErrorMessage : undefined;
 
@@ -282,8 +279,8 @@ export default function LoenudviklingFields<
                   width={160}
                   {...(ekstraGrundloenWarning === undefined ? {} : { warning: ekstraGrundloenWarning })}
                 />
-                {/* Enheden er brugerens eget valg og gemmes med beløbet. Den stod før som et fast suffiks efter
-                    «Ansættelse», mens beregningen læste beløbet i TAF-enheden (fund A1). */}
+                {/* Enheden er brugerens eget valg og gemmes med beløbet; beregningen læser beløbet i den enhed,
+                    ikke i TAF-enheden. */}
                 <Typography className="row--text">per</Typography>
                 <SatsEnhedChoiceField
                   binding={binding.offentligLoenEkstraGrundloenAngivesPer}
@@ -404,10 +401,9 @@ export default function LoenudviklingFields<
             <Box className="row--label-right-hover__content">
               <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'flex-end', gap: 1 }}>
                 {/*
-                  Knaptilstand OG outputvalg kommer fra `reguleringDocument`. De tidligere
-                  side-lokale `canDownload`-IIFE'er (skrevet med hver sin formel) og
-                  `loenudviklingBasis`-switchen ved KLIK – altså før commit-barrieren – er
-                  erstattet af den fælles resolver, som vælger efter settle på et frisk snapshot.
+                  Knaptilstand OG outputvalg kommer fra `reguleringDocument`: den fælles resolver vælger
+                  efter settle på et frisk snapshot. Side-lokale `canDownload`-IIFE'er og en
+                  `loenudviklingBasis`-switch ved KLIK – altså før commit-barrieren – må ikke genindføres.
                 */}
                 {/*
                   Er intervallet ukendt, vises INTET – hverken tekst eller pladsholdertegn.

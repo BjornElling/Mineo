@@ -574,7 +574,7 @@ export type ErstatningsopgoerelseReaderProjection = Readonly<{
    */
   svieSmerteCellIssues: FieldIssueSet;
   /**
-   * TAF efter kapitaliseringen af en delvist endelig EET-afgørelse (BB-187): de gule ringe i TAF-tabellen. Samme
+   * TAF efter kapitaliseringen af en delvist endelig EET-afgørelse: de gule ringe i TAF-tabellen. Samme
    * advarsler giver linjerne i «Fejl og advarsler» gennem snapshottet, så fanen og beregningen ikke kan svare
    * forskelligt.
    */
@@ -582,9 +582,9 @@ export type ErstatningsopgoerelseReaderProjection = Readonly<{
   // EO-dokumenterne læser `stamdataValues`, mens blokeringen sker gennem snapshottets strukturelle
   // stamdata-invarianter. Projektionen må ikke bære en ekstra, ulæst `documentStamdata`-projektion,
   // fordi den ville ligne en dependency-erklæring uden faktisk at gate outputtet.
-  /** Kildesnapshottets token – issue-snapshot og reader stammer fra samme evaluering (§3.4). */
-  /** Henter et skift til «Midlertidigt EET indsættes fra Erhvervsevnetab-siden» et fradrag? (BB-457) */
+  /** Henter et skift til «Midlertidigt EET indsættes fra Erhvervsevnetab-siden» et fradrag? */
   midlertidigtEetSkiftGiverFradrag: boolean;
+  /** Kildesnapshottets token – issue-snapshot og reader stammer fra samme evaluering (§3.4). */
   sourceToken: EvaluationSourceToken;
 }>;
 
@@ -775,7 +775,7 @@ export const buildErstatningsopgoerelseReaderProjection = (
     eoValues = projectLoenindkomstSatser(eoValues, stamdataValues);
 
     const tafRangesForMidlertidigtEet = buildTafRanges(eoValues, { skadedatoISO: stamdataValues.skadedato });
-    // Bekræftelsen før kildeskiftet skal vide, om skiftet henter et fradrag (BB-457).
+    // Bekræftelsen før kildeskiftet skal vide, om skiftet henter et fradrag.
     const midlertidigtEetSkiftGiverFradrag = eoValues.midlertidigtEetFraEetSiden !== 'Ja'
       && vilMidlertidigtEetImportGiveFradrag(options?.midlertidigtEetInsertSource, tafRangesForMidlertidigtEet);
 
@@ -805,24 +805,24 @@ export const buildErstatningsopgoerelseReaderProjection = (
     const regulationCoverageIssueList = collectLoenudviklingCoverageIssues(eoValues, stamdataValues);
     const manualRegulationDateIssueList = collectManualRegulationIssues(eoValues, stamdataValues);
     const anciennitetstillaegDatoIssueList = collectAnciennitetstillaegDatoIssues(eoValues, stamdataValues);
-    // Sygeferiegodtgørelsens referenceperiode: før første TAF-dag, fraværsdagenes loft og en periode uden løn
-    // (BB-319, BB-322, BB-323). Projekteret samme vej, så feltet får rød ring, og TAF-grenen spærres.
+    // Sygeferiegodtgørelsens referenceperiode: før første TAF-dag, fraværsdagenes loft og en periode uden løn.
+    // Projekteret samme vej, så feltet får rød ring, og TAF-grenen spærres.
     const sfggReferenceperiodeIssueList = collectSfggReferenceperiodeIssues(eoValues, buildFieldIssueSet(eoProjection.readIssues()));
     const missingLoenudviklingReguleringsdatoIssueList = collectMissingLoenudviklingReguleringsdatoIssues(eoValues, stamdataValues);
     // TAF-cutoff (differencekrav + endeligt/midlertidigt EET) kan ikke ligge på descriptoren: grænsen udledes
     // af domæneregler (klage-suspension, 2011-skæringsdatoen, virkningsdato-præcedens). Den projekteres derfor
     // herfra med samme datogrundlag, som motorens clamping bruger, og bærer selv feltadressen.
     const tafCutoffDateIssueList = collectTafCutoffDateIssues(eoValues, stamdataValues);
-    // Overlap, for mange løse feriedage og en ferieperiode uden for sit vindue spærrede før uden rød celle
-    // (BB-248, BB-251, BB-252). De projekteres samme vej som cutoffen og blokerer samme gren.
+    // Overlap, for mange løse feriedage og en ferieperiode uden for sit vindue projekteres samme vej som
+    // cutoffen, så de får rød celle, og blokerer samme gren.
     const tafRowCellIssueList = collectTafRowCellIssues(eoValues, stamdataValues);
-    // Beregningsgrundlagets ferie, løse dage og fravær spærrede uden rød celle eller endte i en intern
-    // undtagelse (BB-258, BB-264). De projekteres samme vej og blokerer samme gren.
+    // Beregningsgrundlagets ferie, løse dage og fravær projekteres samme vej, så de får rød celle i stedet for
+    // en intern undtagelse, og blokerer samme gren.
     const beregningsgrundlagCellIssueList = collectBeregningsgrundlagCellIssues(eoValues);
     const tafCellIssueList = mergeIssues(tafCutoffDateIssueList, tafRowCellIssueList, beregningsgrundlagCellIssueList);
     const svieSmerteCutoffDateIssueList = collectSvieSmerteCutoffDateIssues(eoValues);
-    // Overlappet spærrede allerede opgørelsen gennem rækkeevalueringen, men uden en feltadresse og
-    // dermed uden rød celle. Projektionen giver reglen samme vej som cutoffen (BB-218).
+    // Overlappet spærrer også gennem rækkeevalueringen, men uden en feltadresse og dermed uden rød celle.
+    // Projektionen giver reglen samme vej som cutoffen.
     const svieSmerteOverlapIssueList = collectSvieSmerteOverlapIssues(eoValues);
     const svieSmerteProjectedIssues = mergeIssues(svieSmerteCutoffDateIssueList, svieSmerteOverlapIssueList);
     const tafProjectedIssues = mergeIssues(

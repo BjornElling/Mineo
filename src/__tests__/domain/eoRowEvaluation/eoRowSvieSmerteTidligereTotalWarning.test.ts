@@ -62,7 +62,7 @@ describe('buildEoSvieSmerteRows – tidligere svie-/smertebeløb', () => {
 
   it('advarer, når beløbet overstiger maksimum – men blokerer ikke', () => {
     // 2024-maksimum er 88.500 kr. Beløbet KAN være rigtigt (rammen er reelt opbrugt), så
-    // advarslen er gul og ikke en fejl (BB-219).
+    // advarslen er gul og ikke en fejl.
     const row = getTidligereTotalRow({
       svieSmerteSatserAar: 2024,
       svieSmerteTidligereTotal: amount(100_000),

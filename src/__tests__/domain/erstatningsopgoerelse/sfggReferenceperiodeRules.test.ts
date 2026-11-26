@@ -72,7 +72,7 @@ describe('collectSfggReferenceperiodeIssues', () => {
     expect(summarize(buildValues())).toEqual([]);
   });
 
-  describe('grænsen før første TAF-periode (BB-322)', () => {
+  describe('grænsen før første TAF-periode', () => {
     it('markerer kun fra-datoen, når den ligger på første TAF-dag', () => {
       const issues = collectSfggReferenceperiodeIssues(buildValues({ fra: '2023-03-01', til: '2023-03-28' }));
       expect(issues.map((issue) => issue.field.descriptor.id)).toEqual([
@@ -96,7 +96,7 @@ describe('collectSfggReferenceperiodeIssues', () => {
     });
   });
 
-  describe('fraværsdagenes loft (BB-323)', () => {
+  describe('fraværsdagenes loft', () => {
     it('tillader højst kalenderdagene minus én', () => {
       expect(summarize(buildValues({ fravaersdage: 27 }))).toEqual([]);
       expect(summarize(buildValues({ fravaersdage: 28 }))).toEqual([{
@@ -143,7 +143,7 @@ describe('collectSfggReferenceperiodeIssues', () => {
     }]);
   });
 
-  describe('en periode uden løn (BB-319)', () => {
+  describe('en periode uden løn', () => {
     it('spærrer med periodens datoer på fra-feltet', () => {
       const issues = collectSfggReferenceperiodeIssues(buildValues({ fra: '2021-01-01', til: '2021-01-28' }));
       expect(issues).toHaveLength(1);
@@ -154,7 +154,7 @@ describe('collectSfggReferenceperiodeIssues', () => {
       expect(issues[0]?.message).toBe(buildSfggReferenceperiodeUdenLoenBesked(iso('2021-01-01'), iso('2021-01-28')));
     });
 
-    it('overlader en samlet negativ løn til motorens egen fejl (BB-290)', () => {
+    it('overlader en samlet negativ løn til motorens egen fejl', () => {
       expect(summarize(buildValues({ loen: [loenRaekke('2', '2023', -1000)] }))).toEqual([]);
     });
   });
@@ -182,7 +182,7 @@ describe('collectSfggReferenceperiodeIssues', () => {
   });
 });
 
-describe('collectSfggReferenceperiodeIssues – rød lønrække (BB-451)', () => {
+describe('collectSfggReferenceperiodeIssues – rød lønrække', () => {
   const afvistLoen = { ...loenRaekke('2', '2023', 30000), col2: undefined };
 
   it('melder en periode med en tom lønrække som en periode uden løn', () => {

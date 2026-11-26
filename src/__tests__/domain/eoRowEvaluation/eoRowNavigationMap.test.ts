@@ -11,7 +11,7 @@ describe('getNavigationTargetFromRowId', () => {
     });
   });
 
-  it('navngiver linket efter kortets nummer, når der er flere ansættelsesforhold (BB-278)', () => {
+  it('navngiver linket efter kortets nummer, når der er flere ansættelsesforhold', () => {
     const context = { ansaettelsesforholdIds: ['af-1', 'af-2'] };
     expect(getNavigationTargetFromRowId('loenindkomst.af-2.loenoplysninger', context))
       .toMatchObject({ sectionTitle: 'Ansættelsesforhold 2' });
@@ -73,7 +73,7 @@ describe('getNavigationTargetFromRowId', () => {
       ],
       [
         'sfgg.tabel.x.af-1',
-        // Uden flere ansættelsesforhold hedder sektionen «Lønindkomst» (BB-278).
+        // Uden flere ansættelsesforhold hedder sektionen «Lønindkomst».
         { tabId: 'loenindkomst', sectionId: 'loenindkomst', tabName: 'Lønindkomst', sectionTitle: 'Lønindkomst' },
       ],
       [

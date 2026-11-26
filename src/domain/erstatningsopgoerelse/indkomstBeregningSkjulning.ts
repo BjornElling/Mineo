@@ -15,9 +15,9 @@ import { skalKomprimereIndkomstBeregning } from './validation/eoNummerValidering
 /**
  * «Skjul beregning efter første opgørelse» skjuler kun et beregningsgrundlag, der kan bære TAF-beregningen.
  *
- * Før skjulte togglen grundlaget alene ud fra opgørelsens nummer og togglens værdi. Var grundlaget tomt eller
- * rødt i en senere opgørelse, stod linjerne i «Fejl og advarsler» med et link til et felt, der ikke var på
- * skærmen – brugeren kunne hverken se eller rette det (udviklerafgørelse 2026-10-24).
+ * Skjulte togglen grundlaget alene ud fra opgørelsens nummer og togglens værdi, ville et tomt eller rødt grundlag
+ * i en senere opgørelse give linjer i «Fejl og advarsler» med et link til et felt, der ikke er på skærmen –
+ * brugeren kunne hverken se eller rette det.
  *
  * Gyldigheden er beregningsgrundlagets EGNE fejl, ikke opgørelsens: en rød svie/smerte-periode skal ikke åbne
  * lønnen før skaden. Den afgøres to steder fra, der begge allerede er autoritative:
@@ -123,7 +123,7 @@ export const kanIndkomstBeregningenSkjules = (
   skalKomprimereIndkomstBeregning(projection.eoValues) && erIndkomstBeregningsgrundlagGyldigt(projection, rowPolicy);
 
 /**
- * En sammenklappet, skjult værdi giver ingen advarsler (BB-431, udviklerafgørelse 2026-11-22): alle gule rækker
+ * En sammenklappet, skjult værdi giver ingen advarsler (bevidst valg): alle gule rækker
  * under grundlagets præfiks – den angivne løns rimelighedsadvarsler, fravær uden løn (0 dage, manglende årsag),
  * fradrag, ferie, lønnens kilde og den angivne løns lønudvikling. Samme præfiks som gyldigheden ovenfor, så
  * «skjult» og «advarer ikke» dækker de samme rækker. Advarslen vises i 1. opgørelse; har brugeren ladet den stå

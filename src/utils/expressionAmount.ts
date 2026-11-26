@@ -21,13 +21,13 @@ export type AmountParseError = Readonly<{
   message: string;
   /**
    * Udtryksparserens maskinlæsbare årsag, når fejlen stammer fra et regnestykke. Codec'en aflæser den – aldrig
-   * beskedteksten – for at afgøre, om fejlen har en konkret forklaring til feltet (BB-440).
+   * beskedteksten – for at afgøre, om fejlen har en konkret forklaring til feltet.
    */
   code?: ExpressionErrorCode;
 }>;
 
 /**
- * Den ENE besked for division med 0 i et beløbsfelt (BB-440). `1/0` fik før samme generiske «ugyldig værdi»
+ * Den ENE besked for division med 0 i et beløbsfelt. `1/0` fik før samme generiske «ugyldig værdi»
  * som det ufuldstændige `1/`, selv om programmet kendte årsagen. Teksten bruges både af de persisterede
  * beløbsfelter (via codec'ens `detail.tooltip`) og af de transiente beløbsfelter.
  */
@@ -43,7 +43,7 @@ export type AmountParseResult =
   | { ok: false; error: AmountParseError };
 
 /**
- * `allowDecimals` er BEVIDST ikke længere en option (BB-118). Decimalpolitikken udtrykkes af `precision`
+ * `allowDecimals` er BEVIDST ikke længere en option. Decimalpolitikken udtrykkes af `precision`
  * alene: `0` afrunder til hele kroner, `2` bevarer ørerne. Et separat flag ville kunne komme i modstrid med
  * præcisionen og gentog i praksis den samme oplysning to steder.
  */
@@ -133,14 +133,13 @@ const roundRationalToScale = (value: Rational, precision: number): bigint => {
 };
 
 /**
- * Parser ét talled. Decimaldelen tages ALTID imod og afrundes til `precision` (BB-118).
+ * Parser ét talled. Decimaldelen tages ALTID imod og afrundes til `precision`.
  *
- * Funktionen tog før et `allowDecimals`-flag og AFVISTE en decimaldel, når det var falsk. Flaget er væk,
- * fordi afvisningen aldrig kunne nås for et decimalløst felt: tegnfilteret sprang decimalkommaet over,
- * længe før settle så teksten, så «400.000,00» nåede hertil som `40000000`. Nu tages kommaet imod ved
- * tastning og paste, og et decimalløst felt udtrykker sin regel som `precision: 0` – altså afrunding, ikke
- * afvisning. Skal et felt igen kunne AFVISE decimaler, hører det til som en canonical feltvalidator på den
- * committede værdi, ikke som en formatafvisning her (§1.6).
+ * Der er bevidst intet `allowDecimals`-flag, der AFVISER en decimaldel: kommaet tages imod ved tastning og
+ * paste, og et decimalløst felt udtrykker sin regel som `precision: 0` – altså afrunding, ikke afvisning.
+ * Ellers kan et tegnfilter springe decimalkommaet over, så «400.000,00» når hertil som `40000000`. Skal et
+ * felt kunne AFVISE decimaler, hører det til som en canonical feltvalidator på den committede værdi, ikke
+ * som en formatafvisning her (§1.6).
  */
 const parseNumberToken = (
   raw: string,

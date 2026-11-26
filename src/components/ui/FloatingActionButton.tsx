@@ -32,18 +32,18 @@ type FloatingActionButtonProps = {
  * §11.1): knappen bliver stående som nedtonet og reelt inaktiv, årsagen vises kun i tooltippet, og et
  * klik er tavst.
  *
- * **Knapper ryster ikke** (udviklerbeslutning 2026-08-15; kun toggles gør, jf. §11.1). Knappen
- * rystede tidligere ved klik, MENS den fremstod aktiv – den var kun visuelt dæmpet, ikke slået fra. Det
- * gav to modstridende svar på samme klik og oplyste knappen som brugbar for en skærmlæser. Knappen er
- * nu ægte `disabled` med årsagen i tooltippet. Genindfør ikke en shake-prop her.
+ * **Knapper ryster ikke** (bevidst valg; kun toggles gør, jf. §11.1). En knap, der ryster ved klik, MENS
+ * den fremstår aktiv (kun visuelt dæmpet, ikke slået fra), giver to modstridende svar på samme klik og
+ * oplyser knappen som brugbar for en skærmlæser. Knappen er ægte `disabled` med årsagen i tooltippet.
+ * Genindfør ikke en shake-prop her.
  */
 /**
- * Et klik, der er 2. (eller senere) klik i samme dobbeltklik, udløser ikke handlingen (BB-434, BB-437).
+ * Et klik, der er 2. (eller senere) klik i samme dobbeltklik, udløser ikke handlingen.
  *
  * Kortenes handlinger flytter sig, når de virker: «Tilføj» lægger et nyt kort ind, så det forrige korts
  * «Flyt op»/«Flyt ned» havner præcis under markøren, og «Flyt op» flytter kortet, så nabokortets tilsvarende
- * knap overtager pladsen. Andet klik i et dobbeltklik ramte derfor en ANDEN knap eller et ANDET kort end det,
- * brugeren sigtede efter – et eksisterende kort skiftede plads uden at brugeren havde bedt om det.
+ * knap overtager pladsen. Andet klik i et dobbeltklik rammer derfor en ANDEN knap eller et ANDET kort end det,
+ * brugeren sigtede efter – et eksisterende kort skifter plads, uden at brugeren har bedt om det.
  *
  * `MouseEvent.detail` er browserens klikantal på samme sted inden for dobbeltklik-intervallet: 1 ved et
  * enkeltklik, 2 ved andet klik i et dobbeltklik – og 0 ved tastaturaktivering (Enter/mellemrum), som derfor

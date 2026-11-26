@@ -100,8 +100,8 @@ describe('computeEetSnapshot', () => {
   });
 
   it('lader «EET efter EAL» og differencekravet se bort fra samme afgørelse efter beregningsdatoen', () => {
-    // Fund D (2026-11-25): uden EAL EET % valgte fanen den seneste afgørelse uanset beregningsdatoen, mens
-    // differencekravet afgrænsede til beregningsdatoen – samme sag gav to forskellige EAL-krav.
+    // Uden EAL EET % må fanen ikke vælge den seneste afgørelse uanset beregningsdatoen, når differencekravet
+    // afgrænser til beregningsdatoen – ellers giver samme sag to forskellige EAL-krav.
     const values: ErhvervsevnetabComposedValues = {
       ...createValues(),
       ealEetPct: undefined,
@@ -219,7 +219,7 @@ describe('computeEetSnapshot', () => {
       },
     });
 
-    // Alle tabellens røde celler følger med – ikke kun den første (BB-406).
+    // Alle tabellens røde celler følger med – ikke kun den første.
     expect(snapshot.efterEal.issues.filter((issue) => issue.id === 'field-asl-afgoerelser')).toHaveLength(2);
     expect(snapshot.efterEal.hasBlockingErrors).toBe(true);
   });
@@ -251,7 +251,7 @@ describe('computeEetSnapshot', () => {
     })]);
   });
 
-  it('fører en rækkemangel til den række, der mangler oplysningen – ikke til første række (BB-413)', () => {
+  it('fører en rækkemangel til den række, der mangler oplysningen – ikke til første række', () => {
     const udfyldtKapitalisering = {
       id: 'foerste',
       fsTilbageholdtEet: 'Nej' as const,
@@ -308,7 +308,7 @@ describe('computeEetSnapshot', () => {
     });
   });
 
-  it('lader en rød kapitaliseringsdato stå uden at stoppe EET efter EAL, men blokerer ved en rød EET % (BB-419)', () => {
+  it('lader en rød kapitaliseringsdato stå uden at stoppe EET efter EAL, men blokerer ved en rød EET %', () => {
     const values = createValues();
     const rowId = values.aslAfgoerelser[0]!.id;
     const redCell = (field: 'kapDato' | 'eetPct') => ({
@@ -335,10 +335,9 @@ describe('computeEetSnapshot', () => {
   it('et blokeret panel har ALTID computation null – motoren må ikke have kørt på et maskeret input', () => {
     // INVARIANT (`form-contract.md` §2.3, `error-contract.md` §5): kun en ready projektion må fodre motoren.
     //
-    // Denne test hed tidligere "hasBlockingErrors er true men computation er ikke null" og dokumenterede
-    // dermed netop det brud, den nu udelukker: motorerne kørte med readerens MASKEREDE værdier (en rød værdi
-    // er `undefined` for motoren), hvorefter resultatet kun blev skjult af UI-laget. Et resultat udregnet på
-    // et falsk input må ikke eksistere i snapshottet – heller ikke bag en UI-guard.
+    // Ellers ville motorerne køre med readerens MASKEREDE værdier (en rød værdi er `undefined` for motoren),
+    // og resultatet kun blive skjult af UI-laget. Et resultat udregnet på et falsk input må ikke eksistere
+    // i snapshottet – heller ikke bag en UI-guard.
     const snapshot = computeEetSnapshot({
       values: createValues(),
       stamdata: createStamdata(),
@@ -451,7 +450,7 @@ describe('computeEetSnapshot', () => {
 
     expect(snapshot.differencekrav.hasBlockingErrors).toBe(true);
     expect(snapshot.differencekrav.issues.some((issue) => issue.id === 'forlig-ansvarsgrad-invalid')).toBe(true);
-    // EAL-fanen er også en forligs-consumer (2026-09-09): den viser selv det forligsreducerede
+    // EAL-fanen er også en forligs-consumer: den viser selv det forligsreducerede
     // EAL-krav og må derfor ikke regne videre på et forlig, programmet har afvist.
     expect(snapshot.efterEal.hasBlockingErrors).toBe(true);
     expect(snapshot.efterEal.issues.some((issue) => issue.id === 'forlig-ansvarsgrad-invalid')).toBe(true);
@@ -475,9 +474,9 @@ describe('computeEetSnapshot', () => {
     expect(snapshot.differencekrav.issues.some((issue) => issue.id === 'forlig-ansvarsgrad-invalid')).toBe(true);
   });
 
-  // BB-196: boksens linje skrev «Forlig om ansvarsgrad indeholder en ugyldig værdi» for TRE forskellige
-  // regler, mens feltets eget tooltip i samme øjeblik var konkret. Brugeren kunne derfor ikke se, om
-  // han skulle ændre en værdi, fjerne en værdi eller vælge mellem to felter.
+  // En generisk linje som «Forlig om ansvarsgrad indeholder en ugyldig værdi» ville dække TRE forskellige
+  // regler, mens feltets eget tooltip er konkret. Brugeren kunne så ikke se, om han skal ændre en værdi,
+  // fjerne en værdi eller vælge mellem to felter.
   it('bærer feltets EGEN besked i «Fejl og advarsler» frem for en generisk «ugyldig værdi»', () => {
     const snapshot = computeEetSnapshot({
       values: createValues(),

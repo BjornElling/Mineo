@@ -53,7 +53,7 @@ const extendedSpecificationRef = erhvervsevnetabBilagVisUdvidetSpecifikationFiel
 // route + tabKey er eksplicit navigation-metadata (§3.7); feltet bor på løbende-ydelser-fanen.
 const EXTENDED_SPECIFICATION_LOCATION = { locationId: 'erhvervsevnetab:loebendeYdelser:visUdvidetSpecifikation', route: APP_ROUTES.erhvervsevnetab, tabKey: ERHVERVSEVNETAB_TAB_KEYS.LOEBENDE_YDELSER } as const;
 
-// Samme månedsformatter som dokumentet (BB-162): «Mdr.» er den faktor, «Beregnet EET» ganges med,
+// Samme månedsformatter som dokumentet: «Mdr.» er den faktor, «Beregnet EET» ganges med,
 // så skærm og papir må ikke give den, der efterregner, to forskellige grundlag.
 const formatMaaneder = formatDocumentMaanederFixed;
 const formatRegulering = formatReguleringPctSigned;
@@ -70,8 +70,8 @@ const YDELSER_TABLE_COLUMNS: readonly StandardDisplayTableColumn[] = [
   { header: 'Fra o.m.', align: 'center', width: '14%' },
   { header: 'Til o.m.', align: 'center', width: '14%' },
   { header: 'Mdr.', align: 'right', width: '10%' },
-  // «Grundydelse pr. år» frem for «Grundydelse»: kolonnen er et ÅRSbeløb, og uden ordet kunne
-  // rækken ikke efterregnes af de viste tal – man fik et andet resultat end «Ydelse/md.» (BB-156).
+  // «Grundydelse pr. år» frem for «Grundydelse»: kolonnen er et ÅRSbeløb, og uden ordet kan
+  // rækken ikke efterregnes af de viste tal – man får et andet resultat end «Ydelse/md.».
   { header: 'Grundydelse pr. år', align: 'right', width: '18%' },
   { header: 'Regulering', align: 'right', width: '12%' },
   { header: 'Ydelse/md.', align: 'right', width: '14%' },
@@ -334,7 +334,7 @@ const EetLoebendeYdelserTab = ({ onGoToEetOplysninger, projection, download }: P
                   </Box>
                 </Box>
                 <Box className="row--label-right-hover">
-                  {/* Ordret samme sætning som dokumentet (BB-163); skærmens tidligere form manglede grundled efter «og». */}
+                  {/* Ordret samme sætning som dokumentet. */}
                   <Typography className="row--text">Der fratrækkes AM-bidrag (8 %) svarende til en yderligere regulering med</Typography>
                   <Box className="row--label-right-hover__content">
                     <Typography className="row--text">92 %</Typography>
@@ -366,7 +366,7 @@ const EetLoebendeYdelserTab = ({ onGoToEetOplysninger, projection, download }: P
               const grundydelseFormula =
                 computation.erstatningsniveauPct === 83
                   // Almindelig bindestreg (U+002D), ikke U+2212: dokumentet skriver samme formel med
-                  // U+002D, og de to udgaver skal kunne lægges side om side (BB-163).
+                  // U+002D, og de to udgaver skal kunne lægges side om side.
                   ? `Grundløn x EET x Erstatningsniveau x (100 % - AM-bidrag) = ${formatKr(toKroner(computation.grundloenOre))} x ${formatEetFormulaFactor(afgoerelse.eetPct, afgoerelse.priorKapPct)} x 83 % x 92 % =`
                   : `Grundløn x EET x Erstatningsniveau = ${formatKr(toKroner(computation.grundloenOre))} x ${formatEetFormulaFactor(afgoerelse.eetPct, afgoerelse.priorKapPct)} x 80 % =`;
 

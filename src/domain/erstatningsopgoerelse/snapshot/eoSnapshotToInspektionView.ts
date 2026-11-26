@@ -36,8 +36,8 @@ type EoInspektionViewReady = Readonly<{
 export type EoInspektionView = EoInspektionViewBlocked | EoInspektionViewReady;
 
 /**
- * Fanen uden kontrolgrundlag. Teksten talte før om «snapshot» og «committed data» og bad brugeren åbne fanen igen,
- * men grundlaget kommer først, når beregningens fejl er rettet (BB-389). Kontroltabellen siger det samme.
+ * Fanen uden kontrolgrundlag. Teksten taler ikke om tekniske begreber og beder ikke brugeren åbne fanen igen:
+ * grundlaget kommer først, når beregningens fejl er rettet. Kontroltabellen siger det samme.
  */
 const EO_KONTROL_BEREGNING_STOPPET: EoInspektionViewBlocked = Object.freeze({
   kind: 'blocked',

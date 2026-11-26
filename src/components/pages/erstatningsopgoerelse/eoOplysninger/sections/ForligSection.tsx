@@ -19,7 +19,7 @@ import { EO_TAB_KEYS } from '../../../../../config/eoTabKeys';
 export default function ForligSection() {
   const { values } = useEoOplysningerVm();
   // Gul ring på en forligsdato efter «Opgørelse lavet den» – samme regel og tekst som «Fejl og advarsler»
-  // (NY-12a-3). Kun her: EET oplysninger har ingen dokumentdato at sammenligne med.
+  // . Kun her: EET oplysninger har ingen dokumentdato at sammenligne med.
   const forligDatoMessage = resolveForligDatoEfterOpgoerelseMessage(values);
   const forligDatoWarning = forligDatoMessage === undefined ? undefined : createFieldWarning(forligDatoMessage);
 

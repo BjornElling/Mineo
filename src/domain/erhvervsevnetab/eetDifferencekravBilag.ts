@@ -1,7 +1,7 @@
 /**
  * Differencekravets bilagsvalg: hvilke af dem kan vælges – og hvis ikke, hvorfor.
  *
- * Baggrund (BB-188): fem bilagsvalg behandlede «har intet indhold» på tre måder. To valg blev
+ * Baggrund: fem bilagsvalg behandlede «har intet indhold» på tre måder. To valg blev
  * inaktive og umarkerede med årsagen i tooltippet, tre var altid aktive og udgik enten tavst af
  * dokumentet eller gav en «ingen»-side, og togglen «Medtag udvidet specifikation på løbende ydelser»
  * var aktiv, også når løbende-ydelsesbilaget var fravalgt og togglen derfor styrede ingenting. Et

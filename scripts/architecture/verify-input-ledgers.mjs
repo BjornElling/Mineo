@@ -3,10 +3,9 @@
 // Zod-schemas og sammenholder consumers med faktiske exports/callsites. Dermed kan en statisk JSON-kopi ikke
 // få validatoren til at rapportere falsk grønt ved schema- eller entrypointdrift.
 //
-// **Gaten er permanent, ikke et migrationstrin (R1-F06).** Den blev indført som backstop under draft/commit-
-// omlægningen og var beskrevet som noget, der skulle bortfalde bagefter. Den kører nu som del af
-// `verify:release`, fordi det, den måler, ikke var midlertidigt: schema-drift og uregistrerede entrypoints er
-// stående risici. Fjern den ikke som "fase 0-rest".
+// **Gaten er permanent, ikke et migrationstrin.** Den kører som del af `verify:release`, fordi det, den
+// måler, ikke er midlertidigt: schema-drift og uregistrerede entrypoints er stående risici. Fjern den ikke
+// som en migrationsrest.
 
 import { existsSync, readFileSync, rmSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
@@ -35,12 +34,11 @@ const documentCount = readConstant(consumerSource, 'EXPECTED_DOCUMENT_COUNT');
 /**
  * De testfiler validatoren SKAL køre.
  *
- * `greenfieldPhase0Inventory.test.ts` stod her indtil Fase 6's genåbning – filen var omdøbt til
- * `consumerInventory.test.ts`, men scriptet blev ikke fulgt med. Vitest behandler en ukendt sti som
- * "intet match" frem for en fejl, så `npm run verify:ledgers` rapporterede grønt, mens det kun kørte
- * ÉN af de to filer: schema-drift-snapshottet og consumer-registrene var slet ikke dækket.
+ * Vitest behandler en ukendt sti som "intet match" frem for en fejl. Omdøbes en af filerne, uden at
+ * listen følger med, ville `npm run verify:ledgers` derfor rapportere grønt, mens det kun kørte den
+ * anden – og schema-drift-snapshottet eller consumer-registrene ville slet ikke være dækket.
  *
- * Derfor er listen nu eksplicit, OG kørslen verificeres mod et forventet antal testfiler. En
+ * Derfor er listen eksplicit, OG kørslen verificeres mod et forventet antal testfiler. En
  * validator, der kan rapportere grønt uden at have kørt noget, er værre end ingen validator.
  */
 const LEDGER_TEST_FILES = [
@@ -82,7 +80,7 @@ if (result.error !== undefined) throw result.error;
 if (result.status !== 0) process.exit(result.status ?? 1);
 
 // Bekræft at kørslen faktisk DÆKKEDE begge filer. Uden dette check kan en fremtidig omdøbning igen
-// reducere validatoren til en tom, grøn kørsel – præcis den fejl Fase 6's genåbning fandt.
+// reducere validatoren til en tom, grøn kørsel.
 if (!existsSync(reportPath)) {
   throw new Error('Inventarkørslen efterlod ingen JSON-rapport – dækningen kan ikke verificeres.');
 }

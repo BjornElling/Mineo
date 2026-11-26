@@ -121,7 +121,7 @@ const DEFAULT_TABLE_WIDTH_PX = 1200;
 const DEFAULT_COLUMN_WIDTH_PX = 120;
 
 /**
- * «Svie/smerte-dag» som sammentællingens «Svie/smerte»-rækker (BB-387); før «S/S dag». Brudt efter bindestregen,
+ * «Svie/smerte-dag» som sammentællingens «Svie/smerte»-rækker. Brudt efter bindestregen,
  * fordi hele ordet ikke kan stå på én linje i kolonnens 120 px.
  */
 const SVIE_SMERTE_DAG_HEADER = 'Svie/smerte-\ndag';
@@ -162,8 +162,8 @@ const computeSummaryTableRange = (
 };
 
 /**
- * Kontroltabellen har ansættelsesforholdskolonner (TAF-regulering og lønkolonnerne) kun med TAF-krav. Uden TAF
- * stod en tom «TAF-regulering» under et navnløst «Ansættelsesforhold 1» (BB-388). Sammentællingens
+ * Kontroltabellen har ansættelsesforholdskolonner (TAF-regulering og lønkolonnerne) kun med TAF-krav; ellers
+ * står en tom «TAF-regulering» under et navnløst «Ansættelsesforhold 1». Sammentællingens
  * ansættelsesforholdsrækker læser de samme kolonner og følger derfor samme gate.
  */
 export const harKontrolTabelAnsaettelsesforholdKolonner = (
@@ -568,8 +568,8 @@ export const buildEOInspektionModel = (
   ];
 
   // Rækken «Erstatningsperiode» viser fortsat en enlig dato, men kun en hel, ordnet periode afgrænser tabellen. En
-  // enlig Til-dato forlængede før dagtabellen og CSV-filen, mens Beregning meldte, at Fra manglede; en enlig Fra-dato
-  // gav en halv «Tabellen viser»-linje over en tom tabel (BB-465). De øvrige kilder bidrager kun med hele intervaller.
+  // enlig Til-dato ville ellers forlænge dagtabellen og CSV-filen, mens Beregning melder, at Fra mangler; en enlig
+  // Fra-dato ville give en halv «Tabellen viser»-linje over en tom tabel. De øvrige kilder bidrager kun med hele intervaller.
   const erstatningsperiodeErHel = erstatningsFra !== undefined && erstatningsTil !== undefined && erstatningsFra <= erstatningsTil;
   const rangeSources = erstatningsperiodeErHel
     ? sources
@@ -684,7 +684,7 @@ export const buildEOInspektionModel = (
     },
     {
       id: KONTROL_TABEL_COLUMN_IDS.shDay,
-      // Samme navn som sammentællingens «SH-dage» (BB-387); før «S/H dag».
+      // Samme navn som sammentællingens «SH-dage».
       header: 'SH-dag',
       align: 'center',
       width: DEFAULT_COLUMN_WIDTH_PX,
@@ -715,7 +715,7 @@ export const buildEOInspektionModel = (
     },
   ];
 
-  // TAF-dagene beregnes ét sted og læses både af kolonnen og af sammentællingen; før blev de beregnet to gange.
+  // TAF-dagene beregnes ét sted og læses både af kolonnen og af sammentællingen.
   const tafDayStatusByIndex = buildTafDayStatusValues({
     dates,
     erstatningsFra,
@@ -730,7 +730,7 @@ export const buildEOInspektionModel = (
   const tafDayColumns: KontrolTabelColumnData[] = isTafEnabledForSource
     ? [{
       id: KONTROL_TABEL_COLUMN_IDS.tafDay,
-      // Samme skrivemåde som «SH-dag» og «Svie/smerte-dag» (BB-387).
+      // Samme skrivemåde som «SH-dag» og «Svie/smerte-dag».
       header: 'TAF-dag',
       align: 'center',
       width: DEFAULT_COLUMN_WIDTH_PX,

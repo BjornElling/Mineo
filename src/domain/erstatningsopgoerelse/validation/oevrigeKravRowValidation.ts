@@ -7,19 +7,18 @@ import type { FieldIssue } from '../../../inputCore/inputIssue';
 /**
  * Én øvrige krav-rækkes vurdering – den ENE kilde til, hvad der er galt med en række, og hvordan det siges.
  *
- * Sektionen havde to lag, der vurderede samme række hver for sig (M-33): rækkebyggeren og validatoren. De var
- * uenige om ordlyd, alvor, relevans og om datoen var påkrævet, og brugeren fik begge svar – én tom datocelle
- * gav en rød linje uden link OG en gul med (BB-229). Nu vurderes rækken her, og begge lag læser resultatet:
+ * Vurderer rækkebyggeren og validatoren rækken hver for sig, kan de blive uenige om ordlyd, alvor, relevans og
+ * om datoen er påkrævet, og brugeren får begge svar. Rækken vurderes derfor her, og begge lag læser resultatet:
  *
- *  - **«Udgift til» og «Beløb» er påkrævede**, datoen er VALGFRI (udviklerafgørelse 2026-09-23): en udgift kan
+ *  - **«Udgift til» og «Beløb» er påkrævede**, datoen er VALGFRI (bevidst valg): en udgift kan
  *    mangle en nøjagtig dato og trykkes da uden datopræfiks.
  *  - **En rød celle meldes med sin egen tekst**, aldrig som tom. Readeren maskerer en rød værdi til tom, så
- *    en ugyldig dato blev før meldt som «Dato mangler» oveni sin egen fejl (BB-230).
+ *    en ugyldig dato ville ellers blive meldt som «Dato mangler» oveni sin egen fejl.
  *  - **Én linje pr. række, med rækkens navn og alle dens mangler.** Rækkebyggeren tilføjer dato og beløb,
  *    når rækker ellers har samme beskrivelse; hvis de stadig er identiske, også rækkens synlige rækkefølge
- *    (BB-231). En række med flere mangler giver fortsat kun én linje.
+ *    En række med flere mangler giver kun én linje.
  *
- * Feltnavnene står i «» (udviklerafgørelse 2026-09-23, BB-237): «Udgift til» og «Beløb» er også almindelige
+ * Feltnavnene står i «» (bevidst valg): «Udgift til» og «Beløb» er også almindelige
  * ord, og brugeren skal kunne se, at de henviser til en kolonne på siden.
  */
 
@@ -45,7 +44,7 @@ export type OevrigeKravRowAssessment =
   }>;
 
 /**
- * En dato uden for opgørelsens «Vedrører perioden». IKKE-blokerende (udviklerafgørelse 2026-09-23, BB-235): en
+ * En dato uden for opgørelsens «Vedrører perioden». IKKE-blokerende (bevidst valg): en
  * kvittering for fx medicin fra en tidligere erstatningsperiode kan legitimt først blive sendt senere og
  * medregnes i en senere opgørelse. Reglen må derfor ALDRIG gøres blokerende; den spørger kun, om datoen er
  * tastet rigtigt. Samme tekst står som gul ring ved cellen og – med rækkens navn – i «Fejl og advarsler».

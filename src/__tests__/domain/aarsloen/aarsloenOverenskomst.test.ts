@@ -53,7 +53,7 @@ const inputFor = (patch: Partial<AarsloenValues> = {}): SettledInput => catalog.
       tillaegAngivesSom: 'overenskomst',
       overenskomstId: 'bygge-anlaeg',
       reguleringsdato: iso('2024-03-01'),
-      // 12,5 % er feriegodtgørelse og kan ikke kombineres med fuld løn under ferie (rød, udviklerafgørelse 2026-11-04).
+      // 12,5 % er feriegodtgørelse og kan ikke kombineres med fuld løn under ferie (rød).
       feriePct: 12.5,
       fuldLoenUnderFerie: false,
       tableData: [row('r1', '1')],
@@ -147,17 +147,17 @@ describe('årslønnens overenskomstgrundlag', () => {
     expect(result.fieldIssues.length).toBeGreaterThan(0);
     expect(result.calculation).toBeNull();
     expect(evaluateAarsloenDownloadGate(result).canDownload).toBe(false);
-    // BB-402: løntabellens afledte kolonner må ikke regne de ukendte tillæg som 0 % og vise en delsum.
+    // Løntabellens afledte kolonner må ikke regne de ukendte tillæg som 0 % og vise en delsum.
     expect(result.tabelSatserUkendte).toBe(true);
   });
 
-  it('melder kendte satser til løntabellen, når opslaget lykkes – også ved en offentlig overenskomst uden sats (BB-402)', () => {
+  it('melder kendte satser til løntabellen, når opslaget lykkes – også ved en offentlig overenskomst uden sats', () => {
     expect(project().tabelSatserUkendte).toBe(false);
     expect(project({ overenskomstId: 'kl-overenskomst', fritvalgPct: 3, shSoPct: 4, pensionPct: 17 }).tabelSatserUkendte).toBe(false);
     expect(project({ tillaegAngivesSom: 'procent', overenskomstId: undefined, reguleringsdato: undefined }).tabelSatserUkendte).toBe(false);
   });
 
-  it('låser de offentlige satsfelter uden gyldig dato, bevarer brugerens tal og spærrer resultatet (BB-351)', () => {
+  it('låser de offentlige satsfelter uden gyldig dato, bevarer brugerens tal og spærrer resultatet', () => {
     const input = inputFor({
       overenskomstId: 'laerer-overenskomsten', reguleringsdato: iso('2100-01-01'),
       fritvalgPct: 3, shSoPct: 4, pensionPct: 5,
@@ -246,7 +246,7 @@ describe('årslønnens overenskomstgrundlag', () => {
     } as const;
     const udenOmregning = project(values);
     const medOmregning = project({ ...values, omregningTilFuldtAar: true });
-    // Den høje feriesats advares i Procent som i Overenskomst og på Lønindkomst (udviklerafgørelse 2026-10-27).
+    // Den høje feriesats advares i Procent som i Overenskomst og på Lønindkomst.
     const hoejFerie = resolveHoejFeriePctAdvarsel(21);
     expect(udenOmregning.calculation?.fejlmeddelelser).toEqual([hoejFerie]);
     expect(medOmregning.calculation?.fejlmeddelelser).toEqual([
@@ -319,8 +319,8 @@ describe('årslønnens overenskomstgrundlag', () => {
   });
 });
 
-describe('årslønnens overenskomst – efterreview 2026-10-27', () => {
-  it('advarer ikke om en SH/SO-sats, overenskomsten selv har fastsat og låst (BB-352)', () => {
+describe('årslønnens overenskomst – låste satser, manglende dato og kilde', () => {
+  it('advarer ikke om en SH/SO-sats, overenskomsten selv har fastsat og låst', () => {
     const result = project({ loenPaaHelligdage: 'Almindelig løn' });
     expect(result.values.shSoPct).toBe(8.8);
     expect(result.calculation?.fejlmeddelelser.some((tekst) => tekst.startsWith('En SH/SO-sats'))).toBe(false);
@@ -333,7 +333,7 @@ describe('årslønnens overenskomst – efterreview 2026-10-27', () => {
     );
   });
 
-  it('forklarer en manglende dato som manglende dato og viser ikke Store Bededag som 0 % (BB-349)', () => {
+  it('forklarer en manglende dato som manglende dato og viser ikke Store Bededag som 0 %', () => {
     const values = project({ reguleringsdato: undefined }).values;
     const bindings = resolveAarsloenSatsBindings(values);
     expect(bindings.pensionPct.kind).toBe('utilgaengelig');
@@ -354,7 +354,7 @@ describe('årslønnens overenskomst – efterreview 2026-10-27', () => {
     )).toContain('har ingen satser før 01-03-2011');
   });
 
-  it('låser også offentlige satsfelter, indtil overenskomst og dato er valgt (BB-351)', () => {
+  it('låser også offentlige satsfelter, indtil overenskomst og dato er valgt', () => {
     const udenDato = resolveAarsloenSatsBindings(project({ overenskomstId: 'laerer-overenskomsten', reguleringsdato: undefined }).values);
     expect(udenDato.pensionPct.kind).toBe('utilgaengelig');
     const udenValg = resolveAarsloenSatsBindings(project({ overenskomstId: undefined }).values);
@@ -364,7 +364,7 @@ describe('årslønnens overenskomst – efterreview 2026-10-27', () => {
     expect(medDato.pensionPct.kind).toBe('overenskomst');
   });
 
-  it('samler manglende forudsætninger som blokerende fejl med feltets sektion (BB-350)', () => {
+  it('samler manglende forudsætninger som blokerende fejl med feltets sektion', () => {
     const result = project({ overenskomstId: undefined, reguleringsdato: undefined });
     const rows = buildAarsloenIssueRows({
       beregningsFejl: null,
@@ -382,7 +382,7 @@ describe('årslønnens overenskomst – efterreview 2026-10-27', () => {
       expect.objectContaining({ severity: 'error', message: 'Overenskomst mangler', target: expect.objectContaining({ sectionName: 'Lønforhold' }) }),
       expect.objectContaining({ severity: 'error', message: 'Reguleringsdato mangler', target: expect.objectContaining({ sectionName: 'Lønforhold' }) }),
       expect.objectContaining({ severity: 'warning', message: 'En advarsel' }),
-      // En rækkeadvarsel fører til sin celle (BB-289/BB-298), som EO's.
+      // En rækkeadvarsel fører til sin celle, som EO's.
       expect.objectContaining({
         severity: 'warning',
         target: { kind: 'field', address: aarsloenReguleringsdatoField.bind().address, sectionName: 'Indtægtsoplysninger' },
@@ -401,7 +401,7 @@ describe('årslønnens overenskomst – efterreview 2026-10-27', () => {
     expect(rows[0]?.message.startsWith('Reguleringsdato')).toBe(true);
   });
 
-  it('angiver overenskomst og satsdato som dokumentets kilde til satserne (BB-355)', () => {
+  it('angiver overenskomst og satsdato som dokumentets kilde til satserne', () => {
     expect(resolveAarsloenSatsKilde(project().values)).toEqual({
       overenskomst: 'Bygge-/anlægsoverenskomsten (3F / Dansk Industri)',
       dato: '01-03-2024',

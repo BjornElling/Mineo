@@ -816,7 +816,7 @@ describe('buildLoenudviklingModel', () => {
   //
   // deltaPct = (idx[segment] / idx[base] − 1) × 100, afrundet halfAwayFromZero til
   // to decimaler. Base = seneste kvartalsindeks ≤ reguleringsdato. Grænserne (før
-  // første kvartal, efter sidste kvartal, hul midt i serien) er reviewets fokus.
+  // første kvartal, efter sidste kvartal, hul midt i serien) er det, testene måler.
   const buildStatistikModel = (
     model: string,
     regDato: string,
@@ -1732,7 +1732,7 @@ describe('buildLoenudviklingModel – Overenskomst offentlig (KL)', () => {
     expect(model.beregnedeSegmenter.some((s) => s.deltaPct > 0)).toBe(true);
   });
 
-  it('TD-020: RLTN-facit føres fra løntrinssats til regulerede segmenter', () => {
+  it('RLTN-facit føres fra løntrinssats til regulerede segmenter', () => {
     const fraDato = iso('2024-04-01');
     const tilDato = iso('2024-10-01');
     const values = createErstatningsopgoerelseInitialValues();
@@ -1813,7 +1813,7 @@ describe('buildLoenudviklingModel – Overenskomst offentlig (KL)', () => {
   });
 });
 
-describe('TD-020 – sygedagpenge fra satsrække til indkomstperiode', () => {
+describe('sygedagpenge fra satsrække til indkomstperiode', () => {
   it('fastholder 2025-satsen, den genererede række og første uges indkomst', () => {
     const fraDato = iso('2025-01-06');
     const tilDato = iso('2025-01-17');

@@ -15,7 +15,7 @@ import { useAarsloenVm } from './aarsloenContext';
  *
  * Procentfelternes 0–100-grænser er canonical bounds-feltvalidatorer, ikke props; et input uden for intervallet
  * er en rød feltfejl, som gater beregningen (§1.6). I Overenskomst er fritvalg, SH/SO og pension låste, indtil
- * overenskomst og gyldig dato kendes (BB-351); Store Bededagstillæg er altid afledt.
+ * overenskomst og gyldig dato kendes; Store Bededagstillæg er altid afledt.
  */
 const AarsloenSatserSection = React.memo(() => {
   const { fields, locations, values, feriePctRuleIssue } = useAarsloenVm();

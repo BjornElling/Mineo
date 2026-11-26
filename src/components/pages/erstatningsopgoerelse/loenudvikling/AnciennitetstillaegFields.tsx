@@ -11,18 +11,13 @@ import type { FieldWarning } from '../../../../inputCore/fieldWarning';
 /**
  * Den fælles Anciennitetstillæg-blok.
  *
- * Blokken sad ordret to gange – `AnsaettelsesforholdCard.tsx` (61 l.) og
- * `IndtaegtFoerSkadenSection.tsx` (47 l.) – umiddelbart efter `LoenudviklingFields` på begge
- * overflader. Den slap gennem #1/#22, fordi den ligger UDEN for Lønudvikling-fladen selv, men
- * det er samme duplikering af samme grund, og derfor samme løsning: ét sted, med bindingen
- * injiceret af ejeren.
+ * Blokken står umiddelbart efter `LoenudviklingFields` på begge overflader (`AnsaettelsesforholdCard.tsx`
+ * og `IndtaegtFoerSkadenSection.tsx`). Samme begrundelse som for Lønudvikling-fladen: ét sted, med
+ * bindingen injiceret af ejeren.
  *
- * **Satsens enhed vælges ens på begge overflader.** Lønindkomst lod brugeren vælge
- * (`anciennitetstillaegSatsAngivesPer`: Time/Måned), mens EO-oplysninger udledte enheden af
- * «Beregnes ud fra» og ikke viste noget valg. Forskellen er besluttet væk (afklaringslog 10a i
- * `docs/review/regulering-taf-gennemgang-2026-10-13.md`): enheden gemmes med beløbet og udledes aldrig
- * af et andet felt. Rækken ligger derfor her som én fælles række i stedet for den tidligere slot, der
- * kun fandtes for at gøre forskellen synlig.
+ * **Satsens enhed vælges ens på begge overflader** (`anciennitetstillaegSatsAngivesPer`: Time/Måned).
+ * Bevidst valg: enheden gemmes med beløbet og udledes aldrig af et andet felt (fx «Beregnes ud fra»).
+ * Rækken ligger derfor her som én fælles række.
  */
 export type AnciennitetstillaegFieldsProps = Readonly<{
   /** Adresse + location pr. logisk felt for den aktuelle overflade. */
@@ -39,7 +34,7 @@ export type AnciennitetstillaegFieldsProps = Readonly<{
   harAnciennitetstillaeg: boolean;
   /**
    * Datoens projekterede regel og gule advarsel: rød ved en dato på eller før reguleringsdatoen, gul ved en dato
-   * efter erstatningsperioden (BB-305). Ejeren slår dem op på sin egen bundne adresse.
+   * efter erstatningsperioden. Ejeren slår dem op på sin egen bundne adresse.
    */
   datoFeedback: Readonly<{ crossFieldIssue?: FieldIssue; warning?: FieldWarning }>;
   /** Referenceteksten i toggle-rækkens etiket (fx «efter reguleringsdatoen …»). */

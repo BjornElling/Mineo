@@ -191,9 +191,9 @@ describe('Autofill-suggest i Offentlige ydelser-tabellen', () => {
     await focusTableElement(cellInput(2, 'Fra dato'));
     expect(cellInput(2, 'Fra dato')).toHaveAttribute('placeholder', '01-01-2026');
 
-    // Beløbet standsede tidligere ved årsskiftet. Reglen er væk (udviklerens beslutning 2026-09-07):
-    // ghosten er værdien i cellen ovenover, og en tom beløbscelle ved et årsskifte var i praksis en
-    // manglende ghost uden nogen forklaring i det, brugeren kunne se.
+    // Beløbet standser bevidst ikke ved årsskiftet: ghosten er værdien i cellen ovenover, og en tom
+    // beløbscelle ved et årsskifte ville i praksis være en manglende ghost uden nogen forklaring i det,
+    // brugeren kan se.
     await focusTableElement(cellInput(2, 'Ydelse'));
     expect(cellInput(2, 'Ydelse')).toHaveAttribute('placeholder', '3.100,00');
   });
@@ -242,8 +242,8 @@ describe('Autofill-suggest i Offentlige ydelser-tabellen', () => {
     await focusTableElement(cellInput(2, 'Fra dato'));
     expect(cellInput(2, 'Fra dato')).toHaveAttribute('placeholder', '01-03-2026');
 
-    // Grid-core'ens logiske fokuscelle blev tidligere ALDRIG ryddet, så ghosten stod tilbage i en
-    // tabel, brugeren var gået fra – og i én celle pr. tabel, han havde besøgt.
+    // Grid-core'ens logiske fokuscelle skal ryddes, når fokus forlader tabellen; ellers står ghosten
+    // tilbage i en tabel, brugeren er gået fra – og i én celle pr. tabel, han har besøgt.
     await focusTableElement(screen.getByRole('button', { name: 'uden for tabellen' }));
     expect(cellInput(2, 'Fra dato')).toHaveAttribute('placeholder', 'dd-mm-åååå');
     expect(screen.queryByText(/^Forslag:/)).not.toBeInTheDocument();
@@ -355,7 +355,7 @@ describe('Autofill-suggest i rentetabellen', () => {
     renderInRuntime(<RenteAutofillTable isMobile={isMobile} />);
   };
 
-  // Udviklerbeslutning 2026-11-03: autofill vises aldrig i mobilvisning (MinProcesrentes mobilopstilling).
+  // Bevidst valg: autofill vises aldrig i mobilvisning (MinProcesrentes mobilopstilling).
   it.each([
     ['Beløb', '0,00'],
     ['Forfaldsdato', 'dd-mm-åååå'],

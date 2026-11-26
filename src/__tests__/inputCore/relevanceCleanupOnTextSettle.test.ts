@@ -43,7 +43,7 @@ describe('rydning af skjulte røde felter ved en tekstindtastning (§7.5 pkt. 2)
     expect(createValidationReader(input, catalog).readCanonical(eoNummerField.bind())).toBe('1');
   });
 
-  it('rydder en rød «Løse ferie-/feriefridage», når en indtastning under Lønindkomst skifter TAF til måneder (BB-247)', () => {
+  it('rydder en rød «Løse ferie-/feriefridage», når en indtastning under Lønindkomst skifter TAF til måneder', () => {
     // Beregningsperiode + et ansættelsesforhold uden fuld løn under ferie med løn i perioden: arbejdsdage.
     const eo = {
       ...createErstatningsopgoerelseInitialValues(),

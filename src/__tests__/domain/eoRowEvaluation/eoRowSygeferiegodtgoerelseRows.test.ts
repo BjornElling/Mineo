@@ -156,7 +156,7 @@ describe('buildEoSygeferiegodtgoerelseRows', () => {
       (row) => row.id === `sfgg.advarsel.seksmaaneder.${values.loenindkomstAnsaettelsesforhold[0].id}`
     );
     expect(warningRow?.status).toBe('warning');
-    // Samme tekst som på kortet; linket fører til togglen «Opsagt fra stillingen» (BB-325).
+    // Samme tekst som på kortet; linket fører til togglen «Opsagt fra stillingen».
     expect(warningRow?.message).toBe(
       "Der er ikke registreret løn fra Arbejdssted 1 efter 31-01-2024. Er skadelidte opsagt, angives det under 'Opsagt fra stillingen' – retten til sygeferiegodtgørelse ophører da."
     );
@@ -1692,8 +1692,8 @@ describe('buildEoSygeferiegodtgoerelseRows', () => {
   });
 
   it('viser fejl når direkte overenskomstsats kun mangler i en del af TAF-perioden', () => {
-    // Fund C (2026-11-25): Transportoverenskomsten (ATL) har satser fra 01-03-2011. Dagene før faldt før ud af
-    // kravet uden besked, og opgørelsen kunne hentes; nu spærrer det som når hele perioden mangler sats.
+    // Transportoverenskomsten (ATL) har satser fra 01-03-2011. Dagene før må ikke falde ud af kravet uden
+    // besked; det spærrer som når hele perioden mangler sats.
     const values = createValues();
     values.eoNummer = '2';
     values.beregnesUdFra = 'Angivet dagsløn';
@@ -1889,7 +1889,7 @@ describe('buildEoSygeferiegodtgoerelseRows', () => {
     values.loenindkomstAnsaettelsesforhold[0] = {
       ...values.loenindkomstAnsaettelsesforhold[0],
       feriePct: 12.5,
-      // Referenceperioden (december 2023) skal have løn – en periode uden løn giver ingen sats (BB-319).
+      // Referenceperioden (december 2023) skal have løn – en periode uden løn giver ingen sats.
       indtaegtsoplysningerTableData: [{
         id: 'loen-dec-2023',
         col0_maaned: '12',
@@ -1959,7 +1959,7 @@ describe('buildEoSygeferiegodtgoerelseRows', () => {
     values.loenindkomstAnsaettelsesforhold[0] = {
       ...values.loenindkomstAnsaettelsesforhold[0],
       feriePct: 12.5,
-      // Referenceperioden (december 2023) skal have løn – en periode uden løn giver ingen sats (BB-319).
+      // Referenceperioden (december 2023) skal have løn – en periode uden løn giver ingen sats.
       indtaegtsoplysningerTableData: [{
         id: 'loen-dec-2023',
         col0_maaned: '12',

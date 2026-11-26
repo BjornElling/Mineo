@@ -40,7 +40,7 @@ const recordCurve = (points: readonly { x: number; y: number }[]): DrawCommand[]
 
 // Rene tegne-/sampling-helpers fra TAF-kravgrafen. De er præsentationsgeometri (de tal
 // brugeren stoler på står i TAF-tabellerne med egne tests), men er rene og deterministiske,
-// så deres invarianter låses her – de var tidligere udækkede (udskudt fund fra 10.6).
+// så deres invarianter låses her.
 
 describe('tafKravGrafScene – niceCeil', () => {
   it('returnerer 0 for ikke-positive værdier', () => {
@@ -273,7 +273,7 @@ describe('tafKravGrafScene – buildWindowSamples', () => {
     expect(columnsAtFeb1).toHaveLength(0);
   });
 
-  it('viser et kort niveau mellem to positive niveauer, selv når det ikke rammer månedens midtpunkt (BB-460)', () => {
+  it('viser et kort niveau mellem to positive niveauer, selv når det ikke rammer månedens midtpunkt', () => {
     const document = {
       model: { titel: 'x' },
       unit: 'kalenderdag',

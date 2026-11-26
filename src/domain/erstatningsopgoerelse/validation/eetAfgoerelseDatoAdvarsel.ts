@@ -14,8 +14,8 @@ import { EET_AFGOERELSE_DATO_UOVERENSSTEMMELSE_IDS } from '../../erhvervsevnetab
 // Datoerne for den midlertidige og den endelige EET-afgørelse står to steder, mens midlertidigt EET hentes fra
 // Erhvervsevnetab-siden: på EO oplysninger, hvor de afskærer TAF (endelig altid, midlertidig ved skader før
 // 16-06-2011) og står i dokumentets tekst, og i Erhvervsevnetab-sidens afgørelsestabel, hvor de bestemmer, hvornår
-// det hentede fradrag løber. Intet sammenholdt dem, så dokumentet kunne nævne én dato, mens fradraget byggede på en
-// anden. Advarslen er gul og ændrer intet i beregningen (udviklerafgørelse 2026-11-04).
+// det hentede fradrag løber. Uden advarslen kan dokumentet nævne én dato, mens fradraget bygger på en
+// anden. Advarslen er bevidst gul og ændrer intet i beregningen.
 //
 // Den gælder kun, når Erhvervsevnetab-siden HAR afgørelser af den pågældende slags: uden en midlertidig afgørelse
 // siger «ingen ydelser»-advarslen det allerede, og en endelig afgørelse behøver ikke stå på Erhvervsevnetab-siden,

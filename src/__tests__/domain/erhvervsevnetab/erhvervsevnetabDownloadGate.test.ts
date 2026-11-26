@@ -26,7 +26,7 @@ import type {
 
 // Erhvervsevnetabs download-gate (§3.4/§5.4/§1.10). Beviser at gaten:
 //   (a) pr. fane oversætter snapshottets `hasBlockingErrors`/`computation` til den korrekte reason-kode
-//       (field-error vs missing-fields vs no-result vs tilladt), som den tidligere `!hasBlockingErrors && computation`,
+//       (field-error vs missing-fields vs no-result vs tilladt),
 //   (b) bevarer den DEPENDENCY-SPECIFIKKE per-fane-blokering (§1.10), herunder differencekravets EAL-afhængighed,
 //   (c) prioriterer en rød feltfejl over en manglende-felt-fejl,
 //   (d) bygger på den ENE reader-projektion, så gaten og sidevisningen ikke kan drifte fra hinanden.
@@ -125,7 +125,7 @@ describe('evaluateEetFaneDownloadGate (ren sandhedstabel)', () => {
   it('blokerer med field-error ved en rød feltfejl', () => {
     const gate = evaluateEetFaneDownloadGate('efterEal', faneProjection([fieldIssue('field-eal-eet-pct')], null));
     expect(gate.canDownload).toBe(false);
-    // `invalid-input`, ikke `missing-input`: der ER indtastet noget, det er blot ugyldigt (brugerkrav 2026-07-30).
+    // `invalid-input`, ikke `missing-input`: der ER indtastet noget, det er blot ugyldigt.
     expect(gate.reasons[0]).toEqual({ code: 'eet-efter-eal:field-error', message: 'Fejl i indtastning', kind: 'invalid-input' });
   });
 

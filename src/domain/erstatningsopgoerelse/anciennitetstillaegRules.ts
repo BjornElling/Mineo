@@ -13,7 +13,7 @@ import { round2 } from '../../utils/roundingShortcuts';
 
 // Anciennitetstillæggets regler – ét sted for begge ejere (ansættelsesforholdet og den angivne løn). Tillægget
 // indgår kun ved reguleringsformen Overenskomst; relevansen på felterne sørger for, at et skjult tillæg læses som
-// slået fra (BB-301).
+// slået fra.
 
 const anvendtReguleringsdatoFor = (
   values: ErstatningsopgoerelseValues,
@@ -27,7 +27,7 @@ const anvendtReguleringsdatoFor = (
   skadedato,
 });
 
-/** Beskeden ved en anciennitetsdato på eller før reguleringsdatoen. Validatoren bruger samme tekst (BB-305). */
+/** Beskeden ved en anciennitetsdato på eller før reguleringsdatoen. Validatoren bruger samme tekst. */
 export const resolveAnciennitetstillaegDatoForTidligBesked = (
   values: ErstatningsopgoerelseValues,
   source: LoenudviklingSource,
@@ -61,8 +61,7 @@ const satsField = (values: ErstatningsopgoerelseValues, source: LoenudviklingSou
 
 /**
  * En anciennitetsdato på eller før reguleringsdatoen som rød feltfejl. Spørgsmålet over feltet siger selv «efter
- * beregningsperiodens udløb (…)», men reglen stod kun i validatoren og spærrede uden rød ring og uden link
- * (BB-305).
+ * beregningsperiodens udløb (…)»; en regel, der kun står i validatoren, ville spærre uden rød ring og uden link.
  */
 export const collectAnciennitetstillaegDatoIssues = (
   values: ErstatningsopgoerelseValues,
@@ -91,17 +90,16 @@ export type AnciennitetstillaegMangel = Readonly<{
 }>;
 
 /**
- * Et anciennitetstillæg, der er slået til uden dato eller sats. Det blev før droppet tavst, mens papiret trykte
- * «Indtastning mangler» (BB-304). Linjen spærrer og peger på det første tomme felt; felterne får ingen rød ring,
- * fordi brugeren ikke har skrevet i dem (samme afgørelse som den tomme feriesats, BB-274).
+ * Et anciennitetstillæg, der er slået til uden dato eller sats. Det må ikke droppes tavst, mens papiret trykker
+ * «Indtastning mangler». Linjen spærrer og peger på det første tomme felt; felterne får ingen rød ring,
+ * fordi brugeren ikke har skrevet i dem (samme regel som den tomme feriesats).
  */
 export const resolveAnciennitetstillaegMangel = (
   values: ErstatningsopgoerelseValues,
   source: LoenudviklingSource,
   /**
    * Har feltet en rød fejl? Et afvist udtryk (fx `1/0`) læses som tomt, men er ikke en mangel: feltets egen linje
-   * siger, hvad der skal rettes. Uden værnet fik én indtastning to linjer, den ene om en sats, der ikke manglede
-   * (BB-447, M-58).
+   * siger, hvad der skal rettes. Uden værnet får én indtastning to linjer, den ene om en sats, der ikke mangler.
    */
   harFeltfejl: (field: 'anciennitetstillaegDato' | 'anciennitetstillaegSats') => boolean = () => false,
 ): AnciennitetstillaegMangel | undefined => {
@@ -119,7 +117,7 @@ export const resolveAnciennitetstillaegMangel = (
   };
 };
 
-/** Gul advarsel: tillægget opnås først efter erstatningsperioden og ændrer derfor intet (BB-305). */
+/** Gul advarsel: tillægget opnås først efter erstatningsperioden og ændrer derfor intet. */
 export const ANCIENNITETSTILLAEG_EFTER_TAF_ADVARSEL = 'Tillægget opnås først efter EO-perioden og indgår ikke';
 
 export const erAnciennitetstillaegEfterTafPerioden = (
@@ -163,7 +161,7 @@ export const buildAnciennitetstillaegOverTrinloenBesked = (tillaeg: number, trin
 /**
  * Tillægget omregnet til løntrinnets enhed, når det er større end selve trinlønnen på reguleringsdatoen – typisk en
  * månedssats angivet pr. time eller en ekstra nulgruppe. Omregningen er motorens (`resolveAnciennitetForIndex`:
- * timer→måned-faktoren og afrunding til øre). Udviklerafgørelse 2026-11-24 (BB-446): gul ring og linje, ingen
+ * timer→måned-faktoren og afrunding til øre). Bevidst valg: gul ring og linje, ingen
  * spærring. Uden et opslåeligt løntrin (fx privat overenskomst) er der intet at sammenligne med.
  */
 const resolveAnciennitetstillaegOverTrinloen = (

@@ -34,10 +34,9 @@ export type RoundingMethod = 'halfAwayFromZero' | 'floor' | 'ceil' | 'none';
  * Fjerner binær regnestøj fra det skalerede tal, før det afrundes.
  *
  * Et produkt, der i decimaler går præcis op, kan som kommatal ligge lige ved siden af: 64.500 × (1 − 18/100)
- * bliver 52.890,00000000001 og 100.050 × 0,29 bliver 29.014,499999999996. Uden rensning rundede `ceil` det
- * første op til 52.891 (varigt mén 1 kr. for højt) og «half away from zero» det andet ned til 29.014. Det
- * tidligere tillæg af `Number.EPSILON` virkede kun under 1 (værdiklasse-gennemgangen 2026-11-24, fund A,
- * godkendt af udvikleren 2026-11-25).
+ * bliver 52.890,00000000001 og 100.050 × 0,29 bliver 29.014,499999999996. Uden rensning runder `ceil` det
+ * første op til 52.891 (varigt mén 1 kr. for højt) og «half away from zero» det andet ned til 29.014. Et
+ * tillæg af `Number.EPSILON` er ikke nok: det virker kun under 1.
  *
  * 15 betydende cifre er det, et kommatal altid kan bære præcist. Den rensede værdi bruges kun, når den ligger
  * under en milliontedel af afrundingsenheden fra den rå: så fjernes kun støj, aldrig en reel brøkdel, og et

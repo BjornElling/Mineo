@@ -156,7 +156,7 @@ const expectedContent = [
 const runDocument = (session: Parameters<typeof generateAarsloenDocument>[0]) =>
   generateAarsloenDocument(session, params);
 
-describe('TD-014/TD-018 – Årslønens faktiske PDF- og Word-artefakter', () => {
+describe('Årslønens faktiske PDF- og Word-artefakter', () => {
   it('bevarer statisk titel, synligt indhold og filmetadata i begge kanaler', async () => {
     const pdfArtifact = await withDocumentUnavailable(async () => {
       const session = await createRealPdfDocumentSessionForTest();

@@ -118,7 +118,7 @@ describe('auth', () => {
     expect(() => setAuthenticated()).toThrow(/tillad websitedata/i);
   });
 
-  // BB-055: adgangskoden kopieres typisk fra den mail, den blev sendt i, og markeringen tager næsten
+  // Adgangskoden kopieres typisk fra den mail, den blev sendt i, og markeringen tager næsten
   // altid det afsluttende mellemrum eller linjeskift med. Feltet viser prikker, så der er intet at se
   // – uden trim er den eneste vej ind spærret af et tegn, brugeren ikke kan opdage.
   it('godkender den delte adgangskode med blanktegn i enderne', async () => {

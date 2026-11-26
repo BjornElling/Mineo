@@ -51,8 +51,7 @@ describe('parsePercentToDecimal', () => {
 
   it('"12.5" (punkt som decimaltegn) → 0 (dansk locale: punkt er IKKE decimaltegn)', () => {
     // Konsolideret locale-politik: komma er decimaltegn, punktum er tusindtalsseparator.
-    // "12.5" har ikke punktum efterfulgt af præcis 3 cifre → ugyldigt → 0.
-    // (Tidligere tolererede denne ene parser punkt-decimal; nu er reglen ens overalt.)
+    // "12.5" har ikke punktum efterfulgt af præcis 3 cifre → ugyldigt → 0. Reglen er ens for alle parsere.
     expect(parsePercentToDecimal('12.5')).toBe(0);
   });
 
@@ -99,7 +98,7 @@ describe('parsePercentPointString (kanonisk pct-point-parser)', () => {
   });
 
   it('ingen float-artefakt: heltals-pct er eksakt (modsat /100*100-round-trip)', () => {
-    // parsePercentToDecimal('15')*100 gav tidligere 15.000000000000002; den kanoniske
+    // parsePercentToDecimal('15')*100 giver 15.000000000000002; den kanoniske
     // pct-point-parser returnerer eksakt 15.
     expect(parsePercentPointString('15')).toBe(15);
     expect(parsePercentToDecimal('15')).toBeCloseTo(0.15, 12);

@@ -249,9 +249,9 @@ describe('computeEetDifferencekravCalculation', () => {
       expect(result.computation?.loebendeComputation?.afgoerelser[0]?.ophoerAarsag).toBe('beregningsdato');
       expect(result.computation?.loebendeComputation?.afgoerelser[0]?.ophoerDato).toBe(toISODateString('2022-03-31'));
       expect(kroner(result.computation?.fradragKapitaliseretEetOre)).toBe(0);
-      // Udviklerens afgørelse 2026-11-12: 2022-04-01 – 2022-06-30 = 3 mdr. til folkepensionsdatoen.
+      // 2022-04-01 – 2022-06-30 = 3 mdr. til folkepensionsdatoen.
       // Særfaktor 1,245 (Vejl. 9864/2021) nedsættes til round3(1,245 x 3/24) = round3(0,155625) = 0,156.
-      // Tidligere fratrak reglen de resterende ydelser fuldt: 3 x 16.200 = 48.600 kr.
+      // Et fuldt fradrag af de resterende ydelser ville være 3 x 16.200 = 48.600 kr.
       const pk = result.computation?.proformaKapitalisering;
       expect(result.computation?.resterendeLoebendeYdelser).toBeNull();
       expect(pk).toMatchObject({
@@ -264,7 +264,7 @@ describe('computeEetDifferencekravCalculation', () => {
       });
       expect(kroner(pk?.proformaBeloebOre)).toBe(Math.ceil(kroner(pk?.aarsydelseOre) * 0.156));
       expect(kroner(pk?.proformaBeloebOre)).toBe(30326);
-      // 638.230 kr. efter den tidligere regel + 48.600 – 30.326 = 656.504 kr.
+      // 638.230 kr. med fuldt fradrag + 48.600 – 30.326 = 656.504 kr.
       expect(kroner(result.computation?.differencekravOre)).toBe(656504);
     });
   });
@@ -423,7 +423,7 @@ describe('computeEetDifferencekravCalculation', () => {
       expect(kroner(c.fradragKapitaliseretEetOre)).toBe(119611);
 
       // 2021-12-01 – 2022-06-30 = 7 mdr.; særfaktor 1,245 (Vejl. 9741/2020):
-      // round3(1,245 x 7/24) = round3(0,363125) = 0,363. Tidligere: 7 x 8.007 = 56.049 kr.
+      // round3(1,245 x 7/24) = round3(0,363125) = 0,363 (fuldt fradrag ville være 7 x 8.007 = 56.049 kr.).
       expect(c.resterendeLoebendeYdelser).toBeNull();
       expect(c.proformaKapitalisering).toMatchObject({
         loebendeEetPct: 30,
@@ -573,7 +573,7 @@ describe('computeEetDifferencekravCalculation', () => {
     expect(result.computation?.afgoerelser[0]?.rowId).toBe('a1');
   });
 
-  it('regner en afgørelse uden virkningsdato fra afgørelsesdatoen (BB-368)', () => {
+  it('regner en afgørelse uden virkningsdato fra afgørelsesdatoen', () => {
     const result = computeEetDifferencekravCalculation({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
@@ -703,7 +703,7 @@ describe('computeEetDifferencekravCalculation', () => {
     expect(result.issues.some((issue) => issue.id === 'no-asl-afgoerelser-known-at-beregningsdato')).toBe(false);
   });
 
-  it('melder kun ASL-årslønnens mangel, fordi differencekravet kræver den (BB-418)', () => {
+  it('melder kun ASL-årslønnens mangel, fordi differencekravet kræver den', () => {
     const result = computeEetDifferencekravCalculation({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
@@ -732,7 +732,7 @@ describe('computeEetDifferencekravCalculation', () => {
     expect(ids).not.toContain('eal-aarsloen-missing');
   });
 
-  it('lader kapitaliseringsbilaget vise de samme kapitaliseringer, som opgørelsen trækker fra (BB-420)', () => {
+  it('lader kapitaliseringsbilaget vise de samme kapitaliseringer, som opgørelsen trækker fra', () => {
     const result = computeEetDifferencekravCalculation({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
@@ -772,7 +772,7 @@ describe('computeEetDifferencekravCalculation', () => {
     expect(result.computation?.kapComputation?.afgoerelser).toEqual([]);
   });
 
-  it('kalder ikke tabellen tom, når en påbegyndt afgørelse allerede får sine konkrete mangler (BB-423)', () => {
+  it('kalder ikke tabellen tom, når en påbegyndt afgørelse allerede får sine konkrete mangler', () => {
     const result = computeEetDifferencekravCalculation({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
@@ -806,7 +806,7 @@ describe('computeEetDifferencekravCalculation', () => {
     expect(result.hasBlockingErrors).toBe(true);
   });
 
-  it('bevarer tomhedsmeldingen som blokering, når den påbegyndte række ikke giver en konkret mangel her (BB-423)', () => {
+  it('bevarer tomhedsmeldingen som blokering, når den påbegyndte række ikke giver en konkret mangel her', () => {
     const result = computeEetDifferencekravCalculation({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
@@ -918,7 +918,7 @@ describe('computeEetDifferencekravCalculation', () => {
       indregnMerErstatningVedForhoejetPensionsalder: false,
     });
 
-    // Blokerede indtil 2026-11-12, fordi særfaktoren 1,168 (§ 1, stk. 11) aldrig var indlæst.
+    // Særfaktoren 1,168 (§ 1, stk. 11) er registreret, så beregningen blokerer ikke.
     expect(result.hasBlockingErrors).toBe(false);
     const pk = result.computation?.proformaKapitalisering;
     expect(pk?.kapitaliseretPgaUnderToAarTilFp).toBe(false);
@@ -1427,7 +1427,7 @@ describe('computeEetDifferencekravCalculation', () => {
       // overlappende vindue, og der er derfor intet at gøre endeligt med tilbagevirkende kraft.
       // Midlertidigs løbende ydelse afsluttes naturligt dagen før den endeliges cutover (30-09-2019),
       // og den endelige fradrages fuldt fra sin egen virkning (01-10-2019). TVK er hverken nødvendig
-      // eller aktiv. Låser fund 2's "ikke-overlap"-tilfælde: faktisk udbetalt midlertidig ydelse
+      // eller aktiv. Låser "ikke-overlap"-tilfældet: faktisk udbetalt midlertidig ydelse
       // dækkes allerede uden TVK, fordi der ikke er noget hul mellem afgørelserne.
       const result = computeEetDifferencekravCalculation({
         erhvervsevnetab: {
@@ -1481,7 +1481,7 @@ describe('computeEetDifferencekravCalculation', () => {
     });
 
     it('omvendt rækkefølge: midlertidig truffet efter endelig fradrages stadig (bevidst – rækkefølge gates ikke)', () => {
-      // Bevidst designvalg (jf. review): TVK-reglen gates IKKE på, at den midlertidige er truffet
+      // Bevidst designvalg: TVK-reglen gates IKKE på, at den midlertidige er truffet
       // før den endelige. Så længe datoerne overlapper, fradrages den midlertidiges egen ydelse.
       // Fane 2 markerer sagen med en advarsel, men blokerer ikke beregningen.
       const result = computeEetDifferencekravCalculation({
@@ -1684,11 +1684,9 @@ describe('computeEetDifferencekravCalculation – fradrag 4 (mer-erstatning ved 
   });
 
   /**
-   * BB-189: mer-erstatningens issues blev skrevet i en lokal liste, der ALDRIG blev merget. Fejlede et
-   * bekendtgørelses-, tabel- eller faktoropslag på en forhøjelsesdato, udgik fradraget TAVST, og
-   * differencekravet blev tilsvarende for højt – i den målte sag ville 26.072 + 43.453 kr. være
-   * forsvundet, uden at noget sagde det. Udvikleren afgjorde 2026-09-09, at beregningen skal være
-   * fail-closed: fradraget udgår fortsat (et forkert fradrag er værre end intet), OG downloaden
+   * Fejler et bekendtgørelses-, tabel- eller faktoropslag i mer-erstatningen på en forhøjelsesdato, må
+   * fradraget ikke udgå TAVST – ellers bliver differencekravet tilsvarende for højt, uden at noget siger
+   * det. Beregningen er derfor fail-closed (bevidst valg): fradraget udgår fortsat (et forkert fradrag er værre end intet), OG downloaden
    * blokeres med den konkrete opslagsfejl.
    */
   it('blokerer differencekravet, hvis mer-erstatningens faktoropslag fejler', () => {

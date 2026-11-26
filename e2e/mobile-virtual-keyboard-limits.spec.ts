@@ -5,15 +5,14 @@ import { expect, test } from './support/mineoTest';
  * Tegn- og længdeværnet må ikke afhænge af, HVORDAN tegnet kom ind i feltet
  * (`input-field-behavior-contract.md` §1.2).
  *
- * **Fejlen testen er skrevet efter (brugerfund, mobil).** Værnet var udelukkende et `keydown`-filter:
- * `filterDateLikeKeyDown` beregnede den kommende draft ud fra `e.key` og kaldte `preventDefault()`. Det
- * forudsætter en tast med et brugbart `key` – og et mobilt skærmtastatur leverer ikke det. Det skriver
- * tegnet direkte i `<input>` og fyrer et `input`-event; den `keydown`, der eventuelt følger, bærer
- * `key === 'Unidentified'`, som filteret med vilje lader passere for ikke at forstyrre IME/composition.
- * Hele værnet var derfor fraværende på mobil, og `21-1111111-2026` kunne stå i et datofelt, selv om
- * desktop afviste præcis samme form.
+ * **Hvorfor et `keydown`-filter ikke er nok.** Et filter, der beregner den kommende draft ud fra `e.key`
+ * og kalder `preventDefault()`, forudsætter en tast med et brugbart `key` – og et mobilt skærmtastatur
+ * leverer ikke det. Det skriver tegnet direkte i `<input>` og fyrer et `input`-event; den `keydown`, der
+ * eventuelt følger, bærer `key === 'Unidentified'`, som filteret med vilje lader passere for ikke at
+ * forstyrre IME/composition. Ellers kunne `21-1111111-2026` stå i et datofelt på mobil, selv om desktop
+ * afviser præcis samme form.
  *
- * Rettelsen flyttede værnet til `onDraftChange` – den ene kanal, ENHVER modalitet passerer – med
+ * Værnet sidder derfor i `onDraftChange` – den ene kanal, ENHVER modalitet passerer – med
  * feltfamiliernes prædikater i `src/components/inputs/draftAdmission.ts` som fælles kilde for både
  * draft-værnet og det afledte keydown-filter.
  *
@@ -61,7 +60,7 @@ test.describe('indtastning uden brugbar keydown (skærmtastatur)', () => {
     const formDate = page.locator('input[name="beregningsdato"]');
     await expect(formDate).toBeVisible();
 
-    // 1. Brugerfundet: gentagne specialtegn mellem dag, måned og år. Kun den FØRSTE separator i hver
+    // 1. Gentagne specialtegn mellem dag, måned og år. Kun den FØRSTE separator i hver
     //    stribe åbner et nyt segment; resten afvises (§2.1).
     await openEditor(formDate);
     await typeLikeMobileKeyboard(formDate, '21--------11--------2026');

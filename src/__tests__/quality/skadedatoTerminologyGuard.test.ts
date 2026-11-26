@@ -4,17 +4,16 @@ import ts from 'typescript';
 
 // VÆRN: formuleringer om sagens skade-/anmeldelsesdato findes kun ét sted.
 //
-// Udviklerens regel (2026-08-16, `TVAERGAAENDE.md` M-02): enhver brugervendt tekst om sagens dato følger den
-// indtastede skadestype – «anmeld…» ved Erhvervssygdom, ellers «skade…». Reglen blev gennemført ét fund ad
-// gangen (BB-072, BB-121 og senere), og hver gang dukkede en ny hardkodet «skadedato», «skadestidspunkt»
-// eller «Skaden er sket» op et andet sted – i en etiket, et dokument, en kontroltabel, en fejlbesked.
+// Reglen: enhver brugervendt tekst om sagens dato følger den indtastede skadestype – «anmeld…» ved
+// Erhvervssygdom, ellers «skade…». Uden et værn dukker en ny hardkodet «skadedato», «skadestidspunkt» eller
+// «Skaden er sket» op et andet sted – i en etiket, et dokument, en kontroltabel, en fejlbesked.
 //
 // «skaden» som navneord («før skaden», «siden skaden») er bevidst ikke omfattet: arbejdsskade er fællesbetegnelsen
 // for arbejdsulykker og erhvervssygdomme. Udsagnsordet efter er derimod omfattet: kun en arbejdsulykke «sker» eller
-// «indtræder», en erhvervssygdom er «anmeldt» (udviklerafgørelser 2026-11-17). «Skaden er før …» kræver også
+// «indtræder», en erhvervssygdom er «anmeldt» (bevidst valg). «Skaden er før …» kræver også
 // formen, fordi en erhvervssygdom skal have «anmeldt» med.
 //
-// Derfor er formerne nu DATA i `resolveStamdataDatoReference` (`src/domain/policies/stamdataCalculations.ts`),
+// Derfor er formerne DATA i `resolveStamdataDatoReference` (`src/domain/policies/stamdataCalculations.ts`),
 // og dette værn afviser dem som tekstliteraler i resten af `src/`. Mangler en form, tilføjes den dér.
 //
 // Værnet læser kun STRENGE, skabelon-tekst og JSX-tekst via TypeScripts AST – ikke kommentarer og ikke

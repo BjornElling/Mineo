@@ -25,7 +25,7 @@ describe('pdfTextUtils', () => {
     });
   });
 
-  // NY-12a-2 / NY-12c-1: ét tegn uden for standardfontens tegnsæt får jsPDF til at sprede
+  // Ét tegn uden for standardfontens tegnsæt får jsPDF til at sprede
   // hele linjen («A u k a s z  { a k»). Saneringen skal derfor dække ALLE sådanne tegn.
   describe('toPdfStandardFontText', () => {
     const NBSP = String.fromCharCode(0xa0);

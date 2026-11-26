@@ -107,7 +107,7 @@ export const findInRow = (gridRow: ReadonlyArray<ReadonlyArray<HTMLElement>>, pr
 };
 
 // En celle er valgbar som navigationsmål, hvis dens editor ikke er låst. Låste (skrivebeskyttede)
-// celler springes over ved BÅDE horisontal og vertikal navigation (brugervalg 2026-06-14), så
+// celler springes over ved BÅDE horisontal og vertikal navigation (bevidst valg), så
 // piletaster aldrig lander på en celle, brugeren ikke kan redigere.
 const isColumnUnlockedInRow = (grid: TableGrid, rowIndex: number, colIndex: number, core: GridCore): boolean => {
   if (!core) return true;

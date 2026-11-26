@@ -4,9 +4,9 @@ import { createEmptyStandardLoenRow } from '../../../domain/aarsloen/standardLoe
 import { resolveAutofillSuggestion } from '../../../inputCore/autofill/autofillSuggestEngine';
 import type { Loenperiode, StandardLoenTableRow } from '../../../schemas/formSchemas';
 
-// De tre tabeltilstande, udvikleren fotograferede i den kørende app 2026-09-07, og som hver især viste en
-// forkert ghost. Testen gengiver dem CELLE FOR CELLE, så det målte er præcis det, der stod på skærmen –
-// ikke en abstraktion over det. Hver beskrivelse siger, hvad skærmen viste, og hvad den skulle have vist.
+// Tre konkrete tabeltilstande fra den kørende app, hvor en naiv motor viser en forkert ghost. Testen
+// gengiver dem CELLE FOR CELLE, så det målte er præcis det, der står på skærmen – ikke en abstraktion
+// over det. Hver beskrivelse siger, hvilken ghost der er forkert, og hvad der skal vises.
 
 const fieldSet = createEoStandardLoenFieldSet('af-1');
 const loenRow = (id: string, row: Partial<StandardLoenTableRow>): StandardLoenTableRow => ({
@@ -35,10 +35,9 @@ const ghost = (
 ): string | null => resolveAutofillSuggestion(built, rowId, colIndex)?.displayText ?? null;
 
 describe('skærmbillede 1: måned 1, 2, 3 med årstal og en måned 4 UDEN årstal', () => {
-  // Skærmen viste ghosten «4» i den tomme månedscelle nederst – i rækken under en celle, hvor der
-  // ALLEREDE stod 4. Årsagen var, at månedsserien kun talte rækker, hvor både måned og år stod: måned 4
-  // faldt ud, mønstret blev dannet af 1, 2, 3, og forslaget blev 4. Brugeren læser månedskolonnen som
-  // 1, 2, 3, 4 og forventer 5.
+  // Fælden: ghosten «4» i den tomme månedscelle nederst – i rækken under en celle, hvor der ALLEREDE
+  // står 4. Tæller månedsserien kun rækker, hvor både måned og år står, falder måned 4 ud, mønstret
+  // dannes af 1, 2, 3, og forslaget bliver 4. Brugeren læser månedskolonnen som 1, 2, 3, 4 og forventer 5.
   const built = model([
     loenRow('r1', { col0_maaned: '1', col1_maaned: '2026', col2: amount(1234) }),
     loenRow('r2', { col0_maaned: '2', col1_maaned: '2026', col2: amount(1234) }),
@@ -51,8 +50,8 @@ describe('skærmbillede 1: måned 1, 2, 3 med årstal og en måned 4 UDEN årsta
   });
 
   it('foreslår intet årstal, når årscellen ovenover er tom', () => {
-    // Skærmbillede 2 er den samme tabel med caret i den nederste ÅRScelle, hvor ghosten «2026» stod.
-    // Cellen ovenover (rækkens fjerde) er tom, så forslaget lå to celler under det seneste årstal.
+    // Skærmbillede 2 er den samme tabel med caret i den nederste ÅRScelle. Cellen ovenover (rækkens
+    // fjerde) er tom, så et forslag «2026» ville ligge to celler under det seneste årstal.
     expect(ghost(built, 'ny', COL.aar)).toBeNull();
   });
 
@@ -70,9 +69,9 @@ describe('skærmbillede 1: måned 1, 2, 3 med årstal og en måned 4 UDEN årsta
 });
 
 describe('skærmbillede 3: uge-tilstand med faldende periodeårstal', () => {
-  // Løncellen i tredje række var fokuseret og HAVDE ingen ghost, selv om cellen lige over bar 1.234,00.
-  // Årsagen var beløbsgaten: fra-ugerne falder 2025 → 2024 → 2023, så gaten læste et årsskifte mellem
-  // hver række og slukkede beløbsforslaget i hele tabellen. Brugeren kunne ikke se nogen grund til det.
+  // Løncellen i tredje række har ingen ghost, selv om cellen lige over bærer 1.234,00. En årsskifte-gate
+  // på beløbet er ikke grunden: fra-ugerne falder 2025 → 2024 → 2023, så en sådan gate ville læse et
+  // årsskifte mellem hver række og slukke beløbsforslaget i hele tabellen, uden synlig grund for brugeren.
   const built = model([
     loenRow('r1', { col0_uge: '42/2025', col1_uge: '43/2025', col2: amount(1234) }),
     loenRow('r2', { col0_uge: '44/2024', col1_uge: '45/2025', col2: amount(1234), col3: amount(123) }),

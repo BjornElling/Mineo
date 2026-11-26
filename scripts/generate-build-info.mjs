@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { execFileSync } from 'node:child_process';
-import { writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const OUTPUT_FILE = resolve('.env.build-info.local');
@@ -63,10 +63,22 @@ const resolveBuildInfo = () => {
   };
 };
 
+// Udgivelsesversionen (`package.json` → `version`) er den, brugeren ser; byggenummeret ovenfor
+// identificerer det konkrete build (fejlrapport, `.eo`-metadata og opdateringskontrol).
+const readReleaseVersion = () => {
+  try {
+    const { version } = JSON.parse(readFileSync(resolve('package.json'), 'utf8'));
+    return typeof version === 'string' ? version : '';
+  } catch {
+    return '';
+  }
+};
+
 const buildInfo = resolveBuildInfo();
 
 const content = [
   '# Autogenereret af scripts/generate-build-info.mjs. Commit ikke denne fil.',
+  `VITE_APP_RELEASE=${escapeEnvValue(readReleaseVersion())}`,
   `VITE_APP_VERSION=${escapeEnvValue(buildInfo.version)}`,
   `VITE_APP_COMMIT_HASH=${escapeEnvValue(buildInfo.commit)}`,
   `VITE_APP_COMMIT_SHORT=${escapeEnvValue(buildInfo.commitShort)}`,

@@ -580,7 +580,7 @@ export const createInputCatalog = (options: Readonly<{
       // Den er slået fra i ét enkelt kald: `validateSettledInputBeforeRelevanceCleanup`, som reduceren
       // bruger til at LÆSE efter-relevansen, netop før den rydder. Der er tilstanden lovligt mellemliggende.
       //
-      // Kun `irrelevant` afvises, ikke `ubestemt` (BB-433): et felt, der kun er skjult, fordi dets relevans byggede
+      // Kun `irrelevant` afvises, ikke `ubestemt`: et felt, der kun er skjult, fordi dets relevans byggede
       // på afvist råtekst i et ANDET felt, bevarer sin afviste råtekst. Den spærrer ikke Gem usynligt – årsagen
       // er selv afvist og spærrer synligt – og feltet kommer frem igen, når årsagen rettes.
       if (enforceRejectedRelevance) {

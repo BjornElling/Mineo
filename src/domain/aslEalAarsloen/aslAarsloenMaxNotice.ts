@@ -1,6 +1,6 @@
 import { SKADELIDTES_AARSLOEN_ASL_LABEL } from './aarsloenLabels';
 
-// Feltoplysningen når ASL-årslønnen står præcis på skadesårets maksimum (BB-124).
+// Feltoplysningen når ASL-årslønnen står præcis på skadesårets maksimum.
 //
 // **Ét sted, fordi to flader viser den samme situation.** `faellesAarsloen.aslAarsloen` og `.ealAarsloen`
 // deles af Erhvervsevnetab og Forsørgertab, og begge flader udledte deres egen tekst for samme trigger:

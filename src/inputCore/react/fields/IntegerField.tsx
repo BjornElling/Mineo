@@ -10,8 +10,8 @@ import { resolveIntegerCharPolicy } from './charLengthPolicy';
 
 // Heltals-felt (§2.4/§3.5): den tynde familie-skal over `NumericTextField` med heltals-
 // tegnfilteret. Parse/format ejes af descriptorens heltals-codec; komponenten modtager KUN sin `field`/`location`
-// + rendering-props – ingen `minValue`/`maxValue`/`onCommit`/`onFieldError` (§2.4). Feltets min/max er efter
-// kravændringen 2026-07-18 en canonical bounds-feltvalidator; røde bounds-fejl kommer fra issue-snapshottet (§1.6).
+// + rendering-props – ingen `minValue`/`maxValue`/`onCommit`/`onFieldError` (§2.4). Feltets min/max er en
+// canonical bounds-feltvalidator; røde bounds-fejl kommer fra issue-snapshottet (§1.6).
 
 export type IntegerFieldProps = Readonly<{
   field: FieldRef<number | undefined>;
@@ -37,7 +37,7 @@ export type IntegerFieldProps = Readonly<{
 const IntegerField = React.forwardRef<HTMLDivElement, IntegerFieldProps>(
   ({ field, location, name, width = 130, placeholder, disabled, singleStageClick = false, inputRef, sx, crossFieldIssue, warning }, ref) => {
     // Fortegn OG cifferloft kommer fra descriptorens codec gennem den DELTE resolver – samme kilde som
-    // grid-cellen. Cifferloftet var før valgfrit, og 8 af 12 heltalsfelter havde derfor ingen grænse.
+    // grid-cellen.
     const { allowNegative, maxDigits, maxDraftLength } = resolveIntegerCharPolicy(field);
     const admission = React.useMemo(
       () => integerAdmission({ allowNegative, maxDigits }),

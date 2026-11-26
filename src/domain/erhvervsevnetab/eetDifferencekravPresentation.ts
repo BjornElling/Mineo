@@ -30,7 +30,7 @@ export const buildBeregnetDifferencekravLabel = (
  * Teksten hed «Løbende ydelser derfor ikke relevante.» – programmets stærkeste påstand om et
  * fradrag: at der ikke er noget at fradrage. To sider længere inde i SAMME dokument stod den samme
  * afgørelse med sine periodelinjer og «I alt 66.827 kr.», og ordet «derfor» henviste til en
- * forbeholdssætning om MIDLERTIDIGE ydelser, altså en afgørelsestype rækken ikke har (BB-187).
+ * forbeholdssætning om MIDLERTIDIGE ydelser, altså en afgørelsestype rækken ikke har.
  *
  * Reglen er, at en delvist endelig afgørelses løbende ydelse i praksis ER en midlertidig ydelse –
  * afgørelsen afviger alene ved, at en del af den har kunnet kapitaliseres. Linjen siger derfor det,
@@ -43,10 +43,10 @@ export const DELVIST_ENDELIG_LOEBENDE_YDELSE_TEKST =
 export const SAMLET_MER_ERSTATNING_LABEL = 'Samlet mer-erstatning';
 
 /**
- * Overskriften over én forhøjelse af folkepensionsalderen – kun forhøjelsen (udviklerafgørelse
- * 2026-11-20). Fradragslinjerne på differencekravets forside står derfor ens, når to kapitaliseringer
+ * Overskriften over én forhøjelse af folkepensionsalderen – kun forhøjelsen (bevidst valg).
+ * Fradragslinjerne på differencekravets forside står derfor ens, når to kapitaliseringer
  * rammes af samme forhøjelse; i bilaget og boksen skelnes de af rækken «Tidligere kapitalisering»
- * under overskriften (BB-193).
+ * under overskriften.
  *
  * Funktionen formaterer bevidst ikke selv – kalderen leverer formaterede strenge, så skærm og
  * dokument deler præcis samme tekst med hver sin datoform (lang i overskrifter, kort indlejret).
@@ -59,8 +59,8 @@ export const buildMerErstatningForhoejelseTitel = (args: Readonly<{
   `Forhøjelse pr. ${args.forhoejelsesdatoFormatted} (${args.gammelAlderLabel} → ${args.nyAlderLabel})`;
 
 /**
- * Rækken under forhøjelsens overskrift: venstre etiket, højre værdi (udviklerafgørelse 2026-11-20).
- * Skelner to kapitaliseringer ramt af samme forhøjelse (BB-193).
+ * Rækken under forhøjelsens overskrift: venstre etiket, højre værdi.
+ * Skelner to kapitaliseringer ramt af samme forhøjelse.
  */
 export const MER_ERSTATNING_TIDLIGERE_KAPITALISERING_LABEL = 'Tidligere kapitalisering';
 
@@ -77,7 +77,7 @@ export const buildMerErstatningKapitaliseringVaerdi = (args: Readonly<{
  * §"Bilagsvalg og andre betingede afkrydsningsfelter"): det vises inaktivt og umarkeret med årsagen i
  * tooltippet, så brugeren kan se, at valget findes, og hvorfor det ikke kan vælges lige nu.
  *
- * Rækkefølgen er bevidst og dækker TRE tilstande med tre grunde (BB-189):
+ * Rækkefølgen er bevidst og dækker TRE tilstande med tre grunde:
  *  1. Brugerens eget fravalg forklares FØRST. Er togglen sat til Nej, er mer-erstatningen slet ikke
  *     beregnet, og en påstand om lovgivningen ville da handle om et regnestykke, programmet ikke har
  *     udført.
@@ -116,7 +116,7 @@ export const buildNedsatSaerfaktorUdtryk = (
  * Forklaringen over fradraget for resterende EET ved ≤ 2 år til folkepension.
  *
  * Særfaktoren gælder efter bekendtgørelsen hele 2-årsvinduet. Differencekravet nedsætter den
- * forholdsmæssigt efter den faktiske restperiode (udviklerens afgørelse 2026-11-12), og det er netop
+ * forholdsmæssigt efter den faktiske restperiode (bevidst valg), og det er netop
  * det skridt, en læser ellers ikke kan gætte: teksten viser derfor hele regnestykket. Funktionen
  * formaterer ikke selv, så skærm og dokument deler præcis samme tekst.
  */

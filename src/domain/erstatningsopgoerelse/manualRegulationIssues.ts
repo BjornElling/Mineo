@@ -29,14 +29,14 @@ import { vurderEoFeriesats, type EoFeriesatsFund } from './validation/loenindkom
 
 // De to manuelle reguleringsformer – «Manuelt angivet» og «Manuel procentsats» – er samme slags tabel: en låst
 // basisrække på reguleringsdatoen og brugerens efterfølgende rækker. Reglerne for dem bor derfor ét sted og
-// gælder begge former og begge ejere (ansættelsesforholdet ved «Beregningsperiode» og den angivne løn). Før
-// havde de hver sin håndfuld regler, og de afveg uden grund (BB-302, BB-303, BB-311).
+// gælder begge former og begge ejere (ansættelsesforholdet ved «Beregningsperiode» og den angivne løn), så de
+// ikke kan afvige fra hinanden.
 //
-//  - Røde fejl (spærrer): en dato på eller før basisdatoen, to rækker med samme dato (BB-311), og et ferietillæg
+//  - Røde fejl (spærrer): en dato på eller før basisdatoen, to rækker med samme dato, og et ferietillæg
 //    trods «Fuld løn under ferie» = Nej.
-//  - Gule advarsler (spærrer ikke): ingen ændringer i lang tid (BB-302), en procentsats over 10 %, en
-//    grundløn over ti gange rækken før (BB-313), og et ferietillæg ved løn under ferie eller en feriesats over 20 %.
-//  Feriesatsen vurderes som ansættelsesforholdets satsfelt (`vurderEoFeriesats`, udviklerafgørelse 2026-11-04).
+//  - Gule advarsler (spærrer ikke): ingen ændringer i lang tid, en procentsats over 10 %, en
+//    grundløn over ti gange rækken før, og et ferietillæg ved løn under ferie eller en feriesats over 20 %.
+//  Feriesatsen vurderes som ansættelsesforholdets satsfelt (`vurderEoFeriesats`).
 
 export type ManualRegulationBasis = 'Manuelt angivet' | 'Manuel procentsats';
 
@@ -192,7 +192,7 @@ export const collectManualRegulationIssues = (
       }
       if (row.dato === undefined) return;
       // To reguleringer på samme dag kan ikke begge gælde: lønnen ville få to værdier, og procentsatserne blev
-      // lagt oven i hinanden. Den senere række i tabellen er den røde (BB-311).
+      // lagt oven i hinanden. Den senere række i tabellen er den røde.
       if (seenDates.has(row.dato)) {
         issues.push(ruleIssue(
           field,
@@ -214,9 +214,9 @@ export const collectManualRegulationIssues = (
 
 // ── Gule advarsler ─────────────────────────────────────────────────────────────────────────────
 
-/** En procentsats over denne grænse pr. række er næsten altid en tastefejl (`10` for `1,0`, BB-313). */
+/** En procentsats over denne grænse pr. række er næsten altid en tastefejl (`10` for `1,0`). */
 export const MANUEL_PROCENTSATS_ADVARSELSGRAENSE = 10;
-/** En grundløn over så mange gange rækken før er sandsynligvis et nul for meget (BB-313, som BB-297). */
+/** En grundløn over så mange gange rækken før er sandsynligvis et nul for meget (som indtægtstabellernes rimelighedskontrol). */
 export const MANUEL_GRUNDLOEN_SPRING_FAKTOR = 10;
 
 export type ManualRegulationWarningKind = 'udloeb' | 'storProcentsats' | 'grundloenSpring' | 'feriesats';
@@ -236,8 +236,8 @@ export type ManualRegulationWarning = Readonly<{
 /**
  * En manuel lønudvikling har ingen kilde, der udløber – den gælder, til brugeren ændrer den. Programmet regner
  * lønnen uændret efter sidste række. Har tabellen ikke været ændret i over et år (plus Indstillingernes
- * tolerance) ved TAF-periodens slutning, gør advarslen opmærksom på det; den spærrede før med «'Reguleringsværdi
- * på slut-dato for TAF' er ikke angivet» (udviklerafgørelse 2026-10-23, BB-302 valg b).
+ * tolerance) ved TAF-periodens slutning, gør advarslen opmærksom på det. Det er bevidst en advarsel og ikke en
+ * spærring: der er ingen manglende reguleringsværdi, kun en tabel, der måske er glemt.
  */
 const resolveUdloebWarning = (
   table: ActiveManualRegulationTable,
@@ -297,7 +297,7 @@ const resolveProcentsatsWarnings = (table: ActiveManualRegulationTable): ManualR
 
 /**
  * En grundløn over ti gange den forrige række (i datoorden, basisrækken medregnet). Kun et spring OP: et fald er
- * sjældent en tastefejl af denne slags, og BB-297's tilsvarende kontrol er også kun «større».
+ * sjældent en tastefejl af denne slags, og indtægtstabellernes tilsvarende kontrol er også kun «større».
  */
 const resolveGrundloenWarnings = (table: ActiveManualRegulationTable): ManualRegulationWarning[] => {
   const rows = table.rows as readonly LoenudviklingManuelRow[];

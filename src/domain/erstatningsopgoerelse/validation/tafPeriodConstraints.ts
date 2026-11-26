@@ -47,8 +47,8 @@ const resolveEndeligEetDato = (values: TafConstraintSource): ISODateString | und
  *
  * Holdes adskilt fra ANVENDELSEN (`resolveMidlertidigEetDatoHvisAktiv`, afskæringen af TAF). En regel, der
  * spørger «findes der en afgørelse, og hvornår?», må ikke låne afskæringsprædikatet: det svarer `undefined`
- * for alle skader fra 16. juni 2011, og advarslen om manglende midlertidige EET-ydelser var derfor slukket
- * netop dér, hvor ydelsen skal fradrages (BB-240, mønster M-34).
+ * for alle skader fra 16. juni 2011, og advarslen om manglende midlertidige EET-ydelser ville derfor være slukket
+ * netop dér, hvor ydelsen skal fradrages.
  */
 export const resolveMidlertidigEetDato = (values: TafConstraintSource): ISODateString | undefined => {
   if (values.midlertidigtEETAfgorelse !== 'Ja') return undefined;
@@ -141,8 +141,8 @@ const TAF_OPHOERSGRUND_PRIORITET: Readonly<Record<TafCutoffKilde, number>> = {
  * samme dato den højest rangerende kilde. `undefined`, når der ingen kandidat er.
  *
  * Ét sted, fordi dokumentets statuslinje («Differencekravet bringer retten …») og EO-kontrollens
- * «TAF-ophør skyldes» skal nævne samme grund. De afgjorde før hver sin uafgjorte dato forskelligt, så
- * endelig EET og differencekrav på samme dato gav to forskellige ophørsgrunde (BB-425).
+ * «TAF-ophør skyldes» skal nævne samme grund. Afgør de hver for sig en uafgjort dato, kan endelig EET og
+ * differencekrav på samme dato give to forskellige ophørsgrunde.
  */
 export const vaelgTafOphoersgrund = <K extends Readonly<{ kilde: TafCutoffKilde; referenceDato: ISODateString }>>(
   kandidater: readonly K[]
@@ -161,9 +161,9 @@ type TafCutoffDatoer = Readonly<{
 
 /**
  * Hver afskæringskildes to beskedformer. «Efter»-formen siger, at en dato ligger efter afskæringen;
- * «hele perioden»-formen bruges i periodens samlede besked, når også fra-datoen gør det (BB-244).
+ * «hele perioden»-formen bruges i periodens samlede besked, når også fra-datoen gør det.
  * Differencekravets dato er den dato, kravet er opgjort PR. (feltet «Evt. differencekrav opgjort per») –
- * ikke den dag, det blev udregnet (BB-245).
+ * ikke den dag, det blev udregnet.
  */
 const TAF_CUTOFF_TEKST: Readonly<Record<TafCutoffKilde, Readonly<{
   efter: (dateText: string) => string;
@@ -185,7 +185,7 @@ const TAF_CUTOFF_TEKST: Readonly<Record<TafCutoffKilde, Readonly<{
 
 /**
  * Samme afskæringer set fra en ferieperiode. En ferie, der ligger efter afskæringen, fradrages aldrig, men
- * spærrer fortsat opgørelsen (udviklerafgørelse 2026-09-25, BB-248): brugeren skal have et incitament til at
+ * spærrer fortsat opgørelsen (bevidst valg): brugeren skal have et incitament til at
  * rette den, før en senere ændret periode gør den virksom. Beskeden siger derfor, HVORFOR datoen ikke går.
  */
 const FERIE_CUTOFF_TEKST: Readonly<Record<TafCutoffKilde, (dateText: string) => string>> = {
@@ -221,7 +221,7 @@ export const buildTafCutoffErrorMessage = (args: TafCutoffDatoer & Readonly<{
   return ramt.map((cutoff) => TAF_CUTOFF_TEKST[cutoff.kilde].efter(formatCutoffDato(cutoff.dato))).join('; ');
 };
 
-/** En ferieperiodedatos afskæringsbesked – cellens tooltip (BB-248). */
+/** En ferieperiodedatos afskæringsbesked – cellens tooltip. */
 export const buildFerieCutoffErrorMessage = (args: TafCutoffDatoer & Readonly<{
   value: ISODateString | undefined;
 }>): string | undefined => {
@@ -234,7 +234,7 @@ export const buildFerieCutoffErrorMessage = (args: TafCutoffDatoer & Readonly<{
  * Periodens samlede afskæringsbesked – linjen i «Fejl og advarsler».
  *
  * Fra- og til-cellen har hver sin besked, men periodens linje må ikke blot sammenføje dem: ligger begge
- * datoer efter samme afskæring, stod samme sætning to gange i én linje (BB-244). Hver afskæring nævnes
+ * datoer efter samme afskæring, ville samme sætning stå to gange i én linje. Hver afskæring nævnes
  * derfor én gang – i «hele perioden»-formen, når også fra-datoen ligger efter den.
  */
 export const buildTafPeriodeCutoffErrorMessage = (args: TafCutoffDatoer & Readonly<{

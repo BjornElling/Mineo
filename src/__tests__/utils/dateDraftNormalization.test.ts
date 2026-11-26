@@ -105,9 +105,8 @@ describe('isDateLikeDraftAllowed', () => {
   });
 
   // ── Gentagne separatorer ──
-  // Netop DENNE gruppe manglede, da segment-regexen blev udskiftet i `5c864afe` (2026-04-23).
-  // Ciffer-lofterne havde tests og blev derfor bevaret; gentagne separatorer havde ingen, og
-  // afvisningen af dem forsvandt uden at noget blev rødt. Fjernes værnet igen, bliver disse røde.
+  // Afvisningen af gentagne separatorer kan forsvinde tavst ved en omskrivning af segment-regexen;
+  // disse tests bliver røde, hvis det sker.
 
   // Cases er bevidst KORTE – `12-2--` frem for `12--2--2026`. En lang draft med ekstra separatorer
   // afvises nemlig også af segment-loftet («for mange segmenter»), fordi hver separator rykker

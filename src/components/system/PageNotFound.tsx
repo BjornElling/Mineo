@@ -5,18 +5,15 @@ import { useLocation } from 'react-router-dom';
 /**
  * 404-siden – en almindelig Mineo-side, ikke en blindgyde.
  *
- * Den var tidligere en helt hvid flade med to linjer sort tekst i øverste venstre hjørne, renderet
- * UDEN for shellen: ingen sidemenu, ingen knap, intet link, ingen programfarver. Sagen lå uskadt i
- * fanens hukommelse, men det kunne brugeren ikke vide – skærmen så ud, som om programmet var væk. En
- * bruger, der nåede hertil med en times arbejde i sagen, havde god grund til at tro, det var tabt, og
- * den eneste vej tilbage (browserens tilbage-knap eller at rette adressen i hånden) blev ikke nævnt.
+ * En hvid flade UDEN for shellen – ingen sidemenu, ingen knap, intet link, ingen programfarver – ser ud,
+ * som om programmet er væk, selv om sagen ligger uskadt i fanens hukommelse. En bruger, der når hertil med
+ * en times arbejde i sagen, har da god grund til at tro, det er tabt.
  *
- * Derfor to ting: siden ligger nu inde i shellen, så sidemenuen står i venstre side og ER vejen
+ * Derfor to ting: siden ligger inde i shellen, så sidemenuen står i venstre side og ER vejen
  * videre, og teksten siger eksplicit, at sagen er uændret. Den er den ENESTE oplysning, der ikke kan
  * læses af skærmen selv.
  *
- * **Adressen vises bevidst ikke længere.** Den var den halve skærm i den gamle udgave, men den er
- * brugerens eget input, gengivet uden at kunne bruges til noget – den hjælper ingen videre, og en
+ * **Adressen vises bevidst ikke.** Den er brugerens eget input, gengivet uden at kunne bruges til noget – den hjælper ingen videre, og en
  * fejlskrevet adresse er allerede synlig i browserens adressefelt.
  *
  * To rækkevidde-forhold, som denne side hviler på og derfor ikke må brydes:

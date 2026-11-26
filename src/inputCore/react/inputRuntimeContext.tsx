@@ -61,9 +61,9 @@ type InternalSettledSnapshot = SettledSnapshot & Readonly<{ input: SettledInput 
  * **READ** – alt hvad en visning, en projektion eller et dokument må gøre med sagsinput (§3.5/§3.10).
  *
  * Porten er bevidst rent læsende OG tokenbundet: der er ingen vej fra en read-consumer til en mutation, og
- * ingen vej til rå `sections` uden om `InputReader`. Adskillelsen er strukturel frem for kommenteret –
- * tidligere lå læsning, redigering og systemoperationer som felter på ét objekt, så enhver consumer, der
- * blot skulle vise en værdi, også fik hel-sags-replacement og history i hånden.
+ * ingen vej til rå `sections` uden om `InputReader`. Adskillelsen er strukturel frem for kommenteret: lå
+ * læsning, redigering og systemoperationer som felter på ét objekt, fik enhver consumer, der blot skal vise en
+ * værdi, også hel-sags-replacement og history i hånden.
  */
 export type InputReadPort = Readonly<{
   /**

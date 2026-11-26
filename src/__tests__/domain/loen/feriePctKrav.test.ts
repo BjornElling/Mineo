@@ -7,7 +7,7 @@ import { createDefaultLoenindkomstAnsaettelsesforhold } from '../../../domain/er
 import { TILLAEG_ANGIVES_SOM } from '../../../types/loen';
 import type { StandardLoenTableRow } from '../../../schemas/formSchemas';
 
-// M-37 (udviklerafgørelse 2026-10-30): Årsløn og EO skal følges ad – ændres forudsætningen, ændres den begge steder.
+// Bevidst valg: Årsløn og EO skal følges ad – ændres forudsætningen, ændres den begge steder.
 // Testen låser, at EO's krav ER den fælles regel, og at de to flader skriver samme linje.
 
 const raekkeMedLoen: StandardLoenTableRow = { id: 'r1', col0_maaned: '1', col1_maaned: '2025', col2: { kind: 'number', value: 30_000 } };

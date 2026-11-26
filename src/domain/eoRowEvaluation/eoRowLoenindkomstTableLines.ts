@@ -14,11 +14,11 @@ import { resolveLoenindkomstRowWarnings } from '../erstatningsopgoerelse/validat
 import type { EoRowStatus } from './eoRowTypes';
 
 // Indtægtstabellens linjer i «Fejl og advarsler»: ÉN linje pr. lønrække med en fejl eller advarsel, der
-// navngiver rækken, siger cellens egen tekst og linker til cellen (BB-291).
+// navngiver rækken, siger cellens egen tekst og linker til cellen.
 //
-// Før stod der én linje for hele tabellen, bygget af den første fejlbehæftede række: «Måned er ikke angivet»
-// – også om en måned, der STOD på skærmen, men var rød (readeren læser en rød celle som tom, M-19), uden at
-// sige hvilken af tolv rækker, kun én fejl ad gangen, og linket blinkede hele kortet.
+// Én linje for hele tabellen, bygget af den første fejlbehæftede række, er ikke nok: den siger «Måned er ikke
+// angivet» også om en måned, der STÅR på skærmen, men er rød (readeren læser en rød celle som tom), siger ikke
+// hvilken af tolv rækker, viser kun én fejl ad gangen, og linket kan kun føre til hele kortet.
 
 type Ansaettelsesforhold = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
 
@@ -151,7 +151,7 @@ export const buildLoenindkomstTableLines = (
         focusAddress: cellAddress(fieldSet, row.id, 'col2'),
       });
     }
-    // «Ingen arbejdsdage» kommer nu med rækkeadvarslerne nedenfor (ring på periodecellerne + linjen, BB-365).
+    // «Ingen arbejdsdage» kommer med rækkeadvarslerne nedenfor (ring på periodecellerne + linjen).
     for (const warning of rowWarningsByRowId.get(row.id) ?? []) {
       const focus = warning.cells[0];
       if (focus === undefined) continue;

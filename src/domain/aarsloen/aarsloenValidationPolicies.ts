@@ -77,7 +77,7 @@ export const resolveAarsloenOmregningsdageFoerFerie = (
 };
 
 /**
- * Perioderne har ingen dage at omregne efter (BB-400) – uanset feriedagene: fx en datoperiode, der kun dækker en
+ * Perioderne har ingen dage at omregne efter – uanset feriedagene: fx en datoperiode, der kun dækker en
  * weekend, eller kun en SH-dag ved «Ingen»/«SH-udbetaling». Omregningen ville dele med nul og vise `0,00 kr.` som
  * en årsløn. Feriedagenes egen grænse (`resolveAarsloenFeriedageOverskriderPeriodenIssue`) dækker resten.
  */
@@ -96,17 +96,17 @@ export const harAarsloenIngenOmregningsdage = (
  * Feriedagene skal efterlade mindst én dag at omregne lønnen efter.
  *
  * Feltets erklærede grænse (0–99) er valgt efter feltets ART – et antal dage – ikke efter det tal, det
- * bliver trukket fra. Uden denne regel gav «99 feriedage» i en enkelt måned et negativt antal arbejdsdage
- * (23 − 99 = −76), og omregningen klampede resultatet til `0,00 kr.` og præsenterede nullet som et beløb.
+ * bliver trukket fra. Uden denne regel giver «99 feriedage» i en enkelt måned et negativt antal arbejdsdage
+ * (23 − 99 = −76), og omregningen klamper resultatet til `0,00 kr.` og præsenterer nullet som et beløb.
  *
- * Grænsen var først periodens hverdage (BB-097). Den fangede hverken lighed (23 feriedage på 23 hverdage giver
- * 0 dage) eller de SH-dage, metode A også trækker fra – begge gav en hentbar nulårsløn (BB-400, udviklerafgørelse
- * 2026-11-17, også for tidligere gemte sager). Grænsen er derfor omregningens egne dage minus én.
+ * Grænsen er omregningens egne dage minus én (gælder bevidst også tidligere gemte sager). Periodens hverdage
+ * er ikke nok: de fanger hverken lighed (23 feriedage på 23 hverdage giver 0 dage) eller de SH-dage, metode A
+ * også trækker fra – begge giver ellers en hentbar nulårsløn.
  *
  * Grænsen kendes præcist: det er de tal, siden selv skriver i samme linje. Reglen er derfor en
  * AFLEDT grænse, ikke en indtastningsbegrænsning – værdien committes canonical, og feltet bliver rødt med
- * den konkrete grænse i tooltippet (udviklerbeslutning 2026-08-26: ingen egentlig begrænsning i
- * indtastningen, men rød ring og en tooltip, der forklarer fejlen).
+ * den konkrete grænse i tooltippet (bevidst valg: ingen egentlig begrænsning i indtastningen, men rød
+ * ring og en tooltip, der forklarer fejlen).
  *
  * Reglen kan ikke bo i en descriptor-validator: grænsen udledes af TABELLENS rækker, og `CanonicalView`
  * kan kun læse et enkelt felt ad gangen – den kan ikke opregne en collections rækker.
@@ -170,9 +170,8 @@ export const harTabelValideringsFejl = (
  * høj feriesats og fravalgt Store Bededagstillæg samles med disse i beregningsprojektionen.
  *
  * Satsen navngives med den ydelse, den ER (`feriepenge-begreber-contract.md` §2d): under 12 % ferietillæg, ellers
- * feriegodtgørelse. Teksterne brugte før feltets generiske navn «Feriegodtgørelse/-tillæg» om en konkret sats.
- * Feriegodtgørelse ved fuld løn under ferie er ikke længere en advarsel her, men en rød feltfejl
- * (`resolveAarsloenFeriegodtgoerelseVedFuldLoenIssue`, udviklerafgørelse 2026-11-04).
+ * feriegodtgørelse – ikke feltets generiske navn «Feriegodtgørelse/-tillæg». Feriegodtgørelse ved fuld løn under
+ * ferie er ikke en advarsel her, men en rød feltfejl (`resolveAarsloenFeriegodtgoerelseVedFuldLoenIssue`).
  *
  * @param feriePct - Feriegodtgørelse/-tillæg i procent
  * @param shSoPct - SH/SO procent

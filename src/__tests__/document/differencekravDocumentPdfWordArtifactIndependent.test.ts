@@ -133,7 +133,7 @@ const expectedContent = [
 const render = (session: Parameters<typeof generateDifferencekravDocument>[0]) =>
   generateDifferencekravDocument(session, params);
 
-describe('DOC-001/TD-014 – Differencekravs faktiske PDF- og Word-artefakter', () => {
+describe('Differencekravs faktiske PDF- og Word-artefakter', () => {
   it('fører det håndberegnede hovedsidefacit til begge generatorer med metadata', async () => {
     // Uafhængigt håndfacit: 1.250.000 − 12.345 − 67.890 = 1.169.765 kr.;
     // 1.169.765 x 2/3 = 779.843,333..., afrundet til 779.843 kr.

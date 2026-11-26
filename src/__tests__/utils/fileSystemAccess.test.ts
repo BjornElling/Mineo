@@ -82,7 +82,7 @@ describe('fileSystemAccess', () => {
       expect(isFileSystemAccessSupported()).toBe(false);
     });
 
-    // TD-017: En picker-egenskab er kun brugbar, når værdien faktisk er en funktion.
+    // En picker-egenskab er kun brugbar, når værdien faktisk er en funktion.
     it.each([
       ['showOpenFilePicker', undefined],
       ['showSaveFilePicker', undefined],

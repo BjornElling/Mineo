@@ -94,7 +94,7 @@ describe('standardLoenTableColumns – erklærede navneformer', () => {
     });
 
     it('bevarer den viste tekst uændret (brugerkrav: resultatet må ikke ændre sig)', () => {
-      // Ordret de strenge, generatoren skrev, før forkortelserne blev en erklæret form.
+      // Ordret de strenge, dokumentet viser.
       expect(resolveStandardLoenDocumentColumnLabel('col4')).toBe('Ikke-pens.\ngiv. løn');
       expect(resolveStandardLoenDocumentColumnLabel('col5')).toBe('ATP mv.\nu. tillæg');
       expect(resolveStandardLoenDocumentColumnLabel('fpFvShSoBeloeb')).toBe('FP/FV/SH/\nSO/St.B.');

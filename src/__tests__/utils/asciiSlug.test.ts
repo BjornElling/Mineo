@@ -2,9 +2,9 @@ import { asciiSlug } from '../../utils/asciiSlug';
 
 describe('asciiSlug', () => {
   describe('danske særtegn translittereres i stedet for at blive spist', () => {
-    // Dette er hele grunden til at primitivet findes. Den tidligere form på de tre
-    // callsites var `NFKD` + `[^a-z0-9]`, og `ø` har INGEN NFKD-dekomposition, så
-    // den blev erstattet af en separator. Disse cases fejler på den gamle form.
+    // Dette er hele grunden til at primitivet findes. Den naive form `NFKD` + `[^a-z0-9]`
+    // virker ikke: `ø` har INGEN NFKD-dekomposition og bliver erstattet af en separator.
+    // Disse cases fejler på den naive form.
     it('oversætter ø/æ/å efter kodebasens egen oe/ae/aa-konvention', () => {
       expect(asciiSlug('Årsløn')).toBe('aarsloen');
       expect(asciiSlug('Ærø')).toBe('aeroe');
@@ -13,7 +13,7 @@ describe('asciiSlug', () => {
     });
 
     it('taber ikke tegn til separatorer (ingen bare bindestreger midt i ordet)', () => {
-      // Den gamle form gav 'rsl-n' / 'a-r-'; her må der ikke optræde en separator
+      // Den naive form giver 'rsl-n' / 'a-r-'; her må der ikke optræde en separator
       // hvor der stod et dansk bogstav.
       expect(asciiSlug('Årsløn')).not.toContain('-');
       expect(asciiSlug('Ærø')).not.toContain('-');

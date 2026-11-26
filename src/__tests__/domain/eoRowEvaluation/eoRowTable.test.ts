@@ -42,8 +42,8 @@ describe('serializeEoRowTable', () => {
 
   describe('strukturen er kilden – ikke strengen', () => {
     it('bærer totalmarkering som et flag, ikke som celletekst', () => {
-      // Tidligere blev en totalrække genkendt ved at strengmatche `cells[0] === 'I alt'`.
-      // Etiketten er nu uden betydning for klassifikationen.
+      // En totalrække genkendes på flaget, ikke ved at strengmatche `cells[0] === 'I alt'`; etiketten er uden
+      // betydning for klassifikationen.
       const table: EoRowTable = {
         columns: ['Post', 'Beløb'],
         rows: [

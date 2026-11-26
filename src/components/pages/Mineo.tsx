@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
-import { VERSION } from '../../config/buildInfo';
+import { DISPLAY_VERSION } from '../../config/buildInfo';
 import {
   PWA_OPEN_PROTOCOL_URL,
   requestPwaInstall,
@@ -345,7 +345,7 @@ const Mineo = React.memo(() => {
         </Typography>
 
         <Typography className="row--text">
-          Aktuel version: {VERSION}
+          Aktuel version: {DISPLAY_VERSION}
         </Typography>
 
         <Box className="icon-text-row" sx={{ padding: '0 12px' }}>

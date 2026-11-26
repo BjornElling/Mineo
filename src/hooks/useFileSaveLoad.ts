@@ -321,7 +321,7 @@ export const useFileSaveLoad = ({
     navigateToStamdataAfterApply: boolean,
   ): Promise<'applied' | 'awaitingUser'> => {
     // Erstat-bekræftelsen beskytter alt synligt arbejde: også en faktisk ændret, åben indtastning, som endnu
-    // ikke er afsluttet (BB-397). Draften settles ikke her; Annuller bevarer den, Erstat kasserer den.
+    // ikke er afsluttet. Draften settles ikke her; Annuller bevarer den, Erstat kasserer den.
     if (ops.file.hasAnyData() || criticalActions.hasChangedOpenDraft()) {
       transitionLoadFlow({ phase: 'overwrite', result, overlay: overlayData, navigateToStamdataAfterApply });
       return 'awaitingUser';
@@ -538,7 +538,7 @@ export const useFileSaveLoad = ({
     applyingPreflightRef.current = true;
     let awaitsOverwriteDecision = false;
     // Gå direkte fra preflight til overskrivning. Den fælles dialog beholder dermed sit
-    // overlay-/historik-ejerskab gennem begge udviklerbeslutninger; et kort `idle` ville lukke det
+    // overlay-/historik-ejerskab gennem begge brugerbeslutninger; et kort `idle` ville lukke det
     // første overlay, hvis asynkrone history-oprydning ellers kan ramme den netop åbnede efterfølger.
 
     try {

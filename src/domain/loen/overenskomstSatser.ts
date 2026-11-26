@@ -27,9 +27,9 @@ export type OverenskomstSatsField = 'fritvalgPct' | 'shSoPct' | 'pensionPct';
  *   gennem satsdækningen – den må ikke ligne en tom indtastning eller et tillæg på 0 %.
  * - `bruger`: brugerens eget felt – uden aktiv overenskomst, eller ved en offentlig overenskomst uden sats.
  *
- * Før var der kun «låst med tal» og «ulåst». Manglede satserne på datoen, faldt programmet tilbage til de
- * ulåste felter, som brugeren aldrig havde udfyldt, fordi de stod låst – og tillæggene blev tavst 0 %
- * (BB-275). En privat overenskomst dikterer, hvilke tillæg der gives, så dens felter låses aldrig op.
+ * To tilstande («låst med tal» og «ulåst») er ikke nok: mangler satserne på datoen, falder programmet ellers
+ * tilbage til de ulåste felter, som brugeren aldrig har udfyldt, fordi de stod låst – og tillæggene bliver
+ * tavst 0 %. En privat overenskomst dikterer, hvilke tillæg der gives, så dens felter låses aldrig op.
  */
 export type OverenskomstSatsBinding =
   | Readonly<{ kind: 'overenskomst'; value: number }>
@@ -149,7 +149,7 @@ export const erDatoUdenOverenskomstSatser = (daekning: PrivatOverenskomstDaeknin
 
 /**
  * «Bygge-/anlægsoverenskomsten (3F / Dansk Industri) har ingen satser før 01-03-2011» – fælles kerne for den
- * røde fejl ved en reguleringsdato uden satser og den gule advarsel ved lønrækker før dækningen (BB-275).
+ * røde fejl ved en reguleringsdato uden satser og den gule advarsel ved lønrækker før dækningen.
  */
 export const formatOverenskomstUdenSatserTekst = (daekning: PrivatOverenskomstDaekning): string => {
   const navn = resolveOverenskomstDisplay(daekning.overenskomstId);
@@ -178,7 +178,7 @@ export const isOverenskomstSatsFieldDerived = (
 
 /**
  * Samme forklaring ved låste satsfelter på årsløn og lønindkomst. Mangler datoen, er det DEN, der forklares –
- * dækningsteksten («har ingen satser før …») gælder kun en dato, der faktisk ligger før dækningen (BB-349).
+ * dækningsteksten («har ingen satser før …») gælder kun en dato, der faktisk ligger før dækningen.
  */
 export const resolveLockedOverenskomstSatsTooltip = (
   binding: OverenskomstSatsBinding,

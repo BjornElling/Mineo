@@ -86,8 +86,8 @@ const EetOplysningerTab = ({ projection }: EetOplysningerTabProps) => {
     scrollToFieldAddress(skadedatoRef.address);
   }, [navigate]);
 
-  // "Indsæt dags dato" må ikke kunne producere en værdi, feltet selv afviser (samme fejlklasse som
-  // Varige méns BB-068): er dags dato uden for beregningsdatoens øvre grænse (EET-satsdatasættets
+  // "Indsæt dags dato" må ikke kunne producere en værdi, feltet selv afviser (samme regel som
+  // Varige mén): er dags dato uden for beregningsdatoens øvre grænse (EET-satsdatasættets
   // sidste dækkede år), er knappen inaktiv med årsagen i tooltippen.
   const todayIso = React.useMemo(() => getTodayLocalISO(), []);
   const insertTodayDisabledReason = resolveInsertTodayDisabledReason({
@@ -218,7 +218,7 @@ const EetOplysningerTab = ({ projection }: EetOplysningerTabProps) => {
         </Box>
 
         {/*
-          Forliget om ansvarsgrad står HER og ikke på Differencekrav-fanen, hvor felterne tidligere lå:
+          Forliget om ansvarsgrad står HER og ikke på Differencekrav-fanen:
           det er en indtastning om erstatningsansvarsloven, og det reducerer BEGGE de to krav, siden
           opgør – EAL-kravet på fane 4 og differencekravet på fane 5. Lå felterne på fane 5, ville
           fane 4's forligsblok hvile på en indtastning, brugeren ikke kunne se derfra. Felterne er de

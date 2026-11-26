@@ -58,10 +58,9 @@ export type GridChoiceCellProps<
  * Om det tomme placeholder-valg tilbydes.
  *
  * **Udledes af feltets codec.** Et `requiredChoice`-codec HAR en gyldig tomværdi ('dage', 'maaned' …) og
- * kan derfor pr. konstruktion ikke ryddes; et `selection`-codec kan. Reglen stod før som en håndskrevet
- * `allowEmpty={false}` pr. kaldssted, og de to kunne ikke komme fra hinanden på nogen målbar måde: en
- * glemt prop lod brugeren rydde et påkrævet felt med Delete, og fejlen dukkede først op som et kast langt
- * senere. Proppen kan stadig SKÆRPE et valgfrit felt (et domæne, der kræver et valg), men aldrig løsne et
+ * kan derfor pr. konstruktion ikke ryddes; et `selection`-codec kan. Et håndskrevet `allowEmpty={false}` pr.
+ * kaldssted er skrøbeligt: en glemt prop lader brugeren rydde et påkrævet felt med Delete, og fejlen dukker
+ * først op som et kast langt senere. Proppen kan stadig SKÆRPE et valgfrit felt (et domæne, der kræver et valg), men aldrig løsne et
  * påkrævet – det afvises.
  */
   allowEmpty?: boolean;
@@ -73,7 +72,7 @@ export type GridChoiceCellProps<
   collectionRuleIssue?: FieldIssue;
   /**
    * Den VISTE option for en afsluttet værdi, når feltet kan bære en historisk stavemåde af samme valg – fx en
-   * ydelsestype gemt med sin label frem for nøglen (BB-364). Ændrer kun visningen; canonical input er urørt, og et
+   * ydelsestype gemt med sin label frem for nøglen. Ændrer kun visningen; canonical input er urørt, og et
    * nyt valg skriver som altid optionens egen værdi.
    */
   resolveDisplayValue?: (value: TValue) => TValue;

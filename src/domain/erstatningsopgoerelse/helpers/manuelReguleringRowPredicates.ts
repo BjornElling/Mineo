@@ -24,8 +24,8 @@ export const isManualRegulationDateOnOrBeforeBasis = (
  *
  * Note om dato-checket: committed `dato` er (via `tableIsoDateCellString`) altid enten en gyldig
  * ISO-streng eller `undefined` (tom/whitespace → `undefined`, ugyldigt ikke-tomt input fejler
- * schemaet). `row.dato !== undefined` er derfor tal-/adfærds-identisk med de tidligere varianter
- * (`(row.dato ?? '').trim() !== ''` og `isISODateString(row.dato)`) på hele det committed domæne.
+ * schemaet). `row.dato !== undefined` er derfor tal-/adfærds-identisk med
+ * `(row.dato ?? '').trim() !== ''` og `isISODateString(row.dato)` på hele det committed domæne.
  */
 
 /** Finit tal-check delt af begge manuelle former (procent/tillægssats). */

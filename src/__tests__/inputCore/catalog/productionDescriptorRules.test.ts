@@ -128,7 +128,7 @@ describe('produktdescriptors – dato-, periode- og relevansregler', () => {
    * Erhvervssygdom. Testen måler, at den AKTUELLE label – ikke descriptorens statiske navn – følger med
    * ud i en rejected datofejl.
    *
-   * BB-128: en afvisning med en KONKRET årsag (`nonexistentDay`, `yearOutOfRepresentableRange`) bruger nu
+   * En afvisning med en KONKRET årsag (`nonexistentDay`, `yearOutOfRepresentableRange`) bruger
    * årsagsteksten som `message`, ikke kun som tooltip. Den besked nævner ikke feltet, så labelen måles her
    * på et `malformed` input («abc»), der stadig har den generiske feltnavns-besked. Kontrasten uden
    * skadestype sikrer, at testen måler selve kontekstskiftet og ikke bare en konstant streng.
@@ -158,9 +158,9 @@ describe('produktdescriptors – dato-, periode- og relevansregler', () => {
   });
 
   /**
-   * BB-128: den konkrete årsag er selve beskeden. Før stod den kun i `detail.tooltip`, mens `message`
-   * faldt tilbage til den generiske feltnavns-tekst – brugeren så altså «ugyldig værdi» frem for at få at
-   * vide, at 31. februar ikke findes. Den kontekstuelle label lever videre på issuets descriptor.
+   * Den konkrete årsag er selve beskeden, ikke kun `detail.tooltip`. Ellers falder `message` tilbage til
+   * den generiske feltnavns-tekst, og brugeren ser «ugyldig værdi» frem for at få at vide, at 31. februar
+   * ikke findes. Den kontekstuelle label lever videre på issuets descriptor.
    */
   it('bruger den konkrete årsag som besked i en rejected datofejl', () => {
     let input = dispatch(empty(), resetSection('stamdata', { skadestype: 'Erhvervssygdom' }));
@@ -218,7 +218,7 @@ describe('produktdescriptors – dato-, periode- og relevansregler', () => {
     expect(evaluation.reader.read(aarsloenTableCol1UgeField.bind('r1')).status).toBe('error');
   });
 
-  // BB-107/BB-295: hver celle i et omvendt par bærer sin egen udvej med modpartens værdi; ordet «dato» står ikke
+  // Hver celle i et omvendt par bærer sin egen udvej med modpartens værdi; ordet «dato» står ikke
   // i en ugefejl. Samme fælles validator i Årsløn og EO.
   it('giver hver celle i et omvendt periodepar sin egen tekst med modpartens værdi', () => {
     let input = dispatch(empty(), insertRow(tableRef, createEmptyStandardLoenRow('r1')));
@@ -245,7 +245,7 @@ describe('produktdescriptors – dato-, periode- og relevansregler', () => {
     });
   });
 
-  // BB-114/BB-296: et ugenummer, året ikke har, bærer grænsen og året – også som issuets besked, så «Fejl og
+  // Et ugenummer, året ikke har, bærer grænsen og året – også som issuets besked, så «Fejl og
   // advarsler» siger det samme som tooltippen.
   it('bruger ugenummerets konkrete grænse som besked', () => {
     let input = dispatch(empty(), insertRow(tableRef, createEmptyStandardLoenRow('r1')));
@@ -548,13 +548,13 @@ describe('produktdescriptors – dato-, periode- og relevansregler', () => {
 
 // Årsagsinputtene i det UMULIGE datointerval, målt gennem det ÆGTE produktionskatalog.
 //
-// Fundets reproduktion: sæt `stamdata.skadedato` til 2099-01-01. Skadedatoen bliver da EO-datofelternes nedre
-// grænse og ligger efter deres konfigurerede øvre grænse, så intet er gyldigt. Beskeden viste før rettelsen de
-// faktiske grænser, men ikke hvilke inputs der frembragte dem – brugeren fik at vide, at ingen dato var mulig,
-// uden at vide hvad de skulle rette.
+// Reproduktion: sæt `stamdata.skadedato` til 2099-01-01. Skadedatoen bliver da EO-datofelternes nedre grænse og
+// ligger efter deres konfigurerede øvre grænse, så intet er gyldigt. Viser beskeden kun de faktiske grænser og
+// ikke hvilke inputs der frembragte dem, får brugeren at vide, at ingen dato er mulig, uden at vide hvad der
+// skal rettes.
 //
-// Testen måler `issue.message` frem for blot `status`, fordi det er BESKEDEN, fundet handler om. En status-only
-// assertion havde været grøn hele vejen igennem.
+// Testen måler `issue.message` frem for blot `status`, fordi det er BESKEDEN, det handler om. En status-only
+// assertion ville være grøn, også når beskeden mangler årsagsinputtene.
 describe('produktdescriptors – umuligt datointerval navngiver sine årsagsinputs', () => {
   const withSkadedatoAfterCoverage = (): SettledInput =>
     dispatch(empty(), resetSection('stamdata', { skadedato: toISODateString('2099-01-01') }));

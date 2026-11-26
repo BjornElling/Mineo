@@ -155,7 +155,7 @@ export const getStandardLoenTableValidation = ({
     const hasMissingPeriodError = hasAnyFilled && !periodComplete;
     if (hasMissingPeriodError) {
       // En rød periodecelle læses som tom (readeren skjuler værdien), men brugeren HAR udfyldt den. Den har allerede
-      // sin `invalid`; en mangel oveni sendte brugeren på jagt efter en tom oplysning, som ikke findes (BB-401).
+      // sin `invalid`; en mangel oveni sendte brugeren på jagt efter en tom oplysning, som ikke findes.
       // Mangelen meldes kun for en partnercelle, der faktisk er tom. Rækken forbliver fejlramt gennem `invalid`.
       if (!startFilled && !rowErrorKeys.has(periodStartKey)) {
         errors.push({ kind: 'cell', issue: 'partial_period', rowId: row.id, colKey: periodStartKey });

@@ -172,7 +172,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
   const satsIssueFor = (descriptor: { bind: (...ids: readonly string[]) => FieldRef<number | undefined> }) =>
     satsIssues.get(serializeFieldAddress(field(descriptor).address));
   const feriePctIssue = satsIssueFor(eoEmploymentFields.feriePct);
-  // En usædvanligt høj sats er en gul, ikke-blokerende advarsel (BB-286) – ringen bæres af `warning`, ikke af
+  // En usædvanligt høj sats er en gul, ikke-blokerende advarsel – ringen bæres af `warning`, ikke af
   // fejlkanalen, så den hverken farves rød eller spærrer.
   const feriePctAdvarsel = feriePctAdvarselByAfId[af.id];
   const feriePctWarning = feriePctAdvarsel === undefined ? undefined : createFieldWarning(feriePctAdvarsel);
@@ -289,7 +289,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
       offentligLoenType: af.offentligLoenType,
       // Nøglen er kortets egen: knappen er registreret under den, og indtastningen huskes pr. ansættelsesforhold.
       key: af.id,
-      // Løntrinnet skal passe til lønnen på reguleringsdatoen, og et valgt resultat sættes ind på kortet (BB-310).
+      // Løntrinnet skal passe til lønnen på reguleringsdatoen, og et valgt resultat sættes ind på kortet.
       ...(anvendtReguleringsdato === undefined ? {} : { reguleringsdato: anvendtReguleringsdato }),
       insert: {
         loentrin: loenudviklingBinding.offentligLoenTrin,
@@ -299,7 +299,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
     });
   };
   const anciennitetSatsPerTekst = af.anciennitetstillaegSatsAngivesPer === 'Time' ? 'time' : 'måned';
-  // Samme prædikat som felternes relevans (BB-301), så synlighed og læsning ikke kan drive fra hinanden.
+  // Samme prædikat som felternes relevans, så synlighed og læsning ikke kan drive fra hinanden.
   const showAnciennitetstillaegSection = erLoenudviklingFeltRelevant('anciennitet', {
     blokVist: beregnesUdFra === 'Beregningsperiode',
     grundlag: loenudviklingBasis,
@@ -343,7 +343,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
 
   /**
    * «Fuld løn under ferie» og «Løn på helligdage» indgår i den sagsbrede TAF-enhed og kan dermed skifte
-   * fraværsdagenes enhed i sygeferiegodtgørelsen – også på de andre kort. Et sådant skift bekræftes først (BB-449).
+   * fraværsdagenes enhed i sygeferiegodtgørelsen – også på de andre kort. Et sådant skift bekræftes først.
    */
   const fuldLoenUnderFerieField = field(eoEmploymentFields.fuldLoenUnderFerie);
   const loenPaaHelligdageField = field(eoEmploymentFields.loenPaaHelligdage);
@@ -450,7 +450,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
         />
       </Box>
 
-      {/* Kun ved beregningsperiode: ved angivet løn ændrer valget intet (BB-285, `erFuldLoenUnderFerieRelevant`). */}
+      {/* Kun ved beregningsperiode: ved angivet løn ændrer valget intet (`erFuldLoenUnderFerieRelevant`). */}
       {erFuldLoenUnderFerieRelevant({ beregnesUdFra }) && (
         <LabeledControlRow label="Fuld løn under ferie:">
           {({ labelledBy, controlId }) => (
@@ -618,7 +618,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
       ) : null}
 
       <Typography className="row--subheading">Indtægtsoplysninger</Typography>
-      {/* Lønperioden styrer kun tabellens kolonner og står derfor lige over tabellen (BB-348). */}
+      {/* Lønperioden styrer kun tabellens kolonner og står derfor lige over tabellen. */}
       <Box className="row--label-right-hover">
         <Typography className="row--text">Løn indtastes som:</Typography>
         <Box className="row--label-right-hover__content">

@@ -25,7 +25,7 @@ const control = (overrides: Readonly<{
 });
 
 describe('eoControlMismatch (produktions-ejet kontrol-/audit-kerne)', () => {
-  it('null/0 mod null/0 er tomt mod tomt: ingen uoverensstemmelse og intet mærke (BB-386)', () => {
+  it('null/0 mod null/0 er tomt mod tomt: ingen uoverensstemmelse og intet mærke', () => {
     expect(getSammentaellingControlStatus(control({ beregnetValue: 0, tabelValue: null }))).toBe('tom');
     expect(getSammentaellingControlStatus(control({ beregnetValue: null, tabelValue: 0 }))).toBe('tom');
   });
@@ -62,9 +62,8 @@ describe('eoControlMismatch (produktions-ejet kontrol-/audit-kerne)', () => {
   describe('manglende grundlag', () => {
     /**
      * Reglen konstruktøren håndhæver: en uoverensstemmelse kan kun opstå mellem to FAKTISK dannede
-     * opgørelser. Uden den blev et tomt påkrævet felt eller to overlappende perioder til
-     * `control:sammentaelling_mismatch` – en systemfejl, der åbner «Teknisk fejl registreret»
-     * (brugerfund 2026-09-17).
+     * opgørelser. Ellers bliver et tomt påkrævet felt eller to overlappende perioder til
+     * `control:sammentaelling_mismatch` – en systemfejl, der åbner «Teknisk fejl registreret».
      */
     const udenGrundlag = buildSammentaellingControl({
       beregnet: grundlagMangler,

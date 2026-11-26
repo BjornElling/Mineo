@@ -111,7 +111,7 @@ describe('resolveAnciennitetForIndex', () => {
     expect(result!.supplementValue).toBe(6.24);
   });
 
-  // Afklaringslog 10a: offentlig pakkes enhed er «Ansættelse», aldrig TAF-enheden (fund A2).
+  // Offentlig pakkes enhed er «Ansættelse», aldrig TAF-enheden.
   // Håndregnede facitter: 500 kr./måned ÷ 160,33 = 3,1185… → 3,12; 3,50 kr./time × 160,33 = 561,155 → 561,16.
   it.each([
     ['kl-overenskomst', 'maanedsLoen', 500, 'Måned', 500],

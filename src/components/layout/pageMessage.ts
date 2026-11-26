@@ -33,7 +33,7 @@
  * `hasPageMessage()`, og et tomt array kan slet ikke nå dertil, fordi det ikke er en `PageMessage`.
  *
  * Boks-komponenten ({@link ../messages/PageMessageBox}) er den eneste render-vej og ejer værnet, så en side
- * ikke længere kan håndrulle sit eget. AST-reglen `ui/message-box-guarded-by-page-message` håndhæver, at nye
+ * ikke kan håndrulle sit eget. AST-reglen `ui/message-box-guarded-by-page-message` håndhæver, at nye
  * fejlbokse går gennem den.
  */
 

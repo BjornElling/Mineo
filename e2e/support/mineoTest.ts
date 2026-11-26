@@ -83,11 +83,9 @@ export type MineoPageName = keyof typeof MINEO_PAGE_TITLES;
  * et gyldigt svar. Testen bliver dermed grøn på det forkerte grundlag, når maskinen er hurtig, og rød
  * uden forklaring, når den er langsom.
  *
- * Det var ikke en teoretisk fælde: `content-scale.spec.ts` › «skærmprint …» klikkede sig til
- * Erstatningsopgørelse, fandt rapportknappen på den STADIG viste Indstillinger-side, åbnede DENS dialog
- * – og så forsvandt dialogen, da EO-chunken landede og Indstillinger blev unmountet. Testen brugte
- * derefter hele sit timeout-loft på at vente på en knap i en dialog, der aldrig kom igen. Med otte
- * samtidige workers ramte den hver gang; alene var den grøn på 2,4 s.
+ * Eksempel: en test klikker sig til Erstatningsopgørelse, finder rapportknappen på den STADIG viste
+ * Indstillinger-side og åbner DENS dialog – som forsvinder, når EO-chunken lander og Indstillinger
+ * unmountes. Under parallel belastning rammer det hver gang; alene er testen grøn.
  *
  * Ventepunktet er sidens egen `.page-title`, fordi den er det første, den nye side maler – og fordi
  * URL'en skifter FØR monteringen og derfor ikke kan bruges som signal.
@@ -203,8 +201,8 @@ export const setVerbatimFieldValueAndSettle = async (
  * Det mindste TAF-grundlag, der gør en Erstatningsopgørelse hentbar: krav på TAF, én TAF-periode, angivet
  * månedsløn uden lønudvikling og arbejdssituationen. Står på EO oplysninger-fanen.
  *
- * Offentlige ydelser bruges kun ved krav på tabt arbejdsfortjeneste (BB-360). Specs, der før satte TAF «Nej» for at
- * slippe for TAF-grundlaget, bruger denne i stedet, så ydelsesrækken stadig indgår.
+ * Offentlige ydelser bruges kun ved krav på tabt arbejdsfortjeneste. Specs, der har brug for en
+ * ydelsesrække, bruger denne i stedet for TAF «Nej», så rækken stadig indgår.
  */
 export const fillMinimalTafGrundlag = async (
   page: Page,
@@ -310,8 +308,8 @@ export const test = base.extend<{
   /**
    * Kun de HÅRDE runtimesignaler: konsolfejl og ubehandlede undtagelser.
    *
-   * Findes ved siden af `runtimeSignals`, fordi ti spec-filer havde hver sin håndskrevne kopi af
-   * præcis denne opsamling – og fordi de to påstande ikke er den samme: `runtimeSignals` tæller også
+   * Findes ved siden af `runtimeSignals`, så spec-filerne ikke hver har en håndskrevet kopi af
+   * denne opsamling – og fordi de to påstande ikke er den samme: `runtimeSignals` tæller også
    * advarsler og fejlede requests og bruges, hvor en test vil hævde, at INTET blev sagt.
    * `runtimeErrors` bruges, hvor den almindelige brugerrejse ikke må fejle, men godt må advare.
    */

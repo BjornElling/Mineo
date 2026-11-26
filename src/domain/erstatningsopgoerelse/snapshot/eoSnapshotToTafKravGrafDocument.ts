@@ -213,7 +213,7 @@ const resolveUnitDivisor = (
   if (unit === 'arbejdsdag') {
     const arbejdsdage = countArbejdsdageInRange(range, context);
     // En ferieperiode kan have indkomst, selv om den ingen arbejdsdage har. Grafen fordeler da
-    // indkomsten over hverdage ekskl. SH, før feriefradrag (godkendt 2026-10-18). Dette er kun
+    // indkomsten over hverdage ekskl. SH, før feriefradrag (bevidst valg). Dette er kun
     // et visuelt niveau: opgørelsernes arbejdsdage og beløb ændres ikke. Rene weekend-/SH-samples
     // får fortsat ingen divisor og følger den eksisterende brobygning.
     return arbejdsdage > 0 || !context ? arbejdsdage : buildLoenArbejdsdageSet(range, []).size;
@@ -557,7 +557,7 @@ export const eoSnapshotToTafKravGrafDocument = (
     });
 
   // En sag uden løn og ydelser er ikke ufuldstændig: knappen siger tilstanden i stedet for «Indtastning mangler»,
-  // som sendte brugeren på jagt efter et tomt felt (BB-461, samme form som BB-371).
+  // som ville sende brugeren på jagt efter et tomt felt (samme form som TAF-dokumenterne uden TAF i EO-perioden).
   if (series.length === 0) {
     return { kind: 'blocked', message: TAF_KRAV_GRAF_INGEN_INDTAEGTER, invariants: [], specific: true };
   }

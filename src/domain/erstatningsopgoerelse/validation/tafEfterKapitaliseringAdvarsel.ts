@@ -6,7 +6,7 @@ import type { EetIssue } from '../../erhvervsevnetab/eetTypes';
 import { TAF_EFTER_KAPITALISERING_ISSUE_ID_PREFIX } from '../../erhvervsevnetab/eetIssueNavigation';
 import { clampTafRow, resolveTafConstraintBounds, type TafConstraintSource } from './tafPeriodConstraints';
 
-// TAF efter kapitaliseringen af en delvist endelig EET-afgørelse (BB-187, udviklerafgørelse 2026-10-30).
+// TAF efter kapitaliseringen af en delvist endelig EET-afgørelse.
 //
 // Udgangspunktet er, at en delvist endelig afgørelse i forhold til TAF behandles som en endelig: retten til TAF
 // ophører på kapitaliseringstidspunktet. Der kan dog hypotetisk opstå sager, hvor TAF alligevel fortsætter, så

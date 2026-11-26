@@ -93,11 +93,9 @@ export type AppSettingsDocumentDownloadFormatOption = DocumentDownloadFormat;
  * `ResolvedThemeMode` (udfaldet) adskilte typer, og `resolveThemeMode` nedenfor er den eneste
  * oversættelse mellem dem.
  *
- * Baggrund: `'system'` var tidligere ikke en gemt værdi, men fraværet af én. Systemtemaet blev
- * kun læst ved allerførste start, og i samme øjeblik brugeren valgte lyst eller mørkt, var
- * automatikken permanent væk – uden nogen vej tilbage. Udviklerens afgørelse 2026-08-18
- * (`docs/testing/brugerblik/indstillinger.md` BB-024) gør «følg computeren» til et ægte,
- * gemt valg og til standarden.
+ * «Følg computeren» (`'system'`) er et ægte, gemt valg og standarden – ikke fraværet af en værdi.
+ * Ellers læses systemtemaet kun ved allerførste start, og i samme øjeblik brugeren vælger lyst
+ * eller mørkt, er automatikken permanent væk uden nogen vej tilbage.
  */
 // Rækkefølgen er visningsrækkefølgen på Indstillinger: de to konkrete valg først, automatikken
 // sidst som den, man vender tilbage til.
@@ -141,7 +139,7 @@ export const appSettingsSchema = z
     defaultSvieSmerteDelvisSygemeldingSats: z.enum(APP_SETTINGS_SVIE_SMERTE_DELVIS_SYGEMELDING_SATS_OPTIONS),
     defaultIndsaetUdkastStempel: z.boolean(),
     defaultVisBilagsnumre: z.boolean(),
-    // Beregningstekniske regel-toggles. Bevidst device-lokale (udviklergodkendt 2026-06-19):
+    // Beregningstekniske regel-toggles. Bevidst device-lokale:
     // de ændrer IKKE de producerede tal, kun validerings-severity for overenskomst-/regulerings-
     // udløb før TAF-periodens slutning (warning vs. error). Nedre dækning blokerer altid. Dokumenteret undtagelse fra app-settings.md §"Beregnings-/regel-
     // toggles"; eneste produktions-callsite er buildEoIndkomstRows. Skal flyttes til .eo-sagsdata
@@ -165,7 +163,7 @@ export type AppSettingsPatch = Readonly<Partial<Omit<AppSettings, 'brevhovedInds
 
 export const DEFAULT_APP_SETTINGS: AppSettings = {
   // «Følg computeren» er standarden: uden et aktivt valg skal Mineo følge maskinens lyse/mørke
-  // indstilling, også når den skifter midt i en session (BB-024).
+  // indstilling, også når den skifter midt i en session.
   themeMode: 'system',
   defaultStartsideErStamdata: false,
   showContentBoxReportButton: false,

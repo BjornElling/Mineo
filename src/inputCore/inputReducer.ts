@@ -320,18 +320,18 @@ const removeRejectedBelowEntity = (
  *   - rejected råtekst (formatfejl) – blokerer save globalt (§8), og
  *   - en canonical out-of-bounds-/rule-værdi – blokerer afhængige beregninger og dokumenter.
  *
- * **Enhver ændring, ikke kun et valg.** Rydningen sad før kun på `setImmediateField`. Men relevans kan også
- * afhænge af et TEKSTfelt eller en tabels indhold: «Svie/smerte-krav i tidligere erstatningsopgørelser» er
- * kun relevant fra 2. opgørelse, og «Nummer» er et tekstfelt. Rettede brugeren «Nummer» fra 2 til 1, mens
- * beløbsfeltet bar ugyldig råtekst, efterlod settle råteksten i et skjult felt, og relevans-invarianten
- * afviste tilstanden med en undtagelse – indtastningen kunne slet ikke gennemføres. Samme vej går TAF's
+ * **Enhver ændring, ikke kun et valg.** Rydningen må ikke kun sidde på `setImmediateField`: relevans kan også
+ * afhænge af et TEKSTfelt eller en tabels indhold. «Svie/smerte-krav i tidligere erstatningsopgørelser» er
+ * kun relevant fra 2. opgørelse, og «Nummer» er et tekstfelt. Retter brugeren «Nummer» fra 2 til 1, mens
+ * beløbsfeltet bærer ugyldig råtekst, ville settle ellers efterlade råteksten i et skjult felt, og
+ * relevans-invarianten ville afvise tilstanden med en undtagelse – indtastningen kunne slet ikke gennemføres. Samme vej går TAF's
  * «Løse ferie-/feriefridage», hvis relevans følger beregningsenheden, som udledes af lønindkomstens rækker.
  *
  * Afgrænsningen er snæver med vilje: et skjult felt UDEN rød fejl bevares altid (§7.6). Rydningen rammer
  * altså netop overgangen `synlig+rød → skjult`, ikke skjulte værdier i almindelighed. Undo gendanner
  * både ændringen og den ryddede værdi som ét trin, så handlingen er fuldt reversibel.
  *
- * **Kun `irrelevant`, aldrig `ubestemt` (BB-433).** Bygger relevansen på et felt med afvist råtekst – fx en
+ * **Kun `irrelevant`, aldrig `ubestemt`.** Bygger relevansen på et felt med afvist råtekst – fx en
  * beregningsperiode med slutdatoen `31-02-2018`, så det ikke kan afgøres, om der regnes i dage eller måneder –
  * er feltet skjult, men ikke fravalgt. Dets afviste input bevares, og det kommer frem igen, når årsagen rettes.
  * Gør en senere ændring det `irrelevant` (brugeren vælger fx TAF «Nej»), ryddes dets afviste råtekst da.

@@ -14,18 +14,18 @@ import { TILLAEG_ANGIVES_SOM } from '../../../types/loen';
 /**
  * ÉN sats-vurdering for et lønindkomst-ansættelsesforhold.
  *
- * Tidligere blev de samme satser vurderet af to aktive regelsæt: ét producerede de røde feltfejl i
- * brugerfladen, og ét gatede beregning og dokumentdownload. Dette modul er den ENE kilde, som både
+ * Satserne må ikke vurderes af to aktive regelsæt – ét for de røde feltfejl i brugerfladen og ét, der gater
+ * beregning og dokumentdownload. Dette modul er den ENE kilde, som både
  * feltvisningen, rækken i «Fejl og advarsler» og validatoren aftager; ét regelsæt kan ikke drifte fra sig selv.
  *
  * Feriegodtgørelsen er påkrævet, når kortet har lønoplysninger i procent-tilstand – UANSET beregningsmåde og
  * reguleringsform. Lønrækkernes tillæg, fradraget for indtægt efter skaden og beregningsgrundlaget læser feltet
  * i alle former, og en lønmodtager får altid enten feriegodtgørelse eller ferietillæg
- * (`feriepenge-begreber-contract.md` regel 1). Før krævedes feltet kun ved «Overenskomst» og «Manuelt
- * angivet», og et tomt felt fjernede tavst 12,5 % af lønnen fra kravet ved de øvrige former (BB-274).
+ * (`feriepenge-begreber-contract.md` regel 1). Krævedes feltet kun ved enkelte former, ville et tomt felt
+ * tavst fjerne 12,5 % af lønnen fra kravet ved de øvrige.
  *
  * Et TOMT felt er en manglende indtastning, ikke en forkert: det giver ingen rød ring – brugeren har ikke
- * skrevet noget – men en blokerende linje i «Fejl og advarsler» (udviklerafgørelse 2026-10-06, jf.
+ * skrevet noget – men en blokerende linje i «Fejl og advarsler» (jf.
  * `error-contract.md` §`missing`). En indtastet værdi vurderes af {@link vurderEoFeriesats}.
  *
  * AFGRÆNSNING mod de LÅSTE satser. Fritvalg, SH/SO, Store Bededagstillæg og arbejdsgiverpension vurderes
@@ -75,8 +75,7 @@ export { FERIE_PCT_MANGLER_BESKED };
 export type EoFeriesatsFund = Readonly<{ kind: 'deviation' | 'unusual'; message: string }>;
 
 /**
- * Vurderer en INDTASTET feriesats i erstatningsopgørelsen (`feriepenge-begreber-contract.md` §2b, udviklerafgørelse
- * 2026-11-04). Deles af ansættelsesforholdets satsfelt og den manuelle lønudviklingstabels kolonne, som er samme sats
+ * Vurderer en INDTASTET feriesats i erstatningsopgørelsen (`feriepenge-begreber-contract.md` §2b). Deles af ansættelsesforholdets satsfelt og den manuelle lønudviklingstabels kolonne, som er samme sats
  * fra en senere dato.
  *
  * Erstatningsopgørelsen opgør TAF med en tvungen både-og: også ved løn under ferie skal satsen beregningsteknisk

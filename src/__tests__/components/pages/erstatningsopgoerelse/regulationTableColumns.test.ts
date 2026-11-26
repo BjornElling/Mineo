@@ -1,7 +1,7 @@
 import { getRegulationTableColumns } from '../../../../components/pages/erstatningsopgoerelse/regulationTableColumns';
 
 describe('getRegulationTableColumns', () => {
-  it('beholder «Grundløn» og højrestiller den som de øvrige talkolonner (BB-309)', () => {
+  it('beholder «Grundløn» og højrestiller den som de øvrige talkolonner', () => {
     const columns = getRegulationTableColumns({
       id: 't',
       columns: ['Fra-dato', 'Grundløn', 'Store Bededagstillæg', 'AG-pension'],

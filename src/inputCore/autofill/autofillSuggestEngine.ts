@@ -91,10 +91,9 @@ const yearPlacingMonthNearest = (reference: number, month: number): number | nul
 /**
  * Måned/år-parrene over `rowIndex` som absolutte månedsindeks, med årstallet UDLEDT hvor det mangler.
  *
- * Udledningen er reviewets vigtigste rettelse i denne fil. Tidligere talte KUN rækker, hvor begge celler
- * havde en prøve, og det gav præcis den fejl, udvikleren fotograferede: står månederne 1, 2, 3, 4 med
- * årstal i de tre første rækker og en tom årscelle i den fjerde, faldt måned 4 ud af serien. Mønstret
- * blev dannet af 1, 2, 3, og ghosten foreslog 4 – i rækken UNDER en celle, hvor der allerede stod 4.
+ * Uden udledningen tæller KUN rækker, hvor begge celler har en prøve: står månederne 1, 2, 3, 4 med
+ * årstal i de tre første rækker og en tom årscelle i den fjerde, falder måned 4 ud af serien. Mønstret
+ * dannes da af 1, 2, 3, og ghosten foreslår 4 – i rækken UNDER en celle, hvor der allerede står 4.
  * Brugeren læser månedskolonnen som 1, 2, 3, 4 og forventer 5.
  *
  * Derfor: hele månedskolonnen bærer prøver. Et manglende årstal udledes som det kalenderår, der lægger
@@ -343,8 +342,8 @@ export const projectAutofillColumnValue = (
       const next = projectAbsoluteMonthSeries(absoluteMonthSamplesAbove(column, linked, rowIndex));
       if (next !== null) return { kind: 'monthOfYear', month: fromAbsoluteMonth(next).month };
       // Med ét ægte årstal i prøverne ER måned og år én serie (§1.5), og et brud i den er svaret: intet forslag.
-      // Før faldt motoren altid tilbage til den rene månedsserie, så 12/2010 og 1/2018 foreslog måned 2 uden
-      // et år – et forslag, der sprang over syv års forskel (BB-441).
+      // Et fald tilbage til den rene månedsserie ville lade 12/2010 og 1/2018 foreslå måned 2 uden et år –
+      // et forslag, der springer over syv års forskel.
       if (hasYearSampleAbove(linked, rowIndex)) return null;
     }
     // Uden ét ægte årstal findes der ingen kalender at wrappe i; måneden fortsætter da modulært.
@@ -378,8 +377,8 @@ export const projectAutofillColumnValue = (
  *    Enter-accept ikke kan overskrive noget (`keyboard-navigation.md`: «Enter overskriver værdi uden
  *    brugerens samtykke» er en fejl).
  *  - **Cellen umiddelbart OVER skal være udfyldt** (regel 1). Reglen måles på CELLEN og ikke på rækken.
- *    Forskellen er den, udvikleren fotograferede: en række med en tastet måned, men en tom årscelle, er
- *    udfyldt som RÆKKE – og en rækkeprøve lod derfor årskolonnen foreslå et årstal i rækken NEDENUNDER,
+ *    En række med en tastet måned, men en tom årscelle, er udfyldt som RÆKKE – og en rækkeprøve ville
+ *    derfor lade årskolonnen foreslå et årstal i rækken NEDENUNDER,
  *    to celler under det seneste årstal. Med celleprøven kan forslaget aldrig springe over en tom celle,
  *    og «to linjer under den seneste indtastning» er udelukket ved konstruktion.
  */

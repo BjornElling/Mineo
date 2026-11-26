@@ -12,8 +12,9 @@ import { TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../../../domain/ersta
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { toISODateString, type ISODateString } from '../../../types/branded';
 
-// Kronetillæg i offentlig overenskomst (fund A1/A2 og afklaringslog 10/10a i
-// `docs/review/regulering-taf-gennemgang-2026-10-13.md`).
+// Kronetillæg i offentlig overenskomst. Et kronetillæg (forhøjet grundløn, anciennitetstillæg) regnes altid om
+// til pakkens enhed – «Ansættelse» ved offentlig overenskomst – og TAF-enheden indgår ikke. Enheden er brugerens
+// valg (Time/Måned), gemmes med beløbet og udledes aldrig af et andet felt.
 //
 // Facitterne er HÅNDREGNEDE ud fra løntrinstabellen (trin 1, gruppe 0) og faktoren 160,33 – ikke ud fra
 // motorens egen omregning – så motor og kontrol ikke kan blive enige om samme enhedsfejl:
@@ -85,7 +86,7 @@ const deltaPctPaa = (values: ErstatningsopgoerelseValues, tafBeregningsenhed: Ta
 const TAF_ENHEDER = [TAF_BEREGNES_SOM.MAANEDER, TAF_BEREGNES_SOM.ARBEJDSDAGE] as const;
 
 describe('kronetillæg i pakkens enhed', () => {
-  describe('forhøjet grundløn (fund A1)', () => {
+  describe('forhøjet grundløn', () => {
     // A1-facit: KL, trin 1, gruppe 0, Månedsløn, TAF i arbejdsdage, basis 01-04-2024, satsændring 01-10-2024,
     // 1.000 kr./måned: (19.603,25 + 1.000) / (19.351,75 + 1.000) − 1 = 1,2358 % → 1,24 % (tidligere 0,14 %).
     it('A1: 1.000 kr./måned ved Månedsløn og TAF i arbejdsdage giver 1,24 %', () => {
@@ -133,7 +134,7 @@ describe('kronetillæg i pakkens enhed', () => {
     });
   });
 
-  describe('anciennitetstillæg (fund A2)', () => {
+  describe('anciennitetstillæg', () => {
     const ANCIENNITETSDATO = iso('2024-05-01');
 
     // A2-facit: Månedsløn, TAF i arbejdsdage, basisløn 19.351,75, 500 kr./måned fra 01-05-2024:

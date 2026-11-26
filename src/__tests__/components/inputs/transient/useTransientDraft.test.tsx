@@ -168,8 +168,8 @@ describe('transient input: commit-mekanik', () => {
   });
 
   it('er LUKKET ved ét klik og åbnes først ved det andet – samme totrins-model som datofeltet', async () => {
-    // Beløbsfeltet var tidligere ETTRINS, mens datofeltet ved siden af – i samme overlay – var totrins.
-    // De to felter tog altså imod på hver sin måde. Testen måler den lukkede tilstand direkte gennem
+    // Beløbsfeltet og datofeltet ved siden af – i samme overlay – skal tage imod på samme, totrins måde.
+    // Testen måler den lukkede tilstand direkte gennem
     // `readOnly`, så den ikke kan blive grøn af, at en tastning tilfældigvis ikke nåede frem.
     const user = userEvent.setup();
     render(<AmountHarness initial={amount(1000)} />);
@@ -345,7 +345,7 @@ describe('TransientDateInput', () => {
 
   it('afviser en dato uden for de angivne grænser', async () => {
     // Regressionsværn for bounds-stien: `resolveDateRangeErrorMessage` melder "ingen fejl" med en TOM STRENG.
-    // En `!== undefined`-test afviste derfor tidligere ENHVER dato – også de gyldige – med en tom besked.
+    // En `!== undefined`-test ville derfor afvise ENHVER dato – også de gyldige – med en tom besked.
     const user = userEvent.setup();
     render(<BoundedHarness />);
 

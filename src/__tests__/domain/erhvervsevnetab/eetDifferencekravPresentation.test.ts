@@ -62,11 +62,11 @@ describe('resolveMerErstatningPensionsalderBilagDisabledReason', () => {
     expect(reason).not.toContain('ikke forhøjet i perioden');
   });
 
-  // BB-189: uden kapitalisering kaldes mer-erstatningsberegningen slet ikke, fordi vagten
+  // Uden kapitalisering kaldes mer-erstatningsberegningen slet ikke, fordi vagten
   // `indregnMerErstatning && kapResult.computation` fejler på sit ANDET led. Den fælles tekst
-  // «Pensionsalderen er ikke forhøjet i perioden» var derfor direkte usand netop dér – i den målte
-  // sag blev folkepensionsalderen forhøjet 31-12-2020, midt i sagens periode, og programmet kendte
-  // datoen. Testen låser, at de to tilstande har hver sin grund.
+  // «Pensionsalderen er ikke forhøjet i perioden» ville derfor være usand netop dér – fx når
+  // folkepensionsalderen forhøjes 31-12-2020, midt i sagens periode. Testen låser, at de to
+  // tilstande har hver sin grund.
   it('forklarer den manglende kapitalisering frem for at påstå noget om pensionsalderen', () => {
     const reason = resolveMerErstatningPensionsalderBilagDisabledReason(true, false, false);
     expect(reason).toBe('Ingen kapitalisering på eller før beregningsdatoen');

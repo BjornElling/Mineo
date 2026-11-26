@@ -31,21 +31,20 @@ import {
 import { getOffentligeYdelserRowFilledState } from './offentligeYdelserTableValidation';
 import { deriveOffentligeYdelserRow } from '../helpers/offentligeYdelserDerived';
 
-// EO's indtægtstabellers IKKE-blokerende rækkeadvarsler – gul ring på cellen og en linje i «Fejl og advarsler»
-// (udviklerafgørelser 2026-10-19):
-//  - lønindkomst (pr. ansættelsesforhold, aldrig på tværs): identisk række (BB-289), periode efter dags dato
-//    (BB-298) og negativ samlet løn (BB-290) – den fælles løntabelregel, `standardLoenRowWarnings.ts`;
-//  - offentlige ydelser: identisk række (BB-289), negativt beløb (BB-290) og en arbejdsdags-periodiseret ydelse i en
-//    periode uden arbejdsdage (BB-365; samme regel som lønnens og TAF-periodernes);
-//  - begge: et beløb over ti gange højere end de øvrige rækker i samme periode (BB-297, `tableAmountOutlierDetection.ts`).
+// EO's indtægtstabellers IKKE-blokerende rækkeadvarsler – gul ring på cellen og en linje i «Fejl og advarsler»:
+//  - lønindkomst (pr. ansættelsesforhold, aldrig på tværs): identisk række, periode efter dags dato
+//    og negativ samlet løn – den fælles løntabelregel, `standardLoenRowWarnings.ts`;
+//  - offentlige ydelser: identisk række, negativt beløb og en arbejdsdags-periodiseret ydelse i en
+//    periode uden arbejdsdage (samme regel som lønnens og TAF-periodernes);
+//  - begge: et beløb over ti gange højere end de øvrige rækker i samme periode (`tableAmountOutlierDetection.ts`).
 // Alle regnes med i beregningen; advarslen beder kun brugeren om at se efter. Eneste undtagelse er en manuel
 // midlertidigt EET-række, mens midlertidigt EET hentes fra Erhvervsevnetab-siden: den medregnes ikke, og advarslen
-// siger netop det (udviklerafgørelse 2026-11-04).
+// siger netop det.
 
 type Ansaettelsesforhold = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
 
 /**
- * Rækkens periode i rimelighedskontrollen (BB-297): beregningsperioden, erstatningsperioden eller ingen af dem. Der
+ * Rækkens periode i rimelighedskontrollen: beregningsperioden, erstatningsperioden eller ingen af dem. Der
  * sammenlignes kun inden for samme periode, så en lav løn efter skaden ikke får lønnen før skaden til at se høj ud.
  *
  * Erstatningsperioden er TAF-perioderne uden skadedatoens beskæring: den rammer kun midlertidig EET for skader før
@@ -78,7 +77,7 @@ export const resolveLoenindkomstRowWarnings = (
     calculateLoenindkomstRowDerived({ row, ansaettelsesforhold, context: values, skadedato }).samlet;
   const fieldSet = createEoStandardLoenFieldSet(ansaettelsesforhold.id);
   // Løn i en periode uden arbejdsdage: samme gule ring på periodecellerne som TAF-perioderne og de offentlige
-  // ydelser (BB-365). Før stod den kun som linje i «Fejl og advarsler» uden markering i tabellen.
+  // ydelser, ikke kun en linje i «Fejl og advarsler».
   const ingenArbejdsdage: readonly StandardLoenRowWarning[] = buildStandardLoenZeroArbejdsdageIssues(values, ansaettelsesforhold.id)
     .map((issue) => Object.freeze({
       kind: 'ingenArbejdsdage' as const,
@@ -150,10 +149,10 @@ const ydelseCells = (rowId: string): readonly AnyFieldRef[] => [
   toAnyFieldRef(eoOffentligeYdelserTillaegField.bind(rowId)),
 ];
 
-/** Ordlyden fra BB-365: perioden er næsten sikkert en tastefejl, men beløbet regnes med (fald-tilbage-dagene). */
+/** Perioden er næsten sikkert en tastefejl, men beløbet regnes med (fald-tilbage-dagene). */
 const INGEN_ARBEJDSDAGE_UDSAGN = 'kontrollér datoerne. Beløbet medregnes i perioden.';
 
-/** Ydelsesrækker kortere end en uge vurderes ikke for et usandsynligt højt beløb (BB-297). */
+/** Ydelsesrækker kortere end en uge vurderes ikke for et usandsynligt højt beløb. */
 const OUTLIER_MIN_YDELSE_DAGE = 7;
 
 /**
@@ -172,7 +171,7 @@ export const resolveOffentligeYdelserRowWarnings = (
     (row) => [row.fraDato, row.tilDato, row.ydelse, row.tillaeg, canonicalYdelsestypeKey(row.ydelsestype)]
   ).map((match) => match.row.id));
 
-  // Rimelighedskontrollen (BB-297): ydelse pr. kalenderdag, sammenlignet inden for ydelsestype og periode.
+  // Rimelighedskontrollen: ydelse pr. kalenderdag, sammenlignet inden for ydelsestype og periode.
   const periodeGruppe = values === undefined ? undefined : buildIndtaegtsperiodeGruppe(values);
   const outlierIds = periodeGruppe === undefined ? new Set<string>() : findAmountOutliers(rows.flatMap((row) => {
     if (errorRowIds.has(row.id)) return [];

@@ -68,7 +68,7 @@ describe('differencekrav → Word-indhold', () => {
     expect(text).toContain('100.000 kr.');
   });
 
-  it('trykker restydelsens månedsbrøk med fem decimaler, så linjen kan efterregnes (BB-424)', async () => {
+  it('trykker restydelsens månedsbrøk med fem decimaler, så linjen kan efterregnes', async () => {
     const { documentXml } = await renderWordDocument((session) => {
       return generateDifferencekravDocument(session, {
         computation: {
@@ -121,7 +121,7 @@ describe('differencekrav → Word-indhold', () => {
   });
 
   /**
-   * BB-182: EAL-bilaget kaldes med `includeBeregningsdatoHeader = false`, som fjerner hele
+   * EAL-bilaget kaldes med `includeBeregningsdatoHeader = false`, som fjerner hele
    * «Beregning»-sektionen fra kroppen. Skadedatoen ligger derfor i Specifikationen og ikke i
    * headeren – ellers ville netop bilaget mangle den forudsætning, både opreguleringen og
    * aldersreduktionen hviler på, og differencekravets egen krop skriver den ikke.
@@ -193,16 +193,16 @@ describe('differencekrav → Word-indhold', () => {
     // Bilaget har ingen «Beregning»-sektion – men skadedatoen er der.
     expect(text).toContain('Skadedato');
     expect(text).toContain('01-06-2018');
-    // BB-177: adjektivet må ikke være tilbage i bilaget heller.
+    // Adjektivet «Endeligt» må heller ikke stå i bilaget.
     expect(text).not.toContain('Endeligt erhvervsevnetab');
   });
 
   /**
-   * Mer-erstatningen ved forhøjet folkepensionsalder samler fire fund i ét afsnit:
-   *  - BB-190: samtlige beløb stod UDEN «kr.» – side om side med linjer, der havde enheden.
-   *  - BB-191: størrelsen hed fire ting; nu ét navn, «Forhøjet pensionsalder».
-   *  - BB-193: to kapitaliseringer gav to ORDRET identiske overskrifter med to forskellige beløb.
-   *  - BB-201: summen stod kun på skærmen, ikke i specifikationen og bilaget.
+   * Mer-erstatningen ved forhøjet folkepensionsalder:
+   *  - samtlige beløb bærer «kr.», som nabolinjerne;
+   *  - størrelsen har ét navn, «Forhøjet pensionsalder»;
+   *  - to kapitaliseringer giver adskilte overskrifter, ikke to ordret ens med forskellige beløb;
+   *  - summen står både i specifikationen og i bilaget, ikke kun på skærmen.
    */
   it('trykker mer-erstatningen med enhed, ét navn, adskilte overskrifter og en sum', async () => {
     const event = (kapitaliseringspct: number, kapitaliseringsdato: string, merErstatning: number) => ({
@@ -286,29 +286,28 @@ describe('differencekrav → Word-indhold', () => {
 
     const text = xmlToPlainText(documentXml);
 
-    // BB-191: ét navn – både specifikationens underoverskrift og bilagets titel.
+    // Ét navn – både specifikationens underoverskrift og bilagets titel.
     expect(text).toContain('Forhøjet pensionsalder');
     expect(text).not.toContain('Mer-erstatning forhøjet folkepension');
 
-    // Forsidens fradragslinjer nævner kun forhøjelsen (udviklerafgørelse 2026-11-20); kapitaliseringen,
-    // der skelner de to (BB-193), står i bilaget under hver forhøjelses overskrift.
+    // Forsidens fradragslinjer nævner kun forhøjelsen (bevidst valg); kapitaliseringen,
+    // der skelner de to, står i bilaget under hver forhøjelses overskrift.
     expect(text).toContain('Forhøjelse pr. 31-12-2020 (68 år → 69 år):');
     expect(text).not.toContain('· kapitaliseret');
     expect(text).toContain('Tidligere kapitalisering15 % den 01-01-2019');
     expect(text).toContain('Tidligere kapitalisering25 % den 01-06-2020');
 
-    // BB-201: summen står i BÅDE specifikationen og bilaget.
+    // Summen står i BÅDE specifikationen og bilaget.
     expect(text.match(/Samlet mer-erstatning/g)?.length).toBe(2);
     expect(text).toContain('69.525 kr.');
 
-    // BB-194: faktoropslagets forudsætninger er navngivet.
+    // Faktoropslagets forudsætninger er navngivet.
     expect(text).toContain('Alder ved forhøjelsen');
     expect(text).toContain('52 år, 5 måneder');
     expect(text).toContain('Kapitaliseringsbekendtgørelse');
     expect(text).toContain('Kapitaliseringsfaktor');
 
-    // BB-190: hvert beløb i afsnittet bærer enheden. Uden rettelsen stod fx «31.906,03» og
-    // «497.770,80» bart, mens nabolinjerne havde «kr.».
+    // Hvert beløb i afsnittet bærer enheden – også «31.906,03» og «497.770,80», ikke kun nabolinjerne.
     expect(text).toContain('31.906,03 kr.');
     expect(text).toContain('497.770,80 kr.');
     expect(text).toContain('523.842,88 kr.');

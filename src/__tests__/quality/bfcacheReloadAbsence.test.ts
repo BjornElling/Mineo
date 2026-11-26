@@ -7,15 +7,13 @@ import ts from 'typescript';
  * Fraværsværn: Mineo genindlæser sig ALDRIG selv, når browseren gendanner dokumentet fra bfcache.
  *
  * **Invarianten.** En bfcache-gendannelse er ikke en ny session – brugeren vender tilbage til sit
- * eget, igangværende arbejde. Her lå tidligere en `pageshow`-lytter, der ubetinget kaldte
- * `location.reload()`. Den brød invarianten «en åben session skifter aldrig version»: den kunne skifte
- * build midt i en sag og kaste en åben editors draft væk uden om `CriticalActionCoordinator`. Se
+ * eget, igangværende arbejde. En `pageshow`-lytter, der ubetinget kalder `location.reload()`, bryder
+ * invarianten «en åben session skifter aldrig version»: den kan skifte build midt i en sag og kaste en åben editors draft væk uden om `CriticalActionCoordinator`. Se
  * beslutningsnoten i `src/App.tsx`.
  *
- * **Hvorfor et fraværsværn og ikke en E2E-test.** Påstanden blev før forsøgt bevist i browseren
- * (`e2e/pwa-service-worker.spec.ts`), men den test kunne ikke lade sig gøre: Chromium lægger ikke et
- * dokument i bfcache, mens DevTools-protokollen er tilsluttet – og den er tilsluttet i enhver
- * Playwright-kørsel. Testen sprang derfor sig selv over hver eneste gang og hævdede intet.
+ * **Hvorfor et fraværsværn og ikke en E2E-test.** Påstanden kan ikke bevises i browseren: Chromium
+ * lægger ikke et dokument i bfcache, mens DevTools-protokollen er tilsluttet – og den er tilsluttet i
+ * enhver Playwright-kørsel. En sådan test springer sig selv over hver gang og hævder intet.
  *
  * Det, der faktisk er VORES, er ikke browserens beslutning om at bfcache, men om vi reagerer på
  * gendannelsen. Netop dét er en fraværspåstand om egen kode – og den kan hævdes hver gang.

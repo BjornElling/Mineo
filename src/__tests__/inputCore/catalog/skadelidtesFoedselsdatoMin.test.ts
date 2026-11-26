@@ -24,8 +24,8 @@ const validate = (value: string, foedselsdato: string | undefined) =>
   );
 
 /**
- * En indkomstperiode, der starter før skadelidtes fødsel, delte indkomsten over langt flere måneder end
- * skadelidte kunne have arbejdet, og førlønnen faldt stiltiende (udviklerens afgørelse 2026-11-18).
+ * En indkomstperiode, der starter før skadelidtes fødsel, ville dele indkomsten over langt flere måneder
+ * end skadelidte kunne have arbejdet, så førlønnen faldt stiltiende (bevidst valg).
  */
 describe('withSkadelidtesFoedselsdatoMin', () => {
   it('afviser en dato før skadelidtes fødsel og navngiver fødselsdatoen', () => {

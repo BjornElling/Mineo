@@ -105,7 +105,7 @@ const project = (): ErstatningsopgoerelseDocumentInput => {
   return result.input;
 };
 
-describe('CALC-006/DOC-001 – erstatningsopgørelsens definition og renderer', () => {
+describe('Erstatningsopgørelsens definition og renderer', () => {
   it('fører det håndberegnede EO-facit gennem definitionen til Word', async () => {
     const input = project();
 

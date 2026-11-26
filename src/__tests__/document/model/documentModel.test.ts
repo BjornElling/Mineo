@@ -272,7 +272,7 @@ describe('documentModel', () => {
     ]);
   });
 
-  // NY-12c-3: en sumlinje (label/værdi med summeringsstreg) holdes sammen med den sidste
+  // En sumlinje (label/værdi med summeringsstreg) holdes sammen med den sidste
   // forudgående post, så den aldrig står alene øverst på en side.
   describe('keep-with-previous for sumlinjer', () => {
     const LINE = PDF_BASE_LINE_HEIGHT_MM + PDF_LINE_BOTTOM_SPACING_MM;

@@ -58,7 +58,7 @@ export const createDefaultLoenindkomstAnsaettelsesforhold = (
     // Altid slået TIL på et nyt kort – også når «Løn på helligdage» starter som SH-udbetaling, hvor knappen er
     // skjult og værdien ikke læses (`harValgtStoreBededagstillaeg` kræver almindelig løn). Vælges «Almindelig løn»
     // senere, dukker knappen da op som på et kort, der blev oprettet med almindelig løn, i stedet for slået fra
-    // med en advarsel om et valg, brugeren aldrig traf (BB-281). Slår brugeren den selv fra, bevares fravalget
+    // med en advarsel om et valg, brugeren aldrig traf. Slår brugeren den selv fra, bevares fravalget
     // ved skift frem og tilbage (`indskudte-loentillaeg-contract.md` §2a pkt. 3).
     beregnStoreBededagstillaeg: true,
     saerligFraDatoRegulering: undefined,
@@ -85,7 +85,7 @@ export const createDefaultLoenindkomstAnsaettelsesforhold = (
  * ny-sags-seeden (`erstatningsopgoerelseNewCaseSeed.ts`) gennem inputkernen. Derfor bygger fabrikken på præcis
  * de samme defaults; alt andet ville gøre suitens fixtures til en anden sag, end brugeren møder (§2.11).
  *
- * De ENESTE tilføjelser er tabellernes pladsholderrækker: greenfields pladsholderrække er virtuel og findes
+ * De ENESTE tilføjelser er tabellernes pladsholderrækker: inputkernens pladsholderrække er virtuel og findes
  * ikke i den persisterede sag, men fixturene har brug for en materialiseret række at skrive i.
  *
  * VIGTIGT: Må kun anvendes ved oprettelse af NY sagsdata (ikke ved load/redigering).

@@ -19,8 +19,8 @@ describe('eoFileDataSchema', () => {
 
   it('null → fejler (nullToUndefinedDeep gør null til undefined, og objekt-schemaet kræver et objekt)', () => {
     // `nullToUndefinedDeep(null)` returnerer `undefined`; det indre `z.object(...).strict()`
-    // er ikke optional, så `undefined` afvises. Tidligere asserterede testen kun at resultatet
-    // var en boolean (altid sandt) – en false-green der ikke fangede nogen adfærd.
+    // er ikke optional, så `undefined` afvises. Assertér på `success`, ikke blot at resultatet er
+    // en boolean (altid sandt).
     const result = eoFileDataSchema.safeParse(null);
     expect(result.success).toBe(false);
   });

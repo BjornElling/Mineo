@@ -109,15 +109,12 @@ export const ydelsestypeKeys = Object.keys(ydelsestyperLiteral) as YdelsestypeKe
  * Den ENE opslagsvej fra en gemt `ydelsestype`-værdi til dens kanoniske nøgle og konfiguration.
  *
  * Værdien i en `.eo`-fil er ikke altid nøglen. Tidligere gemte sager kan bære den viste LABEL
- * («Sygedagpenge» frem for `sygedagpenge`), og derfor har opslaget altid haft et label-fallback.
- * Fallbacket lå bare kun ét af de to steder, værdien blev slået op.
+ * («Sygedagpenge» frem for `sygedagpenge`), og derfor har opslaget et label-fallback.
  *
- * **Det kostede en falsk systemfejl.** Indtægtssiden (`indtaegtPerioder`) normaliserede label og
- * versalisering til nøglen og beregnede et beløb; EO-kontroltabellen slog derimod direkte op i
- * `ydelsestyper[raw]`, fandt intet og udelod kolonnen. Sammentællingen så da «beregnet=100,00,
- * tabel=-» og meldte `control:sammentaelling_mismatch` – en SYSTEMFEJL, der åbnede notitsen
- * «Teknisk fejl registreret» og blokerede EO-PDF'en, uden at nogen anden besked forklarede hvorfor
- * (brugerfund 2026-09-17). Begge sider slår derfor nu op HER.
+ * **Alle lag skal slå op HER.** Slår ét lag direkte op i `ydelsestyper[raw]`, mens et andet normaliserer
+ * label og versalisering, beregner indtægtssiden et beløb, som kontroltabellen ikke finder. Sammentællingen
+ * melder da `control:sammentaelling_mismatch` – en falsk systemfejl, der blokerer EO-PDF'en uden en
+ * forklarende besked.
  *
  * Opslaget er bevidst tolerant og ændrer ikke persisterede data: en gammel fil læses som før, den
  * bliver bare forstået ens af alle lag.
@@ -176,10 +173,9 @@ export const supplerendeYdelsestypeKeys: readonly YdelsestypeKey[] =
  * Rækkens ydelsestype som kanonisk nøgle – også når en ældre fil bærer den viste label (se `resolveYdelsestype`).
  * Tom giver `''`; en ukendt værdi gives tilbage trimmet, så den stadig kan sammenlignes og vises.
  *
- * Alle, der sammenligner, grupperer eller viser rækkens type, går gennem denne vej. Før slog flere lag den rå værdi
- * op: en række gemt som «Kontanthjælp» stod på skærmen uden type og uden dagkolonner, mens beregningen trak den fra;
- * dublet-kontrollen og midlertidigt-EET-togglen så den ikke, og bilaget trykte en manuel «Midlertidigt EET», som
- * beregningen ikke brugte (BB-364). Den gemte værdi ændres ikke.
+ * Alle, der sammenligner, grupperer eller viser rækkens type, går gennem denne vej. Slår et lag den rå værdi op,
+ * står en række gemt som «Kontanthjælp» på skærmen uden type og uden dagkolonner, mens beregningen trækker den fra,
+ * og dublet-kontrollen og midlertidigt-EET-togglen ser den ikke. Den gemte værdi ændres ikke.
  */
 export const canonicalYdelsestypeKey = (raw: string | undefined): string => {
   const trimmed = raw?.trim() ?? '';

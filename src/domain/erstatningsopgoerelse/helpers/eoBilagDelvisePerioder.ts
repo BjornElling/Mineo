@@ -11,12 +11,11 @@ import {
 import { calculateLoenindkomstRowDerived } from './loenindkomstRowDerived';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from './tafBeregningsenhed';
 
-// Bilagets linje om lønsedler og ydelser, som kun delvist ligger i beregningsperioden eller erstatningsperioden
-// (BB-293, udviklerafgørelse 2026-10-19).
+// Bilagets linje om lønsedler og ydelser, som kun delvist ligger i beregningsperioden eller erstatningsperioden.
 //
 // Bilagets rækker står præcis som lønsedlerne – med hele beløbet – mens beregningen kun medregner den del af en
 // række, der ligger i perioden. Uden en forklaring kan modparten ikke komme fra bilagets beløb til grundlagets.
-// Udvikleren ville hverken have ekstra linjer inde i tabellen eller en tung tekst: én kort sætning under tabellen
+// Bevidst valg: hverken ekstra linjer inde i tabellen eller en tung tekst, men én kort sætning under tabellen
 // pr. række, der er skåret over, og KUN når det er relevant for netop denne opgørelse.
 //
 // Tallene kommer fra `buildIncomeRowSharesForRanges`, som beregningen selv summerer, så linjen og beregningen kan
@@ -71,7 +70,7 @@ const buildLinje = (params: Readonly<{
   + `${formatAsAmount(params.medregnetBeloeb, 2)} af ${formatKr(params.heleBeloebet)}`;
 
 // Én indledning og derefter én kort linje pr. række holder teksten på én linje pr. række; en hel sætning pr.
-// række ombrødes til to linjer på papiret og gjorde bilaget tungt (BB-293, udviklerens krav om en kort tekst).
+// række ombrydes til to linjer på papiret og gør bilaget tungt.
 const LOEN_INDLEDNING = 'Lønperioder, der kun delvist indgår, medregnes forholdsmæssigt:';
 const YDELSE_INDLEDNING = 'Ydelser, der kun delvist indgår, medregnes forholdsmæssigt:';
 

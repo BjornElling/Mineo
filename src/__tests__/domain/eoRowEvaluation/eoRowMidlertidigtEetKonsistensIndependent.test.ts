@@ -7,7 +7,7 @@ import { toISODateString } from '../../../types/branded';
 const iso = (value: string) => toISODateString(value);
 const amount = (value: number): AmountValue => ({ kind: 'number', value });
 
-describe('CALC-006 – uafhængigt facit for midlertidig EET-konsistens', () => {
+describe('uafhængigt facit for midlertidig EET-konsistens', () => {
   it('viser advarsel når TAF-perioden fortsætter efter midlertidig EET-virkning uden ydelser', () => {
     const values: ErstatningsopgoerelseValues = {
       ...createErstatningsopgoerelseInitialValues(),
@@ -40,7 +40,7 @@ describe('CALC-006 – uafhængigt facit for midlertidig EET-konsistens', () => 
     ]);
   });
 
-  // BB-240: efter 16. juni 2011 løber TAF videre efter en midlertidig afgørelse, og ydelsen skal
+  // Efter 16. juni 2011 løber TAF videre efter en midlertidig afgørelse, og ydelsen skal
   // fradrages. Advarslen læser afgørelsens dato som oplysning – ikke gennem afskæringsprædikatet, der
   // svarer «ingen dato» for alle skader fra 2011.
   const efter2011 = (overrides: Partial<ErstatningsopgoerelseValues>): ErstatningsopgoerelseValues => ({
@@ -97,7 +97,7 @@ describe('CALC-006 – uafhængigt facit for midlertidig EET-konsistens', () => 
     }))).toEqual([]);
   });
 
-  it('overlader togglen uden afgørelse til snapshottets EET-linje, der ved, om noget hentes (BB-372)', () => {
+  it('overlader togglen uden afgørelse til snapshottets EET-linje, der ved, om noget hentes', () => {
     expect(advarselIds(efter2011({ midlertidigtEETAfgorelse: 'Nej', midlertidigtEetFraEetSiden: 'Ja' }))).toEqual([]);
   });
 

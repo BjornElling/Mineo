@@ -183,7 +183,7 @@ describe('evaluateErstatningsopgoerelseDownloadGates', () => {
     ]);
   });
 
-  // Kun den valgte forms tabel læses; den anden er skjult og gives som tom (BB-301), men rækkerne bevares.
+  // Kun den valgte forms tabel læses; den anden er skjult og gives som tom, men rækkerne bevares.
   it('rekonstruerer den valgte manuelle tabel i det angivne løn-property og læser den fravalgte som tom', () => {
     const reader = buildReader({
       ...buildEoWithEmployment(),
@@ -296,7 +296,7 @@ describe('evaluateErstatningsopgoerelseDownloadGates', () => {
     expect(gates.erstatningsopgoerelse.reasons[0]?.message).toBe('Midlertidig EET-kilde mangler');
   });
 
-  it('ved TAF «Nej» spærrer hverken midlertidigt-EET-togglen eller en ufærdig ydelsesrække (BB-360)', () => {
+  it('ved TAF «Nej» spærrer hverken midlertidigt-EET-togglen eller en ufærdig ydelsesrække', () => {
     const reader = buildReader({
       ...buildEoDownloadableEo(),
       midlertidigtEetFraEetSiden: 'Ja',
@@ -314,7 +314,7 @@ describe('evaluateErstatningsopgoerelseDownloadGates', () => {
     expect(evaluateErstatningsopgoerelseDownloadGates(projection, DEFAULT_EO_ROW_POLICY).erstatningsopgoerelse.canDownload).toBe(true);
   });
 
-  it('ved TAF «Nej» spærrer en ufærdig lønrække heller ikke (BB-360, Lønindkomst)', () => {
+  it('ved TAF «Nej» spærrer en ufærdig lønrække heller ikke (Lønindkomst)', () => {
     const employment = buildEoWithEmployment().loenindkomstAnsaettelsesforhold[0]!;
     const reader = buildReader({
       ...buildEoDownloadableEo(),

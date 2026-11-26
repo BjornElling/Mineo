@@ -139,9 +139,9 @@ export const stamdataSkadedatoField = dateField('skadedato', SKADESTYPE_DATO_LAB
  * Hæver et datofelts gulv til skadelidtes fødselsdato fra Stamdata.
  *
  * Til datoer, der beskriver skadelidtes EGEN indkomstperiode, men ikke er bundet til skadedatoen (som
- * transitivt allerede ligger efter fødslen). Uden grænsen kunne en tastefejl i årstallet lade perioden
- * starte før fødslen: indkomsten blev delt over langt flere måneder, og førlønnen faldt stiltiende (fx
- * 1/18 af det rigtige) uden rød markering. Udviklerens afgørelse 2026-11-18, også for gemte sager.
+ * transitivt allerede ligger efter fødslen). Uden grænsen kan en tastefejl i årstallet lade perioden
+ * starte før fødslen: indkomsten deles over langt flere måneder, og førlønnen falder stiltiende (fx
+ * 1/18 af det rigtige) uden rød markering. Bevidst valg, også for gemte sager.
  *
  * Grænsen er en skærpelse og kan kun hæve gulvet; en tom eller rød fødselsdato åbner ikke rammen.
  * Fødselsdatoen ligger altid inden dags dato, så intervallet kan ikke blive umuligt af den.

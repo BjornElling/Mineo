@@ -2,7 +2,7 @@ import * as React from 'react';
 
 /**
  * Skjult-tilstanden for «Indtægt før skaden» på EO-oplysninger, med værn mod at grundlaget forsvinder, mens
- * brugeren taster i det (udviklerafgørelse 2026-10-24).
+ * brugeren taster i det (bevidst valg).
  *
  * `kanSkjules` (`kanIndkomstBeregningenSkjules`) skifter til sand i det øjeblik, grundlaget bliver gyldigt – fx
  * når den sidste dato i beregningsperioden er indtastet i opgørelse nr. 2, fordi grundlaget var tomt i nr. 1.

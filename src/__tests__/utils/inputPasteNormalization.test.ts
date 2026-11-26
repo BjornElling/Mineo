@@ -67,15 +67,14 @@ describe('inputPasteNormalization', () => {
   });
 
   /**
-   * BB-118: decimalkommaet må ALDRIG springes over.
+   * Decimalkommaet må ALDRIG springes over.
    *
-   * Assertionen her pinnede tidligere selve fejlen (`'123,99'` → `'12399'`). Reglen «spring det ulovlige
-   * tegn over» er rigtig for et bogstav, men forkert for det tegn, der ADSKILLER de to dele af et tal: de
-   * to decimalcifre gled op i heltalsdelen, og `400.000,00` – et beløb, som det står skrevet på dansk –
-   * blev til `4.000.000` uden et ord. Et decimalløst felt tager nu imod decimalen og afrunder den ved
-   * settle, så draften bevarer det, brugeren skrev.
+   * Reglen «spring det ulovlige tegn over» er rigtig for et bogstav, men forkert for det tegn, der
+   * ADSKILLER de to dele af et tal: ellers glider de to decimalcifre op i heltalsdelen, og `400.000,00`
+   * – et beløb, som det står skrevet på dansk – bliver til `4.000.000` uden et ord. Et decimalløst felt
+   * tager imod decimalen og afrunder den ved settle, så draften bevarer det, brugeren skrev.
    */
-  it('bevarer decimalkommaet også i et felt uden decimaler (BB-118)', () => {
+  it('bevarer decimalkommaet også i et felt uden decimaler', () => {
     expect(normalizeAmountPaste('123,99', { allowDecimals: false })).toBe('123,99');
     expect(normalizeAmountPaste('400.000,00', { allowDecimals: false })).toBe('400000,00');
     expect(normalizeAmountPaste('400.000 kr.', { allowDecimals: false })).toBe('400000');
@@ -91,7 +90,7 @@ describe('inputPasteNormalization', () => {
     expect(normalizePercentPaste('abc1007', { maxValue: 100 })).toBe('100');
     expect(normalizePercentPaste('abc999', { maxValue: 8 })).toBe('999');
     expect(normalizePercentPaste('12,987', { allowDecimals: true, maxDecimalDigits: 2 })).toBe('12,98');
-    // BB-118: også et decimalløst procentfelt bevarer kommaet – «15,00 %» blev før til `1500`.
+    // Også et decimalløst procentfelt bevarer kommaet – ellers bliver «15,00 %» til `1500`.
     expect(normalizePercentPaste('12,987', { allowDecimals: false, maxDecimalDigits: 2 })).toBe('12,98');
     expect(normalizePercentPaste('-999', { allowNegative: true, minValue: -100 })).toBe('-999');
     expect(normalizePercentPaste('12.5', { allowDecimals: true })).toBe('125');
@@ -111,9 +110,8 @@ describe('inputPasteNormalization', () => {
 
   // ─── Uge og år: paste = tastning, tegn for tegn (§1.2a) ─────────────────────────────────────────
   //
-  // Begge familier havde indtil 2026-08-18 hver sin paste-ONLY fortolker: «find den første ciffergruppe,
-  // og forkort den, indtil resultatet ligger inden for årsgrænserne». Testene nedenfor pinnede den
-  // adfærd og er skrevet om sammen med den. Se `TVAERGAAENDE.md` M-14 og brugerfundet BB-031.
+  // Ingen af familierne har en paste-ONLY fortolker («find den første ciffergruppe, og forkort den, indtil
+  // resultatet ligger inden for årsgrænserne»); en sådan giver værdier, brugeren aldrig kan taste sig frem til.
 
   it('uge-paste behandler tegnene som tastning og bevarer separatoren til settle', () => {
     // Ulovlige tegn springes, og resten fortsætter – også når de står FØR tallet.
@@ -122,7 +120,7 @@ describe('inputPasteNormalization', () => {
     expect(normalizeWeekPaste('23,2025')).toBe('23,2025');
     expect(normalizeWeekPaste('23.2025')).toBe('23.2025');
     expect(normalizeWeekPaste('17-12')).toBe('17-12');
-    // Mellemrum er IKKE en separator (udviklerbeslutning 2026-08-18) og springes som ethvert andet
+    // Mellemrum er IKKE en separator (bevidst valg) og springes som ethvert andet
     // ulovligt tegn. Cifrene løber derfor sammen og afvises ved settle – samme udfald som tastning.
     expect(normalizeWeekPaste('23 2025')).toBe('23');
     // Et tredje ugeciffer uden separator er ulovligt og springes; det afbryder ikke resten, men de
@@ -135,15 +133,14 @@ describe('inputPasteNormalization', () => {
   it('uge-paste kan efterlade en draft, settle afviser – frem for at omtolke den', () => {
     // `//` foran tallet gør det FØRSTE `/` til separator i en draft uden ugenummer; resten af cifrene
     // lander derfor i årssegmentet. Draften `/1712` afvises ved settle («Ugyldigt format»), og det er
-    // det rigtige udfald: tastning af de samme tegn giver præcis samme draft. Den gamle fortolker gav
-    // her `17/12` – en pæn værdi, brugeren aldrig havde kunnet taste sig frem til.
+    // det rigtige udfald: tastning af de samme tegn giver præcis samme draft. En paste-fortolker ville
+    // give `17/12` – en pæn værdi, brugeren aldrig kan taste sig frem til.
     expect(normalizeWeekPaste('adffergregs//sgd1712,56//')).toBe('/1712');
   });
 
   it('uge-paste forkorter IKKE et årstal for at få det inden for årsgrænserne', () => {
-    // Den gamle fortolker gav '53/20' her: årsgrænsen forkortede 2035 til 20 → 2020. Årsgrænser er
-    // bounds og ejes af feltvalidatoren (§1.6) – de må ikke ændre den indsatte tekst. Med separator
-    // bevares året nu uændret, så feltet kan markere det rødt.
+    // Årsgrænser er bounds og ejes af feltvalidatoren (§1.6) – de må ikke ændre den indsatte tekst
+    // (fx forkorte 2035 til 20 → 2020). Med separator bevares året uændret, så feltet kan markere det rødt.
     expect(normalizeWeekPaste('abc53/2035', { maxYear: 2030, twoDigitYearPolicy: 'infer' }))
       .toBe('53/2035');
   });
@@ -164,14 +161,14 @@ describe('inputPasteNormalization', () => {
   });
 
   it('års-paste forkorter IKKE et årstal for at få det inden for årsgrænserne', () => {
-    // Begge gav før noget andet: 'infer' forkortede til '20' (→ 2020), 'reject' gav ''. Nu bevares
-    // teksten, så settle kan afvise den eller markere den rødt (§1.2a punkt 5).
+    // Hverken 'infer' eller 'reject' må ændre teksten; den bevares, så settle kan afvise den eller
+    // markere den rødt (§1.2a punkt 5).
     expect(normalizeYearPaste('2035', { maxYear: 2030, twoDigitYearPolicy: 'infer' })).toBe('2035');
     expect(normalizeYearPaste('2035', { maxYear: 2030, twoDigitYearPolicy: 'reject' })).toBe('2035');
   });
 
   it('samme indsatte tekst giver samme resultat i et tomt og i et udfyldt felt', () => {
-    // Kernen i BB-031. `normalizePasteForDraft` kalder KUN codecets normalisering, når draften er tom;
+    // `normalizePasteForDraft` kalder KUN codecets normalisering, når draften er tom;
     // et udfyldt felt får splice-vejens tegn-for-tegn-filter. Så længe de to læser samme prædikat, er
     // resultatet ens – og det er præcis den lighed, denne test er sat til at bevogte.
     const cases = ['2.026', '01-02-2026', 'Skadedato 15-03-2019', '2026\n2025', '99999', '2035', '20'];
@@ -183,7 +180,7 @@ describe('inputPasteNormalization', () => {
   });
 });
 
-describe('takeFirstPastedEntry (BB-439)', () => {
+describe('takeFirstPastedEntry', () => {
   it('slutter ved første tabulator eller linjeskift, som Tab og Enter afslutter en tastet indtastning', () => {
     expect(takeFirstPastedEntry('1200\t200')).toBe('1200');
     expect(takeFirstPastedEntry('1200\n200')).toBe('1200');

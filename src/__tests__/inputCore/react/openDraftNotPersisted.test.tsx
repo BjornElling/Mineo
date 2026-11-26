@@ -7,8 +7,7 @@
 //
 // Den strukturelle halvdel (envelopen har ingen draft-kanal) ligger i samme runtime-fil. Den er
 // nødvendig, men ikke tilstrækkelig: den beviser, at der ikke FINDES et sted at gemme en draft, men
-// ikke at en RIGTIG åben draft undlader at nå derhen. Reviewet påpegede korrekt, at den tidligere
-// version af den test aldrig åbnede en editor og derfor påstod mere, end den bar.
+// ikke at en RIGTIG åben draft undlader at nå derhen – den åbner aldrig en editor.
 //
 // Her åbnes en faktisk editor, draften ændres UDEN settle, og en frisk runtime hydreres fra den ægte
 // sessionStorage-envelope. Invarianten (§1.2, §10-kriterium 4): den åbne draft er ikke en fjerde

@@ -663,7 +663,7 @@ describe('computeEetLoebendeYdelser', () => {
       { label: 'kun A tilbageholdt', aFs: 'Ja', bFs: 'Nej', aOphoer: '2024-01-31', bHasPeriods: true, cHasMarchPeriod: false, cHasSeptemberPeriod: true },
       // «kun B tilbageholdt»: fra 01-03 er der ingen udbetalt forgænger, så C giver hele sin ydelse
       // både før og efter skæringsdatoen 01-09. De to delperioder er ordret ens og vises som én
-      // række 01-03–31-12 (BB-165); derfor findes der ikke længere en række, der STARTER 01-09.
+      // række 01-03–31-12; derfor findes der ingen række, der STARTER 01-09.
       { label: 'kun B tilbageholdt', aFs: 'Nej', bFs: 'Ja', aOphoer: '2024-02-29', bHasPeriods: false, cHasMarchPeriod: true, cHasSeptemberPeriod: false },
       { label: 'A og B tilbageholdt', aFs: 'Ja', bFs: 'Ja', aOphoer: '2024-01-31', bHasPeriods: false, cHasMarchPeriod: false, cHasSeptemberPeriod: false },
     ] as const;
@@ -1066,7 +1066,7 @@ describe('computeEetLoebendeYdelser', () => {
 
     // Kapitaliseringen 20-03 ændrer INTET i den nye afgørelses overlaprække: dens rest falder med
     // 20 %, men forgængerens gør det samme, og differencen er derfor uændret. De to tekniske
-    // delperioder havde ordret samme grundydelse og vises nu som én række (BB-165).
+    // delperioder har ordret samme grundydelse og vises som én række.
     const overlapRow = second.perioder.find((row) => row.fra === toISODateString('2024-03-01'));
     if (!overlapRow) throw new Error('expected overlap row from 2024-03-01');
     expect(overlapRow.til).toBe(toISODateString('2024-03-31'));
@@ -1347,9 +1347,9 @@ describe('computeEetLoebendeYdelser', () => {
       result.issues.some(
         (issue) =>
           issue.severity === 'warning' &&
-          // «Ugyldig» erstattet: programmet accepterer værdien, regner på den og trykker den, så
-          // advarslen navngiver i stedet grænsen og den indtastede værdi (BB-158). Halen om at
-          // «beregningen derfor ikke er lovmæssig» er bevidst fjernet (BB-173).
+          // Ikke «ugyldig»: programmet accepterer værdien, regner på den og trykker den, så
+          // advarslen navngiver i stedet grænsen og den indtastede værdi. Bevidst uden en hale om at
+          // «beregningen derfor ikke er lovmæssig».
           issue.message === 'Erhvervsevnetab fastsættes i trin af 10 % for skader fra 1. juli 2024 (indtastet 55 %).'
       )
     ).toBe(true);
@@ -1379,7 +1379,7 @@ describe('computeEetLoebendeYdelser', () => {
       skadelidteFodselsdato: toISODateString('1980-01-01'),
     });
 
-    // Én linje navngiver årsagen – beregningsdatoen – i stedet for tre linjer om samme forhold (BB-159).
+    // Én linje navngiver årsagen – beregningsdatoen – i stedet for tre linjer om samme forhold.
     const datoWarnings = result.issues.filter((issue) => issue.id === EET_DATO_EFTER_BEREGNINGSDATO_WARNING_ID);
     expect(datoWarnings).toHaveLength(1);
     expect(datoWarnings[0]?.message).toBe('En eller flere datoer i ASL-afgørelserne ligger efter beregningsdatoen (14-01-2026).');
@@ -2313,7 +2313,7 @@ describe('computeEetLoebendeYdelserForEoImport', () => {
   });
 });
 
-describe('sammenlægning af identiske visningsrækker (BB-165)', () => {
+describe('sammenlægning af identiske visningsrækker', () => {
   it('slår kapitaliserings- og skæringsgrænser sammen, når rækken er uændret, uden at flytte et beløb', () => {
     const result = computeTestRows([
       testRow({
@@ -2417,12 +2417,12 @@ describe('resolveLoebendeOphoerVisning', () => {
       ophoerDato: toISODateString('2021-01-01'),
       ophoerAarsag: 'beregningsdato',
     });
-    // Det er virkningsdatoen, der ligger efter – afgørelsen kan være truffet før beregningsdatoen (BB-410).
+    // Det er virkningsdatoen, der ligger efter – afgørelsen kan være truffet før beregningsdatoen.
     expect(beregningsdato).toEqual({
       kind: 'ingen-periode',
       forklaring: 'Virkningsdatoen (01-01-2022) ligger efter beregningsdatoen (01-01-2021).',
     });
-    // Differencekravet opgør til og med dagen før beregningsdatoen og må ikke kalde den beregningsdatoen (BB-421).
+    // Differencekravet opgør til og med dagen før beregningsdatoen og må ikke kalde den beregningsdatoen.
     expect(resolveLoebendeOphoerVisning({
       virkningsdato: toISODateString('2020-06-01'),
       ophoerDato: toISODateString('2020-05-31'),
@@ -2485,8 +2485,8 @@ describe('resolveLoebendeOphoerVisning', () => {
 
 describe('formatLoebendeRestEetLinje', () => {
   it('viser hele kæden fra afgørelsens egen procent til resten', () => {
-    // BB-160: dokumentet skrev «30 - 5 % = 10 %», et regnestykke der ikke går op, fordi facit var
-    // regnet af 15 (= 30 - 15 tidligere kap.). Nu står hele kæden, så den kan følges hele vejen.
+    // «30 - 5 % = 10 %» ville være et regnestykke, der ikke går op, fordi facit er regnet af 15
+    // (= 30 - 15 tidligere kap.). Hele kæden står derfor, så den kan følges hele vejen.
     expect(formatLoebendeRestEetLinje({
       eetPct: 30,
       priorKapPct: 15,
@@ -2531,7 +2531,7 @@ describe('resolveLoebendeSkaeringsNote', () => {
   });
 });
 
-describe('tilbageholdt forgænger (BB-408)', () => {
+describe('tilbageholdt forgænger', () => {
   const rows = (tilbageholdt: 'Ja' | 'Nej') => [
     testRow({
       id: 'a2020',

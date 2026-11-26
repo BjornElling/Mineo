@@ -30,9 +30,9 @@ import {
 } from '../../../components/inputs/actionGate';
 import { varigeMenMengradField } from '../../../inputCore/catalog/varigeMenDescriptors';
 
-// Brugerkravet 2026-07-30 tilføjede `invalid-input` som tredje klasse. Før den kollapsede "der mangler noget"
-// og "noget er forkert" til ÉN brugertekst, så en download-knap kunne svare "Indtastning mangler" på et felt,
-// der var udfyldt – bare ugyldigt. Testene pinner både oversættelsen og forrangen mellem klasserne.
+// `invalid-input` er en klasse for sig: uden den kollapser "der mangler noget" og "noget er forkert" til ÉN
+// brugertekst, så en download-knap kan svare "Indtastning mangler" på et felt, der er udfyldt – bare
+// ugyldigt. Testene pinner både oversættelsen og forrangen mellem klasserne.
 
 describe('resolveDocumentGateTooltip – klasse → brugertekst', () => {
   it('erstatter en missing-input-årsag med den universelle mangel-tekst', () => {
@@ -105,9 +105,9 @@ describe('resolveDocumentGateTooltip – klasse → brugertekst', () => {
 });
 
 /**
- * Klassifikationen fra årsagsmetadata (lempelsen 2026-08-13).
+ * Klassifikationen fra årsagsmetadata.
  *
- * Et tidligere udkast ville udlede klassen af issue-listens LÆNGDE. Testene her pinner, hvorfor det ikke
+ * Klassen kan ikke udledes af issue-listens LÆNGDE. Testene her pinner, hvorfor det ikke
  * holder: `runProjection` dedupper på `kind:code`, og `require` registrerer ét `missing`-issue pr. tomt
  * felt – så listens længde måler ikke antal felter. `specific` kræver derfor én samlet årsag, mens alle
  * årsager stadig klassificeres af deres metadata.
@@ -210,9 +210,8 @@ describe('classifyBlockingCauses – klasse udledt af årsagsmetadata', () => {
 
   /**
    * En consumerplaceret domæneregel er IKKE samme tilstand som et tomt felt (`error-contract.md` §1.1).
-   * Faldt den i `missing`-grenen, ville et udfyldt felt få "Indtastning mangler" – og indtil 2026-08-15
-   * fik det den tekst ALLIGEVEL, fordi `aggregate` var klasseløst og faldt igennem til mangel-grenen.
-   * Klassen står nu PÅ årsagen, så påstanden i kommentaren og kodens udfald er den samme.
+   * Faldt den i `missing`-grenen, ville et udfyldt felt få "Indtastning mangler". Et klasseløst `aggregate`
+   * ville falde igennem til mangel-grenen; klassen står derfor PÅ årsagen.
    */
   it('mapper en consumer-regel til et aggregat, der er klassificeret som ugyldigt input', () => {
     const ruleIssue: ConsumerIssue = {
@@ -236,7 +235,7 @@ describe('classifyBlockingCauses – klasse udledt af årsagsmetadata', () => {
 /**
  * `classifyBlockingCause` – den ENE oversættelse fra en årsags FORM til brugerens to klasser.
  *
- * Brugerens princip (2026-08-15): «Fejl i indtastning» når der ER indtastet noget forkert (rød ring),
+ * Princippet: «Fejl i indtastning» når der ER indtastet noget forkert (rød ring),
  * «Indtastning mangler» når en indtastning mangler. Testene her måler hver enkelt årsagsform mod det
  * princip, så en ny form ikke kan arve en tilfældig default.
  */
@@ -326,8 +325,7 @@ describe('resolvePrimaryGateReason – forrang mellem klasser', () => {
   });
 
   /**
-   * OMVENDT af den oprindelige model (udviklerbeslutning 2026-08-13). `specific` vandt før alt, men efter
-   * lempelsen er et ordret citat kun tilladt for præcis ÉN felt-/rækkefejl. Er en anden klasse også i spil,
+   * Bevidst valg: et ordret citat (`specific`) er kun tilladt for præcis ÉN felt-/rækkefejl. Er en anden klasse også i spil,
    * dækker blokeringen mere end den ene fejl, og at fremhæve den ville få brugeren til at tro, den var den
    * eneste. `specific` er derfor LAVEST rangerende.
    */

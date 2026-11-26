@@ -1,10 +1,10 @@
 /**
- * Ejerskabsgrænsen for sidens fokus-traversering (greenfield #26).
+ * Ejerskabsgrænsen for sidens fokus-traversering.
  *
  * `Container` er «single owner» af fokus-traversering på en side
- * (`keyboard-navigation.md` §Cross-cutting contract). Efter #26 er selve navigationen
- * flyttet ud i `src/components/layout/containerNavigation/`, og `Container.tsx` er
- * reduceret til scroll-vært + `<main>`-landmark.
+ * (`keyboard-navigation.md` §Cross-cutting contract). Selve navigationen ligger i
+ * `src/components/layout/containerNavigation/`, og `Container.tsx` er kun scroll-vært +
+ * `<main>`-landmark.
  *
  * Reglen findes, fordi den gamle form voksede organisk til det modsatte: ~440 af 584
  * linjer var fokus-logik i en fil, der hed «Container». Intet forhindrede den vækst, og
@@ -340,13 +340,13 @@ export const muiDialogRestoreOptOutRule = defineRule({
 /**
  * Ethvert overlay aftager den fælles overlay-adfærd.
  *
- * **Hvorfor.** Der fandtes seks overlay-flader og lige så mange delvise løsninger: tre forskellige
- * måder at lytte på Escape (window-lytter, capture+boble-par, MUI's `onClose`), ingen fælles
- * lukkekontrakt, og INGEN af dem kendte browserens/musens tilbage-knap. En flade kunne se komplet
- * ud og alligevel mangle en lukkevej, uden at noget fejlede.
+ * **Hvorfor.** Løser hvert overlay selv sin lukning, opstår forskellige måder at lytte på Escape
+ * (window-lytter, capture+boble-par, MUI's `onClose`), ingen fælles lukkekontrakt og ingen kendskab
+ * til browserens/musens tilbage-knap. En flade kan se komplet ud og alligevel mangle en lukkevej,
+ * uden at noget fejler.
  *
- * Værre: forskellen mellem en PORTALERET og en INLINE monteret popup afgjorde, om sidens
- * tastaturnavigation overtog Tab inde i vinduet – og den forskel var tilfældig, ikke valgt.
+ * Værre: forskellen mellem en PORTALERET og en INLINE monteret popup afgør ellers, om sidens
+ * tastaturnavigation overtager Tab inde i vinduet – en tilfældig forskel, ikke et valg.
  * `useOverlayBehavior` gør åbenhed til noget overlayet SIGER (markøren), så begge monteringsformer
  * opfører sig ens.
  *

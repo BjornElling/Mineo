@@ -215,9 +215,8 @@ const skadedatoMinRuleFor = (
 /**
  * Grænseformen «tidligst skadedatoen, senest <max>» – EO's mest udbredte datoregel.
  *
- * Den bar tidligere kun Forligsdato og Øvrige krav, hver med sin egen håndskrevne kopi. De fem AES-datoer,
- * opgørelsesdatoen og differencekravsdatoen deklarerede nøjagtig samme regel i konfigurationen uden at
- * håndhæve den, så datoer før skadedagen kunne afsluttes canonical og nå hele vejen til PDF.
+ * Forligsdato, Øvrige krav, de fem AES-datoer, opgørelsesdatoen og differencekravsdatoen deler den. Uden
+ * håndhævelse her kan datoer før skadedagen afsluttes canonical og nå hele vejen til PDF.
  */
 const skadedatoBoundedSpec = (
   range: Readonly<{ fallbackMin: ISODateString; max: ISODateString }>,
@@ -229,9 +228,9 @@ const skadedatoBoundedSpec = (
   ...(options.issuePriority === undefined ? {} : { issuePriority: options.issuePriority }),
   special: (context) => {
     const rule = skadedatoMinRuleFor(context, range.fallbackMin);
-    // Max-erklæringen står for sig og gælder uanset min-skærpelsen. Før blev «dags dato»-grenen genkendt
-    // på `origin.kind === 'static'`, og en aktiv MIN-skærpelse gjorde origin `'derived'` – så et felt med
-    // udfyldt skadedato mistede sin dags dato-tekst og faldt tilbage på en bar intervaltekst (BB-208).
+    // Max-erklæringen står for sig og gælder uanset min-skærpelsen. «Dags dato»-grenen må ikke genkendes på
+    // `origin.kind === 'static'`: en aktiv MIN-skærpelse gør origin `'derived'`, så et felt med udfyldt
+    // skadedato ville miste sin dags dato-tekst og falde tilbage på en bar intervaltekst.
     const maxSpecial = range.max === getToday()
       ? ({ maxBoundKind: 'dagsDato' } as const)
       : undefined;
@@ -262,7 +261,7 @@ const systemrammeRelationalSpec: DateBoundsSpec = {
 /**
  * Beløbsfelt på EO's øverste niveau. Nedre grænse er 0 – inklusiv, medmindre `positiveSubject` er givet:
  * så er 0 heller ikke et svar, og grænsen erklæres EKSKLUSIV med beskeden «<subjekt> skal være større end
- * 0 kr.» (NY-12c-4: én erklæring, ikke en inklusiv grænse plus en separat «> 0»-regel).
+ * 0 kr.» (én erklæring, ikke en inklusiv grænse plus en separat «> 0»-regel).
  */
 const amountField = (
   field: string,
@@ -365,10 +364,10 @@ const requiredJaNejSkjulField = (
 
 // ── Relevans: felter bag et valg (§7.3) ──────────────────────────────────────────
 //
-// Et skjult felt er ikke udfyldt (BB-222) og må hverken påvirke beregning eller fejlmeddelelser. EO
-// udtrykte det kun ved, at hvert læsested spejlede sektionens valg for sig: motorerne fik neutraliserede
-// værdier, men validatoren fik de rå, så en halvudfyldt række bag «Nej»/«Skjul» spærrede opgørelsen med
-// en linje uden link, og et rødt felt bag et valg blev ved med at spærre uden for skærmen (BB-228).
+// Et skjult felt er ikke udfyldt og må hverken påvirke beregning eller fejlmeddelelser. Spejler hvert
+// læsested sektionens valg for sig, får motorerne neutraliserede værdier, mens validatoren får de rå: en
+// halvudfyldt række bag «Nej»/«Skjul» spærrer da opgørelsen med en linje uden link, og et rødt felt bag et
+// valg bliver ved med at spærre uden for skærmen.
 //
 // Reglerne her er inputCores egen læsegrænse og gælder derfor ALLE læsere på én gang: readeren giver
 // feltets tomværdi, der dannes ingen rød ring, og et valg, der skjuler et rødt felt, rydder det (§7.5).
@@ -378,7 +377,7 @@ const requiredJaNejSkjulField = (
 //
 // Beregningsgrundlagets mode-felter følger GRENEN under «Beregnes ud fra» – ikke komprimeringen ved EO 2+,
 // som skjuler dem i UI'en, mens de forbliver aktive input (se `eoInputRelevance.ts`). Deres synlighed ved
-// komprimering er derfor ikke deres relevans; deres gren er (BB-266).
+// komprimering er derfor ikke deres relevans; deres gren er.
 const readEo = <T>(view: CanonicalView, descriptor: FieldDescriptor<T>): T => view.readCanonical(descriptor.bind());
 
 const whenEo = <T>(isRelevant: (view: CanonicalView) => boolean): RelevanceRule<T> =>
@@ -401,7 +400,7 @@ const tafSektionAktiv = (view: CanonicalView): boolean =>
   erTabtArbejdsfortjenesteSektionAktiv({ kravPaaTabtArbejdsfortjeneste: readEo(view, eoKravPaaTabtArbejdsfortjenesteField) });
 // Enheden læser hele lønindkomsttræet, og reglen kaldes for hver TAF-række; svaret huskes derfor pr. view,
 // som er bundet til én uændrelig inputtilstand. `memoizeRelevancePerView` – ikke et rå `WeakMap` – så et svar,
-// der byggede på afvist råtekst (fx en afvist slutdato), også ved et cache-hit vurderes som `ubestemt` (BB-433).
+// der byggede på afvist råtekst (fx en afvist slutdato), også ved et cache-hit vurderes som `ubestemt`.
 const tafLoseFeriedageRelevant = memoizeRelevancePerView((view) => erTafLoseFeriedageRelevant({
   kravPaaTabtArbejdsfortjeneste: readEo(view, eoKravPaaTabtArbejdsfortjenesteField),
   beregnesUdFra: readEo(view, eoBeregnesUdFraField),
@@ -409,7 +408,7 @@ const tafLoseFeriedageRelevant = memoizeRelevancePerView((view) => erTafLoseFeri
   tafBeregningsperiodeTil: readEo(view, eoTafBeregningsperiodeTilField),
   loenindkomstAnsaettelsesforhold: readTafBeregningsenhedEmployments(view),
 }));
-// Beregningsgrundlagets grene (BB-266). Enheden for ferie/løse dage læser hele lønindkomsttræet og huskes
+// Beregningsgrundlagets grene. Enheden for ferie/løse dage læser hele lønindkomsttræet og huskes
 // pr. view som TAF-rækkernes løse feriedage ovenfor.
 const beregningsperiodeInputRelevant = (view: CanonicalView): boolean =>
   erBeregningsperiodeInputRelevant({
@@ -454,8 +453,7 @@ const bilagsnumreRelevant = (view: CanonicalView): boolean =>
 // Længderne er kontraktens egne (§4.1: 7 tegn; §4.2: 64 tegn), ikke skønnede.
 //
 // Labels er feltets SYNLIGE navn (§3.2a via `useFieldLabel`): de er derfor rækkens egen tekst, ikke et
-// internt kaldenavn. Felterne hed før «EO-nummer» og «Ledsagetekst», mens skærmen skrev «Nummer» og
-// «+ evt. ledsagetekst» – så oplæsning og fejltekster navngav et felt, brugeren ikke kunne finde (BB-211).
+// internt kaldenavn; ellers navngiver oplæsning og fejltekster et felt, brugeren ikke kan finde.
 // Hvor det synlige navn er delt over to tekster, er det sammensatte navn det rigtige.
 export const eoNummerField = optionalTextField('eoNummer', 'Erstatningsopgørelse nummer', EO_NUMMER_MAX_LENGTH);
 // «+ evt.» er rækkens visuelle sammenkædning til nabofeltet, ikke en del af navnet: et felt kan ikke
@@ -480,9 +478,9 @@ const vedroererPeriodePair: DatePairBinding = {
 // bounds-reglen spise kronologireglen, og beskeden ville skifte til en intervaltekst, der ikke nævner
 // den modgående dato. Kronologien ejes af `dateOrderValidator`, den ydre ramme af `dateBounds`.
 //
-// Begge periodefelter bruger `skadedatoBoundedSpec` som fladens øvrige otte datoer (BB-209). De havde
-// før en ren statisk ramme (1-1-2005 … 31-12 ét år frem), så en periode otte år FØR sagens egen skade
-// blev afsluttet canonical uden nogen reaktion – og perioden afgrænser samtlige krav. Specen bærer
+// Begge periodefelter bruger `skadedatoBoundedSpec` som fladens øvrige otte datoer. En ren statisk ramme
+// (1-1-2005 … 31-12 ét år frem) ville lade en periode otte år FØR sagens egen skade afslutte canonical uden
+// nogen reaktion – og perioden afgrænser samtlige krav. Specen bærer
 // samtidig erhvervssygdoms-reglen (anmeldelsesdato minus 5 år), så den ydre ramme ikke skal gentages her.
 export const eoVedroererPeriodeFraField = dateField(
   'vedroererPeriodeFra', 'Vedrører periode fra',
@@ -505,7 +503,7 @@ export const eoVedroererPeriodeTilField = dateField(
   ),
 );
 export const eoRevideretOpgoerelseField = requiredJaNejField('revideretOpgoerelse', 'Revideret opgørelse', 'Nej');
-// Hører til Offentlige ydelser-fanen og dermed til TAF-kravet (BB-360, se `offentligeYdelserDates`).
+// Hører til Offentlige ydelser-fanen og dermed til TAF-kravet (se `offentligeYdelserDates`).
 export const eoMidlertidigtEetFraEetSidenField = requiredJaNejField('midlertidigtEetFraEetSiden', EO_MIDLERTIDIGT_EET_FRA_EET_SIDEN_LABEL, 'Nej', whenEo(tafSektionAktiv));
 export const eoRegulerOffentligeYdelserField = requiredJaNejField('regulerOffentligeYdelser', 'Regulér offentlige ydelser', 'Ja');
 
@@ -513,15 +511,15 @@ export const eoForligAnsvarsgradProcentField: FieldDescriptor<number | undefined
   id: 'eo.forligAnsvarsgradProcent',
   template: { section: S, path: [], field: 'forligAnsvarsgradProcent' },
   // Decimaler SKAL kunne indtastes (12,5 % er et virkeligt forlig), men visningen må ikke påstå en
-  // præcision, brugeren ikke har givet: `50` vises som «50», `12,5` som «12,5» (BB-200).
+  // præcision, brugeren ikke har givet: `50` vises som «50», `12,5` som «12,5».
   codec: createPercentFieldCodec(
     { allowNegative: false, allowDecimals: true },
     { trimTrailingDecimals: true }
   ),
   emptyValue: undefined,
   isEmpty: isUndefined,
-  // Rækkens synlige navn er sammensat: «Forlig om ansvarsgrad» + «Procent» (BB-211). Parentesformen
-  // «(%)» var en notation, ingen tekst på skærmen bruger.
+  // Rækkens synlige navn er sammensat: «Forlig om ansvarsgrad» + «Procent». Parentesformen «(%)» bruges
+  // bevidst ikke; ingen tekst på skærmen bruger den.
   label: 'Forlig om ansvarsgrad, procent',
   controlKind: 'text',
   createEmptySection: createEmptyErstatningsopgoerelseSection,
@@ -529,8 +527,8 @@ export const eoForligAnsvarsgradProcentField: FieldDescriptor<number | undefined
     minValue: 1,
     maxValue: 100,
     allowDecimals: true,
-    // Grænseteksten følger feltets egen visningsform: uden den lød den «mellem 1,00 og 100,00» og fik
-    // decimalerne til at se påkrævede ud (BB-200, samme afgørelse som BB-144's EET %-tekster).
+    // Grænseteksten følger feltets egen visningsform: uden den lyder den «mellem 1,00 og 100,00» og får
+    // decimalerne til at se påkrævede ud (samme regel som EET's %-tekster).
     message: 'Procent skal være mellem 1 og 100',
   }), (value, _field, view) => {
     const message = evaluateForligAnsvarsgradRules({
@@ -570,7 +568,7 @@ export const eoForligAnsvarsgradBroekField: FieldDescriptor<string | undefined> 
     }
     const evaluation = evaluateForligsgrad({ forligAnsvarsgradProcent, forligAnsvarsgradBroek: value });
     if (evaluation.status !== 'invalid') return undefined;
-    // Under 1 % er en domænegrænse som procentfeltets 1–100 (NY-12a-4): værdien committes og bevares,
+    // Under 1 % er en domænegrænse som procentfeltets 1–100: værdien committes og bevares,
     // feltet bliver rødt og blokerer – også for en ældre .eo-fil, der loades med fx 1/200.
     if (evaluation.reason === 'broekUnderMinimum') {
       return { reason: 'bounds', code: 'eo.forligAnsvarsgradBroek.bounds', message: evaluation.message };
@@ -617,9 +615,8 @@ export const eoKravPaaOevrigeErstatningskravField = requiredJaNejSkjulField('kra
 export const eoOffentligeYdelserKommentarerField = optionalTextField(
   'offentligeYdelserKommentarer', 'Kommentarer', COMMENT_TEXT_MAX_LENGTH, true, whenEo(tafSektionAktiv)
 );
-// Feltet hed «Særlige kommentarer», sektionen på skærmen «Eventuelle særlige kommentarer» og dokumentets
-// overskrift «Særlige bemærkninger» – tre navne for én ting (BB-212). Sagen hedder nu «Særlige bemærkninger»
-// alle tre steder; «Eventuelle» bevares kun som sektionens valgfrihedssignal på indtastningsfladen.
+// Feltet, sektionen og dokumentets overskrift bruger ét navn: «Særlige bemærkninger». «Eventuelle» bevares
+// kun som sektionens valgfrihedssignal på indtastningsfladen.
 export const eoSaerligeKommentarerField = optionalTextField(
   'saerligeKommentarer', 'Særlige bemærkninger', COMMENT_TEXT_MAX_LENGTH, true
 );
@@ -663,14 +660,13 @@ export const eoBilagSelectionSygeferiegodtgoerelseField = bilagToggle('sygeferie
 // ── AES afgørelser (skalarer) ─────────────────────────────────────────────────────
 export const eoVarigeMenAfgorelseField = requiredJaNejField('varigeMenAfgorelse', 'Varige mén-afgørelse', 'Nej');
 // De fem AES-datoer og differencekravsdatoen deler grænseformen «tidligst skadedatoen, senest <max>».
-// Alle seks stod uden validator, så datoer før skadedatoen – og efter dags dato – kunne afsluttes canonical
-// og nå hele vejen til en aktiv PDF-knap. Kun `max` skiller dem: afgørelsesdatoer kan ikke ligge
+// Uden validator kan datoer før skadedatoen – og efter dags dato – afsluttes canonical og nå hele vejen til
+// en aktiv PDF-knap. Kun `max` skiller dem: afgørelsesdatoer kan ikke ligge
 // i fremtiden, mens virkningsdatoer kan række et år frem.
 //
-// Labels er rækkens SYNLIGE tekst (BB-211's regel); de to «Virkningsdato (hvis forskellig fra
-// afgørelsesdatoen)» er ens på skærmen, så deres navn er sammensat med afgørelsen, de hører til. Før hed
-// felterne fx «Mén-afgørelsesdato» i «Fejl og advarsler» og i oplæsningen – et navn, skærmen ikke skriver
-// (BB-243).
+// Labels er rækkens SYNLIGE tekst; de to «Virkningsdato (hvis forskellig fra afgørelsesdatoen)» er ens på
+// skærmen, så deres navn er sammensat med afgørelsen, de hører til. «Fejl og advarsler» og oplæsningen må
+// ikke bruge et navn, skærmen ikke skriver (fx «Mén-afgørelsesdato»).
 export const eoMenAfgoerelseDatoField = dateField(
   'menAfgoerelseDato', 'Dato for første ménafgørelse',
   dateBounds(skadedatoBoundedSpec(dateRanges_erstatningsopgoerelse.menAfgoerelseDato)),
@@ -721,8 +717,7 @@ export const eoTidligereSsMaxField = requiredJaNejField(
  * Satsårets loft: indeværende år eller det seneste år med fulde svie/smerte-satser, hvis det ligger senere.
  *
  * «Indsæt årstal» vælger satsåret én måned efter opgørelsesdatoen. I december med næste års satser
- * indlagt gav knappen derfor et år, feltets gamle loft (indeværende år) afviste. Udviklerens afgørelse
- * 2026-11-18: feltet følger satsdækningen. Loftet kan kun hæves, så ingen gemt værdi bliver ny rød.
+ * indlagt giver knappen derfor et år efter indeværende år. Bevidst valg: feltet følger satsdækningen. Loftet kan kun hæves, så ingen gemt værdi bliver ny rød.
  */
 const resolveSvieSmerteSatserAarMax = (): number =>
   Math.max(getCurrentYear(), findLatestSvieSmerteSatsAarAtOrBefore(Number.POSITIVE_INFINITY) ?? getCurrentYear());
@@ -746,7 +741,7 @@ export const eoSvieSmerteDelvisSygemeldingSatsField = requiredChoiceField<SvieSm
 );
 // Tidligere PERIODER opgøres; hvad der faktisk blev betalt for dem er uden betydning, fordi beløbet
 // fradrages i MAKSIMUM (svieSmerteEngine: restPlads = max - tidligere). Derfor "opgjort", ikke
-// "udbetalt" – label, advarsel og dokument bruger samme ord om samme tal (BB-224).
+// "udbetalt" – label, advarsel og dokument bruger samme ord om samme tal.
 export const eoSvieSmerteTidligereTotalField = amountField(
   'svieSmerteTidligereTotal', 'Svie/smerte opgjort i tidligere erstatningsopgørelser', whenEo(svieSmerteTidligereTotalRelevant),
 );
@@ -767,8 +762,8 @@ export const eoTafArbejdsstatusField = choiceField<Arbejdsstatus>('tafArbejdssta
 export const eoSidsteDagAnsaettelsesforholdField = dateField(
   'sidsteDagAnsaettelsesforhold', 'Sidste dag i ansættelsesforhold', dateBounds(systemrammeSpec),
 );
-// Skærmens tekst, som svie/smertes tvillingefelt (BB-224): «Tidligere modtaget TAF» kunne læses som
-// tidligere opgørelser, som feltet netop ikke handler om (BB-255).
+// Skærmens tekst, som svie/smertes tvillingefelt: «Tidligere modtaget TAF» kan læses som tidligere
+// opgørelser, som feltet netop ikke handler om.
 export const eoTidligereModtagetTafField = amountField(
   'tidligereModtagetTaf',
   'Evt. allerede modtaget tabt arbejdsfortjeneste for nuværende erstatningsperiode',
@@ -776,16 +771,14 @@ export const eoTidligereModtagetTafField = amountField(
 );
 
 // ── Indtægt før skaden (skalarer, fanen lønindkomst) ──────────────────────────────
-// Labels er skærmens tekst (BB-270, BB-211's regel): oplæsning og fejltekster navngav før felter, brugeren ikke
-// kunne genfinde («Komprimér beregning …», «Øvrige fraværsdage», «Beskrivelse af øvrige fraværsdage»).
+// Labels er skærmens tekst: oplæsning og fejltekster må ikke navngive felter, brugeren ikke kan genfinde.
 export const eoKomprimerBeregningField = requiredJaNejField('komprimerBeregningEfterFoersteOpgoerelse', 'Skjul beregning efter første opgørelse', 'Ja');
 export const eoBeregnesUdFraField = requiredChoiceField<Beregningsmetode>(
   'beregnesUdFra', 'Beregnes ud fra', ['Beregningsperiode', 'Angivet månedsløn', 'Angivet dagsløn'], 'Beregningsperiode',
 );
 // Beregningsperioden er ligeledes et dato-par. Den vises kun med TAF-sektionen aktiv, og uden TAF er den ikke
-// udfyldt: en rød dato dér spærrede før hele opgørelsen – også svie/smerte – fra et afsnit, der ikke stod på
-// skærmen, og lønindkomst-bilaget slog stadig overenskomstsatser op på dens slutdato (udviklerafgørelse
-// 2026-10-23, BB-301).
+// udfyldt: ellers spærrer en rød dato dér hele opgørelsen – også svie/smerte – fra et afsnit, der ikke står på
+// skærmen, og lønindkomst-bilaget slår overenskomstsatser op på dens slutdato.
 const tafBeregningsperiodePair: DatePairBinding = {
   fra: () => eoTafBeregningsperiodeFraField,
   til: () => eoTafBeregningsperiodeTilField,
@@ -804,8 +797,8 @@ export const eoTafBeregningsperiodeTilField = dateField(
 );
 
 /**
- * Dagfelternes faste loft (beregningsgrundlaget og SFGG-referenceperiodens fraværsdage). Det stod før kun i
- * validatoren og spærrede uden rød celle (BB-264); nu bærer feltet det selv med validatorens ordlyd. Den skarpere
+ * Dagfelternes faste loft (beregningsgrundlaget og SFGG-referenceperiodens fraværsdage). Feltet bærer det selv
+ * med validatorens ordlyd; stod det kun i validatoren, ville det spærre uden rød celle. Den skarpere
  * grænse – at der skal være noget af perioden tilbage – afhænger af perioden og de andre fradrag og projekteres
  * derfor i `beregningsgrundlagFradragRules.ts` (SFGG: i validatoren mod referenceperiodens dage).
  */
@@ -821,8 +814,8 @@ const dagAntalValidators = (field: string): readonly FieldValidator<number | und
     },
 ];
 
-// «Løse ferie-/feriefridage» er det faglige navn for dagene – samme navn som TAF-tabellens kolonne (BB-256,
-// BB-270). Feltet hed før «Uspecificerede …». Skjult i måneder (BB-263); se `erBeregningsperiodeFerieRelevant`.
+// «Løse ferie-/feriefridage» er det faglige navn for dagene – samme navn som TAF-tabellens kolonne. Skjult i
+// måneder; se `erBeregningsperiodeFerieRelevant`.
 export const eoUspecificeredeFerieFridageField = integerField(
   'uspecificeredeFerieFridage', 'Løse ferie-/feriefridage',
   dagAntalValidators('uspecificeredeFerieFridage'),
@@ -840,8 +833,8 @@ export const eoOevrigeFravaersdageBeskrivelseField = optionalTextField(
   'oevrigeFravaersdageBeskrivelse', 'Årsag til fravær', SHORT_TEXT_MAX_LENGTH, false, whenEo(oevrigtFravaerRelevant),
 );
 
-// Et beløb på 0 kr. er et grundlag på 0 og førte beregningen ud i en intern undtagelse (BB-258).
-// Udviklerafgørelse 2026-10-02: rød ring frem for at opgøre kravet til 0 kr.
+// Et beløb på 0 kr. er et grundlag på 0, som beregningen ikke kan bruge. Bevidst valg: rød ring frem for at
+// opgøre kravet til 0 kr.
 export const eoMaanedsloenenUdgoerField = amountField(
   'maanedsloenenUdgoer', 'Månedslønnen udgør', whenEo(angivetLoenGrenRelevant('Angivet månedsløn')),
   'Månedslønnen',
@@ -853,11 +846,11 @@ export const eoDagsloenenUdgoerField = amountField(
 
 /**
  * Datoen for det angivne beløb kan ikke ligge efter dags dato: et beløb kan ikke afspejle en løn, der endnu
- * ikke er udbetalt (udviklerafgørelse 2026-10-02, BB-261). Før var loftet systemrammens 31-12 året efter.
+ * ikke er udbetalt.
  */
 const angivetLoenDatoSpec: DateBoundsSpec = systemrammeTilDagsDatoSpec;
-// De to sæt felter har ordret samme tekst på skærmen; kun den aktive gren er relevant (BB-266). Labelen er
-// skærmens tekst uden den visuelle tankestreg (BB-270).
+// De to sæt felter har ordret samme tekst på skærmen; kun den aktive gren er relevant. Labelen er
+// skærmens tekst uden den visuelle tankestreg.
 export const eoAngivetMaanedsloenBaseretPaaField = optionalTextField(
   'angivetMaanedsloenBaseretPaa', 'Baseret på', SHORT_TEXT_MAX_LENGTH, false,
   whenEo(angivetLoenGrenRelevant('Angivet månedsløn')),
@@ -877,7 +870,7 @@ export const eoAngivetDagsloenOpreguleresFraDatoField = dateField(
 
 // ── Bilagsnumre (skalarer) ────────────────────────────────────────────────────────
 // Alle syv har `BILAGSNUMMER_MAX_LENGTH` og ikke den generelle korttekst-kategori: felterne er 130 px
-// brede og centrerede, så et 60-tegns loft tillod en værdi, brugeren kun kunne se midten af (BB-206).
+// brede og centrerede, så et 60-tegns loft ville tillade en værdi, brugeren kun kan se midten af.
 export const eoVisBilagsnumreField = requiredJaNejField('visBilagsnumre', 'Vis bilagsnumre', 'Nej');
 export const eoBilagsnumreMenAfgoerelseField = optionalTextField('bilagsnumreMenAfgoerelse', 'Bilagsnr. mén-afgørelse', BILAGSNUMMER_MAX_LENGTH, false, whenEo(bilagsnumreRelevant));
 export const eoBilagsnumreEetAfgoerelserField = optionalTextField('bilagsnumreEetAfgoerelser', 'Bilagsnr. EET-afgørelser', BILAGSNUMMER_MAX_LENGTH, false, whenEo(bilagsnumreRelevant));
@@ -981,12 +974,12 @@ export const eoTafPeriodeLoseFeriedageField = defineStructuralField<number | und
   }),
   emptyValue: undefined,
   isEmpty: isUndefined,
-  // Kolonnens tekst: dagene kan være både feriedage og feriefridage (BB-256).
+  // Kolonnens tekst: dagene kan være både feriedage og feriefridage.
   label: 'Løse ferie-/feriefridage',
   controlKind: 'text',
   createEmptySection: createEmptyErstatningsopgoerelseSection,
   validators: [integerBoundsValidator('eo.tafPerioder.loseFeriedage.bounds', 0, undefined)],
-  // Skjult, når TAF opgøres i måneder (BB-247); se `erTafLoseFeriedageRelevant`.
+  // Skjult, når TAF opgøres i måneder; se `erTafLoseFeriedageRelevant`.
   relevance: whenEo(tafLoseFeriedageRelevant),
 });
 
@@ -1003,7 +996,7 @@ export const eoFerieperiodeTilField = ferieperiodeDates.til;
 
 // fravaerPerioder (samme rækkeform som ferieperioder)
 export const eoFravaerPerioderCollection = topLevelCollection<FerieperiodeRow>('fravaerPerioder', isFerieRowEmpty);
-// Skjult i måneder og uden for en beregningsperiode (BB-263, BB-266); se `erBeregningsperiodeFerieRelevant`.
+// Skjult i måneder og uden for en beregningsperiode; se `erBeregningsperiodeFerieRelevant`.
 const fravaerPeriodeDates = rowDatePair('fravaerPerioder', 'fra', 'til', 'Fra o.m.', 'Til o.m.', {
   fra: systemrammeRelationalSpec,
   til: systemrammeRelationalSpec,
@@ -1084,9 +1077,9 @@ export const eoOevrigeKravBeloebField = defineStructuralField<AmountValue | unde
   label: 'Beløb',
   controlKind: 'text',
   createEmptySection: createEmptyErstatningsopgoerelseSection,
-  // En udgift på 0 kr. er ikke et krav. Reglen stod før kun i validatoren (`> 0`), mens feltet tog imod
-  // 0 med neutral kant: opgørelsen blev spærret af en linje uden link og uden rød celle (BB-232).
-  // Grænsen er EKSKLUSIV, så også et negativt udtryksresultat (`100-200`) får «større end 0 kr.» (NY-12c-4).
+  // En udgift på 0 kr. er ikke et krav. Reglen står på feltet, ikke kun i validatoren (`> 0`); ellers tager
+  // feltet imod 0 med neutral kant, og opgørelsen spærres af en linje uden link og uden rød celle.
+  // Grænsen er EKSKLUSIV, så også et negativt udtryksresultat (`100-200`) får «større end 0 kr.».
   validators: [positiveAmountBoundsValidator('eo.oevrigeKravPerioder.beloeb.bounds')],
   relevance: whenEo(oevrigeKravSektionAktiv),
 });
@@ -1097,13 +1090,12 @@ export const eoOffentligeYdelserRowsCollection = topLevelCollection<OffentligeYd
   isOffentligeYdelserRowEmpty
 );
 // Ydelsesrækkerne følger sagens ydre ramme – som lønrækkerne, der også kan ligge i beregningsperioden før skaden.
-// De var tidligere låst til sygedagpengesatsernes dækning, fordi tabellen og sygedagpenge-hjælperen delte én
-// grænsekonfiguration: alle 15 ydelsestyper blev røde fra satstabellens sidste dato, og en sag, hvis TAF-periode
-// nåede forbi den, kunne ikke registrere en eneste ydelse, før satserne var udvidet i koden (BB-362). Kun hjælperens
-// to datofelter er bundet til satsdækningen (`dateRanges_sygedagpengeIndsaettelse`).
+// De må ikke låses til sygedagpengesatsernes dækning: så bliver alle 15 ydelsestyper røde fra satstabellens sidste
+// dato, og en sag, hvis TAF-periode når forbi den, kan ikke registrere en eneste ydelse, før satserne er udvidet i
+// koden. Kun hjælperens to datofelter er bundet til satsdækningen (`dateRanges_sygedagpengeIndsaettelse`).
 //
 // Hele fanen hører til kravet på tabt arbejdsfortjeneste: ved TAF «Nej» bruges intet fra den, og en ufærdig række må
-// hverken spærre opgørelsen eller trykkes – heller ikke med bilagsvalget «Alle» (BB-360, mønster M-32). Relevansen
+// hverken spærre opgørelsen eller trykkes – heller ikke med bilagsvalget «Alle». Relevansen
 // står derfor på hvert af fanens felter (rækkerne, midlertidigt-EET-togglen og kommentaren), og fanen viser kun en
 // forklaring, så længe der ikke er krav.
 const offentligeYdelserDates = rowDatePair(
@@ -1141,8 +1133,8 @@ export const eoOffentligeYdelserYdelsestypeField = defineStructuralField<string 
   createEmptySection: createEmptyErstatningsopgoerelseSection,
   relevance: whenEo(tafSektionAktiv),
   // En `.eo`-fil kan bære en type, kataloget ikke kender (håndrettet fil eller en type, der er fjernet). Rækken
-  // talte før ikke med i fradraget, uden at brugeren fik det at vide (værdiklasse-gennemgangen 2026-11-24, fund G,
-  // godkendt af udvikleren 2026-11-25). Værdien bevares og bliver rød, så brugeren vælger en kendt type.
+  // tæller ikke med i fradraget; uden en rød celle ville brugeren ikke få det at vide. Værdien bevares og bliver
+  // rød, så brugeren vælger en kendt type.
   validators: [(value) => {
     const trimmed = value?.trim() ?? '';
     if (trimmed === '' || resolveYdelsestype(trimmed) !== null) return undefined;
@@ -1177,10 +1169,9 @@ const sfggEntityIdOf = <T>(field: FieldRef<T>): string => {
 };
 
 /**
- * SFGG-felternes relevans (BB-228-familien): sektionen vises kun ved TAF-krav «Ja» for et ansættelsesforhold,
- * der var ansat på skadestidspunktet, og hvert felt kun under sin beregningskilde. Før stod det kun i
- * `SygeferiegodtgoerelseSection`, så en rød referenceperiode bag «Manuelt angivet» spærrede opgørelsen uden for
- * skærmen. Prædikatet er det samme, som sektionen viser felterne under (`eoLoenindkomstRelevance.ts`).
+ * SFGG-felternes relevans: sektionen vises kun ved TAF-krav «Ja» for et ansættelsesforhold, der var ansat på
+ * skadestidspunktet, og hvert felt kun under sin beregningskilde. Står det kun i `SygeferiegodtgoerelseSection`,
+ * spærrer en rød referenceperiode bag «Manuelt angivet» opgørelsen uden for skærmen. Prædikatet er det samme, som sektionen viser felterne under (`eoLoenindkomstRelevance.ts`).
  *
  * De styrende felter læses rå; prædikatet tjekker selv deres relevans (sektionen før kilden). En SFGG-række uden
  * ansættelsesforhold vises ingen steder og er derfor irrelevant.
@@ -1259,8 +1250,8 @@ export const eoSfggReferenceperiodeTilField = defineStructuralField<ISODateStrin
   ...dateBounds(systemrammeSpec, [dateOrderValidator('til', sfggReferenceperiodePair)]),
   relevance: sfggRelevance('referenceperiode'),
 });
-// Loftet på 366 dage stod før kun i validatoren og spærrede uden rød ring – og også bag «Manuelt angivet»,
-// hvor feltet ikke vises. Feltet bærer det nu selv med validatorens ordlyd, som beregningsgrundlagets dagfelter.
+// Feltet bærer selv loftet på 366 dage med validatorens ordlyd, som beregningsgrundlagets dagfelter; stod det kun i
+// validatoren, ville det spærre uden rød ring – også bag «Manuelt angivet», hvor feltet ikke vises.
 export const eoSfggReferenceperiodeFravaersdageUdenLoenField = sfggField<number | undefined>(
   'sfggReferenceperiodeFravaersdageUdenLoen', 'Ferie- og fraværsdage uden løn i referenceperioden',
   createIntegerFieldCodec({ allowNegative: false, maxDigits: UNBOUNDED_DAY_COUNT_MAX_DIGITS }),

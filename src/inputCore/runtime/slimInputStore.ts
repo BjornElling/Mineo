@@ -43,9 +43,9 @@ export type SlimInputCommit = Readonly<{
 /**
  * Den observerbare runtimetilstand. Ren DATA – mutatorerne bor på handlen, ikke i state.
  *
- * Tidligere lå `applyCommit`/`hydrate` som felter i selve state-objektet. Det var det, der tvang `StoreApi`
- * ud i det offentlige: en kalder skulle have `getState()` for at nå en mutator, og fik dermed `setState` med.
- * Ved at flytte mutatorerne til handlen bliver læsning og skrivning to forskellige capabilities.
+ * Lå `applyCommit`/`hydrate` som felter i selve state-objektet, måtte `StoreApi` ud i det offentlige: en kalder
+ * skulle have `getState()` for at nå en mutator og fik dermed `setState` med. Med mutatorerne på handlen er
+ * læsning og skrivning to forskellige capabilities.
  */
 export type SlimInputStoreState = Readonly<{
   input: SettledInput;
@@ -62,7 +62,7 @@ export type SlimInputStoreState = Readonly<{
  *
  * Den eksponerer PRÆCIS de operationer, runtime har brug for – og ingen generel mutation. `applyCommit`,
  * `hydrate` og `restore` er de tre skriveveje, og de er navngivne, validerede transaktioner. Der findes
- * ingen `setState`: det er derfor ikke længere muligt at skrive input uden at gå gennem `dispatchInput`s
+ * ingen `setState`: det er derfor ikke muligt at skrive input uden at gå gennem `dispatchInput`s
  * serialisering, storage-verifikation, history og revisionsfremskrivning.
  *
  * Handlen er `internal` i den forstand, at kun `src/inputCore/runtime/` og bindingslaget modtager den;
@@ -134,7 +134,7 @@ export const slimInputStore = createSlimInputStore();
  * SES. Fabrikken bærer derfor sit eget `__`-præfiksede navn, så en søgning viser præcis hvilke tests der
  * bygger en isoleret runtime. `input/write-boundary` forbyder produktionskode at kalde den.
  *
- * Der er ikke længere et separat "test-skrivevidne": handlen ER capabilityen, og en test, der vil hydrere,
+ * Der er intet separat "test-skrivevidne": handlen ER capabilityen, og en test, der vil hydrere,
  * gør det på sin egen isolerede runtime frem for at forfalske en autoritet på produktionens.
  */
 export const __createSlimInputTestStore = createSlimInputStore;

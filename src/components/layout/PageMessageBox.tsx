@@ -14,7 +14,7 @@ import { hasPageMessage, type PageMessage } from './pageMessage';
  *
  * Fordi input er en `PageMessage`, kan kaldere ikke ramme den forveksling: en tilstedeværende variant BÆRER
  * garanteret ikke-tom tekst, og der findes ingen truthiness-vurdering tilbage at gøre forkert. En tom boks kan
- * ikke længere opstå – heller ikke hvis en fremtidig viewmodel skriver en forkert fallback, for `[]` er ikke en
+ * ikke opstå – heller ikke hvis en fremtidig viewmodel skriver en forkert fallback, for `[]` er ikke en
  * `PageMessage` og bliver afvist af typen ved kildens grænse.
  *
  * Markup i begge veje er ORDRET den, siderne havde før, så samlingen er en ren struktur-ændring uden visuel

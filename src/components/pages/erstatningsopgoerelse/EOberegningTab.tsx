@@ -93,8 +93,8 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
 
     // Rækker vises hver for sig. Kun overlap, hvis rækkevurderingen udtrykkeligt angiver samme
     // `summaryDeduplicationGroup`, må foldes: hver berørt celle har da sin egen røde ring og tooltip
-    // (BB-218, BB-251). At udlede foldningen af ens tekst skjulte andre rækkers mangler, når reglen
-    // ikke farvede cellerne (BB-231, BB-336).
+    // At udlede foldningen af ens tekst ville skjule andre rækkers mangler, når reglen ikke farver
+    // cellerne.
     const seen = new Set<string>();
     const visibleRows = rows.filter((row) => {
       const linkTitle = row.navigation.kind === 'unsupported' ? '' : row.navigation.sectionTitle;
@@ -150,7 +150,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
   const renderSystemIssueRows = React.useCallback((rows: readonly SystemIssueRow[]) => {
     return rows.map((row) => (
       <Box
-        // To regler kan dele invariant-id med hver sin besked; nøglen bærer derfor begge (BB-265).
+        // To regler kan dele invariant-id med hver sin besked; nøglen bærer derfor begge.
         key={`${row.id}::${row.message}`}
         className="row--label-right-hover"
         sx={{
@@ -186,7 +186,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
   const renderEetLoebendeIssueRows = React.useCallback((rows: readonly EetIssueRow[]) => {
     return rows.map((row) => (
       <Box
-        // Samme kilde-id kan bære flere årsager (fx én pr. rød celle i afgørelsestabellen, BB-407).
+        // Samme kilde-id kan bære flere årsager (fx én pr. rød celle i afgørelsestabellen).
         key={`${row.id}|${row.message}`}
         className="row--label-right-hover"
         sx={{
@@ -373,10 +373,10 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
                 field={eoBilagSelectionOpgoerelseField.bind()}
                 location={{ locationId: 'erstatningsopgoerelse.eoBilagSelection.opgoerelse', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.BEREGNING }}
                 name="eo-bilag-opgoerelse"
-                // Opgørelsen indgår ALTID. Feltet var før kun `disabled`, men en programinaktiv checkbox
-                // vises bevidst UMARKERET – så en sag gemt eller indlæst med `opgoerelse: false` viste et
-                // låst, tomt felt, brugeren hverken kunne forklare eller rette, og dokumentgenereringen
-                // kastede «Dokumentgenerering kræver, at elementet "Opgørelse" er valgt.». `lockedOn` er
+                // Opgørelsen indgår ALTID. Kun `disabled` er ikke nok: en programinaktiv checkbox vises
+                // bevidst UMARKERET, så en sag gemt eller indlæst med `opgoerelse: false` ville vise et
+                // låst, tomt felt, brugeren hverken kan forklare eller rette, og dokumentgenereringen ville
+                // kaste «Dokumentgenerering kræver, at elementet "Opgørelse" er valgt.». `lockedOn` er
                 // den modsatte tilstand: altid markeret, aldrig redigerbar. `resolveBilagSelection` tvinger
                 // det samme valg sandt i dokumentkilden, så visning og dokument ikke kan komme fra hinanden.
                 lockedOn

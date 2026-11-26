@@ -3,11 +3,11 @@ import { isoToDanish, type ISODateString } from '../../../types/branded';
 import { getDayAfterIso } from '../../../utils/isoDateHelpers';
 
 /**
- * Forligsdato og statusdato efter «Opgørelse lavet den» (NY-12a-3 og NY-12a-5).
+ * Forligsdato og statusdato efter «Opgørelse lavet den».
  *
- * Samme mekanisme som AES-datoernes advarsel (`aesDatoEfterOpgoerelse.ts`, BB-242): dokumentet er dateret
+ * Samme mekanisme som AES-datoernes advarsel (`aesDatoEfterOpgoerelse.ts`): dokumentet er dateret
  * «Opgørelse lavet den», så et forlig eller en status dateret senere står som en begivenhed, papiret
- * beskriver som sket. Reglerne er IKKE-blokerende (udviklerafgørelse): dokument, beløb og download er
+ * beskriver som sket. Reglerne er bevidst IKKE-blokerende: dokument, beløb og download er
  * uændrede – en revideret opgørelse kan legitimt bære den oprindelige opgørelsesdato, og en opgørelse kan
  * opgøres fremad. Samme tekst står som gul ring ved feltet og i «Fejl og advarsler».
  *
@@ -56,7 +56,7 @@ const erStatusKravRejst = (felt: StatusDatoEfterOpgoerelseFelt, values: StatusDa
     : values.kravPaaTabtArbejdsfortjeneste === 'Ja';
 
 /**
- * Statusdatoen er dagen efter erstatningsperiodens slutdato (BB-210's dag-efter-regel) – samme udledning som
+ * Statusdatoen er dagen efter erstatningsperiodens slutdato (dag-efter-reglen) – samme udledning som
  * underoverskriften «Status den …» og dokumentets statuslinjer. Advarslen kræver en valgt status: et tomt
  * statusfelt giver ingen tekst i dokumentet og dermed ingen modsætning. Ved lighed er der ingen advarsel.
  */

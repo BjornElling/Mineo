@@ -3,8 +3,8 @@
 // aldrig reparser råteksten for at finde tooltipteksten (§1.8).
 
 /**
- * Årsag til at et settle blev AFVIST (rejected råtekst, canonical slot ryddet til tomværdien). Efter
- * kravændringen 2026-07-18 er `format` den eneste afvisningsårsag: kun rå tekst, som ikke kan omsættes til en
+ * Årsag til at et settle blev AFVIST (rejected råtekst, canonical slot ryddet til tomværdien). `format`
+ * er den eneste afvisningsårsag: kun rå tekst, som ikke kan omsættes til en
  * værdi i feltets persisterede schema, er rejected (§1.6). Afvisning giver en rød feltfejl og blokerer `.eo`.
  *
  * - `format` – teksten kan ikke parses til feltets type eller kan ikke repræsenteres sikkert i schemaet.

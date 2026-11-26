@@ -343,7 +343,7 @@ describe('felt-editor i dynamisk række – placeholder-first-invalid overlever 
   });
 });
 
-describe('hasDraftChanged (M-47: åben tekst som arbejde, der kan mistes)', () => {
+describe('hasDraftChanged (åben tekst som arbejde, der kan mistes)', () => {
   it('skelner en uændret åbning fra en faktisk ændret draft og glemmer en annulleret rettelse', () => {
     const opened = openEditor(createClosedEditor(aargangRef, LOC), viewOf(aargangRef), store.getState().replacementGeneration);
     expect(hasDraftChanged(createClosedEditor(aargangRef, LOC), viewOf(aargangRef))).toBe(false);

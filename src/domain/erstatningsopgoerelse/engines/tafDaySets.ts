@@ -257,8 +257,8 @@ const buildPlacedLoseFeriedageForRange = (
  * på samme måde som `buildTafFerieFravaerSummary` (hverdage minus SH-dage i fællesmængden).
  *
  * Ferietabellernes kolonne viser dette tal og ikke rækkens egen længde: kolonnen er det eneste, brugeren
- * kontrollerer sit arbejde mod, og en ferie, der delvist ligger uden for TAF- eller beregningsperioden, blev
- * før talt med dage, som ingen del af opgørelsen brugte (BB-249, BB-217's form). `null` for en række uden to
+ * kontrollerer sit arbejde mod, og en ferie, der delvist ligger uden for TAF- eller beregningsperioden, må
+ * ikke tælles med dage, som ingen del af opgørelsen bruger. `null` for en række uden to
  * gyldige datoer i rigtig orden.
  */
 export const countFeriedageInRanges = (

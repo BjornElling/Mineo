@@ -20,7 +20,7 @@ import {
 } from '../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { toISODateString } from '../../types/branded';
 
-// BB-433: en afvist slutdato i beregningsperioden gør det umuligt at afgøre, om TAF opgøres i dage eller måneder.
+// En afvist slutdato i beregningsperioden gør det umuligt at afgøre, om TAF opgøres i dage eller måneder.
 // Ferieafsnittet skjules da – men det er ikke brugerens valg, og en tidligere afvist feriedato må ikke ryddes.
 // Relevansen er `ubestemt`, ikke `irrelevant`; kun et reelt fravalg (fx TAF «Nej») rydder afvist råtekst.
 
@@ -64,7 +64,7 @@ const loseDage = eoUspecificeredeFerieFridageField.bind();
 const tafLoseDage = eoTafPeriodeLoseFeriedageField.bind('taf-1');
 const periodeTil = eoTafBeregningsperiodeTilField.bind();
 
-/** Udgangspunktet fra BB-433: afvist ferie-Fra, gyldig ferie-Til og afviste løse dage i begge tabeller. */
+/** Udgangspunktet: afvist ferie-Fra, gyldig ferie-Til og afviste løse dage i begge tabeller. */
 const createWithRejectedFerie = (): SettledInput => {
   let input = createArbejdsdageInput();
   input = apply(input, settle(ferieFra, '31-02-2018'));
@@ -76,7 +76,7 @@ const createWithRejectedFerie = (): SettledInput => {
   return input;
 };
 
-describe('ubestemt relevans bevarer afvist input (BB-433)', () => {
+describe('ubestemt relevans bevarer afvist input', () => {
   it('en afvist slutdato skjuler ferien som ubestemt og rydder ikke dens afviste værdier', () => {
     const input = apply(createWithRejectedFerie(), settle(periodeTil, '31-02-2018'));
 
@@ -169,7 +169,7 @@ describe('ubestemt relevans bevarer afvist input (BB-433)', () => {
   });
 });
 
-describe('Gem-blokeringens rækkefølge med ubestemte felter (BB-433)', () => {
+describe('Gem-blokeringens rækkefølge med ubestemte felter', () => {
   const firstBlocking = (input: SettledInput) => {
     const outcome = projectEoSave(input, catalog);
     if (outcome.status !== 'blocked') throw new Error('Gem skulle være blokeret');

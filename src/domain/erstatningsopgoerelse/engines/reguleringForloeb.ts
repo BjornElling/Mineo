@@ -3,9 +3,9 @@ import type { KrlIndexEntry } from './krlRegulering';
 import type { StatistikIndexEntry } from './statistikRegulering';
 import type { KlLoenaftalerIndexEntry } from './klLoenaftalerRegulering';
 
-// R2 – det autoritative regulerings-visnings-forløb, emitteret af motoren (LoenudviklingModel)
+// Det autoritative regulerings-visnings-forløb, emitteret af motoren (LoenudviklingModel)
 // og LÆST af præsentation/inspektion, så det viste forløb er samme kilde som beløbet
-// (ingen re-derivation → ingen drift, jf. reviewkandidat #23).
+// (ingen re-derivation → ingen drift).
 //
 // Diskrimineret union for de fire former med en selvstændig kildeserie. Former uden sådan en
 // serie bruger delte formel-/opslagsprimitiver og repræsenteres ved fravær. Unionen bor her –

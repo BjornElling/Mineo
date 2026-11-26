@@ -7,15 +7,13 @@ import {
 } from '../../../config/pageNavigation';
 
 /**
- * Sidemenuen som RUTE-INVENTAR (greenfield #43, efterslæb).
+ * Sidemenuen som RUTE-INVENTAR.
  *
- * #43 samlede appens routes ét sted, men ramte kun to af de tre lister: menuinventaret bar sit
- * eget inventar af bare strenge og importerede slet ikke kataloget. Guarden i `App.tsx`
- * sammenholder kun loader-listen med kataloget, så en omdøbt route gav en lydløst DØD menupost –
- * ingen fejl, ingen test.
+ * Guarden i `App.tsx` sammenholder kun loader-listen med route-kataloget. Bar menuen sit eget
+ * inventar af bare strenge, ville en omdøbt route give en lydløst DØD menupost – ingen fejl,
+ * ingen test.
  *
- * Nøgle-driften er nu lukket af TYPEN (`MenuPageKey`), og den grænse er mutationsbevist: et
- * forkert id er en compile-fejl. Men typen har et loft – den kan ikke se, at en post MANGLER,
+ * Nøgle-driften er lukket af TYPEN (`MenuPageKey`): et forkert id er en compile-fejl. Men typen har et loft – den kan ikke se, at en post MANGLER,
  * fordi en kortere liste stadig typechecker. Denne test dækker præcis det hul.
  */
 describe('SideMenu – rute-inventar', () => {

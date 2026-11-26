@@ -4,9 +4,9 @@ import { toISODateString, type ISODateString } from '../../../types/branded';
 
 const iso = (value: string): ISODateString => toISODateString(value);
 
-describe('CALC-006 – uafhængigt facit for samlet ydelsesstatus', () => {
-  // BB-291: hver beløbsfri periode får sin egen linje med rækkens navn og link til beløbscellen – før blev de
-  // samlet til «Beløb er ikke angivet (2 perioder)» uden at sige hvilke.
+describe('uafhængigt facit for samlet ydelsesstatus', () => {
+  // Hver beløbsfri periode får sin egen linje med rækkens navn og link til beløbscellen – en samlet linje
+  // «Beløb er ikke angivet (2 perioder)» siger ikke hvilke.
   it('giver hver beløbsfri periode sin egen linje med rækkens periode', () => {
     const rows: readonly OffentligeYdelserRow[] = [
       {

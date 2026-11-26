@@ -50,17 +50,15 @@ const markRestoreFocus = (target: HTMLElement): void => {
 
 const focusRestoredField = (target: HTMLElement): boolean => {
   // Scroll kun hvis det redigerede felt ikke allerede er synligt; ellers centrér det i vinduet
-  // (samme adfærd som tab-navigation). Tidligere blev hele sektionen scrollet til toppen, hvilket
-  // gav et uønsket spring helt op selv når feltet allerede var synligt. Vi scroller FØR focus, så
+  // (samme adfærd som tab-navigation). Hele sektionen scrolles bevidst ikke til toppen; det giver et
+  // uønsket spring helt op, selv når feltet allerede er synligt. Vi scroller FØR focus, så
   // den efterfølgende `focus({ preventScroll: true })` ikke konkurrerer med scroll-animationen.
   scrollTargetIntoView(target);
-  // Her stod tidligere en blur-commit-undertrykkelse (`withRestoreFocusSuppressed` +
-  // `isRestoreFocusInProgress`) mod en FORÆLDET draft: `target.focus()` udløser synkront et blur på det
-  // tidligere fokuserede felt, hvis blur-commit så ville lande en draft fra før resync. Værnet er slettet,
-  // fordi den tilstand ikke kan opstå: undo/redo er `noop` ved åben editor
+  // En blur-commit-undertrykkelse (`withRestoreFocusSuppressed` + `isRestoreFocusInProgress`) mod en
+  // FORÆLDET draft er slettet og må ikke genindføres: `target.focus()` udløser synkront et blur på det
+  // tidligere fokuserede felt, men den tilstand kan ikke opstå, fordi undo/redo er `noop` ved åben editor
   // (`criticalActionCoordinator`s EDITOR_HANDLING), så `history.undo()` – og dermed denne løkke – nås
-  // aldrig, mens en draft er åben. Setteren fandtes desuden uden nogen læser, så undertrykkelsen var
-  // alligevel en no-op. Genindfør den ikke uden først at ændre den noop-politik.
+  // aldrig, mens en draft er åben. Genindfør den ikke uden først at ændre den noop-politik.
   try {
     target.focus({ preventScroll: true });
   } catch {

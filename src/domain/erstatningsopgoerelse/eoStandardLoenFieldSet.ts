@@ -13,9 +13,8 @@ import type { StandardLoenTableFieldSet } from '../standardLoen/standardLoenTabl
 // ejer-id'erne af `collection.path` (§3.2).
 // Derfor kan et feltsæt ikke glemme ejeren, og en celles adresse er altid `field.bind(employmentId, rowId)`.
 //
-// Modulet havde tidligere sin EGEN rekonstruktion + cellefejl-indsamling – en næsten ordret kopi af Årsløns,
-// hvis eneste forskel var det ekstra ejer-id i `bind`. Begge afledninger er nu generiske over
-// feltsættet, så der findes ét sted, hvor en løntabelrække rekonstrueres.
+// Rekonstruktion og cellefejl-indsamling er generiske over feltsættet og deles med Årsløn – den eneste
+// forskel er det ekstra ejer-id i `bind` – så der findes ét sted, hvor en løntabelrække rekonstrueres.
 
 const S = 'erstatningsopgoerelse' as const;
 const EMPLOYMENTS = 'loenindkomstAnsaettelsesforhold';

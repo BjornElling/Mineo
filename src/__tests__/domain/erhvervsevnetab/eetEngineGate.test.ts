@@ -208,8 +208,8 @@ describe('EET: panelmotoren kaldes kun for en ready dependency-gruppe', () => {
     // Uden gaten ville motoren regne videre med `forligFactor: null`, dvs. som om der slet ikke var et forlig
     // – et falsk 100 %-resultat bag en rød markering.
     //
-    // EAL-fanen er en afhængighed FRA 2026-09-09: forligsfelterne blev flyttet til «EET oplysninger» under
-    // «Erstatningsansvarsloven», og fane 4 viser nu selv det forligsreducerede EAL-krav. Løbende ydelser og
+    // EAL-fanen er en afhængighed: forligsfelterne står i «EET oplysninger» under
+    // «Erstatningsansvarsloven», og fane 4 viser selv det forligsreducerede EAL-krav. Løbende ydelser og
     // kapitalisering læser derimod intet forlig og skal ikke blokeres af det.
     const snapshot = compute(NO_FIELD_ERRORS, {
       forlig: {

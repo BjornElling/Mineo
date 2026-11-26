@@ -148,7 +148,7 @@ const standaloneContextFor = (input: SettledInput) => createDocumentSourceContex
   undefined,
 );
 
-describe('CALC-003 – hovedapp og standalone deler samme rentefacit', () => {
+describe('Hovedapp og standalone deler samme rentefacit', () => {
   it('projicerer samme oversigtsinput fra samme gyldige sagsinput', () => {
     const main = renteOversigtDocumentDefinition.project(mainContextFor(validInput()), undefined);
     const standalone = standaloneRenteOversigtDocumentDefinition.project(

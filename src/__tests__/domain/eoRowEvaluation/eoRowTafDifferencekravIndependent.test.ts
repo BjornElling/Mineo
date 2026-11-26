@@ -117,7 +117,7 @@ const INDEPENDENT_DIFFERENCEKRAV_VALUES: ErstatningsopgoerelseValues = {
   bilagsnumreOevrigeErstatningskrav: undefined,
 };
 
-describe('CALC-006 – uafhængigt TAF-ophørsfacit for differencekrav', () => {
+describe('uafhængigt TAF-ophørsfacit for differencekrav', () => {
   it('viser differencekrav som ophørsårsag når TAF slutter dagen før kravet', () => {
     const rows = buildEoTaftRows(INDEPENDENT_DIFFERENCEKRAV_VALUES, EMPTY_FIELD_ISSUE_SET, {
       skadedatoISO: iso('2023-01-01'),
@@ -137,8 +137,8 @@ describe('CALC-006 – uafhængigt TAF-ophørsfacit for differencekrav', () => {
     });
   });
 
-  // BB-238: klagen ophæver EET-afskæringerne, IKKE differencekravets – præcis som rød-celle-valideringen.
-  // Før faldt rækken igennem til en advarsel, ingen lovlig indtastning kunne rydde.
+  // Klagen ophæver EET-afskæringerne, IKKE differencekravets – præcis som rød-celle-valideringen. Ellers
+  // falder rækken igennem til en advarsel, ingen lovlig indtastning kan rydde.
   it.each([
     ['efter differencekravet', '2024-03-01'],
     ['før differencekravet', '2024-01-03'],

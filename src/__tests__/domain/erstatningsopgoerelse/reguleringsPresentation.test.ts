@@ -616,13 +616,13 @@ describe('reguleringsPresentation', () => {
     });
 
     expect(table).not.toBeNull();
-    // Satsen er en timeløn («Ansættelse» = Timeløn). Overskriften fulgte tidligere TAF-enheden (Måneder) og
-    // kaldte den «Månedsløn» (fund C5); nu læses enheden fra reguleringsbeviset.
+    // Satsen er en timeløn («Ansættelse» = Timeløn). Overskriften læser enheden fra reguleringsbeviset – ikke
+    // fra TAF-enheden (Måneder), der ville kalde den «Månedsløn».
     expect(table?.columns).toEqual(['Fra-dato', 'Timeløn', 'Feriegodtg.', 'Store Bededagstillæg', 'AG-pension']);
     expect(table?.rows.some((row) => row[0] === '01-01-2024')).toBe(true);
   });
 
-  // Fund C5 (facit fra gennemgangen 2026-10-13): KL, trin 1, gruppe 0, Månedsløn og TAF i arbejdsdage.
+  // KL, trin 1, gruppe 0, Månedsløn og TAF i arbejdsdage.
   // Løntrinssatserne er månedslønninger og skal stå under «Månedsløn», ikke «Timeløn».
   it.each([
     ['Månedsløn', 'Arbejdsdage', 'Månedsløn', ['18.607,42', '19.351,75', '19.603,25']],
@@ -706,7 +706,7 @@ describe('reguleringsPresentation', () => {
       offentligLoenTrin: number | undefined;
       offentligLoenGruppe: number | undefined;
     }> = [
-      // «Manglende løntype» findes ikke længere: «Ansættelse» er Månedsløn som standard (BB-300).
+      // «Manglende løntype» findes ikke længere: «Ansættelse» er Månedsløn som standard.
       { navn: 'ugyldig løngruppe', offentligLoenType: 'Timeløn', offentligLoenTrin: 20, offentligLoenGruppe: 99 },
       { navn: 'ugyldigt løntrin', offentligLoenType: 'Timeløn', offentligLoenTrin: 9999, offentligLoenGruppe: 0 },
     ];
@@ -1586,7 +1586,7 @@ describe('reguleringsPresentation', () => {
   });
 
   it('viser basisrækken på reference-datoen – rækker dateret før reguleringsdatoen ignoreres', () => {
-    // 2026-07-02 (udviklerbeslutning): rækker med dato før den anvendte reguleringsdato indgår ikke
+    // Bevidst valg: rækker med dato før den anvendte reguleringsdato indgår ikke
     // i reguleringen (de udløser en advarsel i række-evalueringen). Basis er altid basisrækken –
     // spejler buildLoenudviklingFromManual i motoren.
     const values = cloneInitialValues();
@@ -1693,7 +1693,7 @@ describe('reguleringsPresentation', () => {
   });
 
   it('viser kun reguleringsdato-rækken når den eneste ændringsrække ligger før reguleringsdatoen', () => {
-    // 2026-07-02 (udviklerbeslutning): rækken pr. 10-01-2024 (før den særskilte reguleringsdato
+    // Bevidst valg: rækken pr. 10-01-2024 (før den særskilte reguleringsdato
     // 26-01-2024) ignoreres i beregning og visning; reguleringsdato-rækken bærer basisrækkens værdier.
     const values = cloneInitialValues();
     const af = values.loenindkomstAnsaettelsesforhold[0];
@@ -1853,7 +1853,7 @@ describe('reguleringsPresentation', () => {
   });
 
   it('bruger basisrækken som indeksbasis – rækker dateret før reguleringsdatoen ignoreres', () => {
-    // 2026-07-02 (udviklerbeslutning): rækken pr. 2024-04-01 (før reguleringsdatoen 2024-05-01)
+    // Bevidst valg: rækken pr. 2024-04-01 (før reguleringsdatoen 2024-05-01)
     // indgår ikke; indeksbasis er basisrækken (100), og rækken pr. 2024-06-01 giver indeks 120.
     const values = cloneInitialValues();
     const af = values.loenindkomstAnsaettelsesforhold[0];
@@ -2178,8 +2178,8 @@ describe('reguleringsPresentation', () => {
   });
 
   it('tilføjer ingen særskilt række på reguleringsdatoen når en KRL-sats allerede gælder', () => {
-    // Tidligere blev reguleringsdatoen injiceret som en ekstra række (også ved uændret sats). Nu viser
-    // tabellen kun de faktiske KRL-satser; reguleringsdatoen 15-04-2001 ligger inden for 01-04-2001-satsen.
+    // Reguleringsdatoen injiceres ikke som en ekstra række (heller ikke ved uændret sats); tabellen viser
+    // kun de faktiske KRL-satser; reguleringsdatoen 15-04-2001 ligger inden for 01-04-2001-satsen.
     const values = cloneInitialValues();
     const af = values.loenindkomstAnsaettelsesforhold[0];
     af.loenudviklingBeregningsgrundlag = 'KRL satstabel';

@@ -257,15 +257,14 @@ const loenudviklingOgSatserShape = {
   loenudviklingManuelNavn: optionalString,
   loenudviklingManuelTableData: z.array(loenudviklingManuelRowSchema).default([]),
   loenudviklingManuelProcentsatsTableData: z.array(loenudviklingManuelProcentsatsRowSchema).default([]),
-  // «Ansættelse» kan ikke være tom (udviklerafgørelse 2026-10-23, BB-300): Månedsløn er feltets standardværdi, som
-  // ved `loenPaaHelligdage` ovenfor. Feltet var `.optional()`, og en tom værdi spærrede opgørelsen med «Ansættelse
-  // er ikke valgt», mens feltet viste «Månedsløn». En ældre fil uden feltet indlæses som det, skærmen viste.
+  // «Ansættelse» kan ikke være tom: Månedsløn er feltets standardværdi, som ved `loenPaaHelligdage` ovenfor. Som
+  // `.optional()` ville en tom værdi spærre opgørelsen med «Ansættelse er ikke valgt», mens feltet viser
+  // «Månedsløn». En ældre fil uden feltet indlæses som det, skærmen viste.
   offentligLoenType: z.preprocess(normalizeEmptyToUndefined, offentligLoenTypeEnum.default('Månedsløn')),
   offentligLoenTrin: wholeNumber,
   offentligLoenGruppe: wholeNumber,
   offentligLoenEkstraGrundloen: amountValue,
-  // Enheden, beløbet ovenfor er angivet i. Gemmes med beløbet og udledes aldrig af et andet felt
-  // (afklaringslog 10a, `docs/review/regulering-taf-gennemgang-2026-10-13.md`). Ældre filer uden feltet
+  // Enheden, beløbet ovenfor er angivet i. Gemmes med beløbet og udledes aldrig af et andet felt. Ældre filer uden feltet
   // får ikke denne default, men «Ansættelse»-enheden af load-adapteren (`persistedLoadAdapter.ts`), fordi
   // det er den enhed, feltet altid har vist.
   offentligLoenEkstraGrundloenAngivesPer: anciennitetSatsPerEnum.default('Måned'),

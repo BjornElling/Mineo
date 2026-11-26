@@ -40,7 +40,7 @@ const LoginPage = ({ onAuthenticated }: LoginPageProps) => {
       // De to tekniske årsager har modsatte udfald for brugeren, så de skal ikke dele én besked:
       // blokeret lagring kan han selv rette (og `AuthStorageUnavailableError` siger præcis hvordan),
       // mens en manglende kryptografi-funktion er uafhjælpelig og beholder sin generiske tekst.
-      // Beskeden kasseres derfor ikke længere til fordel for en egen, mere upræcis formulering.
+      // Beskeden kasseres derfor ikke til fordel for en egen, mere upræcis formulering.
       setErrorMessage(error instanceof AuthStorageUnavailableError
         ? error.message
         : 'Login kunne ikke gennemføres i denne browser.');

@@ -33,9 +33,9 @@ const readStandaloneSource = (): string => {
     .join('\n');
 };
 
-// De rene import-forbud (Mineos auth-/route-/PWA-/settings-/diagnose-flows) håndhæves nu
-// strukturelt af den AST-baserede regel `layer/minprocesrente-standalone-import-boundary`
-// (greenfield #48). Tilbage her står de assertioner, der IKKE er import-grænser: den
+// De rene import-forbud (Mineos auth-/route-/PWA-/settings-/diagnose-flows) håndhæves
+// strukturelt af den AST-baserede regel `layer/minprocesrente-standalone-import-boundary`.
+// Tilbage her står de assertioner, der IKKE er import-grænser: den
 // hoisting-følsomme namespace-rækkefølge og de positive brugerdata-/section-forbud.
 describe('MinProcesrente standalone isolation', () => {
   it('isolerer sessionStorage fra Mineo ved at sætte et eget storage-namespace via en bivirknings-import der står først', () => {
@@ -95,8 +95,8 @@ describe('MinProcesrente standalone isolation', () => {
 
     // Positivt brugerdata-forbud: standalone må ikke LÆSE Mineos øvrige sektioner (stamdata/indstillinger).
     // Dette er en section-read-grænse, ikke en import-grænse – de rene import-forbud (useAppSettings,
-    // systemIssueReporter, BugReportButton, logStorage m.fl.) håndhæves nu strukturelt af
-    // `layer/minprocesrente-standalone-import-boundary` (greenfield #48) og gentages derfor ikke her.
+    // systemIssueReporter, BugReportButton, logStorage m.fl.) håndhæves strukturelt af
+    // `layer/minprocesrente-standalone-import-boundary` og gentages derfor ikke her.
     // PDF-adapterens enhedstest kontrollerer separat at PDF-kaldet sendes videre uden stamdata og settings.
     expect(source).not.toContain("usePersistedSectionSelector('stamdata')");
     expect(source).not.toContain('usePersistedSectionSelector("stamdata")');

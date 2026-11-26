@@ -26,8 +26,8 @@ import { defineRule, forbidCalls, forbidImports } from '../ruleKit';
  * fremgangsmåde: et inert værn med et levende mål skal pege det rigtige sted hen, ikke fjernes.
  *
  * De nuværende trigger-punkter er katalogets React-flade (`useMineoDocument*`) og handlings-hooket
- * `useReguleringDocumentAction`. Den forbudte læsning er tilsvarende skiftet fra de afskaffede
- * `usePersistedSection`/`getPersistedData` til den ene escape hatch, der faktisk findes i greenfield:
+ * `useReguleringDocumentAction`. Den forbudte læsning er den ene escape hatch, der findes (de afskaffede
+ * `usePersistedSection`/`getPersistedData` eksisterer ikke):
  * `slimInputStore.getState()` – en ugated, ikke-tokenbundet læsning af den autoritative store.
  */
 const DOCUMENT_TRIGGER_CALLEES = new Set<string>([
@@ -110,7 +110,7 @@ export const pdfDownloadCommittedState = defineRule({
  *
  * Reglen måler netop DE udfald: et stale-afbrud og en død DEV-server. En GATE-blokering hører ikke til
  * dem – den bærer ingen besked, fordi knappen var synligt inaktiv og tooltippet ejer årsagen
- * (udviklerbeslutning 2026-07-31). De forventelige udfald routes bevidst ikke til den centrale
+ * (bevidst valg). De forventelige udfald routes bevidst ikke til den centrale
  * systemfejlflade (§A5), så uden en visning her ville de være lydløse.
  *
  * Reglen er en LOKAL strukturel kontrol pr. fil: aktiverer filen en download (`.download(...)` på et
@@ -242,15 +242,13 @@ export const documentActivationShowsOutcome = defineRule({
 /**
  * Konstruktørerne, der HARDKODER klassen `invalid-input` uden at se på data.
  *
- * **Fejlformen, reglen findes for (brugerfund 2026-08-15).** Årslønssidens dokumentgate svarede «Fejl i
- * indtastning» på en lønrække med komplet periode og INTET beløb. Årsagen var strukturel og ikke lokal:
- * gaten kollapsede hele `tableValidation.errors` til ét `blockDocumentDownloadForInvalidInput`-kald, selv
- * om `TableError.issue` allerede skelnede `invalid` fra `partial_period`/`missing_amount`. Samme form fandtes
- * på Renteberegning, hvor `anyRowHasError` – som pr. konstruktion kun kan være sand for en UFULDSTÆNDIG
- * række – også svarede «Fejl i indtastning».
+ * **Fejlformen, reglen findes for.** En gate, der kollapser fx hele `tableValidation.errors` til ét
+ * `blockDocumentDownloadForInvalidInput`-kald, svarer «Fejl i indtastning» på en lønrække med komplet periode
+ * og INTET beløb, selv om `TableError.issue` skelner `invalid` fra `partial_period`/`missing_amount`. Samme
+ * gælder en boolean som `anyRowHasError`, der pr. konstruktion kun kan være sand for en UFULDSTÆNDIG række.
  *
- * Fælles for begge: en aggregeret boolean over flere tilstande fik påklistret én klasse, funktionen umuligt
- * kunne efterprøve. `document-output-contract.md` §A5.1 forbød det allerede i ord – der var blot intet værn.
+ * Fælles for formen: en aggregeret boolean over flere tilstande får påklistret én klasse, funktionen umuligt
+ * kan efterprøve. `document-output-contract.md` §A5.1 forbyder det; reglen håndhæver det.
  *
  * **Hvorfor en allowlist og ikke et totalforbud.** Der findes legitime kaldssteder, hvor grenen er
  * BEVISELIGT ét-klasset: EET klassificerer pr. issue-id gennem `isEetFieldErrorIssueId`, og Forsørgertab
@@ -263,7 +261,7 @@ export const documentActivationShowsOutcome = defineRule({
 const HARDCODED_INVALID_INPUT_CONSTRUCTORS = new Set<string>([
   'blockDocumentDownloadForInvalidInput',
   'invalidInputReason',
-  // Slettet 2026-08-15 (ingen kaldssteder). Beholdt i forbuddet, så den ikke kan genopstå som en
+  // Slettet (ingen kaldssteder). Beholdt i forbuddet, så den ikke kan genopstå som en
   // uafprøvet vej til samme fejlklasse.
   'blockedProjectionForInvalidInput',
 ]);

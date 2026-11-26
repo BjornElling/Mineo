@@ -37,7 +37,7 @@ describe('resolveDocumentFileName', () => {
 });
 
 describe('resolveSagsFilnavn', () => {
-  it('giver kontroltabellens CSV-fil sagens journalnr som dokumenterne (BB-382)', () => {
+  it('giver kontroltabellens CSV-fil sagens journalnr som dokumenterne', () => {
     expect(resolveSagsFilnavn('Kontroltabel', 'csv', 'REGULERING-FIKTIV')).toBe('REGULERING-FIKTIV - Kontroltabel.csv');
     expect(resolveSagsFilnavn('Kontroltabel', 'csv', '  ')).toBe('Kontroltabel.csv');
     expect(resolveSagsFilnavn('Kontroltabel', 'csv', 'J:1/2')).toBe('J_1_2 - Kontroltabel.csv');

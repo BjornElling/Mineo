@@ -98,8 +98,7 @@ export const resolveTextCharPolicy = <T>(field: FieldRef<T>): Readonly<{ maxLeng
  * Brøkfelt: cifferloft pr. del fra codecet.
  *
  * Det rå loft rummer to dele à `maxDigits` heltalscifre + komma + `maxDigits` decimaler samt skråstregen.
- * `FractionField` hardkodede før både cifferloftet og manglede loftet helt – begge dele stammer nu fra
- * den ENE erklæring på codecet.
+ * Begge dele stammer fra den ENE erklæring på codecet, så `FractionField` ikke hardkoder dem.
  */
 export const resolveFractionCharPolicy = <T>(field: FieldRef<T>): Readonly<{
   allowNegative: boolean;
@@ -179,10 +178,9 @@ export const resolveAmountCharPolicy = <T>(field: FieldRef<T>): Readonly<{
     allowNegative: fieldAllowsNegative(field),
     allowDecimals,
     maxIntegerDigits: MAX_AMOUNT_INPUT_INTEGER_DIGITS,
-    // Decimalpladserne er de SAMME, uanset om feltet viser decimaler (BB-118). Et decimalløst felt havde
-    // før grænsen 0, hvilket gjorde kommaet ulovligt – og et ulovligt tegn springes over, hvorefter
-    // decimalcifrene gled op i heltalsdelen og tidoblede beløbet. Feltet tager nu imod decimalerne og
-    // afrunder dem ved settle (codec'ens `displayPrecision`), så «400.000,00» bliver 400.000.
+    // Decimalpladserne er de SAMME, uanset om feltet viser decimaler. Med grænsen 0 i et decimalløst felt
+    // er kommaet ulovligt – og et ulovligt tegn springes over, hvorefter decimalcifrene glider op i
+    // heltalsdelen og tidobler beløbet. Feltet tager derfor imod decimalerne og afrunder dem ved settle (codec'ens `displayPrecision`), så «400.000,00» bliver 400.000.
     maxDecimalDigits: DEFAULT_AMOUNT_PRECISION,
     maxDraftLength: MAX_AMOUNT_RAW_LENGTH,
   });
@@ -197,9 +195,9 @@ export const resolvePercentCharPolicy = <T>(field: FieldRef<T>): Readonly<{
   maxDraftLength: number;
 }> => {
   const allowDecimals = fieldAllowsDecimals(field);
-  // Samme begrundelse som beløbsfeltet (BB-118): decimalpladserne er ens, uanset om feltet VISER
-  // decimaler. Et decimalløst procentfelt tog før «15,00 %» ind som `1500`, fordi kommaet var ulovligt
-  // og derfor blev sprunget over. Nu tages decimalerne imod og afrundes ved settle.
+  // Samme begrundelse som beløbsfeltet: decimalpladserne er ens, uanset om feltet VISER decimaler. Ellers
+  // tager et decimalløst procentfelt «15,00 %» ind som `1500`, fordi kommaet er ulovligt og springes over.
+  // Decimalerne tages imod og afrundes ved settle.
   const maxDecimalDigits = DEFAULT_PERCENT_DECIMAL_PRECISION;
   const allowNegative = fieldAllowsNegative(field);
   return Object.freeze({

@@ -9,12 +9,12 @@ import type { EetIssue } from '../../../domain/erhvervsevnetab/eetTypes';
 import type { FieldRef } from '../../../inputCore/fieldDescriptor';
 
 /**
- * BB-117: en efterladt under 18 år lod hele ASL-halvdelen forsvinde tavst, mens downloadknappen forblev
- * aktiv. Beskeden fandtes ordret i motoren, men var strukturelt ude af stand til at nå brugeren: den var et
- * feltløst `EetIssue` uden adresse, så der var ingen celle at male rød og intet at blokere på.
+ * En efterladt under 18 år må ikke lade hele ASL-halvdelen forsvinde tavst med downloadknappen aktiv.
+ * Motorens besked når kun brugeren, hvis den har en feltadresse: et feltløst `EetIssue` har ingen celle at
+ * male rød og intet at blokere på.
  *
  * Testene måler DEN egenskab – at issuet har en feltadresse – frem for beskedteksten. Et nyt
- * beregningsafvisende issue uden en post i kataloget er præcis den regression, fundet var.
+ * beregningsafvisende issue uden en post i kataloget er præcis den regression, testen fanger.
  */
 describe('forsoergertabIssueFields', () => {
   const errorIssue = (id: string, message = 'besked'): EetIssue => ({ id, severity: 'error', message });
@@ -25,7 +25,7 @@ describe('forsoergertabIssueFields', () => {
    */
   const labelOf = <T,>(field: FieldRef<T>): string => field.descriptor.label;
 
-  it('giver BB-117s aldersissue en feltadresse på efterladtes fødselsdato', () => {
+  it('giver aldersissuet for en efterladt uden for tabellen en feltadresse på efterladtes fødselsdato', () => {
     const issues = buildForsoergertabFieldIssues([
       errorIssue('forsoergertab-alder-missing', 'Der findes ingen aldersrække for 17 år i tabel H.'),
     ], labelOf);
@@ -67,7 +67,7 @@ describe('forsoergertabIssueFields', () => {
    *
    * Testen aflæser motorens FAKTISKE issue-ID'er ud af kildefilen frem for at gentage dem i en literal
    * liste. Forskellen er hele pointen: en håndskrevet liste ville aldrig kende et issue, nogen tilføjer
-   * i morgen – og et beregningsafvisende issue uden feltadresse er præcis den fejl, BB-117 var.
+   * i morgen – og et beregningsafvisende issue uden feltadresse er præcis den tavse fejl, værnet findes for.
    *
    * Kun de issues, der AFVISER beregningen, kræver en adresse. «Feltet er ikke udfyldt endnu» håndteres
    * af download-gatens missing-input-grene og har derfor sin egen liste i motoren.

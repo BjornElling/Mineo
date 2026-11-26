@@ -255,9 +255,9 @@ describe('Svie/smerte beregning', () => {
       expect(row?.status).toBe('ok');
     });
 
-    // NY-12b-1: opgørelse 2, én sygedag á 230 kr. (2024), loft 88.500 kr. Grænsen ligger ved lighed:
+    // Opgørelse 2, én sygedag á 230 kr. (2024), loft 88.500 kr. Grænsen ligger ved lighed:
     // tidligere + aktuelt LIG loftet har nået maksimum, selv om intet skæres ned.
-    describe('maksimum ved tidligere opgjort beløb (NY-12b-1)', () => {
+    describe('maksimum ved tidligere opgjort beløb', () => {
       const medTidligere = (tidligere: number) => makeValues({
         eoNummer: '2',
         kravPaaSvieSmerteGodtgoerelse: 'Ja',
@@ -372,7 +372,7 @@ describe('Svie/smerte beregning', () => {
       });
     });
 
-    // NY-12b-3: ingen svie/smerte-dag i EO-perioden – ingen ophørsgrund, samme regel som `taf.ophoerSkyldes`.
+    // Ingen svie/smerte-dag i EO-perioden – ingen ophørsgrund, samme regel som `taf.ophoerSkyldes`.
     it('udelader ophørsgrunden, når ingen svie/smerte-dag ligger i EO-perioden', () => {
       const row = getSvieSmerteOphoerRow(
         makeValues({

@@ -26,9 +26,9 @@ export type ConsumedInventoryEntry = InventoryEntry & Readonly<{
 }>;
 
 /**
- * Consumeren er den fil, der FAKTISK kalder entrypointet – nu er det fagsidens ene kanoniske
- * viewmodel (`page-component-contract.md` §4.4), ikke page-komponenten, som nu er ren sektions-komposition.
- * Renteberegning og Varige mén pegede allerede på deres fane, fordi beregningen bor dér; formen er den samme.
+ * Consumeren er den fil, der FAKTISK kalder entrypointet – fagsidens ene kanoniske viewmodel
+ * (`page-component-contract.md` §4.4), ikke page-komponenten, som er ren sektions-komposition.
+ * Renteberegning og Varige mén peger på deres fane, fordi beregningen bor dér; formen er den samme.
  * Et anker på page-filen ville være rødt af den forkerte grund og skjule, hvor kaldet er.
  */
 export const CONSUMER_CALCULATION_ENTRYPOINTS = [
@@ -118,9 +118,8 @@ export const CONSUMER_CASE_FILE_PATHS = [
 /**
  * De 18 dokumentoutputs i hovedappen, med deres ejende DEFINITION.
  *
- * Tidligere pegede hver post på en `download*Dokument`-funktion i `documentService.ts`. Det modul
- * findes ikke længere: dokument-livscyklussen er ét objekt pr. output, og definitionen bor ved sin
- * domænegrænse (`document-output-contract.md` §A1.2/§A7.1). Symbolet her er derfor definitionen –
+ * Der findes ingen `documentService.ts` med `download*Dokument`-funktioner: dokument-livscyklussen er
+ * ét objekt pr. output, og definitionen bor ved sin domænegrænse (`document-output-contract.md` §A1.2/§A7.1). Symbolet her er derfor definitionen –
  * det ene sted, hvor outputtets dependencies, gate og generatorkald er samlet.
  *
  * Standalone MinProcesrentes tre outputs står bevidst IKKE her: dette inventar dækker hovedappen.

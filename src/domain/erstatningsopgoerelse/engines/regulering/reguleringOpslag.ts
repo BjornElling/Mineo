@@ -9,13 +9,13 @@ import { byggReguleringsResultat } from './reguleringFormRegistry';
 import type { KildeReguleringsInterval, LoenreguleringsSegment, ResolvedStrategi } from './reguleringForm';
 
 // =============================================================================
-// Reguleringsopslag pr. dato (AP2 i docs/review/regulering-taf-gennemgang-2026-10-13.md).
+// Reguleringsopslag pr. dato.
 //
 // Ét opslag pr. ansættelsesforhold, `regulering(d)`, som TAF-segmenterne og sygeferiegodtgørelsen
 // (SFGG) begge læser. Opslaget er bygget af reguleringsformens egen evaluering (FORM_REGISTRY) og
 // er uafhængigt af TAF-arbejdsdage: TAF filtrerer først bagefter de segmenter fra, der har mængde 0.
-// Før lå SFGG's regulering i netop de overlevende TAF-segmenter, så en SFGG-dag i et segment uden
-// TAF-arbejdsdage (fx fyldt af løse feriedage) fik basissatsen uden regulering og uden fejl (fund A4).
+// Lå SFGG's regulering i de overlevende TAF-segmenter, ville en SFGG-dag i et segment uden
+// TAF-arbejdsdage (fx fyldt af løse feriedage) få basissatsen uden regulering og uden fejl.
 //
 // Udfaldet er altid typed: en værdi med reguleringsbeviset, et udtrykkeligt «ingen regulering» med
 // grund, eller «uden for dækning». Der findes ingen stille basissats og intet tavst 0 %.

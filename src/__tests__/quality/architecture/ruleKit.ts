@@ -14,7 +14,7 @@ import {
 } from './astQueries';
 
 /**
- * Regel-byggeklodser for det AST-baserede arkitektur-harness (greenfield #48).
+ * Regel-byggeklodser for det AST-baserede arkitektur-harness.
  *
  * En {@link ArchitectureRule} er en ren funktion fra kilde-grafen til en liste af
  * {@link Violation}s med præcis fil:linje:kolonne-diagnostik. Hver regel bærer sine
@@ -78,10 +78,9 @@ export type LiveTarget =
    * "reglen rammer noget" ikke bruges som liveness-bevis.
    *
    * `forbids` navngiver hvad reglen forbyder, og `verifyAbsent` er kontrollen, harnesset kører for
-   * HVERT navn. Kontrollen er nu generisk og obligatorisk: tidligere lå den i en separat testfil,
-   * der kun kendte nogle af arterne, så et forkert stavet navn ("useRowDraftz") kunne "bevises
-   * fraværende" lige så nemt som det rigtige. Nu skal reglen selv kunne svare på, hvordan et navn
-   * eftervises – og et navn, der ikke KAN findes i nogen form, er en fejl i reglen, ikke et bevis.
+   * HVERT navn. Kontrollen er generisk og obligatorisk, så et forkert stavet navn ("useRowDraftz") ikke
+   * kan "bevises fraværende" lige så nemt som det rigtige. Reglen skal selv kunne svare på, hvordan et
+   * navn eftervises – og et navn, der ikke KAN findes i nogen form, er en fejl i reglen, ikke et bevis.
    */
   | Readonly<{
     kind: 'absence';

@@ -1,10 +1,9 @@
 // @vitest-environment jsdom
 //
-// BB-057: 404-siden var en hvid blindgyde uden menu og uden vej tilbage – to linjer sort tekst i
-// øverste venstre hjørne, renderet uden for shellen. Sagen lå uskadt i fanens hukommelse, men skærmen
-// så ud, som om programmet var væk.
+// 404-siden må ikke være en hvid blindgyde uden menu og uden vej tilbage, renderet uden for shellen:
+// sagen ligger uskadt i fanens hukommelse, men skærmen ville se ud, som om programmet var væk.
 //
-// Udvikleren accepterede en dedikeret 404-side på TO betingelser, og de er det, denne fil måler:
+// Den dedikerede 404-side er bevidst underlagt TO betingelser, og de er det, denne fil måler:
 //
 //   1. Siden må ikke blive en genvej ind bag login-siden.
 //   2. Mobilen skal fortsat kun have sin egen enkelte «Desværre»-side.
@@ -53,7 +52,7 @@ describe('PageNotFound', () => {
   });
 });
 
-describe('PageNotFound – brugerens to betingelser (BB-057)', () => {
+describe('PageNotFound – brugerens to betingelser', () => {
   it('ligger INDE i shell-routen, så sidemenuen er med og er vejen videre', () => {
     const appSource = readSource('src/App.tsx');
 

@@ -125,7 +125,7 @@ const expectedContent = [
   'I alt',
 ] as const;
 
-describe('DOC-001/TD-014 – løbende ydelser gennem faktiske PDF- og Word-artefakter', () => {
+describe('Løbende ydelser gennem faktiske PDF- og Word-artefakter', () => {
   it('bevarer håndskrevet tabelindhold og formatmetadata i begge kanaler', async () => {
     const pdfArtifact = await withDocumentUnavailable(async () => {
       const session = await createRealPdfDocumentSessionForTest();

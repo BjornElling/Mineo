@@ -75,25 +75,22 @@ describe('calculationDataCatalog', () => {
     expect(fingerprints).toEqual({
       folkepensionsalder: '455f0c29b4338e14b6223781de8273e95857a76602fa000a8eeb08a45087db5b',
       'forhoejet-pensionsalder-events': 'fbe93439bc6e0fb02378d11e8648712e81dc41d03eaabf35aa1bbb64a86f8e9e',
-      // Ændret 2026-07-31: `SAERLIGT_FERIETILLAEG_SATSTRAPPE` fjernet fra payload'et, fordi særligt
-      // ferietillæg er et rent fremtidigt udviklingsprojekt og ikke må indregnes nogen steder
-      // (udviklerbeslutning; `indskudte-loentillaeg-contract.md` §6). Payload'et er nu Store Bededag alene.
+      // Payload'et er Store Bededag alene: særligt ferietillæg må ikke indregnes nogen steder
+      // (`indskudte-loentillaeg-contract.md` §6).
       'indskudte-loentillaeg': 'b253ea22c6f700fd78f0ac1f58fb931f5ec009bcbcf47bb049ca08505fb06acf',
-      // Ændret 2026-11-12 (revision): ældste skadesinterval begynder 2004-01-01 (lov om arbejdsskadesikring),
-      // og BEK 229/2014 har sin egen post fra 2014-03-15.
+      // Ældste skadesinterval begynder 2004-01-01 (lov om arbejdsskadesikring), og BEK 229/2014 har sin egen
+      // post fra 2014-03-15.
       kapitaliseringsbekendtgoerelser: '7d6e6db38e7afa49950fe02914e7157c73e77c83427905e3afe52498483b758e',
-      // Ændret 2026-11-12 (revision): alle tabelfiler genereret ensartet fra kilde-PDF'erne. Indlæst: de
-      // manglende tabeller for skader 2004-2007 (1221/2010 L-N, 1403/2011 J-N, 198/2015 L, 1700/2015 N) og
-      // forsørgertab i 2014 (BEK 1339/2013); tilføjet BEK 229/2014; eksplicitte forsørgertabsvalg og
-      // fuldstændige EET-årgange; tabeller for skader før 2004 flyttet til de begrundede udeladelser.
-      // Ændret 2026-11-12 (udviklerbeslutning): slåfejlen 2,061 → 2,601 i 1068/2003 tabel D, alder 50, 3 år.
+      // Alle tabelfiler er genereret ensartet fra kilde-PDF'erne, med eksplicitte forsørgertabsvalg og
+      // fuldstændige EET-årgange; tabeller for skader før 2004 står blandt de begrundede udeladelser.
+      // Kildens slåfejl 2,061 i 1068/2003 tabel D, alder 50, 3 år, er rettet til 2,601 (bevidst valg).
       kapitaliseringstabeller: '4a1ee0dfaca5bccaef5c61fb7b3a79e68a064131b0318d6da68eb5f7f7e1b2c7',
       'kl-loenaftaler': 'c75de1dc16462569b7fcfe4bab5860b4c978d50d0fdb68fe4d4580c66cda9780',
       'krl-satstabeller': '080e201d0300a4354e50ad939a698412cdc4d7af1764192cd79b19c0403e53d6',
       'lovbestemte-satser': 'e30834b2ecd5a082c6a3b2c0be209e3118974914d224e268c05bc8cc2ec8f420',
       'offentlig-loen-kl': 'd6b006a41c0a896094f95ae6668d48f808010eb8ed135d769006362400643610',
       'offentlig-loen-rltn': '459d6e3bf7963bfda6c7f94b5a400c4a53c1c71598013649ae8ff59e04994305',
-      // Ændret 2026-10-06: Faglærte-overenskomstens fritvalg er 0 i stedet for null (BB-275).
+      // Faglærte-overenskomstens fritvalg er 0, ikke null.
       overenskomster: '7475b2e049e7b08af92b7ac10b2cea1cca4841ed598aad4b4f151815b0e0898f',
       procesrenter: 'cc7eab66d41839b6996a2cca1eb7866434ad1ca07f3b4e102c71f3c687602150',
       'statistiske-loenindeks': 'df2ee1847d5944a7b601e4ad702f0d108adbf4a355cf9cd424666fe2931fd4af',
@@ -127,7 +124,7 @@ describe('calculationDataCatalog', () => {
       }])
     );
 
-    // Ændret 2026-11-12 (revision): se `kapitaliseringstabeller` i testen ovenfor.
+    // Se `kapitaliseringstabeller` i testen ovenfor.
     expect(fingerprint(legacyShape)).toBe('25574cb75794819c3511ddb6a9241eb5c82b313cceb893a23abe1fdf8b62f8df');
   });
 });

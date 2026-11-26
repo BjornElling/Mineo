@@ -2,11 +2,9 @@
  * Delt, ren parsing af den offentlige løn-indplacering (løntype + løntrin + gruppe) fra
  * et ansættelsesforholds rå input.
  *
- * Baggrund (U3): den samme validering fandtes i tre parallelle kopier – beregningsmotoren
- * (`loenudviklingBeregning.ts`, der KASTER med feltspecifikke beskeder) og to inspektions-/
- * visnings-varianter (`eoInspektionRegulationCore.ts` / `eoInspektionLoenCoreModel.ts`, der
- * returnerer `null`). Kernen – parsning af løntype, løntrin og gruppe – er identisk; kun
- * fejl-semantikken (throw vs. null) er bevidst forskellig.
+ * Baggrund: samme validering bruges af beregningsmotoren (`loenudviklingBeregning.ts`, der KASTER med
+ * feltspecifikke beskeder) og af inspektions-/visningslaget, der returnerer `null`. Kernen – parsning af
+ * løntype, løntrin og gruppe – er identisk; kun fejl-semantikken (throw vs. null) er bevidst forskellig.
  *
  * Denne helper ejer den rene parsning og returnerer et diskrimineret resultat. Kaldere
  * beholder deres egen fejl-semantik via tynde wrappers:
@@ -34,7 +32,7 @@ export type OffentligLoenSelection = Readonly<{
 }>;
 
 /** Årsag til at en offentlig løn-indplacering ikke kunne parses (feltspecifik). */
-// «Ansættelse» kan ikke være tom (BB-300), så en manglende løntype er ikke længere en årsag.
+// «Ansættelse» kan ikke være tom, så en manglende løntype er ikke en årsag.
 export type OffentligLoenSelectionFailure =
   | 'trin-mangler'
   | 'trin-ugyldig'

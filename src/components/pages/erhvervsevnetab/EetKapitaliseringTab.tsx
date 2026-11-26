@@ -128,8 +128,8 @@ const EetKapitaliseringTab = ({ onGoToEetOplysninger, projection, download }: Pr
             </Typography>
 
             {/* Ingen Beregningsdato-række: fanen er bevidst uafhængig af beregningsdatoen
-                (`eetSnapshot.ts`), så rækken var den eneste værdi i boksen, intet i boksen afhang af –
-                og den stod ikke i dokumentet, så skærmen kunne ikke bruges som facit (BB-167). */}
+                (`eetSnapshot.ts`), så rækken ville være den eneste værdi i boksen, intet i boksen afhænger af –
+                og den står ikke i dokumentet, så skærmen kunne ikke bruges som facit. */}
             {renderKapitaliseringRows(
               buildKapitaliseringAfgoerelseRows(afgoerelse, {
                 koen: values.koen ?? undefined,

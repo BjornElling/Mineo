@@ -6,9 +6,7 @@
  * konsekvens er ikke kosmetisk: det bliver umuligt at se, om en test beskytter slutproduktet eller en
  * afløst mekanisme, og dermed om den kan slettes.
  *
- * Sweepen bag denne regel fandt 41 aktive deklarationer med migrationssprog. 26 blev omskrevet til
- * invariantnavne; de resterende er ægte undtagelser, som er navngivet eksplicit nedenfor med hver sin
- * begrundelse. Værnet gør listen til en LUKKET mængde: en ny test med migrationssprog fejler her, og en
+ * Ægte undtagelser er navngivet eksplicit nedenfor med hver sin begrundelse. Værnet gør listen til en LUKKET mængde: en ny test med migrationssprog fejler her, og en
  * undtagelse skal begrundes frem for at kunne glide ind.
  *
  * **Hvorfor en test og ikke en AST-regel i arkitekturharnesset:** harnessets kilde-graf udelukker

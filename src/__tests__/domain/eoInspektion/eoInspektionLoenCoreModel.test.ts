@@ -266,7 +266,7 @@ describe('buildLoenTimeline – offentlig løn-path (KL)', () => {
     expect(result.loenDays[0]?.components.map((component) => component.type)).not.toContain('storeBededag');
   });
 
-  // Fund A1: beløbet står i sin gemte enhed og lægges til løntrinssatsen i «Ansættelse»-enheden. TAF-enheden
+  // Beløbet står i sin gemte enhed og lægges til løntrinssatsen i «Ansættelse»-enheden. TAF-enheden
   // indgår ikke (her: angivet dagsløn = TAF i arbejdsdage). Facit: KL trin 20, gruppe 0, 01-10-2023 er
   // 158,18 kr./time; 1.000 kr./måned ÷ 160,33 = 6,2371… → 6,24 kr./time; 25,00 kr./time lægges til uændret.
   it.each([

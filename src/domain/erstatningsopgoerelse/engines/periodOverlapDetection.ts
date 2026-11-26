@@ -19,12 +19,11 @@ export type PeriodRow = Readonly<{
  *
  * Prædikatet er IKKE skrevet her. `utils/closedDateRange` er den kanoniske intervalalgebra, og
  * dette modul – som dækker svie/smerte-, TAF- og ferie/fraværsrækkerne, altså flertallet af de
- * perioder brugeren indtaster – havde sin egen inlinede kopi af uligheden. Kopien blev overset, da
- * de fire øvrige kopier blev samlet, og den var dermed præcis den drift-risiko, samlingen skulle
- * fjerne: en senere rettelse ét sted (fx en halvåben grænse) ville have gjort nogle overlap
- * ugyldige og andre ikke, uden at noget blev rødt.
+ * perioder brugeren indtaster – må ikke have sin egen inlinede kopi af uligheden: en senere rettelse
+ * ét sted (fx en halvåben grænse) ville gøre nogle overlap ugyldige og andre ikke, uden at noget
+ * blev rødt.
  *
- * Udviklerbeslutning 2026-09-17: **alle overlap er ugyldige**, og programmet må ikke ændre eller
+ * Bevidst regel: **alle overlap er ugyldige**, og programmet må ikke ændre eller
  * fortolke de perioder, brugeren indtaster. To perioder, der blot deler en endedato, overlapper
  * derfor – den lukkede semantik, `rangesOverlap` allerede bærer.
  *

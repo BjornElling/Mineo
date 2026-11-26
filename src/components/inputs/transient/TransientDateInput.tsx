@@ -175,7 +175,7 @@ const TransientDateInput = React.forwardRef<HTMLDivElement, TransientDateInputPr
       const draft = draftState.draft;
       // Markeringen læses FØR normaliseringen: dækker den hele draften, erstatter paste'en alt, og
       // konteksten er tom – samme situation som et lukket felt (se `resolvePasteContextDraft`). Uden
-      // det gav «markér alt og indsæt» et andet resultat end en indsættelse i et tomt felt (BB-042).
+      // det ville «markér alt og indsæt» give et andet resultat end en indsættelse i et tomt felt.
       const element = inputElementRef.current;
       const start = typeof element?.selectionStart === 'number' ? element.selectionStart : draft.length;
       const end = typeof element?.selectionEnd === 'number' ? element.selectionEnd : start;

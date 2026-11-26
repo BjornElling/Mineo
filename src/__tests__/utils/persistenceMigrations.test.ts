@@ -352,7 +352,8 @@ describe('adaptPersistedSectionForLoad', () => {
     });
   });
 
-  // Afklaringslog 10a og 12 samt AP1's faldgrube (`docs/review/regulering-taf-gennemgang-2026-10-13.md`).
+  // Filer fra før 3.15 bærer ingen enhed for kronetillæggene; migreringen udleder den, så et tillæg aldrig
+  // regnes i en anden enhed, end det var angivet i.
   describe('kronetillæggenes enheder i filer fra før 3.15', () => {
     type MigratedEo = {
       eoAngivetLoenLoenudvikling: Record<string, unknown>;

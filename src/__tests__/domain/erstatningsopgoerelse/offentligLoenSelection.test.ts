@@ -26,7 +26,7 @@ describe('parseOffentligLoenSelection', () => {
     expect(result.ok).toBe(true);
   });
 
-  it('læser Timeløn som timeløn og Månedsløn som månedsløn (løntypen kan ikke mangle, BB-300)', () => {
+  it('læser Timeløn som timeløn og Månedsløn som månedsløn (løntypen kan ikke mangle)', () => {
     const time = parseOffentligLoenSelection({ ...base, offentligLoenType: 'Timeløn' });
     const maaned = parseOffentligLoenSelection({ ...base, offentligLoenType: 'Månedsløn' });
     expect(time.ok && time.selection.loenType).toBe('timeLoen');

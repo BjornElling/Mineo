@@ -44,13 +44,13 @@ export type EvaluateEoDocumentDownloadGateInput = Readonly<{
   failClosedFallback: string;
   /** Endelig fallback-besked når intet andet leverede en årsag. */
   gateFallback: string;
-  /** Det dokument, knappen henter – nævnt i tooltippen, når fejlboksen er årsagen (BB-370). */
+  /** Det dokument, knappen henter – nævnt i tooltippen, når fejlboksen er årsagen. */
   documentName: string;
 }>;
 
 /**
- * Den interne forklaring på blokeringen. Efter udviklerbeslutningen 2026-08-13 er den IKKE længere
- * brugerteksten for en rækkeblokering – men den bevares som `message`, så koder, tests og logs stadig kan
+ * Den interne forklaring på blokeringen. Den er bevidst IKKE brugerteksten for en rækkeblokering – men den
+ * bevares som `message`, så koder, tests og logs stadig kan
  * skelne to blokeringer, der deler samme tooltip.
  */
 const resolveDisabledReason = (input: EvaluateEoDocumentDownloadGateInput): string | null => {
@@ -79,9 +79,9 @@ export const evaluateEoDocumentDownloadGate = (
   }
   const message = resolveDisabledReason(input) ?? input.gateFallback;
 
-  // UDVIKLERBESLUTNING 2026-08-13: er blokeringen en rækkefejl, står den ALLEREDE i "Fejl og advarsler"
-  // ovenfor, og knappen henviser dertil frem for at citere én af rækkerne. Udvikleren valgte
-  // forudsigelighed over handlingsanvisning: samme tooltip hver gang boksen viser en fejl, også når
+  // BEVIDST VALG: er blokeringen en rækkefejl, står den ALLEREDE i "Fejl og advarsler"
+  // ovenfor, og knappen henviser dertil frem for at citere én af rækkerne. Forudsigelighed går
+  // forud for handlingsanvisning: samme tooltip hver gang boksen viser en fejl, også når
   // fejlen kunne navngives ("Feriegodtgørelse er ikke udfyldt").
   //
   // Klassen erstatter den page-lokale ternary i `EOberegningTab`, som tidligere kastede gatens svar væk
@@ -100,7 +100,7 @@ export const evaluateEoDocumentDownloadGate = (
 
   // Blokerer en autoritativ invariant et bygget snapshot, viser boksen ALTID en fejl: sikkerhedsnettet
   // (`selectEoSafetyNetInvariants`) viser invarianten selv, når ingen række gør. Knappen henviser derfor til boksen som ved en
-  // rækkefejl. Før sagde den «Indtastning mangler» om fx en værdi, der var forkert, ikke manglede (BB-265).
+  // rækkefejl – ikke med «Indtastning mangler» om fx en værdi, der er forkert, ikke mangler.
   if (input.snapshot?.status !== 'fail_closed' && input.authoritativeBlockingInvariants.length > 0) {
     return blockDocumentDownloadForPageErrors({
       code: 'erstatningsopgoerelse:pdf-blocked-by-invariants',
@@ -110,7 +110,7 @@ export const evaluateEoDocumentDownloadGate = (
   }
 
   // Siger projektionen selv tilstanden – fx at der ikke er TAF i EO-perioden – er dens besked det, brugeren skal
-  // læse. «Indtastning mangler» sendte brugeren på jagt efter et tomt felt, der ikke fandtes (BB-371).
+  // læse. «Indtastning mangler» ville sende brugeren på jagt efter et tomt felt, der ikke findes.
   if (input.snapshot?.status !== 'fail_closed' && input.projection?.kind === 'blocked' && input.projection.specific) {
     return blockDocumentDownloadWithSpecificReason({ code: 'erstatningsopgoerelse:pdf-blocked', message });
   }
@@ -120,8 +120,8 @@ export const evaluateEoDocumentDownloadGate = (
   //
   // Scope er derfor `unavailable-calculation` og ikke længere `aggregate`: årsagen er præcis den, scopet
   // navngiver, og klassen (`missing-input`) følger af formen frem for at være et valg, dette kaldssted
-  // skulle træffe. `aggregate` kræver nu en eksplicit klasse, og at skrive «mangler» i hånden her ville
-  // være samme hardkodning, som brugerfundet 2026-08-15 handlede om.
+  // skulle træffe. `aggregate` kræver en eksplicit klasse, og at skrive «mangler» i hånden her ville
+  // være en hardkodet blokeringsklasse frem for en udledt (`classifyBlockingCause`).
   return blockDocumentDownloadFromCauses(
     'erstatningsopgoerelse:pdf-blocked',
     [{ scope: 'unavailable-calculation', message }],

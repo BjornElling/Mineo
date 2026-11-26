@@ -31,8 +31,7 @@ const DATE_2005_01_01 = iso('2005-01-01'); // Systemets nedre grænse – bruges
 
 // Bemærk: intervallerne bærer IKKE en `placeholder`. Feltets formvejledning (`dd-mm-åååå`) ejes af
 // dato-feltfamilien (`fieldFormatPlaceholders.ts`), og grænserne her hører i feltets issue/tooltip.
-// De 33 `placeholder: 'dd-mm-åååå'`-felter, der tidligere stod her, blev læst af INGEN kode – kun af to
-// `toBeTruthy()`-tests – og gav indtryk af, at intervallet var placeholderens kilde.
+// En placeholder her ville ikke blive læst af nogen kode og give indtryk af, at intervallet var dens kilde.
 
 /**
  * Statisk dato-range med kendte værdier
@@ -430,7 +429,7 @@ export const dateRanges_erstatningsopgoerelse: DateRanges_Erstatningsopgoerelse 
  *
  * Gælder KUN hjælperens to datofelter: den kan kun indsætte, hvor både sygedagpenge- og ATP-satserne er kendt. Selve
  * ydelsestabellen følger sagens ydre ramme (`systemrammeSpec`); før delte den disse grænser, og alle ydelsestyper blev
- * røde fra satstabellens sidste dato (BB-362).
+ * røde fra satstabellens sidste dato.
  */
 export interface DateRanges_SygedagpengeIndsaettelse {
   readonly fraDato: DynamicMaxDateRange;

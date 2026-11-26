@@ -6,11 +6,10 @@ import { maxISO, minISO } from '../../utils/isoDateHelpers';
 
 // VÆRN: ethvert datofelt i produktionskataloget håndhæver erklærede grænser.
 //
-// Baggrund. `src/config/dateRanges.ts` DEKLAREREDE grænser for hvert datofelt, men intet bandt
-// deklarationen til håndhævelsen: hver validator var håndskrevet pr. descriptor, så et felt havde grænser
-// præcis hvis nogen huskede at skrive dem. Målingen 2026-08-09 viste 31 af 54 datofelter, der accepterede
-// BÅDE år 1900 og år 2100 uden ét issue – heriblandt alle fem AES-datoer, differencekravsdatoen og
-// samtlige EO-tabellers dato-par. En runtime-audit nåede kun at ramme 3 af dem.
+// Baggrund. `src/config/dateRanges.ts` DEKLARERER grænser for hvert datofelt. Uden noget, der binder
+// deklarationen til håndhævelsen, er hver validator håndskrevet pr. descriptor, og et felt har grænser
+// præcis hvis nogen huskede at skrive dem – så datofelter kan acceptere BÅDE år 1900 og år 2100 uden ét
+// issue, og stikprøver i runtime finder kun en brøkdel af dem.
 //
 // Værnet måler ADFÆRD, ikke kildekode. En descriptor kunne bære en `dateBounds`-erklæring, som ingen
 // validator læste, og et regex/AST-værn ville da være grønt, mens brugeren fortsat kunne indtaste år 1900.

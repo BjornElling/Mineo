@@ -99,7 +99,7 @@ import {
 } from '../domain/satser/opreguleringsmotorer';
 import { formatAslAarsloensmaksimumMissingForYears } from '../domain/satser/aslAarsloensmaksimum';
 
-// Samme ordlyd som «Fejl og advarsler»s linje, så de to lag aldrig siger to ting om samme overlap (M-33).
+// Samme ordlyd som «Fejl og advarsler»s linje, så de to lag aldrig siger to ting om samme overlap.
 export const TAF_OVERLAP_ERROR_MESSAGE = TAF_OVERLAP_LINJE;
 
 // =============================================================================
@@ -264,7 +264,7 @@ const validateLoenudviklingCanonicalRanges = (
  * felter, som ikke aktuelt er mountet i formularen.
  *
  * «Ikke mountet» er ikke det samme som «skjult»: et felt bag et valg (fx «Nej»/«Skjul») er ikke
- * udfyldt og må ikke blokere (BB-222/BB-228). Værdierne her kommer fra readeren, som giver et
+ * udfyldt og må ikke blokere. Værdierne her kommer fra readeren, som giver et
  * sådant felt dets tomværdi gennem descriptorens `relevance`; grænserne rammer derfor kun felter,
  * brugeren kan se og rette.
  */
@@ -291,7 +291,7 @@ function validateCanonicalRanges(values: ErstatningsopgoerelseValues): Validatio
   addNonNegativeAmount('maanedsloenenUdgoer', values.maanedsloenenUdgoer);
   addNonNegativeAmount('dagsloenenUdgoer', values.dagsloenenUdgoer);
 
-  // «Løse ferie-/feriefridage» og «Antal fraværsdage» bærer selv deres loft på descriptoren (BB-264): her
+  // «Løse ferie-/feriefridage» og «Antal fraværsdage» bærer selv deres loft på descriptoren: her
   // spærrede reglen uden rød celle, og ved 400 gav den en anden linje oven i periodens egen grænse.
   values.tafPerioder.forEach((row, index) => {
     addDayCount(`tafPerioder[${index}].loseFeriedage`, row.loseFeriedage, 999);
@@ -541,7 +541,7 @@ function validateTAF(
 
   errors.push(...validateTafLoseFeriedage(values, options));
   // Beregningsperiodens løse dage og fravær vurderes i `beregningsgrundlagCellIssues.ts`, som farver feltet
-  // (BB-264) og også fanger den nævner på 0, der før førte til en intern undtagelse (BB-258).
+  // og også fanger en nævner på 0, der ellers giver en intern undtagelse.
 
   // Validér beregnesUdFra matchende felter
   errors.push(...validateBeregnesUdFra(values));
@@ -551,7 +551,7 @@ function validateTAF(
   errors.push(...validateLoenudviklingsKravForAktivKilde(values, options));
   errors.push(...validateLoenindkomstSatsKrav(values, options));
   errors.push(...validateOffentligeYdelserReguleringssatser(values, options));
-  // En kilde med samlet negativ indtægt i en periode standser motoren (BB-290). Linjen i «Fejl og advarsler» er
+  // En kilde med samlet negativ indtægt i en periode standser motoren. Linjen i «Fejl og advarsler» er
   // rækkens (`eoRowIndkomstRows.ts`); stien er bevidst ikke et top-level felt, så sikkerhedsnettet ikke gentager den.
   errors.push(...resolveNegativeIndkomstkilder(values, options?.skadedatoISO).map((fund) => ({
     path: fund.source.kind === 'employer' ? `loenindkomstAnsaettelsesforhold.${fund.source.id}` : 'offentligeYdelserRows',
@@ -745,7 +745,7 @@ function validateSygeferiegodtgoerelse(values: ErstatningsopgoerelseValues): Val
 
     // Grænsen før første TAF-periode, fraværsdagenes loft og en periode uden løn ejes af
     // `collectSfggReferenceperiodeIssues`: de giver feltet rød ring og én linje med link. Her stod de to første og
-    // gav to ens linjer uden link (BB-322, BB-323).
+    // gav to ens linjer uden link.
 
     if (source.kind === 'overenskomst_direkte' && overenskomstDirekteSatsPolicy?.direkteSatsErDifferentieret && !row.sfggSatsvalg) {
       errors.push({
@@ -788,7 +788,7 @@ export function validateTafLoseFeriedage(
 /**
  * En beregningsperiode uden en eneste indtægt over 0 kr., hvor en lønudvikling skal regulere den. Rækken «Ingen
  * indkomst i beregningsperioden» viste det allerede, men kun som en række: beregningen kørte alligevel, og
- * lønudviklingen endte i en intern undtagelse (BB-258). Reglen er derfor også en valideringsfejl, der standser
+ * lønudviklingen endte i en intern undtagelse. Reglen er derfor også en valideringsfejl, der standser
  * beregningen før motoren. Betingelsen er netop motorens (`loenudviklingBeregning.ts`): uden indtægt og ydelser
  * går det kun godt, når alle ansættelsesforhold har lønudvikling «Ingen» – da regnes der nul-segmenter, og rækken
  * alene spærrer downloaden. Linjen i «Fejl og advarsler» er rækkens; sikkerhedsnettet viser ikke denne oveni.
@@ -840,7 +840,7 @@ function validateBeregnesUdFra(values: ErstatningsopgoerelseValues): ValidationE
 
   if (beregnesUdFra === 'Beregningsperiode') {
     // Én mangel, én linje: rækken i «Fejl og advarsler» siger det samme, og sikkerhedsnettet viser nu en
-    // validatorregel, som ingen række dækker (BB-265). To beskeder – én pr. dato – gav da en ekstra linje.
+    // validatorregel, som ingen række dækker. To beskeder – én pr. dato – gav da en ekstra linje.
     if (!values.tafBeregningsperiodeFra || !values.tafBeregningsperiodeTil) {
       errors.push({
         path: !values.tafBeregningsperiodeFra ? 'tafBeregningsperiodeFra' : 'tafBeregningsperiodeTil',
@@ -884,10 +884,10 @@ const UKENDT_OVERENSKOMST_BESKED = 'Den valgte overenskomst findes ikke i Mineo 
 /**
  * Satskravene på hvert ansættelsesforhold, uafhængigt af reguleringsform og beregningsmåde.
  *
- * - Feriegodtgørelsen skal være udfyldt, når kortet har lønoplysninger i procent-tilstand (BB-274). Samme
+ * - Feriegodtgørelsen skal være udfyldt, når kortet har lønoplysninger i procent-tilstand. Samme
  *   prædikat (`isFeriePctPaakraevet`) driver den synlige satslinje i «Fejl og advarsler».
  * - Ligger datoen, en privat overenskomsts satser slås op på, før overenskomstens første satsperiode, kan
- *   beregningsgrundlaget ikke regnes (BB-275). Den synlige linje er satslinjen eller den særlige fra-datos ring.
+ *   beregningsgrundlaget ikke regnes. Den synlige linje er satslinjen eller den særlige fra-datos ring.
  */
 function validateLoenindkomstSatsKrav(
   values: ErstatningsopgoerelseValues,
@@ -1047,7 +1047,7 @@ function validateLoenudviklingsKravForAktivKilde(
           angivetLoenMetodeOpreguleresFraDato: getAngivetLoenOpreguleresFraDato(values),
         });
         // Samme tekst som feltets røde ring (`collectAnciennitetstillaegDatoIssues`), så sikkerhedsnettet genkender
-        // linjen som dækket og ikke gentager den uden link (BB-305).
+        // linjen som dækket og ikke gentager den uden link.
         errors.push({
           path: path('anciennitetstillaegDato'),
           message: `Datoen skal være efter ${reference}`,
@@ -1226,12 +1226,12 @@ const validateLoenudviklingDataCoverage = (
   }
   // Den nedre grænse er altid blokerende. Sluttolerancen må aldrig føre en sats bagud. Beskederne deles med
   // `collectLoenudviklingCoverageIssues`, som giver linjen og den røde ring; samme tekst her gør, at
-  // sikkerhedsnettet genkender den som dækket (BB-306).
+  // sikkerhedsnettet genkender den som dækket.
   const kildeNavn = resolveReguleringskildeNavn(af);
   if (coverage?.fraIso) {
     const coverageStart = coverage.fraIso;
     if (anvendtReguleringsdato < coverageStart) {
-      // Kortets satsregel melder allerede en privat overenskomst uden satser på datoen (BB-306).
+      // Kortets satsregel melder allerede en privat overenskomst uden satser på datoen.
       const meldtAfSatserne = grundlag === 'Overenskomst' && values.beregnesUdFra === 'Beregningsperiode'
         && erReguleringsdatoUdenOverenskomstSatserMeldt(af, anvendtReguleringsdato);
       if (!meldtAfSatserne) {
@@ -1289,14 +1289,14 @@ const buildLoenudviklingsKildeResolutionError = (error: unknown): ValidationErro
  * Validerer øvrige krav-rækker
  *
  * Regler:
- * - Ikke-tomme rækker skal have udgiftTil og beløb udfyldt (datoen er valgfri, BB-229)
+ * - Ikke-tomme rækker skal have udgiftTil og beløb udfyldt (datoen er valgfri)
  * - Beløb kan ikke være negativt
  */
 function validateOevrigeKrav(values: ErstatningsopgoerelseValues): ValidationError[] {
   const errors: ValidationError[] = [];
-  // Samme gate som søskendene `validateSvieSmerte`/`validateTAF`. Uden den blev en halvudfyldt række bag
-  // «Nej»/«Skjul» ved med at spærre opgørelsen med en linje, der hverken havde link eller nævnte sektionen
-  // (BB-228). Readerens relevansgrænse giver allerede tomme celler her; gaten står som forsvar i dybden for
+  // Samme gate som søskendene `validateSvieSmerte`/`validateTAF`. Uden den bliver en halvudfyldt række bag
+  // «Nej»/«Skjul» ved med at spærre opgørelsen med en linje, der hverken har link eller nævner sektionen.
+  // Readerens relevansgrænse giver allerede tomme celler her; gaten står som forsvar i dybden for
   // kald uden reader og for at gøre afhængigheden læsbar.
   if (!erOevrigeKravSektionAktiv(values)) return errors;
   const rows = values.oevrigeKravPerioder ?? [];
@@ -1315,9 +1315,9 @@ function validateOevrigeKrav(values: ErstatningsopgoerelseValues): ValidationErr
 /**
  * Validér at en ikke-tom øvrige krav-række har beskrivelse og beløb.
  *
- * Datoen er bevidst VALGFRI (udviklerafgørelse 2026-09-23, BB-229): en udgift kan mangle en nøjagtig dato,
+ * Datoen er bevidst VALGFRI: en udgift kan mangle en nøjagtig dato,
  * og dokumentet trykker den da uden datopræfiks. Et beløb på 0 kr. afvises af feltet selv
- * (`eoOevrigeKravBeloebField`), så cellen bliver rød; reglen stod før kun her, uden rød celle (BB-232).
+ * (`eoOevrigeKravBeloebField`), så cellen bliver rød.
  * `assessOevrigeKravRow` afgør både tomhed og hvilke påkrævede felter der mangler; validatoren omsætter
  * samme vurdering til feltadresser, mens rækkebyggeren samler den i én brugerrettet linje.
  */

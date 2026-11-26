@@ -129,7 +129,7 @@ const projectWithBlockedBrevhovedStamdata = () => {
   );
 };
 
-describe('CALC-005 – forsørgertab fra snapshot til Word', () => {
+describe('Forsørgertab fra snapshot til Word', () => {
   it('fører det håndberegnede resultat og de to ydelsesdele til dokumentet', async () => {
     const input = project();
 

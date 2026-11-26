@@ -103,10 +103,10 @@ describe('TransientAmountInput', () => {
   });
 
   /**
-   * BB-430: typografiske minustegn følger SAMME sign-policy-vej som de persisterede beløbsfelter – de
+   * Typografiske minustegn følger SAMME sign-policy-vej som de persisterede beløbsfelter – de
    * normaliseres til ASCII '-' før tegnfilteret ved paste, tastning og første tast.
    */
-  describe('typografisk minus (BB-430)', () => {
+  describe('typografisk minus', () => {
     const SignedHarness = ({ onCommit, allowNegative }: {
       onCommit: (v: AmountValue | undefined) => void;
       allowNegative: boolean;
@@ -166,10 +166,10 @@ describe('TransientAmountInput', () => {
   });
 
   /**
-   * BB-439: Tab og Enter afslutter en tastet indtastning, så en indsat tabulator eller et linjeskift afslutter
+   * Tab og Enter afslutter en tastet indtastning, så en indsat tabulator eller et linjeskift afslutter
    * den indsatte. To regnearksceller må ikke smelte sammen til 1.200.200,00.
    */
-  describe('indsættelse fra regneark (BB-439)', () => {
+  describe('indsættelse fra regneark', () => {
     const paste = (text: string) =>
       fireEvent.paste(screen.getByRole('textbox'), { clipboardData: { getData: () => text } });
 
@@ -188,7 +188,7 @@ describe('TransientAmountInput', () => {
     });
   });
 
-  it('forklarer division med 0 med den fælles beløbsbesked (BB-440)', async () => {
+  it('forklarer division med 0 med den fælles beløbsbesked', async () => {
     const user = userEvent.setup();
     const onCommit = vi.fn();
     render(<Harness onCommit={onCommit} />);
@@ -247,7 +247,7 @@ describe('TransientDateInput', () => {
     expect(await screen.findByText(/2026/)).toBeInTheDocument();
   });
 
-  it('beholder en afvist dato synligt, også når den erstatter en gyldig dato (BB-458/BB-459)', async () => {
+  it('beholder en afvist dato synligt, også når den erstatter en gyldig dato', async () => {
     const user = userEvent.setup();
     const onCommit = vi.fn();
     render(<Harness onCommit={onCommit} />);
@@ -311,7 +311,7 @@ describe('TransientDateInput', () => {
     expect(onCommit).toHaveBeenLastCalledWith(toISODateString('2026-02-12'));
   });
 
-  it('bruger kun den første af to indsatte regnearksceller (BB-439)', () => {
+  it('bruger kun den første af to indsatte regnearksceller', () => {
     const onCommit = vi.fn();
     render(<Harness onCommit={onCommit} />);
     fireEvent.paste(screen.getByRole('textbox'), {

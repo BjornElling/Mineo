@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { VERSION } from '../../config/buildInfo';
+import { DISPLAY_VERSION } from '../../config/buildInfo';
 import {
   SIBLING_SITES,
   SIBLING_SITES_CONTACT_EMAIL,
@@ -384,7 +384,7 @@ const UnsupportedDevicePage = () => {
               </p>
 
               <p style={{ margin: 0 }}>
-                Aktuel version: {VERSION}
+                Aktuel version: {DISPLAY_VERSION}
               </p>
             </div>
           </div>

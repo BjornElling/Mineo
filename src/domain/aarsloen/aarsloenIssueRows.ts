@@ -4,7 +4,7 @@ import { prefixFieldLabel, resolveFieldIssueSummaryText } from '../../inputCore/
 import { STANDARD_LOEN_COLUMN_LABELS, type TableError } from '../../types/table';
 
 /**
- * Årslønnens «Fejl og advarsler» (BB-350, udviklerafgørelse 2026-10-27): ALLE blokerende fejl og mangler samles i
+ * Årslønnens «Fejl og advarsler»: ALLE blokerende fejl og mangler samles i
  * én boks magen til de øvrige siders – ingen af dem står som tekst ved de enkelte felter (dér er der kun rød ring
  * og tooltip). Advarslerne står efter fejlene.
  *
@@ -72,11 +72,11 @@ export const buildAarsloenIssueRows = (input: Readonly<{
   fieldIssues: readonly (FieldIssue | ConsumerIssue)[];
   feriedageIssues: readonly FieldIssue[];
   tableErrors: readonly TableError[];
-  /** De ugyldige cellers egne feltissues (`rowId:colKey`); en konkret årsag erstatter «ugyldig værdi» (BB-440). */
+  /** De ugyldige cellers egne feltissues (`rowId:colKey`); en konkret årsag erstatter «ugyldig værdi». */
   tableCellIssues?: ReadonlyMap<string, FieldIssue>;
   tableRowIds: readonly string[];
   downloadError: string | null;
-  /** En advarsel om en bestemt lønrække bærer cellens adresse, så linjen fører dertil som EO's (BB-289/BB-298). */
+  /** En advarsel om en bestemt lønrække bærer cellens adresse, så linjen fører dertil som EO's. */
   warnings: readonly Readonly<{ message: string; address?: FieldAddress }>[];
 }>): readonly AarsloenIssueRow[] => {
   const rows: AarsloenIssueRow[] = [];

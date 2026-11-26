@@ -37,9 +37,9 @@ const oevrigeKravRow = (page: Page, index: number) =>
 const errorBox = (page: Page) => page.locator('.content-box').filter({ hasText: 'Fejl og advarsler' });
 const summaryRow = (page: Page) => page.locator('.row--label-right-hover').filter({ hasText: /^Øvrige krav/ });
 
-// Flade 12c (BB-228–BB-237): én vurdering pr. række, skjulte rækker er tavse, og sammendraget nævner kravet.
+// Én vurdering pr. række, skjulte rækker er tavse, og sammendraget nævner kravet.
 test.describe('Erstatningsopgørelse – øvrige krav', () => {
-  test('viser begge fejl, når to delvise kravrækker er helt ens (BB-332)', async ({
+  test('viser begge fejl, når to delvise kravrækker er helt ens', async ({
     page,
     runtimeErrors,
     runtimeSignals,
@@ -79,7 +79,7 @@ test.describe('Erstatningsopgørelse – øvrige krav', () => {
     await expect(errorBox(page)).not.toContainText('Dato');
     await expect(summaryRow(page)).toContainText('Fejl');
 
-    // Kravvalget «Skjul» skjuler rækkerne: de er ikke udfyldt og må ikke tale (BB-228).
+    // Kravvalget «Skjul» skjuler rækkerne: de er ikke udfyldt og må ikke tale.
     await page.getByRole('tab', { name: 'EO oplysninger', exact: true }).click();
     await page.locator("input[name='kravPaaOevrigeErstatningskrav'][value='Skjul']").check();
     await page.getByRole('tab', { name: 'Beregning', exact: true }).click();

@@ -547,11 +547,9 @@ export const handleTableBlurCapture = (e: React.FocusEvent<HTMLTableElement>) =>
   tabAnchorByTable.delete(table);
   // Fokus har FORLADT tabellen: den logiske fokuscelle skal følge med.
   //
-  // `focusedCell` er dokumenteret som «grid-core har FYSISK fokus på cellen», men blev kun sat – aldrig
-  // ryddet – så den blev stående på den sidst besøgte celle for evigt. Det var harmløst, så længe begge
-  // forbrugere også krævede editing-tilstand (som ryddes), men ikke længere: autofill-ghosten er den
-  // første forbruger, der KUN aflæser fokus, og en stale fokuscelle ville lade et forslag stå synligt i
-  // en tabel, brugeren var gået fra – og i én celle pr. tabel, han havde besøgt.
+  // `focusedCell` er dokumenteret som «grid-core har FYSISK fokus på cellen» og skal derfor også ryddes, ikke
+  // kun sættes. Autofill-ghosten aflæser KUN fokus, og en stale fokuscelle ville lade et forslag stå synligt i
+  // en tabel, brugeren er gået fra – og i én celle pr. tabel, han har besøgt.
   core?.setFocusedCell(null);
 };
 

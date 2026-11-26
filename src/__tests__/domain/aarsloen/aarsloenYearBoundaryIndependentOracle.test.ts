@@ -44,7 +44,7 @@ const values: AarsloenValues = {
   loenPaaHelligdage: LOEN_PAA_HELLIGDAGE.ALMINDELIG,
 };
 
-describe('CALC-002/DATE-001 – uafhængigt årsskiftefacit for dagløn', () => {
+describe('uafhængigt årsskiftefacit for dagløn', () => {
   it('periodiserer hele december og januar korrekt over kalenderårsskiftet', () => {
     const result = computeAarsloenBeregning({ values, omregningAktiveret: true });
 

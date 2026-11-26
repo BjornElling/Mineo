@@ -154,7 +154,7 @@ export function useAarsloenViewModel() {
   // input ikke rækker til en metode. Ingen opdigtede tal.
   const beregningsData = calculation?.beregningsData ?? AARSLOEN_BEREGNING_INGEN;
   // Løntabellens rækkeadvarsler (identisk række, periode efter dags dato) står først i «Advarsler»: de navngiver
-  // rækken, den gule ring sidder på (BB-289/BB-298). De er sidens egne og når ikke dokumentet.
+  // rækken, den gule ring sidder på. De er sidens egne og når ikke dokumentet.
   const advarsler = React.useMemo(
     () => [
       // Den første markerede celle er linkets mål (StandardLoenRowWarning.cells).
@@ -202,10 +202,10 @@ export function useAarsloenViewModel() {
   );
 
   const canShowOmregning = omregningAktiveret && periodeData !== null;
-  // «Fuld løn under ferie» og «Løn på helligdage» vises kun, når de læses (BB-353) – samme prædikat som advarslerne
+  // «Fuld løn under ferie» og «Løn på helligdage» vises kun, når de læses – samme prædikat som advarslerne
   // og feltgaten (`resolveAarsloenFeriePctManglerIssue`): omregningens EFFEKTIVE tilstand, ikke om der findes et
-  // resultat. Hang synligheden på resultatet, skjulte en blokerende mangel, som valget selv udløser (tom feriesats ved
-  // «Fuld løn under ferie» fra, M-37), netop det valg – en blindgyde, hvor fejlen ikke kunne rettes.
+  // resultat. Hang synligheden på resultatet, ville en blokerende mangel, som valget selv udløser (tom feriesats ved
+  // «Fuld løn under ferie» fra), skjule netop det valg – en blindgyde, hvor fejlen ikke kan rettes.
   const visLoenforholdValg = erAarsloenLoenforholdValgRelevante({
     tillaegAngivesSom: values.tillaegAngivesSom,
     omregningAktiveret,
@@ -216,7 +216,7 @@ export function useAarsloenViewModel() {
     ? null
     : values.tillaegAngivesSom === 'overenskomst' ? 'loenforhold' : 'beregningsprincipper';
 
-  // «Fejl og advarsler» samler alle blokerende fejl og mangler samt advarslerne (BB-350).
+  // «Fejl og advarsler» samler alle blokerende fejl og mangler samt advarslerne.
   const issueRows = React.useMemo(() => buildAarsloenIssueRows({
     beregningsFejl: hasPageMessage(beregningsFejl) ? beregningsFejl.text : null,
     fieldIssues: readerProjection.fieldIssues,
@@ -260,8 +260,8 @@ export function useAarsloenViewModel() {
     values,
     tableSatser,
     /**
-     * En sats er ukendt – tom påkrævet feriesats (M-37) eller overenskomstsatser, der ikke kan slås op (BB-402):
-     * tabellens afledte kolonner viser «—» som sammentællingen (BB-099).
+     * En sats er ukendt – tom påkrævet feriesats eller overenskomstsatser, der ikke kan slås op:
+     * tabellens afledte kolonner viser «—» som sammentællingen.
      */
     tabelSatserUkendte,
     /** Kryds-række-dubletter som feltissues – gør de gentagne rækkers celler røde. */

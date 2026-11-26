@@ -3,7 +3,7 @@ import type { OffentligeYdelserTableColumnKey } from '../../../types/table';
 // Normativt: `ydelse` og `tillaeg` er to visuelt adskilte ydelsesfelter med identisk domænebetydning – præcis som
 // lønindkomstens «Løn» og «Løn (2)». De må kun adskilles i præsentationen; beregningsmæssigt summeres de blot.
 // Navnene er forskellige med vilje: en udbetaling af en social ydelse rummer typisk én ydelse og nogle få tilknyttede
-// tillæg (fx ATP), mens en lønseddel har mange ligestillede lønposter (udviklerafgørelse 2026-10-29, BB-361). Skærm,
+// tillæg (fx ATP), mens en lønseddel har mange ligestillede lønposter. Skærm,
 // «Fejl og advarsler» og bilaget bruger derfor de samme to navne.
 export const OFFENTLIGE_YDELSER_COL_YDELSE_LABEL = 'Ydelse';
 export const OFFENTLIGE_YDELSER_COL_TILLAEG_LABEL = 'Tillæg';

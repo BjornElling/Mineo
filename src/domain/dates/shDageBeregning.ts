@@ -135,7 +135,7 @@ export const buildSHDageSetForIsoRange = (
   til: ISODateString
 ): ReadonlySet<ISODateString> => {
   // Fail-closed mod ikke-validerede strenge der måtte være castet til ISODateString,
-  // samt mod omvendt rækkefølge – bevarer den oprindelige guards adfærd.
+  // samt mod omvendt rækkefølge.
   const fraDato = parseISODate(fra);
   const tilDato = parseISODate(til);
   if (!fraDato || !tilDato || fraDato > tilDato) {

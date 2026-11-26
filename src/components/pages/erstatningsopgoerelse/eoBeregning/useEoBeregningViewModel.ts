@@ -77,7 +77,7 @@ export interface EOberegningTabProps {
   /**
    * «Indtægt før skaden» er skjult af «Skjul beregning efter første opgørelse» (`kanIndkomstBeregningenSkjules`).
    * Uden for et besøg på EO-oplysninger følger skjulningen den direkte. Et skjult grundlag giver ingen gule
-   * rimelighedsadvarsler her (BB-431).
+   * rimelighedsadvarsler her.
    */
   indkomstBeregningSkjult: boolean;
 }
@@ -125,7 +125,7 @@ const scrollToRowIssueTarget = (
 const resolveManglerTafSlutdatoFocusTarget = (
   values: ErstatningsopgoerelseReaderProjection['eoValues']
 ): EoIssueFocusTarget => {
-  // Kun TAF «Ja» kan give fejlen: uden TAF-krav er midlertidigt-EET-togglen ikke relevant og importerer intet (BB-360).
+  // Kun TAF «Ja» kan give fejlen: uden TAF-krav er midlertidigt-EET-togglen ikke relevant og importerer intet.
   const row = values.tafPerioder.find((candidate) => !isTafRowEmpty(candidate));
   if (row === undefined) {
     return { kind: 'collectionField', template: eoTafPeriodeTilField.template };
@@ -331,7 +331,7 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
    * parallelt.
    */
   const eetLoebendeIssueRows = React.useMemo<readonly EetIssueRow[]>(() => {
-    // Advarslen om TAF efter en delvist endelig kapitalisering (BB-187) går gennem samme EET-kanal, men gælder
+    // Advarslen om TAF efter en delvist endelig kapitalisering går gennem samme EET-kanal, men gælder
     // uanset togglen; importens egne linjer vises kun, når togglen er slået til.
     const kapitaliseringPrefix = `midlertidigt_eet_source:${TAF_EFTER_KAPITALISERING_ISSUE_ID_PREFIX}:`;
     return (eoSnapshot?.invariants ?? [])
@@ -486,8 +486,8 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
       rows.push(issue);
     };
 
-    // Linket til Kontroltabel tilbydes kun, når fanen vises. Den er slået fra som standard, og et klik gjorde da
-    // intet – en blindgyde under en fejl, brugeren ikke selv kan forklare (BB-290).
+    // Linket til Kontroltabel tilbydes kun, når fanen vises. Den er slået fra som standard, og et klik ville da
+    // intet gøre – en blindgyde under en fejl, brugeren ikke selv kan forklare.
     const kontroltabelAction: Pick<SystemIssueRow, 'actionLabel' | 'onAction'> = settings.showEOInspektionMenu
       ? { actionLabel: 'Kontroltabel', onAction: () => setActiveTab('kontroltabel') }
       : {};
@@ -542,7 +542,7 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
     // SIKKERHEDSNET (garanti: download må ALDRIG blokeres uden en synlig fejl i "Fejl og advarsler").
     // Hvilke invarianter, der vises, afgøres af `selectEoSafetyNetInvariants`, hvis garanti downloadgaten
     // forudsætter (`eoDocumentDownloadGate.ts`): alle, når boksen ellers er tom for fejl, og ellers de validatorregler om et navngivet felt, ingen vist
-    // række dækker (BB-265). Beskeden er validatorens egen brugervendte tekst.
+    // række dækker. Beskeden er validatorens egen brugervendte tekst.
     const hasErrorLevelContent =
       rows.length > 0
       || errors.length > 0
@@ -704,21 +704,21 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
   const svieSmerteLines = React.useMemo(() => {
     if (!beregnesSvieSmerte) return [];
     if (svieSmerteRow?.status === 'error') return ['Fejl'];
-    // Rækkens strukturerede `lines` er kilden. Tidligere blev `displayValue` splittet på `\n`
-    // her – en skjult aftale med row-builderen, som en formatteringsændring kunne bryde lydløst,
+    // Rækkens strukturerede `lines` er kilden. `displayValue` splittes bevidst ikke på `\n`
+    // her – det ville være en skjult aftale med row-builderen, som en formatteringsændring kunne bryde lydløst,
     // og som driver synlig UI-forgrening (antal linjer afgør ental/flertal i etiketten).
     return svieSmerteRow?.lines ?? [];
   }, [beregnesSvieSmerte, svieSmerteRow]);
   const harIndtastedeSvieSmertePerioder =
     beregnesSvieSmerte && (eoValues.svieSmertePerioder ?? []).some((row) => row.fra || row.til || row.tilstand);
   // En rød række tæller som en indtastning, også når dens eneste indhold er en afvist dato: den læses som tom, men
-  // sammendraget sagde da «Ingen perioder angivet» lige under fejlen om samme række (BB-462, M-58). Øvrige krav
+  // sammendraget ville ellers sige «Ingen perioder angivet» lige under fejlen om samme række. Øvrige krav
   // viser allerede «Fejl» på samme måde.
   const svieSmerteHarFejl = beregnesSvieSmerte && svieSmerteRow?.status === 'error';
   const harSvieSmertePerioder = svieSmerteHarFejl || (harIndtastedeSvieSmertePerioder && svieSmerteLines.length > 0);
-  // Etiketten er «Svie/smerte-periode», og «Nej» er ikke en periode (BB-227); ordene deles med de to
+  // Etiketten er «Svie/smerte-periode», og «Nej» er ikke en periode; ordene deles med de to
   // andre krav i `eoBeregningSummaryTexts.ts`. Står der perioder, som alle ligger uden for EO-perioden, siger
-  // rækken netop det – ikke at der intet er angivet (BB-374).
+  // rækken netop det – ikke at der intet er angivet.
   const svieSmerteFravalgtTekst = resolveKravIkkeRejstTekst(eoValues.kravPaaSvieSmerteGodtgoerelse)
     ?? (eoValues.tidligereSsMax === 'Ja'
       ? 'Maksimum nået i tidligere opgørelse'
@@ -738,8 +738,8 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
     }
 
     // Er beregningen spærret af en fejl andetsteds (fx en rød sats på et ansættelsesforhold), har snapshottet
-    // ingen perioder. Perioderne findes stadig, og sammendraget skrev før «Ingen perioder angivet» om en sag med
-    // en TAF-periode (BB-277). Faldet tilbage er de indtastede perioder med samme klipning som motoren.
+    // ingen perioder. Perioderne findes stadig, og sammendraget må ikke skrive «Ingen perioder angivet» om en sag
+    // med en TAF-periode. Faldet tilbage er de indtastede perioder med samme klipning som motoren.
     // Snapshottets liste er tom (ikke udefineret), når grenen er spærret; samme klipning giver da også en tom liste,
     // hvis perioderne reelt falder bort.
     const snapshotRanges = beregningView?.tafPerioder ?? [];
@@ -757,18 +757,18 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
   const harIndtastedeTafPerioder =
     beregnesTabtArbejdsfortjeneste &&
     (eoValues.tafPerioder ?? []).some((row) => row.fra || row.til || typeof row.loseFeriedage === 'number');
-  // Samme regel som svie/smerte ovenfor (BB-462).
+  // Samme regel som svie/smerte ovenfor.
   const harTafPerioder = harTafPeriodeFejl || (harIndtastedeTafPerioder && tafPerioderLabels.length > 0);
   const tafPerioderLines = tafPerioderLabels;
-  // Samme ord som svie/smerte-rækken: «Nej» dækkede før både et fravalgt krav og et rejst krav uden
-  // perioder (BB-234), og perioder uden for EO-perioden er ikke «ingen perioder» (BB-374).
+  // Samme ord som svie/smerte-rækken: «Nej» må ikke dække både et fravalgt krav og et rejst krav uden
+  // perioder, og perioder uden for EO-perioden er ikke «ingen perioder».
   const tafFravalgtTekst = resolveKravIkkeRejstTekst(eoValues.kravPaaTabtArbejdsfortjeneste)
     ?? (harIndtastedeTafPerioder ? INGEN_PERIODE_I_EO_PERIODEN_TEKST : INGEN_PERIODER_ANGIVET_TEKST);
   const tafSummaryLines = harTafPerioder ? tafPerioderLines : [tafFravalgtTekst];
   const tafSummaryLabel = harTafPerioder && tafPerioderLines.length > 1 ? 'TAF-perioder' : 'TAF-periode';
 
-  // Øvrige krav var det eneste af de tre krav, sammendraget ikke nævnte – og netop det starter
-  // skjult i en ny sag (BB-234). Rækken viser antallet af poster, ikke beløbet (BB-226's afgørelse).
+  // Sammendraget nævner alle tre krav, også Øvrige krav, der starter skjult i en ny sag. Rækken viser
+  // antallet af poster, ikke beløbet (bevidst valg).
   const oevrigeKravSummaryText = resolveOevrigeKravSummaryText({
     kravvalg: eoValues.kravPaaOevrigeErstatningskrav,
     harFejl: relevantRows.some((row) => row.id.startsWith('oevrigekrav.') && row.status === 'error'),
@@ -779,7 +779,7 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
   const skadedatoLabel = resolveSkadestypeDatoLabel(stamdataValues?.skadestype);
   // En rød skadedato-fejl (fx omvendt datoorden) må ikke vises som et tomt '-' – det læses som "her
   // er ikke indtastet noget", når der reelt STÅR noget, bare ugyldigt (samme fejlklasse som Varige
-  // méns BB-064/BB-065). Skelner derfor fejl fra tomt felt, ligesom `eoRowStamdataModel.ts` allerede gør.
+  // mén). Skelner derfor fejl fra tomt felt, ligesom `eoRowStamdataModel.ts` allerede gør.
   const skadedatoIssue = topLevelFieldIssue(stamdataErrors, 'stamdata', 'skadedato');
   const skadedatoDisplay = stamdataValues?.skadedato !== undefined
     ? formatIsoDateLong(stamdataValues.skadedato) || '-'

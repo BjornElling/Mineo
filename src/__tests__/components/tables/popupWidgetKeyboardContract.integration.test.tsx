@@ -29,10 +29,10 @@ import type { TillaegstidEnhed } from '../../../schemas/formSchemas/enumSchemas'
 // En dropdown i en tabel skal åbne sin menu på Enter – ikke flytte cellefokus én række ned.
 //
 // Det kontraktkryds, ingen test dækkede, er "LUKKET popup-kontrol + tabellens capture-handler + Enter".
-// Grid'et fritog tidligere kun dropdowns, der bar en PRIVAT markør-attribut fra en slettet komponent
-// (`data-mineo-table-dropdown`); ingen produktionskontrol satte den, så alle celle-dropdowns fik Enter
-// kapret af grid-navigationen. Klassifikationen ligger nu i `popupWidgetSemantics` og måler kontrollens
-// ARIA-semantik, som BEGGE flader (Container og grid) deler.
+// Klassifikationen ligger i `popupWidgetSemantics` og måler kontrollens ARIA-semantik, som BEGGE flader
+// (Container og grid) deler. Den private markør-attribut `data-mineo-table-dropdown` fra en slettet
+// komponent må ikke genindføres: ingen produktionskontrol sætter den, så celle-dropdowns ville få Enter
+// kapret af grid-navigationen.
 //
 // Testen kører derfor samme popup-kontrakt mod BEGGE surfaces – form-varianten (`ChoiceField`) og
 // celle-varianten (`GridChoiceCell`) – så semantikken ikke igen kan divergere mellem dem.

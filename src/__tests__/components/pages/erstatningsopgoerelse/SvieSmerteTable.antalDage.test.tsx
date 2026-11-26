@@ -24,7 +24,7 @@ const iso = (value: string) => toISODateString(value);
  * «Antal dage» er det eneste tal, brugeren ser mens han taster, og det skal derfor være det tal,
  * opgørelsen faktisk betaler for – altså dagene inden for EO-perioden, ikke rækkens egen længde.
  * Tooltippet ved «Periode:» beder udtrykkeligt om at lade tidligere perioder stå, så rækker uden
- * for perioden er normaltilstanden fra og med 2. opgørelse (BB-217).
+ * for perioden er normaltilstanden fra og med 2. opgørelse.
  */
 describe('SvieSmerteTable – «Antal dage» viser bidraget i EO-perioden', () => {
   const ASYNC_TEST_TIMEOUT_MS = 30_000;

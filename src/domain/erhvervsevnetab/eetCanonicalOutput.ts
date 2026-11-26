@@ -39,7 +39,7 @@ export const eetEalComputationSchema = z.object({
   skadedato: isoDateString,
   /**
    * Skadestypen bæres MED beregningen, fordi datoens navn er skadestype-afhængigt i alle afledte
-   * tekster (BB-121). Både skærmen og de to dokumentkaldere holder computation'en, mens dokumenternes
+   * tekster. Både skærmen og de to dokumentkaldere holder computation'en, mens dokumenternes
    * `stamdata` kun projiceres, når brevhovedet er slået til – med brevhovedet fra bliver `skadestype`
    * dér `undefined`, og bilaget ville tavst falde tilbage til «skadestidspunktet» ved erhvervssygdom.
    */
@@ -76,7 +76,7 @@ export type EetEalComputation = z.infer<typeof eetEalComputationSchema>;
 export const eetKapitaliseringAfgoerelseSchema = z.object({
   rowId: z.string(),
   afgoerelsesdato: isoDateString,
-  // Skiller to afgørelser med samme dato og procent i overskriften (BB-411).
+  // Skiller to afgørelser med samme dato og procent i overskriften.
   virkningsdato: isoDateString,
   kapitaliseringsdato: isoDateString,
   /**
@@ -84,14 +84,14 @@ export const eetKapitaliseringAfgoerelseSchema = z.object({
    * tidligere dato ikke styrer regelvalget (også ved genoptagelse fra 1. juli 2024). Kun afledt output.
    */
   tidligereKapitaliseringsdato: isoDateString.nullable(),
-  // Genoptagelse, hvor den tidligere kapitaliseringsdato ikke længere bærer faktoropslaget (BB-415).
+  // Genoptagelse, hvor den tidligere kapitaliseringsdato ikke længere bærer faktoropslaget.
   genoptagetMedNyFaktordato: z.boolean(),
   /**
    * Afgørelsens EGEN erhvervsevnetabsprocent – ikke den kapitaliserede andel.
    *
    * Den er afgørelsens indhold, ikke en mellemregning: ved en delvist endelig afgørelse på 30 %,
    * hvoraf 5 % kapitaliseres, kan læseren ellers ikke se, at 25 % står ukapitaliseret tilbage
-   * (det tal, differencekravet senere proformakapitaliserer). Bæres i boksens overskrift (BB-170).
+   * (det tal, differencekravet senere proformakapitaliserer). Bæres i boksens overskrift.
    */
   eetPct: finite,
   kapitaliseringspct: finite,

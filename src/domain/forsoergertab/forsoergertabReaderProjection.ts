@@ -91,7 +91,7 @@ export const buildForsoergertabReaderProjection = (reader: InputReader): Forsoer
   const skadedato = readField(reader.read(skadedatoRef));
   const skadelidteFodselsdato = readField(reader.read(skadelidteFodselsdatoRef));
   // Skadestypen afgør, om fladen og dokumentet siger «skadedato/skadestidspunkt/skadesår» eller
-  // «anmeldelsesdato/anmeldelsestidspunkt/anmeldelsesår» (BB-121). Den blev IKKE læst før, så
+  // «anmeldelsesdato/anmeldelsestidspunkt/anmeldelsesår». Den blev IKKE læst før, så
   // `skadestype` nåede snapshottet som `undefined`, og hele fladen faldt tilbage til «skade»-formen –
   // også for en erhvervssygdom, hvor rækken øverst korrekt sagde «Anmeldelsesdato». Det var årsagen til,
   // at det generelle princip ikke virkede her, uanset hvor teksterne blev rettet.
@@ -110,7 +110,7 @@ export const buildForsoergertabReaderProjection = (reader: InputReader): Forsoer
     },
     faellesAarsloen: { aslAarsloen: aslAarsloen.value, ealAarsloen: ealAarsloen.value },
     stamdata: {
-      // Snapshottet aftager de to datoer + skadestypen, som styrer datoens navn i tekster (BB-121);
+      // Snapshottet aftager de to datoer + skadestypen, som styrer datoens navn i tekster;
       // de øvrige stamdata-felter er irrelevante for beregningen.
       skadedato: skadedato.value,
       skadelidteFodselsdato: skadelidteFodselsdato.value,

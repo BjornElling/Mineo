@@ -137,7 +137,7 @@ const withFeriedageOverPeriod = (input: SettledInput): SettledInput => {
   let next = withOneValidMonthRow(input);
   next = dispatch(next, settle(aarsloenOmregningTilFuldtAarField.bind(), 'true'));
   next = dispatch(next, settle(aarsloenFuldLoenUnderFerieField.bind(), 'false'));
-  // Uden fuld løn under ferie er satsen påkrævet (M-37); uden den blokerer manglen før feriedagenes grænse.
+  // Uden fuld løn under ferie er satsen påkrævet; uden den blokerer manglen før feriedagenes grænse.
   next = dispatch(next, settle(aarsloenFeriePctField.bind(), '12,5'));
   return dispatch(next, settle(aarsloenAntalFeriedageField.bind(), '24'));
 };
@@ -196,7 +196,7 @@ describe('evaluateAarsloenDownloadGate', () => {
     expectBlocked(evaluateAarsloenDownloadGate(project(input)), 'aarsloen:fatal-calculation-error');
   });
 
-  it('blokerer med en navngiven linje og giver gul ring, når lønnen samlet er negativ (fund E)', () => {
+  it('blokerer med en navngiven linje og giver gul ring, når lønnen samlet er negativ', () => {
     let input = withOneValidMonthRow(withValidStamdata(empty()));
     input = dispatch(input, settle(aarsloenTableCol2Field.bind('r1'), '-30000'));
     const projection = project(input);
@@ -225,7 +225,7 @@ describe('evaluateAarsloenDownloadGate', () => {
     expect(gate.canDownload).toBe(true);
   });
 
-  // Udviklerafgørelse 2026-10-19 (BB-289): identiske rækker er en gul advarsel, ikke en spærring – dobbelt løn
+  // Bevidst valg: identiske rækker er en gul advarsel, ikke en spærring – dobbelt løn
   // for samme periode kan være reel.
   it('spærrer ikke ved identiske lønrækker, men advarer med gul ring', () => {
     const projection = project(withDuplicateValidMonthRows(withValidStamdata(empty())));
@@ -238,7 +238,7 @@ describe('evaluateAarsloenDownloadGate', () => {
       .toEqual(evaluateShDageDownloadGate(project(withOneValidMonthRow(withValidStamdata(empty())))));
   });
 
-  it('advarer, men spærrer ikke, når en måned har over ti gange de øvrige månedernes løn (BB-297)', () => {
+  it('advarer, men spærrer ikke, når en måned har over ti gange de øvrige månedernes løn', () => {
     let input = withValidStamdata(empty());
     const maaned = (id: string, nr: string, beloeb: string) => {
       input = dispatch(input, insert(emptyRow(id)));
@@ -270,16 +270,17 @@ describe('evaluateAarsloenDownloadGate', () => {
 
     expectBlocked(aarsloenGate, 'aarsloen:feriedage-over-perioden');
     if (!aarsloenGate.canDownload) expect(aarsloenGate.reasons[0]?.kind).toBe('specific');
-    // SH-dage læser kun perioderne og «Løn på helligdage» (udviklerens afgørelse 2026-11-19).
+    // SH-dage læser kun perioderne og «Løn på helligdage» (bevidst valg).
     expect(evaluateShDageDownloadGate(projection).reasons.map((reason) => reason.code))
       .not.toContain('aarsloen:sh-feriedage-over-perioden');
   });
 
   /**
-   * BB-400: januar 2024 har 23 hverdage og nytårsdag. Med «Ingen» løn på helligdage trækker metode A også SH-dagen
-   * fra, så 22 feriedage efterlod 0 arbejdsdage – og en hentbar årsløn på 0,00 kr. Grænsen var kun hverdagene.
+   * Januar 2024 har 23 hverdage og nytårsdag. Med «Ingen» løn på helligdage trækker metode A også SH-dagen
+   * fra, så grænsen skal regne med SH-dagen – ellers efterlader 22 feriedage 0 arbejdsdage og en hentbar årsløn
+   * på 0,00 kr.
    */
-  it.each([22, 23])('blokerer ved %s feriedage, der sammen med SH-dagen efterlader ingen arbejdsdage (BB-400)', (feriedage) => {
+  it.each([22, 23])('blokerer ved %s feriedage, der sammen med SH-dagen efterlader ingen arbejdsdage', (feriedage) => {
     let input = withOneValidMonthRow(withValidStamdata(empty()));
     input = dispatch(input, settle(aarsloenOmregningTilFuldtAarField.bind(), 'true'));
     input = dispatch(input, settle(aarsloenFuldLoenUnderFerieField.bind(), 'false'));
@@ -306,7 +307,7 @@ describe('evaluateAarsloenDownloadGate', () => {
     expect(evaluateAarsloenDownloadGate(vedGraensen)).toEqual({ canDownload: true, reasons: [] });
   });
 
-  it('spærrer omregningen af en periode helt uden arbejdsdage i stedet for at vise 0,00 kr. (BB-400)', () => {
+  it('spærrer omregningen af en periode helt uden arbejdsdage i stedet for at vise 0,00 kr.', () => {
     let input = withValidStamdata(empty());
     input = dispatch(input, settle(aarsloenLoenperiodeField.bind(), 'dag'));
     input = dispatch(input, insert(emptyRow('r1')));
@@ -327,7 +328,7 @@ describe('evaluateAarsloenDownloadGate', () => {
     expectBlocked(evaluateAarsloenDownloadGate(projection), 'aarsloen:fatal-calculation-error');
   });
 
-  // M-37: en tom feriesats uden fuld løn under ferie er en MANGEL – «Indtastning mangler», ikke «Fejl i indtastning».
+  // En tom feriesats uden fuld løn under ferie er en MANGEL – «Indtastning mangler», ikke «Fejl i indtastning».
   it('blokerer årslønsdokumentet som mangel ved tom feriesats uden fuld løn under ferie', () => {
     const projection = project(withTomFeriesatsUdenFuldLoen(withValidStamdata(empty())));
     const gate = evaluateAarsloenDownloadGate(projection);
@@ -349,22 +350,18 @@ describe('evaluateAarsloenDownloadGate', () => {
 });
 
 /**
- * Brugerfundet 2026-08-15 og dets klasse.
+ * En lønrække med komplet periode (`11`/`2012`) og INTET beløb er en ren MANGEL og skal svare
+ * «Indtastning mangler» – ellers sendes brugeren ud at lede efter en ugyldig værdi, der ikke findes.
  *
- * Fundet: en lønrække med komplet periode (`11`/`2012`) og INTET beløb blokerede downloaden med
- * «Fejl i indtastning». Det er en ren MANGEL – brugeren blev sendt ud at lede efter en ugyldig værdi,
- * der ikke fandtes.
- *
- * Årsagen var strukturel: gaten kollapsede HELE `tableValidation.errors` til én hardkodet klasse, selv
- * om `TableError.issue` allerede skelnede `invalid` fra `partial_period`/`missing_amount`. Testene her
- * måler derfor hver art for sig OG deres samspil – ikke kun den ene tilstand, fundet beskrev.
+ * Gaten må derfor ikke kollapse HELE `tableValidation.errors` til én klasse: `TableError.issue` skelner
+ * `invalid` fra `partial_period`/`missing_amount`. Testene her måler hver art for sig OG deres samspil.
  *
  * Assertionerne går på den TEKST brugeren læser (`resolveBlockedGateTooltip`), ikke kun på `kind`: det er
- * teksten, fundet handlede om, og en sammenlægning af de to konstanter ville ellers kunne gøre begge
+ * teksten, brugeren handler på, og en sammenlægning af de to konstanter ville ellers kunne gøre begge
  * retninger grønne samtidig.
  */
 describe('evaluateAarsloenDownloadGate – manglende vs. ugyldig indtastning i løntabellen', () => {
-  /** Måned + år udfyldt, men ingen beløb → `missing_amount`. Præcis brugerfundets tilstand. */
+  /** Måned + år udfyldt, men ingen beløb → `missing_amount`. */
   const withCompletePeriodWithoutAmount = (input: SettledInput, id: string, maaned: string): SettledInput => {
     let next = dispatch(input, insert(emptyRow(id)));
     next = dispatch(next, settle(aarsloenTableCol0MaanedField.bind(id), maaned));
@@ -389,7 +386,7 @@ describe('evaluateAarsloenDownloadGate – manglende vs. ugyldig indtastning i l
     return dispatch(next, settle(aarsloenTableCol2Field.bind(id), '1000'));
   };
 
-  it('svarer «Indtastning mangler» på brugerfundets scenarie (komplet periode, intet beløb)', () => {
+  it('svarer «Indtastning mangler» på en komplet periode uden beløb', () => {
     // Række 2 er komplet og gyldig, så tabellen ikke også blokerer af andre grunde.
     let input = withCompletePeriodWithoutAmount(withValidStamdata(empty()), 'r1', '11');
     input = dispatch(input, insert(emptyRow('r2')));
@@ -458,7 +455,7 @@ describe('evaluateAarsloenDownloadGate – manglende vs. ugyldig indtastning i l
 
   /**
    * De to universelle tekster SKAL være forskellige. Uden denne kontrol ville en sammenlægning af
-   * konstanterne gøre alle testene ovenfor grønne på én gang – og fundet ville kunne genopstå usynligt.
+   * konstanterne gøre alle testene ovenfor grønne på én gang – og fejlklassen ville kunne genopstå usynligt.
    */
   it('holder de to brugertekster adskilt', () => {
     expect(DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE).not.toBe(DOWNLOAD_BLOCKED_INVALID_INPUT_MESSAGE);

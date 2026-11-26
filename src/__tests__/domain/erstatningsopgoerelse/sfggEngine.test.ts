@@ -1228,7 +1228,7 @@ describe('computeSygeferiegodtgoerelse', () => {
     );
   });
 
-  // Retten er sammenlagt 4 måneder fra skaden; opgørelse nr. 2 starter ikke grænsen forfra (BB-320).
+  // Retten er sammenlagt 4 måneder fra skaden; opgørelse nr. 2 starter ikke grænsen forfra.
   it('tæller 4-månedersgrænsen over alle TAF-perioder siden skaden, også dem før opgørelsens periode', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.eoNummer = '2';
@@ -1629,7 +1629,7 @@ describe('computeSygeferiegodtgoerelse', () => {
       overenskomstId: 'bygge-anlaeg',
       feriePct: 12.5,
       loenudviklingBeregningsgrundlag: 'Overenskomst',
-      // Referenceperioden (december 2023) skal have løn – en periode uden løn giver ingen sats (BB-319).
+      // Referenceperioden (december 2023) skal have løn – en periode uden løn giver ingen sats.
       indtaegtsoplysningerTableData: [{
         id: 'loen-dec-2023',
         col0_maaned: '12',

@@ -58,10 +58,9 @@ import {
 } from './fieldCodec';
 
 // Inputkernen (§3.3): ét codec pr. inputfamilie, bygget over de EKSISTERENDE godkendte parse-kerner i
-// `../utils/*`. Normaliserings-, infer-, præcisions- og paste-regler er UÆNDREDE (§11). Efter kravændringen
-// 2026-07-18 afviser et codec KUN ugyldigt format/schema-urepræsenterbarhed; en schema-gyldig værdi uden for
-// feltets aktive min/max committes canonical og bærer et afledt bounds-issue fra en feltvalidator (§1.6).
-// Paste-normaliseringen beholder sin min/max-clamp – kun commit-tidens range-afvisning er fjernet.
+// `../utils/*` (§11). Et codec afviser KUN ugyldigt format/schema-urepræsenterbarhed; en schema-gyldig værdi
+// uden for feltets aktive min/max committes canonical og bærer et afledt bounds-issue fra en feltvalidator (§1.6).
+// Paste-normaliseringen beholder sin min/max-clamp – commit-tiden afviser ikke på range.
 
 const initialKey = (pattern: RegExp): ((key: string) => boolean) => (key) => pattern.test(key);
 
@@ -289,8 +288,7 @@ export const createDateFieldCodec = (options: Readonly<{ twoDigitYearPolicy: Dat
   Object.freeze({
     family: 'date',
     // Datoens rå draftlængde er en egenskab ved FORMEN `dd-mm-åååå` og hører derfor på codecet, ikke
-    // på hver flade. Den stod før som en importeret konstant både i `DateField` og i `GridDateCell` –
-    // og GridYearCell greb ved en fejl netop denne dato-konstant til et ÅRSfelt.
+    // på hver flade; en konstant importeret pr. flade kan ved en fejl gribes til et andet felts form (fx et ÅRSfelt).
     maxLength: MAX_DATE_DRAFT_LENGTH,
     parseForSettle: (raw): FieldResolution<ISODateString | undefined> => {
       const parsed = parseDateDraftForCommit(raw, options);
@@ -311,9 +309,9 @@ export const createDateFieldCodec = (options: Readonly<{ twoDigitYearPolicy: Dat
 /**
  * Heltalsfelt.
  *
- * **`maxDigits` er PÅKRÆVET** – samme begrundelse som {@link createTextFieldCodec}. Da grænsen var
- * valgfri, havde 8 af 12 heltalsfelter ingen: «Méngrad» (maksimum 120) og «Tilkendt for periode»
- * (maksimum 10) tog imod 30 cifre og blev først røde bagefter. Cifferloftet er en LÆNGDEregel og
+ * **`maxDigits` er PÅKRÆVET** – samme begrundelse som {@link createTextFieldCodec}. Er grænsen valgfri,
+ * bliver den glemt: et felt som «Méngrad» (maksimum 120) ville tage imod 30 cifre og først blive rødt
+ * bagefter. Cifferloftet er en LÆNGDEregel og
  * blødgør ikke feltets talværdigrænse: en værdi inden for cifferantallet, men uden for `minValue`/
  * `maxValue`, committes fortsat canonical med rød ring og konkret tooltip (§1.2/§1.6).
  */
@@ -356,9 +354,9 @@ export const createIntegerFieldCodec = (
  * Et regnestykke med øre i et decimalløst beløbsfelt («399999,5+0», «1000/3») committes som det afrundede tal.
  *
  * Det persisterede `amountExpressionSchema` regner udtrykket igen med 2 decimaler og kræver, at resultatet er
- * den gemte værdi. Heltalsfeltet afrunder til 0 decimaler (BB-118), så udtryk og værdi ville stride mod
- * hinanden: før denne regel kastede commit'en en ZodError, feltet blev stående med teksten, og beregningen
- * brugte stadig den gamle værdi uden et ord (værdiklasse-gennemgangen 2026-11-24). Et udtryk, der går op i
+ * den gemte værdi. Heltalsfeltet afrunder til 0 decimaler, så udtryk og værdi ville stride mod
+ * hinanden: uden denne regel kaster commit'en en ZodError, feltet bliver stående med teksten, og beregningen
+ * bruger stadig den gamle værdi uden et ord. Et udtryk, der går op i
  * hele kroner, bevares som udtryk.
  */
 const integerAmountExpressionWithRemainderAsNumber = (
@@ -399,8 +397,8 @@ export const createAmountFieldCodec = (options: Readonly<{
     decimalPolicy: options.allowDecimals ? 'decimal' : 'integerOnly',
     parseForSettle: (raw): FieldResolution<AmountValue | undefined> => {
       const parsed = parseAmountInput(raw, {
-        // `displayPrecision` ER decimalpolitikken (BB-118): 0 afrunder «400.000,50» til 400.001, 2 bevarer
-        // ørerne. Feltet afviser ikke længere en indtastet/indsat decimaldel – den afrundes.
+        // `displayPrecision` ER decimalpolitikken: 0 afrunder «400.000,50» til 400.001, 2 bevarer
+        // ørerne. Feltet afviser ikke en indtastet/indsat decimaldel – den afrundes.
         precision: displayPrecision,
         // Fortegn er en canonical bounds-regel; parseren afviser kun format og sikker repræsentation.
         allowNegative: true,
@@ -410,7 +408,7 @@ export const createAmountFieldCodec = (options: Readonly<{
       // Kun format/schema-repræsenterbarhed afvises (§1.6). Aktive min/max vurderes af en canonical
       // feltvalidator på den committede værdi, ikke som en rejection her.
       //
-      // Division med 0 er den ene udtryksfejl med en konkret forklaring (BB-440): `1/0` fik før samme
+      // Division med 0 er den ene udtryksfejl med en konkret forklaring: `1/0` skal ikke have samme
       // generiske besked som det ufuldstændige `1/`. Detaljen bliver både tooltip og «Fejl og advarsler»-tekst.
       if (!parsed.ok) {
         return rejectedResolution(
@@ -431,7 +429,7 @@ export const createAmountFieldCodec = (options: Readonly<{
     // den samme skelnen gennem `containsUnaryMinusToken`.
     acceptsInitialKey: (key) => {
       if (key === '-') return options.allowNegative;
-      // Kommaet åbner editoren i ALLE beløbsfelter (BB-118): et decimalløst felt tager imod decimalen og
+      // Kommaet åbner editoren i ALLE beløbsfelter: et decimalløst felt tager imod decimalen og
       // afrunder den ved settle, så tastetrykket er lovligt og må ikke blokeres her.
       return /^[0-9,()]$/.test(key);
     },
@@ -459,9 +457,9 @@ export type PercentFieldCodecOptions = Readonly<{
    * Vis de decimaler brugeren har givet – ikke flere. `50` vises som «50» og `12,5` som «12,5».
    *
    * Uden den viser et decimal-procentfelt altid to decimaler («50,00»), hvilket læses som en
-   * præcisionsangivelse, brugeren ikke har givet (BB-200). Indtastning, canonicalisering og
-   * beregning er upåvirket: kun `format`/`formatForEdit` skifter. Sat pr. felt og ikke globalt efter
-   * udviklerens afgørelse 2026-09-09; programmets øvrige decimal-procentfelter beholder fast
+   * præcisionsangivelse, brugeren ikke har givet. Indtastning, canonicalisering og
+   * beregning er upåvirket: kun `format`/`formatForEdit` skifter. Bevidst sat pr. felt og ikke globalt;
+   * programmets øvrige decimal-procentfelter beholder fast
    * to-decimal-visning.
    */
   trimTrailingDecimals?: boolean;
@@ -501,7 +499,7 @@ export const createPercentFieldCodec = (
     // så her er minus utvetydigt et fortegn – modsat beløbsfeltets subtraktion.
     acceptsInitialKey: (key) => {
       if (key === '-') return config.allowNegative;
-      // Kommaet åbner editoren i ALLE procentfelter (BB-118); decimalen afrundes ved settle.
+      // Kommaet åbner editoren i ALLE procentfelter; decimalen afrundes ved settle.
       return /^[0-9,]$/.test(key);
     },
     normalizePaste: (raw) => normalizePercentPaste(raw, {
@@ -554,8 +552,8 @@ export const createYearFieldCodec = (config: YearDraftParseConfig): FieldCodec<n
   const formatOnlyConfig: YearDraftParseConfig = { ...config, minYear: undefined, maxYear: undefined };
   return Object.freeze({
     family: 'year',
-    // Årets form ER fire cifre. Tallet stod før hardkodet både i `YearField` (4) og i `GridYearCell`,
-    // hvor det ved en fejl var dato-konstanten (16). Én erklæring, begge flader læser.
+    // Årets form ER fire cifre. Én erklæring, som både `YearField` og `GridYearCell` læser, så fladerne
+    // ikke kan hardkode hver sit tal.
     maxDigits: MAX_YEAR_DIGITS,
     parseForSettle: (raw) => {
       const parsed = parseYearDraftForCommit(trimToAlphanumericEdges(raw), formatOnlyConfig);

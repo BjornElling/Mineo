@@ -5,9 +5,9 @@
  *
  * Baggrund: `@playwright/cli` og `@playwright/mcp` pinner en anden Playwright-runtime end
  * `@playwright/test`. Da begge familier deklarerer kommandoen `playwright`, kan npm kun hejse
- * den ene til `node_modules/.bin/playwright` – og valget er ikke synligt nogen steder. Ramte
- * slottet CLI/MCP-familien, kørte `npx playwright test` testfilerne med en anden runner-instans
- * end den, filerne importerer, og hver eneste E2E-fil fejlede med «did not expect test.describe()
+ * den ene til `node_modules/.bin/playwright` – og valget er ikke synligt nogen steder. Rammer
+ * slottet CLI/MCP-familien, kører `npx playwright test` testfilerne med en anden runner-instans
+ * end den, filerne importerer, og hver eneste E2E-fil fejler med «did not expect test.describe()
  * to be called here», før den overhovedet blev kørt.
  *
  * Kontrollen håndhæver derfor to ting, ikke bare den konkrete Playwright-sag:
@@ -120,8 +120,8 @@ const packageNameFromBinTarget = (target) => {
  *   - Windows: en cmd-/sh-shim, dvs. en almindelig fil hvis INDHOLD nævner pakkestien.
  *
  * Kan ejeren ikke afgøres, rapporteres det som `undetermined` frem for som en forkert ejer.
- * Ellers ville en ulæselig shim ligne en ægte konflikt – præcis den fejl, denne kontrol
- * selv fejlede med i CI, hvor symlinket blev læst som «et ukendt sted».
+ * Ellers ville en ulæselig shim ligne en ægte konflikt, fx i CI, hvor et symlink ellers
+ * læses som «et ukendt sted».
  */
 const resolveInstalledCommandOwner = (repoRoot, command) => {
   const binDirectory = join(repoRoot, 'node_modules', '.bin');

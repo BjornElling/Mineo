@@ -84,7 +84,7 @@ const dispatch = (input: SettledInput, command: AnyInputCommand): SettledInput =
 
 const settle = <T>(field: FieldRef<T>, raw: string): AnyInputCommand => settleField(field, raw) as AnyInputCommand;
 
-// Den angivne løns lønudvikling læses kun under sin egen gren af «Beregnes ud fra» (BB-301).
+// Den angivne løns lønudvikling læses kun under sin egen gren af «Beregnes ud fra».
 const angivetLoen = (): SettledInput => dispatch(empty(), settle(eoBeregnesUdFraField.bind(), 'Angivet månedsløn'));
 
 const contextOf = (input: SettledInput, settings: MineoDocumentGateSettings = GATE_SETTINGS) => createDocumentSourceContext(
@@ -96,7 +96,7 @@ const contextOf = (input: SettledInput, settings: MineoDocumentGateSettings = GA
   settings
 );
 
-describe('DOC-001 – reguleringsdokumentets outputvalg', () => {
+describe('Reguleringsdokumentets outputvalg', () => {
   it('mapper hvert committed grundlag til præcis dets dokumentoutput', () => {
     const expected: ReadonlyArray<readonly [string, ReguleringDocumentOutputId]> = [
       ['Overenskomst', 'regulering'],

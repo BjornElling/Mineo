@@ -4,7 +4,7 @@
  * En toggle er en tilstandskontrol: brugeren klikker og forventer, at knoppen flytter sig. Bliver den
  * stående – fordi en gate afviser ændringen, eller fordi togglen er inaktiv – ligner det ellers et klik,
  * der ikke blev registreret. Rystelsen er det fysiske «nej»: knoppen prøver at flytte sig og bliver
- * stående (udviklerbeslutning 2026-10-28, som genindfører animationen fra før 2026-08-15 uændret).
+ * stående (bevidst valg).
  *
  * Reglen gælder KUN toggles. Grå knapper svarer fortsat tavst på et klik (page-component-contract §11.1a):
  * en knap har ingen tilstand, der kunne have flyttet sig, og dens tooltip forklarer allerede blokeringen.

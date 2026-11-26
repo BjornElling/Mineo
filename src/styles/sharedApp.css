@@ -55,8 +55,7 @@ body {
 
 /*
  * Togglens afvisningsrystelse. Klassen sættes/fjernes af `toggleRefusalShake.ts` på switchens rod;
- * løbetiden dér (TOGGLE_REFUSAL_SHAKE_DURATION_MS) skal matche 0,5 s herunder. Keyframes er uændret
- * fra rystelsen før 2026-08-15.
+ * løbetiden dér (TOGGLE_REFUSAL_SHAKE_DURATION_MS) skal matche 0,5 s herunder.
  */
 @keyframes mineoToggleRefusalShake {
   0%,

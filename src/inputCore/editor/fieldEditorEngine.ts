@@ -84,7 +84,7 @@ export const buildFieldHistoryOrigin = <T>(
   editorLocationId: location.locationId,
   // Route/fane bæres videre som eksplicit navigation-metadata (§3.7), så undo/redo-restoren kan finde tilbage
   // til den rette side/fane. Begge er PÅKRÆVEDE på `EditorLocation`, så destinationen er altid
-  // komplet – den tidligere `route === undefined`-gren dækkede en tilstand, typen ikke længere tillader.
+  // komplet; en `route === undefined`-gren ville dække en tilstand, typen ikke tillader.
   route: location.route,
   tabKey: location.tabKey,
 });

@@ -2,9 +2,9 @@ import type { Page } from '@playwright/test';
 
 import { expect, login, openPage, setFieldValueAndSettle, test } from './support/mineoTest';
 
-// BB-434/BB-437: kortenes flydende knapper flytter sig, når de virker. Andet klik i et dobbeltklik ramte derfor en
+// Kortenes flydende knapper flytter sig, når de virker. Andet klik i et dobbeltklik ville derfor ramme en
 // anden knap («Tilføj» → nabokortets «Flyt op») eller et andet kort (C's «Flyt op» → A's «Flyt op»). Andet klik
-// i samme dobbeltklik er nu tavst. Basisbanen er nok: `MouseEvent.detail` er fælles for motorerne.
+// i samme dobbeltklik er derfor tavst. Basisbanen er nok: `MouseEvent.detail` er fælles for motorerne.
 //
 // Dobbeltklikket er selve adfærden under test, ikke en genvej til at redigere et felt. Det udløses derfor som
 // `click({ clickCount: 2 })` – to klik på samme punkt med `detail` 1 og 2, præcis som et menneskeligt dobbeltklik.
@@ -29,7 +29,7 @@ const aabnLoenindkomst = async (page: Page): Promise<void> => {
 };
 
 test.describe('Lønindkomst – dobbeltklik på kortenes flydende knapper', () => {
-  test('dobbeltklik på «Tilføj» tilføjer ét kort og flytter ikke et eksisterende (BB-434)', async ({
+  test('dobbeltklik på «Tilføj» tilføjer ét kort og flytter ikke et eksisterende', async ({
     page,
     runtimeErrors,
     externalRequests,
@@ -47,7 +47,7 @@ test.describe('Lønindkomst – dobbeltklik på kortenes flydende knapper', () =
     expect(externalRequests).toEqual([]);
   });
 
-  test('dobbeltklik på det sidste korts «Flyt op» flytter kun det kort én plads (BB-437)', async ({
+  test('dobbeltklik på det sidste korts «Flyt op» flytter kun det kort én plads', async ({
     page,
     runtimeErrors,
     externalRequests,

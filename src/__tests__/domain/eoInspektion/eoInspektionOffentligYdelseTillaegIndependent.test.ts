@@ -26,7 +26,7 @@ const buildValues = (): ErstatningsopgoerelseValues => {
   return values;
 };
 
-describe('CALC-006 – uafhængigt facit for offentlig ydelse med tillæg', () => {
+describe('uafhængigt facit for offentlig ydelse med tillæg', () => {
   it('lægger ydelse og tillæg sammen før fordeling på arbejdsdage', () => {
     const model = buildEOInspektionModel(buildValues(), { tafRanges: [] });
     const amounts = model.columnRawValues.get('offentlig:sygedagpenge');

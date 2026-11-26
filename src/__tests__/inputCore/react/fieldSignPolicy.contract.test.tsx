@@ -25,10 +25,10 @@ import { createCollectionRef } from '../../../inputCore/fieldAddress';
 /**
  * Et felts FORTEGNS-politik kommer fra dens descriptor – ét sted, samme svar på alle flader.
  *
- * **Fundet.** Brugeren kunne taste et minustegn som første tegn i et procentfelt, der ikke må være negativt.
- * Årsagen var ikke en manglende `false` på ét callsite: `allowNegative` var erklæret på hvert numerisk codec i
- * produktionskataloget og honoreret af INGENTING. Hver komponent hardkodede sit eget svar, og de var uenige –
- * `GridPercentCell` blokerede minus, `PercentField` tillod det, for de SAMME descriptorer.
+ * **Fejlmåden.** `allowNegative` er erklæret på hvert numerisk codec i produktionskataloget. Honoreres den
+ * ikke, hardkoder hver komponent sit eget svar, og de bliver uenige – én flade blokerer minus, en anden
+ * tillader det for de SAMME descriptorer, og brugeren kan taste et minustegn som første tegn i et
+ * procentfelt, der ikke må være negativt.
  *
  * Testene måler derfor tre lag, fordi en rettelse kun i ét af dem ville efterlade fejlen et andet sted:
  *
@@ -147,8 +147,7 @@ describe('lag 2 – hvert numerisk produktionsfelt ERKLÆRER en politik', () => 
    * Politikken styrer kun tastetrykket. Et ikke-negativt beløbsfelt kan stadig få et negativt RESULTAT gennem et
    * udtryk («1000-3000») eller en indlæst `.eo`-fil, og settle er fortegns-blind (§1.6). Det er feltets egen
    * grænsevalidator, der gør værdien rød – og den skrives pr. felt, mens den afledte resultatgrænse kun dækker
-   * ±9.999.999,99. Uden dette ben ville et nyt beløbsfelt uden grænse tage imod -2000 uden fejl
-   * (værdiklasse-gennemgangen 2026-11-24).
+   * ±9.999.999,99. Uden dette ben ville et nyt beløbsfelt uden grænse tage imod -2000 uden fejl.
    */
   it('hvert ikke-negativt numerisk produktionsfelt giver en feltfejl på en negativ værdi', () => {
     const view = { readCanonical: () => undefined, listEntityIds: () => [] } as never;

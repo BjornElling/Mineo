@@ -10,8 +10,8 @@ import {
 } from '../../overenskomstReguleringShared';
 import type { KonsolideretLoenudvikling } from '../reguleringForm';
 
-// R6 – overenskomst er splittet i to selvindeholdte segment-byggere (privat pakke-indeks og
-// offentlig løntrin), fordi de er to fundamentalt forskellige former der før delte én
+// Overenskomst er splittet i to selvindeholdte segment-byggere (privat pakke-indeks og
+// offentlig løntrin), fordi de er to fundamentalt forskellige former, der ikke bør dele én
 // funktionskrop langs en gren. Dette modul samler det de *faktisk* deler: uniformitets-
 // konsolideringen (i overenskomstForm) plus preamblen her – reference-opslag og det
 // anciennitetstillæg begge byggere anvender som segment-brudpunkt. Selve base-/segment-opslaget deler de ikke, og
@@ -51,7 +51,7 @@ const resolveKonsolideretAnciennitet = (konsolideret: KonsolideretOverenskomst):
 
 /**
  * Bygger den fælles preamble begge segment-byggere ankres i. Fail-closed på manglende/ugyldig
- * reguleringsdato eller ukendt overenskomst (uændret fra den tidligere fælles funktionskrop).
+ * reguleringsdato eller ukendt overenskomst.
  */
 export const buildOverenskomstSegmentContext = (
   konsolideret: KonsolideretOverenskomst

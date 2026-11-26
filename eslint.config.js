@@ -6,9 +6,9 @@ import tsParser from '@typescript-eslint/parser';
 import globals from 'globals';
 
 /**
- * React-reglerne svarer til det tidligere `eslint-plugin-react`-recommended-sæt (pluginet understøtter
+ * React-reglerne svarer til `eslint-plugin-react`s recommended-sæt (pluginet understøtter
  * ikke ESLint 10). Hooks-reglerne ligger fortsat i `eslint-plugin-react-hooks`, så kun de
- * JSX-/DOM-/livscyklusregler, som det gamle sæt dækkede, er slået til her. Dubletter af TypeScripts egen
+ * JSX-/DOM-/livscyklusregler, som det sæt dækker, er slået til her. Dubletter af TypeScripts egen
  * kontrol (udefinerede JSX-navne, dublerede props) og af ESLint 10's native JSX-referencesporing
  * (`jsx-uses-vars`) er udeladt.
  */

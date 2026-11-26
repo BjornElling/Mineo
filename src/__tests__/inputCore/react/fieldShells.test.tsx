@@ -236,7 +236,7 @@ describe('felt-skaller navngiver de faktiske interaktive kontroller', () => {
  *
  * Editoren SKAL være åben først. På et lukket felt kalder `useFormFieldSurface.onKeyDown` selv
  * `preventDefault` for enhver tast, codec'en accepterer som første tegn (tast-initieret åbning, §1.3) –
- * en tidligere version af denne helper målte derfor editor-åbningen og ikke ciffergrænsen.
+ * uden åben editor ville helperen måle editor-åbningen og ikke ciffergrænsen.
  */
 const isKeyBlockedByField = (input: HTMLInputElement, seed: string, key: string): boolean => {
   // Felterne rendres med `singleStageClick`, så mousedown+click åbner editoren i ét trin.
@@ -273,8 +273,7 @@ describe('beløbsfelters ciffergrænse er koblet til komponenterne', () => {
   });
 
   it('AmountField (formular) blokerer den 3. decimal', () => {
-    // Formularen sendte tidligere INTET decimalloft, mens grid-cellen sendte 2 – samme felt-familie,
-    // to adfærd. Denne test er den, der ville være blevet rød dengang.
+    // Formularen og grid-cellen skal sende samme decimalloft (2) – ellers samme felt-familie, to adfærd.
     dispatchInput(store, catalog, insertRow(rentekravRef(), makeRow('r1')), { origin: testRowOrigin() });
     renderField(<AmountField field={belobField.bind('r1')} location={testLocation('amt-3')} name="belob" singleStageClick />);
     const input = screen.getByRole('textbox') as HTMLInputElement;
@@ -382,7 +381,7 @@ describe('grid-felt', () => {
     );
 
     expect(screen.getByRole('textbox')).toHaveAttribute('aria-invalid', 'true');
-    // De TO tekster er forskellige for et `format`-issue (brugerkrav 2026-07-30): a11y-teksten er den fulde
+    // De TO tekster er forskellige for et `format`-issue: a11y-teksten er den fulde
     // besked med citeret feltnavn, mens tooltippet er den generiske. Begge assertes, så en fremtidig ændring
     // ikke kan lade den ene overtage den anden.
     expect(screen.getByText("Der er udfyldt en ugyldig værdi i feltet 'Beløb'")).toBeInTheDocument();

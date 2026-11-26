@@ -23,8 +23,8 @@ export const supplerendeKildePdfFiler = [] as const;
 // Tabel A gælder løbende ydelser efter lov om arbejdsskadesikring (skader fra 1. januar 2004).
 // Tabel D og E angiver kun udvalgte aldre (18, 20, 25, ..., 50-66); § 3 foreskriver mellemliggende faktorer.
 // Tabel D, alder 50, 3 år står i kilden som 2,061 (naboerne 2,608 og 2,599) – en åbenlys slåfejl for 2,601.
-// Udviklerbeslutning 2026-11-12: værdien er rettet til 2,601. Rettelsen meddeles ikke i brugerfladen
-// eller i de genererede dokumenter.
+// Værdien er bevidst rettet til 2,601. Rettelsen meddeles ikke i brugerfladen eller i de genererede
+// dokumenter.
 
 export const kildetabeller = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'] as const;
 

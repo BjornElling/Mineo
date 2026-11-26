@@ -178,7 +178,7 @@ describe('useLoentrinFinder – én hook for begge flader', () => {
     expect(persisted).toContain('af-1');
   }, ASYNC_TEST_TIMEOUT_MS);
 
-  it('fjerner resultaterne, når datoen ændres, og giver hver linje sit eget navn (BB-444/BB-448)', async () => {
+  it('fjerner resultaterne, når datoen ændres, og giver hver linje sit eget navn', async () => {
     const user = userEvent.setup();
     hydrateTwoEmployments();
     renderSurface();
@@ -208,7 +208,7 @@ describe('useLoentrinFinder – én hook for begge flader', () => {
     expect(within(dialog).queryAllByRole('button', { name: /^Indsæt løntrin/ })).toHaveLength(0);
   }, ASYNC_TEST_TIMEOUT_MS);
 
-  it('spærrer indsættelsen, når opslaget bruger en anden løntype end sagens (BB-445)', async () => {
+  it('spærrer indsættelsen, når opslaget bruger en anden løntype end sagens', async () => {
     const user = userEvent.setup();
     hydrateTwoEmployments();
     renderSurface();

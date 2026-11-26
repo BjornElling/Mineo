@@ -14,7 +14,7 @@ import { rentekravBelobField } from '../../../inputCore/catalog/renteberegningDe
 describe('resolvePasteContextDraft', () => {
   // §1.2a punkt 7: resultatet af et paste må ikke afhænge af, om feltet var tomt. Konteksten afgøres
   // derfor af, om paste'en efterlader noget af brugerens tekst – ikke af om editoren er åben.
-  // Brugerfundet BB-042: `010623` blev `01-06-2023` i et tomt felt og `01` i et udfyldt.
+  // Ellers kan `010623` blive `01-06-2023` i et tomt felt og `01` i et udfyldt.
 
   it('har ingen kontekst, når feltet er lukket', () => {
     expect(resolvePasteContextDraft(false, '01-01-2024', 0, 10)).toBe('');
@@ -42,7 +42,7 @@ describe('resolvePasteContextDraft', () => {
     expect(resolvePasteContextDraft(true, '0101', 3, 1)).toBe('0101');
   });
 
-  it('giver samme datofortolkning i et tomt og et fuldt markeret felt (BB-042)', () => {
+  it('giver samme datofortolkning i et tomt og et fuldt markeret felt', () => {
     const codec = createDateFieldCodec({ twoDigitYearPolicy: 'infer' });
     const clipboard = '010623';
     const emptyField = normalizePasteForDraft(

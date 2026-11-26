@@ -161,7 +161,7 @@ describe('check-github-actions-runtime', () => {
     const e2eJob = getWorkflowJob(workflow, 'e2e', 'deploy');
     const requiredProjects = [
       ['webkit-filindlaesning', 'webkit'],
-      ['firefox-fallback-audit', 'firefox'],
+      ['firefox-fallback-filvaelger', 'firefox'],
       ['chromium-service-worker', 'chromium'],
       ['firefox-stamdata-save-load', 'firefox'],
     ] as const;

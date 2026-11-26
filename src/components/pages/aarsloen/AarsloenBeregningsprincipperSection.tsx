@@ -11,7 +11,7 @@ import { AarsloenFuldLoenUnderFerieRow, AarsloenLoenPaaHelligdageRow } from './A
 
 /**
  * Beregningsprincipper: omregning til fuldt år og de felter, den låser op – uden overenskomst også «Fuld løn under
- * ferie» og «Løn på helligdage», der da kun læses af omregningen (BB-353).
+ * ferie» og «Løn på helligdage», der da kun læses af omregningen.
  *
  * Omregning-togglen er et ALMINDELIGT persisteret felt gennem `ToggleField` (§3.2/§3.7) – gaten leveres som dens
  * `commit`-override, så en ugyldig aktivering afvises uden at feltbindingen eller undo/redo-fokusmetadataen
@@ -54,7 +54,7 @@ const AarsloenBeregningsprincipperSection = React.memo(() => {
         </Box>
 
         {/* Uden overenskomst læses ferie-/helligdagsvalget kun af omregningen og står derfor her, lige over det,
-            det styrer (BB-353) – ikke i Lønforhold, hvor det ville dukke op ovenfor ved aktivering. */}
+            det styrer – ikke i Lønforhold, hvor det ville dukke op ovenfor ved aktivering. */}
         {vm.loenforholdValgPlacering === 'beregningsprincipper' && <AarsloenFuldLoenUnderFerieRow />}
 
         {/* Ret til 6. ferieuge – kun synlig hvis IKKE fuld løn under ferie */}
@@ -97,7 +97,7 @@ const AarsloenBeregningsprincipperSection = React.memo(() => {
             <Typography className="row--text">Antal SH-dage i de indtastede perioder:</Typography>
             <Box className="row--label-right-hover__content">
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                {/* Uden resultat er antallet ukendt – «—» som sammentællingen, ikke et opdigtet 0 (BB-099). */}
+                {/* Uden resultat er antallet ukendt – «—» som sammentællingen, ikke et opdigtet 0. */}
                 <Typography className="row--text">{vm.shDageAntal ?? '—'}</Typography>
                 <DocumentDownloadButton
                   onClick={() => void vm.runShDageDownload()}

@@ -12,8 +12,8 @@ import { parseOffentligLoenSelection } from './helpers/offentligLoenSelection';
 
 /**
  * Gul advarsel: «Evt. forhøjet grundløn udover løntrin» er større end selve løntrinnets løn. Typisk et beløb pr.
- * måned angivet pr. time (500 kr./time = 80.165 kr./måned oven på en trinløn på 27.157 kr.). Udviklerafgørelse
- * 2026-10-23 (BB-313): gul ring og linje, ingen spærring.
+ * måned angivet pr. time (500 kr./time = 80.165 kr./måned oven på en trinløn på 27.157 kr.). Bevidst valg: gul
+ * ring og linje, ingen spærring.
  */
 export const FORHOEJET_GRUNDLOEN_STOERRE_END_TRINLOEN_ADVARSEL =
   'Den forhøjede grundløn er større end løntrinnets løn – kontrollér beløb og enhed';
@@ -24,7 +24,7 @@ export type LoentrinetsLoen = Readonly<{ beloeb: number; enhed: 'Time' | 'Måned
  * Løntrinnets løn efter overenskomsttabellen på reguleringsdatoen, i indplaceringens enhed – den enhed, motoren
  * regner tillæg om til (jf. `getGrundloenAngivetPerForOverenskomst`). Kun offentlige overenskomster har et
  * løntrin; `undefined`, når lønnen ikke kan slås op. Sammenligningsgrundlag for de gule advarsler om forhøjet
- * grundløn (BB-313) og anciennitetstillæg (BB-446).
+ * grundløn og anciennitetstillæg.
  */
 export const resolveLoentrinetsLoen = (
   values: ErstatningsopgoerelseValues,

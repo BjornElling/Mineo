@@ -209,9 +209,9 @@ describe('StyledToggleSwitch', () => {
 
   describe('ingen imperativ ref-flade', () => {
     it('eksponerer INTET handle – rystelsen udløses af afvisningen, ikke udefra', () => {
-      // Kontakten havde et `StyledToggleSwitchHandle` med præcis ét medlem, `shake()`, som en gate
-      // skulle huske at kalde. Rystelsen er genindført (udviklerbeslutning 2026-10-28), men ejes nu af
-      // kontakten selv og udløses af en afvist commit – se describe-blokken herunder.
+      // `StyledToggleSwitchHandle` med `shake()`, som en gate skulle huske at kalde, er slettet og må
+      // ikke genindføres. Rystelsen ejes af kontakten selv og udløses af en afvist commit – se
+      // describe-blokken herunder.
       //
       // Testen måler fraværet på den ENESTE måde, der ikke kan blive grøn af tomhed: den renderer
       // komponenten med en ref og fastslår, at intet bliver tildelt. Ville nogen genindføre et

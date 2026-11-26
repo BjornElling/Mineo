@@ -71,12 +71,12 @@ export type ForligModel =
 /**
  * Hvorfor der ikke opgøres et svie/smerte-beløb. Skelnen findes, fordi "der rejses ikke krav" og
  * "kravet findes, men maksimum er udtømt" er to forskellige juridiske udsagn, som dokumentet
- * tidligere gengav med ét og samme ord, «Ingen» (BB-221).
+ * ikke må gengive med ét og samme ord, «Ingen».
  *
  * `maksimumOpbrugt` dækker BEGGE veje til en udtømt ramme – brugerens egen afkrydsning
  * («Tidligere beregnet S/S til max.») og programmets beregning ud fra et indtastet beløb, der
  * æder hele maksimum. De to er beregningsteknisk og forventningsmæssigt samme tilstand og skal
- * derfor behandles ens (BB-219).
+ * derfor behandles ens.
  */
 export type SvieSmerteIngenBeloebAarsag = 'ikkeRejst' | 'maksimumOpbrugt';
 
@@ -136,7 +136,7 @@ export type TabtArbejdsfortjenesteModel = Readonly<{
   eetLinjer: readonly string[];
   /**
    * Forbeholdene (verserende EET-klage, kontanthjælp/ressourceforløbsydelse), i trykkerækkefølge. Trykkes
-   * sidst i opgørelsens TAF-beregning under «Forbehold», én linje hver (BB-233, `helpers/tafForbehold.ts`).
+   * sidst i opgørelsens TAF-beregning under «Forbehold», én linje hver (`helpers/tafForbehold.ts`).
    * Holdes adskilt fra `eetLinjer`, fordi de to TAF-på-år-dokumenter også trykker `eetLinjer`, og
    * forbeholdene om kravets regulering hører til selve opgørelsen.
    */
@@ -287,8 +287,8 @@ export type OevrigeKravModel = Readonly<{
  * `buildErstatningsopgoerelsePdfModelFromComputed` modtager section-modellerne via disse
  * `Omit`-typer, der har fjernet de autoritative beløbs-totaler. Totalerne ejes udelukkende af
  * `EoComputedTotals` (eoCanonicalOutput.ts) og injiceres i PDF-modellen fra canonical.
- * Fordi præsentations-inputtet ikke længere *har* total-felterne, er det en compile-fejl at
- * forwarde et section-afledt total ind i den rendrede model – en re-derivation kan ikke længere
+ * Fordi præsentations-inputtet ikke *har* total-felterne, er det en compile-fejl at
+ * forwarde et section-afledt total ind i den rendrede model – en re-derivation kan ikke
  * lække til PDF/Word-output uden at TypeScript fanger det (jf. eo-snapshot-contract.md §1:
  * "Ingen EO-total må beregnes parallelt i UI-komponenter, PDF-writers eller kontrollag").
  */

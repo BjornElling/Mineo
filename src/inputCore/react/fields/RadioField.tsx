@@ -54,7 +54,7 @@ const RadioField = <TValue extends string>({
   );
 
   // `StyledRadioButton` er generisk i optionernes værditype og mapper DOM-strengen tilbage til den
-  // option, den kom fra. `next` ER derfor `TValue` – det tidligere `as TValue`-cast er unødvendigt.
+  // option, den kom fra. `next` ER derfor `TValue` – et `as TValue`-cast er unødvendigt.
   const handleCommit = React.useCallback(
     (e: CommitEvent<TValue | undefined>): boolean => {
       const next = e.target.value;

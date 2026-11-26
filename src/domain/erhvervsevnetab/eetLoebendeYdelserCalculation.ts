@@ -184,7 +184,7 @@ const collectResolvedAfgoerelser = (
     const eetPct = parsePct(row.eetPct);
     if (eetPct === undefined) continue;
     const afgoerelsesdato = coerceToISODateString(row.afgoerelsesDato);
-    // Uden særskilt virkningsdato har afgørelsen virkning fra afgørelsesdatoen (BB-368); før blev den sprunget tavst over.
+    // Uden særskilt virkningsdato har afgørelsen virkning fra afgørelsesdatoen; før blev den sprunget tavst over.
     const virkningsdato = resolveAslVirkningsdato(row);
     if (!afgoerelsesdato || !virkningsdato || !row.afgoerelseType) continue;
 
@@ -232,7 +232,7 @@ const collectWarnings = (
 
   // Samme prædikat som feltadvarslen på EET %-cellen, så boksen og cellen ikke kan drive fra
   // hinanden. Ordlyden siger nu, at beregningen ikke er lovmæssig, i stedet for at kalde værdien
-  // «ugyldig» – programmet accepterer den, regner på den og trykker den (BB-158).
+  // «ugyldig» – programmet accepterer den, regner på den og trykker den.
   const firstInvalidPctAfter2024 = afgoerelser.find((row) => harEetTitrinAfvigelse(row.eetPct, skadedato));
   if (firstInvalidPctAfter2024) {
     issues.push(
@@ -243,7 +243,7 @@ const collectWarnings = (
     );
   }
 
-  // Reglen ejes af afgørelsestabellen, ikke af denne motor (BB-178): EET efter EAL læser samme
+  // Reglen ejes af afgørelsestabellen, ikke af denne motor: EET efter EAL læser samme
   // rækker og skal give samme advarsel.
   const nonEndeligAfterEndelig = resolveNonEndeligAfterEndeligWarning(afgoerelser);
   if (nonEndeligAfterEndelig !== undefined) {
@@ -251,7 +251,7 @@ const collectWarnings = (
   }
 
   // Tre linjer om ÉN årsag læses som tre problemer, hvor der er ét: beregningsdatoen ligger før
-  // sagens afgørelser (BB-159). Boksen navngiver derfor årsagen i én linje, og de enkelte datoer
+  // sagens afgørelser. Boksen navngiver derfor årsagen i én linje, og de enkelte datoer
   // markeres i stedet ved deres egen celle med `resolveDatoEfterBeregningsdatoWarning`.
   const harDatoEfterBeregningsdato = afgoerelser.some((row) =>
     row.afgoerelsesdato > beregningsdato ||
@@ -347,7 +347,7 @@ const computeEetLoebendeYdelserForContext = (input: Input): EetLoebendeCalculati
   // I EO-importen er TAF-slutdatoen den eneste afgrænsning: løbende EET forudsættes at fortsætte til
   // folkepensionsalderen, medmindre en afgørelse kapitaliseres (eo-snapshot-contract.md §13). EET-sidens
   // beregningsdato er en opgørelsesdato for EET-sidens egne beregninger og læses derfor slet ikke her –
-  // før kunne en tom eller rød EET-beregningsdato spærre importen uden at ændre et eneste beløb.
+  // ellers kunne en tom eller rød EET-beregningsdato spærre importen uden at ændre et eneste beløb.
   // Den eksplicitte context forhindrer omvendt, at TAF-slutdatoen siver ind i EET-sidens beregning.
   const beregningsdato = input.context.kind === 'eo_import'
     ? input.context.slutdato
@@ -677,7 +677,7 @@ export const resolveLoebendeAfgoerelseRestVisning = (
  *
  * Skærm og dokument skrev hver sit regnestykke for samme linje, og dokumentets gik ikke op:
  * generatoren brugte `eetPct` (30) i et udtryk, hvis facit var regnet af `eetPctFoerAktuelKap` (15),
- * så der stod «30 - 5 % = 10 %» (BB-160). Rettelsen er ikke blot at vælge det ene tal: linjen viser
+ * så der stod «30 - 5 % = 10 %». Rettelsen er ikke blot at vælge det ene tal: linjen viser
  * nu hele kæden fra den procentsats, brugeren selv tastede, over fradraget for tidligere
  * kapitalisering til fradraget for den aktuelle – så regnestykket kan følges hele vejen.
  */
@@ -687,7 +687,7 @@ export const formatLoebendeRestEetLinje = (
     'eetPct' | 'priorKapPct' | 'kapPctAktuel' | 'restEetPct' | 'kapitaliseringsdato'
   >
 ): string => {
-  // Udviklerafgørelse 2026-11-20: «65 - 50 % = 15 %» – første led uden %-tegn, og den aktuelle
+  // Fastlagt form: «65 - 50 % = 15 %» – første led uden %-tegn, og den aktuelle
   // kapitalisering uden «kap.», da den efterstillede tekst allerede siger «efter kapitalisering».
   // «tidl. kap.» bevares, fordi det led IKKE er den kapitalisering, teksten efter parentesen nævner.
   const led = [formatAsAmountTrimmed(afgoerelse.eetPct, 4)];
@@ -732,10 +732,10 @@ export const toOphoerAarsagLabel = (
  *
  * To forhold gør en rå «Løbende ydelse ophører»-linje forkert:
  *
- * 1. **Beregningsdatoen er ikke en ophørsgrund** (BB-155). Ydelsen ophører ikke dér; beregningen
+ * 1. **Beregningsdatoen er ikke en ophørsgrund**. Ydelsen ophører ikke dér; beregningen
  *    stopper. De tre øvrige årsager er ægte begivenheder i sagen, og en modpart, der læser
  *    «ophører», kan med rimelighed læse det som en oplysning om ydelsen frem for om opgørelsen.
- * 2. **Ophørsdatoen kan ligge før virkningsdatoen** (BB-154). `finalStop` er det tidligste af fire
+ * 2. **Ophørsdatoen kan ligge før virkningsdatoen**. `finalStop` er det tidligste af fire
  *    kandidater uden gulv ved virkningsdatoen, så en beregningsdato eller folkepensionsdato før
  *    afgørelsens virkning giver et interval, der slutter før det begynder. Det er ikke en
  *    oplysning, men en selvmodsigelse, brugeren skal bruge tid på at afvise – og i
@@ -750,7 +750,7 @@ export type LoebendeOphoerVisning =
 /**
  * Hvor opgørelsen af løbende ydelser slutter. Fanen og det selvstændige dokument opgør til og med
  * beregningsdatoen; differencekravet opgør til og med dagen før, fordi beregningsdagen selv indgår i
- * rest-EET-fradraget (BB-186). Motoren får i begge tilfælde blot en slutdato og kan ikke selv se forskel.
+ * rest-EET-fradraget. Motoren får i begge tilfælde blot en slutdato og kan ikke selv se forskel.
  */
 export type LoebendeOpgoerelsesAfgraensning = 'beregningsdato' | 'dagen-foer-beregningsdato';
 
@@ -768,8 +768,8 @@ export const resolveLoebendeOphoerVisning = (
     switch (afgoerelse.ophoerAarsag) {
       case 'beregningsdato':
         // Det er virkningsdatoen, der ligger efter opgørelsens slutning – afgørelsen kan sagtens være
-        // truffet før (BB-410). I differencekravet er slutningen dagen før beregningsdatoen, og den må
-        // ikke kaldes beregningsdatoen i et dokument, hvis forside viser den rigtige (BB-421).
+        // truffet før. I differencekravet er slutningen dagen før beregningsdatoen, og den må
+        // ikke kaldes beregningsdatoen i et dokument, hvis forside viser den rigtige.
         return {
           kind: 'ingen-periode',
           forklaring: afgraensning === 'dagen-foer-beregningsdato'
@@ -830,7 +830,7 @@ export const visGrundydelseNiveauSkift = (
 
 /** Forklarer hver faktisk overlapdel, også når den giver nul og derfor ikke står i tabellen. */
 /**
- * Note ved en afgørelse, hvis forgænger er tilbageholdt (BB-408/409). Tilbageholdelsen flytter perioder og
+ * Note ved en afgørelse, hvis forgænger er tilbageholdt. Tilbageholdelsen flytter perioder og
  * beløb – og kan fjerne den tidligere afgørelse helt fra et bilag – uden at tabellen selv viser hvorfor.
  */
 export const resolveLoebendeTilbageholdelsesNote = (
@@ -870,8 +870,8 @@ export const resolveLoebendeSkaeringsNote = (
   }).join(' ');
 };
 
-// Afrundingsnoten for «Ydelse/md.» (BB-156) er fjernet efter udviklerafgørelse 2026-11-20: den
-// gengav en fast beregningsregel og var overflødig. Genindfør den ikke.
+// Der er bevidst ingen afrundingsnote for «Ydelse/md.»: den ville gengive en fast beregningsregel og
+// er overflødig. Genindfør den ikke.
 
 export const formatSkadedatoCompact = (iso: ISODateString): string => {
   const [year, month, day] = iso.split('-');

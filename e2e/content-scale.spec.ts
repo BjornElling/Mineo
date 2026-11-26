@@ -385,8 +385,8 @@ test.describe('afgrænset skalering af Mineos arbejdsflade', () => {
     // «Nøjagtig samme formatering som de øvrige fane-labels» er kravet, og den fælles
     // `.tab-item`-regel er mekanismen. Målingen sammenholder de to fanefamiliers FAKTISKE
     // beregnede signatur i browseren – det er den eneste måling, der kan se, om en `sx`-værdi har
-    // overtrumfet klassen igen. Netop det skete: `color: inherit` gjorde etiketten usynlig i mørkt
-    // tema, og `border: none` slettede den blå streg.
+    // overtrumfet klassen – fx gør `color: inherit` etiketten usynlig i mørkt tema, og `border: none`
+    // sletter den blå streg.
     await login(page);
     await openPage(page, 'Indstillinger');
     const kontrolfaner = page.getByRole('checkbox', { name: 'Vis kontrolfaner på Erstatningsopgørelse-side' });

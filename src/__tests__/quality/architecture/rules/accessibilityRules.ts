@@ -6,10 +6,9 @@
  * `AccessibleNameProps`-union, så en navnløs toggle ikke kan type-checke. Typerne rækker imidlertid
  * kun til VORES egne komponenter. En rå `<button>`, en MUI `<IconButton>` eller en `<Fab>` med kun
  * et ikon som barn er ægte JSX uden vores props – dér ville en navnløs kontrol slippe igennem
- * præcis som før.
+ * (fx en hamburger-knap: en `<Button>` med kun et `MenuIcon`).
  *
- * Netop den art fandtes i sidemenuen: hamburger-knappen var en `<Button>` med et `MenuIcon` og en
- * kommentar «Ingen tekst». Reglen lukker den vej strukturelt, så det tredje lag
+ * Reglen lukker den vej strukturelt, så det tredje lag
  * (type → AST → runtime-invariant) tilsammen dækker alle veje til en navnløs kontrol.
  *
  * **Skæringen.** Reglen flager en interaktiv JSX-kontrol, der hverken har
@@ -253,9 +252,8 @@ export const interactiveControlHasAccessibleNameRule = defineRule({
 /**
  * Et betinget valg på en side skal være inaktivt MED årsag: `unavailableReason` (page-component-contract.md §10.5).
  *
- * `disabled` alene gav to fejl, som skulle genopdages side for side: kontakten stod «til», mens den intet gjorde
- * (BB-422 på Differencekrav, samme fejl på EO's «Offentlige ydelser i beregningsperioden reguleres»), og årsagen
- * stod i et info-ikon ved teksten eller slet ikke. `unavailableReason` gør inaktivering og årsag uadskillelige, og
+ * `disabled` alene giver to fejl, som ellers skal genopdages side for side: kontakten står «til», mens den intet
+ * gør, og årsagen står i et info-ikon ved teksten eller slet ikke. `unavailableReason` gør inaktivering og årsag uadskillelige, og
  * kontrollen viser sig da umarkeret. Reglen gælder de persisterede valgkontroller under `src/components/pages`.
  */
 const CONDITIONAL_CHOICE_CONTROLS: ReadonlySet<string> = new Set(['ToggleField', 'MappedToggleField', 'CheckboxField']);

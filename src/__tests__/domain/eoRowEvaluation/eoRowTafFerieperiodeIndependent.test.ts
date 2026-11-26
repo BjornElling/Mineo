@@ -120,7 +120,7 @@ const INDEPENDENT_FERIEPERIODE_VALUES: ErstatningsopgoerelseValues = {
   bilagsnumreOevrigeErstatningskrav: undefined,
 };
 
-describe('CALC-006 – uafhængigt facit for gyldig TAF-ferieperiode', () => {
+describe('uafhængigt facit for gyldig TAF-ferieperiode', () => {
   it('viser den udfyldte ferieperiode i TAF-oversigten', () => {
     const rows = buildEoTaftRows(INDEPENDENT_FERIEPERIODE_VALUES, EMPTY_FIELD_ISSUE_SET, {
       skadedatoISO: iso('2023-01-01'),

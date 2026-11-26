@@ -134,14 +134,14 @@ describe('getStandardLoenTableValidation', () => {
   });
 
   /**
-   * BB-401: readeren skjuler en rød periodecelles værdi, så rækken ankommer med cellen tom. Brugeren har udfyldt den;
+   * Readeren skjuler en rød periodecelles værdi, så rækken ankommer med cellen tom. Brugeren har udfyldt den;
    * den skal kun meldes som ugyldig – ikke også som en manglende periode, der sender brugeren efter et tomt felt.
    */
   it.each([
     ['maaned', 'col0_maaned', 'r1:0', { col1_maaned: '2024' }],
     ['uge', 'col1_uge', 'r1:1', { col0_uge: '01/2024' }],
     ['dag', 'col1_dag', 'r1:1', { col0_dag: toISODateString('2024-01-01') }],
-  ] as const)('melder en rød, udfyldt %s-periodecelle som ugyldig og ikke også som manglende (BB-401)', (loenperiode, colKey, cellKey, partner) => {
+  ] as const)('melder en rød, udfyldt %s-periodecelle som ugyldig og ikke også som manglende', (loenperiode, colKey, cellKey, partner) => {
     const rows = [row('r1', { ...partner, col2: amount(30000) })];
     const result = getStandardLoenTableValidation({
       rows,
@@ -155,7 +155,7 @@ describe('getStandardLoenTableValidation', () => {
     expect(result.summary.firstErrorCell).toEqual({ rowId: 'r1', colKey, reason: 'input' });
   });
 
-  it('melder fortsat en reelt tom partnercelle ved siden af en rød periodecelle (BB-401)', () => {
+  it('melder fortsat en reelt tom partnercelle ved siden af en rød periodecelle', () => {
     const rows = [row('r1', { col2: amount(30000) })];
     const result = getStandardLoenTableValidation({
       rows,

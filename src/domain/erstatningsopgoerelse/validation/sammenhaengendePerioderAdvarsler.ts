@@ -12,7 +12,7 @@ import {
 
 // To rækker, hvor den ene periode begynder dagen efter, at den anden slutter, er én sammenhængende periode
 // skrevet i to rækker. Det er lovligt og regnes med, men er usædvanligt nok til en gul ring og en linje i
-// «Fejl og advarsler» (udviklerønske 2026-10-29). Overlap er en anden – rød – regel (`periodOverlapIssues.ts`);
+// «Fejl og advarsler» (bevidst valg). Overlap er en anden – rød – regel (`periodOverlapIssues.ts`);
 // to sammenhængende perioder overlapper netop ikke.
 
 /** Én sammenhængende periode skrevet i to rækker. `rowId` er den SENESTE række, som også bærer linket. */

@@ -141,7 +141,7 @@ const project = () => {
   return result.input;
 };
 
-describe('DOC-001/DOC-003 – Differencekravs definition og renderer', () => {
+describe('Differencekravs definition og renderer', () => {
   it('fører det håndberegnede Differencekrav-facit gennem definitionen til Word', async () => {
     const input = project();
 

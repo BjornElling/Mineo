@@ -20,7 +20,7 @@ type Employment = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold']
 
 /**
  * Seksmånedersadvarslen skal afspejle, at der ikke længere er NOGEN form for lønydelse fra arbejdsgiveren
- * (udvikleren 2026-10-30, BB-325). Ud over lønkolonnerne tæller derfor også tillæg og arbejdsgiverpension, men
+ * (bevidst valg). Ud over lønkolonnerne tæller derfor også tillæg og arbejdsgiverpension, men
  * kun i Beløb-tilstand, hvor de er indtastede beløb; i Procent-tilstand er de afledt af lønkolonnerne. Bevidst
  * bredere end `hasPositiveSfggIncome`, som afgrænser selve beregningen og ikke ændres af advarslen.
  */
@@ -49,7 +49,7 @@ export const findSfggSixMonthWarningEmploymentIds = (args: Readonly<{
   for (const employment of args.values.loenindkomstAnsaettelsesforhold ?? []) {
     const calculation = args.result.perAnsaettelsesforhold.find((entry) => entry.ansaettelsesforholdId === employment.id);
     if (!calculation || calculation.segments.length === 0) continue;
-    // Uden registreret løn regnes de seks måneder fra sygeferiegodtgørelsens første dag (BB-325, 2026-10-30).
+    // Uden registreret løn regnes de seks måneder fra sygeferiegodtgørelsens første dag.
     const anchor = getLastIncomeDate(employment) ?? calculation.segments[0]?.fra;
     if (!anchor) continue;
     const date = parseISODate(anchor);
@@ -67,9 +67,9 @@ export type SfggGammelReferenceperiodeAdvarsel = Readonly<{
 }>;
 
 /**
- * Afklaringslog 8a (2026-10-13): ved de manuelle reguleringsformer regnes referenceperiodens løn som lønnen på
- * reguleringsdatoen. Slutter perioden mere end 12 måneder før, står satsen ureguleret over et år, og brugeren skal
- * advares (gul ring og gul linje). Reglen fandtes kun som en testet funktion, intet kaldte (BB-324).
+ * Ved de manuelle reguleringsformer regnes referenceperiodens løn som lønnen på reguleringsdatoen (de har intet
+ * niveau før). Slutter perioden mere end 12 måneder før, står satsen ureguleret over et år, og brugeren skal
+ * advares (gul ring og gul linje).
  */
 export const resolveSfggGamleReferenceperiodeAdvarsler = (args: Readonly<{
   values: ErstatningsopgoerelseValues;
@@ -145,7 +145,7 @@ export type SfggManuelDagssatsAdvarsel = Readonly<{
 }>;
 
 /**
- * Udviklerafgørelse 2026-11-24 (BB-450): en manuelt angivet dagssats over en dags registreret løn fra samme
+ * Bevidst valg: en manuelt angivet dagssats over en dags registreret løn fra samme
  * ansættelsesforhold er usædvanlig – typisk en ekstra nulgruppe. Gul ring og gul linje; satsen kan fortsat bruges.
  */
 export const resolveSfggManuelDagssatsAdvarsler = (
@@ -178,8 +178,8 @@ export const buildSfggGammelReferenceperiodeBesked =(reguleringsdato: ISODateStr
 
 /**
  * Seksmånedersadvarslen siger, hvad der er sket, og hvad brugeren kan gøre: ingen løn efter en dato, og at et
- * ophør angives under «Opsagt fra stillingen», hvor retten da ophører. Den gamle tekst nævnte hverken ophør eller
- * hvilken periode, der skulle kontrolleres, og stod med hver sin ordlyd på kortet og i boksen (BB-325).
+ * ophør angives under «Opsagt fra stillingen», hvor retten da ophører. Kortet og boksen deler teksten, så de
+ * ikke får hver sin ordlyd.
  */
 export const buildSfggSeksMaanederBesked = (
   values: Pick<ErstatningsopgoerelseValues, 'loenindkomstAnsaettelsesforhold'>,
@@ -198,7 +198,7 @@ export const buildSfggSeksMaanederBesked = (
 
 /**
  * «Først sygeferiegodtgørelse efter ophør af sygeløn» virker kun gennem lønrækker i erstatningsperioden: uden dem
- * beregnes perioden fuldt, og valget gør intet synligt (BB-326).
+ * beregnes perioden fuldt, og valget gør intet synligt.
  */
 export const SFGG_SYGELOEN_UDEN_LOENRAEKKER_BESKED =
   'Der er ikke registreret sygeløn i EO-perioden – angiv sygelønnen som lønrækker, ellers beregnes sygeferiegodtgørelse for hele perioden';

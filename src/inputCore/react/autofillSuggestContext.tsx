@@ -20,7 +20,7 @@ export type AutofillSuggestProviderProps = Readonly<{
   model: AutofillSuggestModel;
   /**
    * `false` slår autofill fra for hele tabellen, præcis som en tabel uden provider. Bruges af
-   * MinProcesrentes mobilopstilling: autofill vises aldrig i mobilvisning (udviklerbeslutning 2026-11-03).
+   * MinProcesrentes mobilopstilling: autofill vises bevidst aldrig i mobilvisning.
    * Provideren monteres fortsat, så træets form ikke afhænger af flaget.
    */
   enabled?: boolean;

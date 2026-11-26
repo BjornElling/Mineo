@@ -1,7 +1,7 @@
 /**
  * Differencekravets bilagsvalg, som det gælder for det FRISKE snapshot.
  *
- * To invarianter mellem fladen og generatoren (BB-188):
+ * To invarianter mellem fladen og generatoren:
  *
  *  1. «Opgørelse» er ikke et valg, men forsiden. Fladen viser feltet låst til (`lockedOn`), og
  *     generatoren kaster, hvis det mangler. Låsningen skal derfor også gælde KILDEN – ellers ville en

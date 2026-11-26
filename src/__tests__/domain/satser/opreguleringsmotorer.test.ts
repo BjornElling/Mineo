@@ -106,9 +106,9 @@ describe('opreguleringsmotorer', () => {
     });
 
     it('tjekker HVERT år i intervallet for dækning – ensartet med den akkumulerede metode', () => {
-      // Bevidst forening (bruger-beslutning 2026-07-07): ratioen afhænger matematisk kun af
+      // Bevidst valg: ratioen afhænger matematisk kun af
       // de to endepunkter, men dæknings-tjekket dækker hele intervallet, så de to motorer
-      // deler præcis samme fremgangsmåde. Et sparsomt map uden mellemårene fail-closer nu.
+      // deler præcis samme fremgangsmåde. Et sparsomt map uden mellemårene fail-closer.
       const res = opregulerMedAslAarsloensmaksimum(
         { kildeAar: 2022, maalAar: 2026 },
         { 2022: 100, 2026: 116 }
@@ -173,7 +173,7 @@ describe('opreguleringsmotorer', () => {
       const asl = opregulerMedAslAarsloensmaksimum({ kildeAar: 2022, maalAar: 2026 });
       // Akkumuleret reguleringssats: 1.03 * 1.035 * 1.039 * 1.048 ≈ 1.16080 → ~16,08 %
       expect(Math.round(sats.deltaPct * 100) / 100).toBeCloseTo(16.08, 2);
-      // ASL-metoden gav den tidligere (forkerte) værdi ~16,14 %.
+      // ASL-metoden giver ~16,14 % – forkert for en akkumuleret reguleringssats.
       expect(Math.round(asl.deltaPct * 100) / 100).toBeCloseTo(16.14, 2);
       // De to metoder må ikke give samme resultat (forskellige datagrundlag).
       expect(Math.round(sats.deltaPct * 100) / 100).not.toBe(Math.round(asl.deltaPct * 100) / 100);
@@ -308,7 +308,7 @@ describe('opreguleringsmotorer', () => {
 
   describe('fail-closed-konsistens på tværs af de to motorer', () => {
     it('begge motorer fail-closer på et manglende mellemår (ensartet dæknings-tjek)', () => {
-      // Efter foreningen (2026-07-07) tjekker BEGGE motorer hele intervallet for dækning;
+      // BEGGE motorer tjekker hele intervallet for dækning;
       // forskellen er kun matematisk (endepunkts-ratio vs. akkumuleret kæde), ikke i hvilke
       // år der skal være dækket. Map uden 2023 → begge fail-closer med [2023].
       const input = { kildeAar: 2022, maalAar: 2024 };

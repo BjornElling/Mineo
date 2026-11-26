@@ -9,11 +9,10 @@ import { isOffentligOverenskomstId } from '../../../data/overenskomstRates';
  *
  * BAGGRUND: Synligheden af felter og rækker i EO-UI'en styres af betingelser
  * (sektions-toggles, "tidligere beregnet S/S til max", første-opgørelse osv.).
- * Beregningsmotorerne læste tidligere nogle af disse felter ubetinget – fx blev
- * `svieSmerteTidligereTotal` trukket fra svie/smerte-loftet selv ved FØRSTE opgørelse,
- * hvor feltet er skjult i UI'en. Dermed kunne en skjult (irrelevant) indtastning sænke
- * det beregnede krav. Synlighed var i praksis defineret to gange – i UI'en og spejlet i
- * hånden inde i hver motor – og de to definitioner kunne divergere.
+ * Læser en motor et af disse felter ubetinget – fx `svieSmerteTidligereTotal` trukket fra
+ * svie/smerte-loftet ved FØRSTE opgørelse, hvor feltet er skjult i UI'en – kan en skjult
+ * (irrelevant) indtastning sænke det beregnede krav. Defineres synlighed to gange – i UI'en og
+ * spejlet i hånden inde i hver motor – kan de to definitioner divergere.
  *
  * Dette modul er den ENESTE autoritative kilde til "hvilke input er relevante givet de
  * aktuelle valg". Prædikaterne har to roller:
@@ -27,9 +26,9 @@ import { isOffentligOverenskomstId } from '../../../data/overenskomstRates';
  *     inputCores fælles læsegrænse: readeren returnerer feltets tomværdi, `deriveFieldIssueSet`
  *     danner ingen rød ring for det, og et valg, der skjuler et rødt felt, rydder det (§7.5). Dermed
  *     ser ALLE læsere – validatoren, rækkebyggerne, dependency-projektionen, dokumentet – det
- *     skjulte felt som ikke udfyldt, også de ikke-talfødende felter nedenfor. Før var det kun
- *     motorerne, der så de neutraliserede værdier; validatoren fik de rå, så en skjult, halvudfyldt
- *     række spærrede opgørelsen med en fejl, brugeren ikke kunne finde (BB-228, M-32).
+ *     skjulte felt som ikke udfyldt, også de ikke-talfødende felter nedenfor. Så kun motorerne
+ *     neutraliserede værdier, kunne en skjult, halvudfyldt række spærre opgørelsen i validatoren
+ *     med en fejl, brugeren ikke kan finde.
  *     Prædikaterne tager derfor kun de felter, de læser (`Pick`), så en relevansregel kan kalde dem.
  * Fordi UI og beregning læser samme prædikat, kan "skjult i UI" og "ignoreret i beregning"
  * ikke divergere. Predikater der kun gater rene visnings-/dokumentfelter (datoer, klage,
@@ -51,7 +50,7 @@ import { isOffentligOverenskomstId } from '../../../data/overenskomstRates';
  *
  * Relevansen efter mode er derimod IKKE komprimeringen: felterne i en fravalgt gren af «Beregnes ud fra»
  * (og bag «Øvrigt fravær uden løn» eller enheden) bærer descriptor-relevans fra prædikaterne nedenfor, så en
- * skjult værdi i en fravalgt gren hverken spærrer eller fodrer noget (BB-266). En komprimeret, men valgt
+ * skjult værdi i en fravalgt gren hverken spærrer eller fodrer noget. En komprimeret, men valgt
  * gren forbliver relevant.
  */
 
@@ -75,8 +74,8 @@ export const erSvieSmertePeriodeInputRelevant = (
 /**
  * "Svie/smerte-krav i tidligere erstatningsopgørelser" er relevant.
  * Ud over periode-relevansen kræver det, at dette IKKE er første opgørelse – der findes
- * ingen tidligere opgørelse at fradrage ved første opgørelse. Dette er kernen i fejlen:
- * UI'en skjuler feltet ved første opgørelse, men motoren fradrog det alligevel.
+ * ingen tidligere opgørelse at fradrage ved første opgørelse. UI'en skjuler feltet ved første
+ * opgørelse, og motoren må derfor heller ikke fradrage det.
  */
 export const erSvieSmerteTidligereTotalRelevant = (
   values: Pick<ErstatningsopgoerelseValues, 'kravPaaSvieSmerteGodtgoerelse' | 'tidligereSsMax' | 'eoNummer'>
@@ -91,7 +90,7 @@ export const erTabtArbejdsfortjenesteSektionAktiv = (values: Pick<Erstatningsopg
  * TAF-periodernes «Løse ferie-/feriefridage» er relevante: sektionen er aktiv, og TAF opgøres i ARBEJDSDAGE.
  *
  * I måneder fradrages løse feriedage ikke (`tafBeregningsenhed.ts`), og hverken TAF-kravet eller
- * sygeferiegodtgørelsen læser dem – kolonnen skjules da (udviklerafgørelse 2026-09-25, BB-247). Ferie-
+ * sygeferiegodtgørelsen læser dem – kolonnen skjules da (bevidst valg). Ferie-
  * PERIODERNE er derimod ikke omfattet: sygeferiegodtgørelsen bruger dem i begge enheder.
  *
  * Enheden udledes af «Beregnes ud fra» og – ved en beregningsperiode – af lønindkomstens rækker, så
@@ -103,17 +102,17 @@ export const erTafLoseFeriedageRelevant = (
   erTabtArbejdsfortjenesteSektionAktiv(values)
   && computeTafBeregningsenhed(values) === TAF_BEREGNES_SOM.ARBEJDSDAGE;
 
-// ── Beregningsgrundlagets mode-felter (BB-266, BB-263) ─────────────────────────────────────────
+// ── Beregningsgrundlagets mode-felter ─────────────────────────────────────────────────────────
 //
 // Felterne under «Beregnes ud fra» er relevante efter den GREN, de står i – ikke efter, om sektionen er
 // komprimeret ved EO 2+ (komprimerings-undtagelsen i moduldokumentationen gælder fortsat: en skjult, men
-// aktiv gren bliver ved med at fodre beregningen). Før bar ingen af dem relevans, så en værdi i en
-// fravalgt gren – fx 400 fraværsdage bag et slukket «Øvrigt fravær uden løn» – spærrede opgørelsen med en
-// fejl om et felt, brugeren ikke kunne se.
+// aktiv gren bliver ved med at fodre beregningen). Uden relevans ville en værdi i en fravalgt gren – fx 400
+// fraværsdage bag et slukket «Øvrigt fravær uden løn» – spærre opgørelsen med en fejl om et felt, brugeren
+// ikke kan se.
 //
 // Alle felterne – også periodens to datoer – kræver, at TAF-sektionen er aktiv, som sektionens egen synlighed.
-// Periodens datoer fulgte før KUN «Beregnes ud fra», fordi Lønindkomst læser dem som reguleringsdato; uden TAF
-// spærrede en skjult, rød dato så hele opgørelsen (udviklerafgørelse 2026-10-23, BB-301).
+// Periodens datoer må ikke kun følge «Beregnes ud fra», selv om Lønindkomst læser dem som reguleringsdato:
+// uden TAF ville en skjult, rød dato ellers spærre hele opgørelsen.
 
 /** Grundlaget er en beregningsperiode (lønudviklingsblokken på ansættelsesforholdene vises). */
 export const erBeregningsperiodeValgt = (values: Pick<ErstatningsopgoerelseValues, 'beregnesUdFra'>): boolean =>
@@ -133,8 +132,8 @@ export const erBeregningsperiodeInputRelevant = (
  * og TAF opgøres i ARBEJDSDAGE.
  *
  * I måneder fradrages ferie ikke, og intet andet læser de to input: sygeferiegodtgørelsen bruger TAF-afsnittets
- * EGNE ferieperioder, ikke beregningsperiodens (kontrolleret 2026-10-02, BB-263). Felterne skjules da som
- * TAF-periodernes løse feriedage (BB-247). Enheden kan skifte ved en indtastning under Lønindkomst; de skjulte
+ * EGNE ferieperioder, ikke beregningsperiodens. Felterne skjules da som
+ * TAF-periodernes løse feriedage. Enheden kan skifte ved en indtastning under Lønindkomst; de skjulte
  * værdier bevares og kommer tilbage med enheden.
  */
 export const erBeregningsperiodeFerieRelevant = (
@@ -162,12 +161,12 @@ export const erAngivetLoenLoenudviklingRelevant = (
 ): boolean =>
   erAngivetLoenGrenRelevant(values, 'Angivet månedsløn') || erAngivetLoenGrenRelevant(values, 'Angivet dagsløn');
 
-// ── Lønudvikling og anciennitetstillæg (BB-301) ───────────────────────────────────────────────
+// ── Lønudvikling og anciennitetstillæg ────────────────────────────────────────────────────────
 //
 // Blokken findes to steder – pr. ansættelsesforhold ved «Beregningsperiode» og for den angivne løn – og hver
-// reguleringsform åbner sine egne felter. Synligheden stod før KUN som JSX-betingelser, så en rød
-// anciennitetsdato, et rødt løntrin eller en rød manuel dato blev ved med at spærre opgørelsen, efter at
-// brugeren havde valgt en anden form, med et link til et felt, der ikke var på skærmen.
+// reguleringsform åbner sine egne felter. Synligheden må ikke kun stå som JSX-betingelser: ellers bliver en rød
+// anciennitetsdato, et rødt løntrin eller en rød manuel dato ved med at spærre opgørelsen, efter at
+// brugeren har valgt en anden form, med et link til et felt, der ikke er på skærmen.
 
 /** Et felt (eller en tabel) i lønudviklingsblokken, opdelt efter den betingelse, der viser det. */
 export type LoenudviklingFelt =
@@ -220,8 +219,8 @@ export const erLoenudviklingFeltRelevant = (felt: LoenudviklingFelt, input: Loen
       return harOverenskomstValgt(input) && input.harAnciennitetstillaeg;
     case 'loenPaaHelligdageVedAngivetLoen':
       // Under angivet løn læses «Løn på helligdage» kun af de to former, der regner med helligdagene
-      // (overenskomstens SH-regel og den manuelle forms Store Bededag). Ved de øvrige ændrede valget intet
-      // tal, men brugeren skulle tage stilling til det (BB-315).
+      // (overenskomstens SH-regel og den manuelle forms Store Bededag). Ved de øvrige ændrer valget intet
+      // tal, og brugeren skal ikke tage stilling til det.
       return input.grundlag === 'Overenskomst' || input.grundlag === 'Manuelt angivet';
     default: {
       const _exhaustive: never = felt;
@@ -242,9 +241,8 @@ export const erOevrigeKravSektionAktiv = (values: Pick<ErstatningsopgoerelseValu
  * sektionen er aktiv OG `beregnesUdFra === 'Beregningsperiode'`. Ved angivet måneds-/dagsløn er
  * feltet uden virkning.
  *
- * Prædikatet fik sit eget navn her, da togglen flyttede fane. Betingelsen stod tidligere
- * kun som en JSX-condition på EO oplysninger-fanen, og et flyttet felt måtte ikke risikere at få en
- * anden – bredere – synlighed end den, beregningen faktisk har.
+ * Prædikatet har sit eget navn, så betingelsen ikke kun står som en JSX-condition: feltet må ikke
+ * risikere at få en anden – bredere – synlighed end den, beregningen faktisk har.
  */
 export const erOffentligeYdelserReguleringRelevant = (values: ErstatningsopgoerelseValues): boolean =>
   erTabtArbejdsfortjenesteSektionAktiv(values) && values.beregnesUdFra === 'Beregningsperiode';
@@ -275,7 +273,7 @@ export const erSidsteArbejdsdagRelevant = (
 /**
  * «Fuld løn under ferie» læses kun til at udlede TAF-enheden (måneder/arbejdsdage) og ferieadvarslen – begge
  * kun ved «Beregningsperiode». Ved angivet måneds- eller dagsløn er enheden fastlagt af valget, og feltet
- * ændrer intet tal, ingen gate og intet dokument (gennemgået 2026-10-06, BB-285). Det skjules derfor;
+ * ændrer intet tal, ingen gate og intet dokument. Det skjules derfor;
  * værdien bevares og gælder igen, når beregningsperioden vælges.
  */
 export const erFuldLoenUnderFerieRelevant = (

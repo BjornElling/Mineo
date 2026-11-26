@@ -26,15 +26,14 @@ import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schem
 
 // EO's DEKLAREREDE datogrænser skal håndhæves.
 //
-// Fundene var, at datoer før skadedagen – og efter konfigurationens maksimum – kunne AFSLUTTES canonical
-// med `aria-invalid=false`, uden feltfejl, uden tooltip og uden at blokere PDF-gaten. Årsagen var ikke
-// lokal for de tre observerede felter: `dateRanges.ts` deklarerede grænserne, men intet bandt
-// deklarationen til en validator, så 31 af 54 datofelter havde ingen grænser overhovedet.
+// `dateRanges.ts` deklarerer grænserne; binder intet deklarationen til en validator, kan datoer før
+// skadedagen – og efter konfigurationens maksimum – AFSLUTTES canonical med `aria-invalid=false`, uden
+// feltfejl, uden tooltip og uden at blokere PDF-gaten.
 //
-// Testen måler den brugersynlige ende af rettelsen: at et afsluttet input uden for grænserne producerer
+// Testen måler den brugersynlige ende: at et afsluttet input uden for grænserne producerer
 // et `bounds`-issue på FELTETS adresse (den, UI'et tegner den røde ring på) med den KONKRETE besked.
 // `dateFieldsDeclareBounds.test.ts` dækker bredden – hvert eneste datofelt; denne fil dækker dybden for
-// de scenarier, auditten faktisk observerede i browseren.
+// konkrete browserscenarier.
 
 const catalog = getProductionInputCatalog();
 
@@ -78,11 +77,9 @@ const issueAt = (
 const DAGEN_FOER_SKADEN = toISODateString('2019-12-31');
 
 describe('EO’s AES-datofelter afviser datoer før skadedagen', () => {
-  // Auditten afsluttede alle fem som canonical med `aria-invalid=false`, mens Forligsdato – det ENE
-  // felt med en håndskrevet validator – afviste samme værdi. Kontrasten var beviset for, at manglen
-  // lå i bindingen og ikke i reglen.
+  // Alle fem felter afviser datoen gennem bindingens regel – ikke kun Forligsdato med sin egen validator.
   // Hver dato vises kun, når dens afgørelse er truffet («Ja»); ellers er den skjult og dermed ikke
-  // udfyldt (descriptor-relevans, BB-228), og så må den heller ikke blive rød.
+  // udfyldt (descriptor-relevans), og så må den heller ikke blive rød.
   const aesFelter = [
     ['Mén-afgørelsesdato', eoMenAfgoerelseDatoField, { varigeMenAfgorelse: 'Ja', menAfgoerelseDato: DAGEN_FOER_SKADEN }],
     ['Midlertidigt EET-afgørelsesdato', eoMidlertidigEETAfgoerelseDatoField, { midlertidigtEETAfgorelse: 'Ja', midlertidigEETAfgoerelseDato: DAGEN_FOER_SKADEN }],
@@ -133,7 +130,7 @@ describe('EO’s topfelter håndhæver deres deklarerede grænser', () => {
   });
 
   it('«Vedrører periode til» efter konfigurationens maksimum markeres rødt', () => {
-    // Auditten satte til-datoen ét år+ ud i fremtiden og så den blive canonical. Grænsen er
+    // Grænsen er
     // «31-12 året efter indeværende», så en dato langt derude skal give et bounds-issue.
     const langtUdeIFremtiden = toISODateString('2099-12-31');
     const issue = issueAt(

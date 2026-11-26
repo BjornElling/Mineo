@@ -50,7 +50,7 @@ describe('Ældre skader og genoptagelse ved folkepension', () => {
     expect(result.computation?.proformaKapitalisering).toBeNull();
   });
 
-  it('lægger en senere kapitaliseringsdato til grund ved ≤ 2 år til folkepension (udviklerafgørelse 2026-11-13)', () => {
+  it('lægger en senere kapitaliseringsdato til grund ved ≤ 2 år til folkepension', () => {
     const values = {
       ...ERHVERVSEVNETAB_INITIAL_VALUES,
       beregningsdato: toISODateString('2022-12-01'),
@@ -312,7 +312,7 @@ describe('Ældre skader og genoptagelse ved folkepension', () => {
     expect(result.computation?.proformaKapitalisering?.loebendeEetPct).toBe(30);
   });
 
-  // Udviklerafgørelse 2026-11-13: ved genoptagelse fra 1. juli 2024 styrer den nye afgørelsesdato
+  // Bevidst valg: ved genoptagelse fra 1. juli 2024 styrer den nye afgørelsesdato
   // regelvalg og faktor. Født 01-01-1959: folkepension 01-01-2026, toårsgrænse 01-01-2024.
   describe('genoptagelse fra 1. juli 2024', () => {
     const stamdata = {

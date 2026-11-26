@@ -128,7 +128,7 @@ describe('EET kapitalisering – uafhængigt snapshot → Word-facit', () => {
       kapitaliseringsbekendtgoerelseLabel: 'Bkg. 1263/2007, tabel A',
       tabelLabel: 'A',
       folkepensionsalderLabel: '65 år',
-      // Bkg. 1263/2007 § 1, stk. 4 (registreret 2026-11-12); faktoren er uændret, fordi alderen er under 2-årsgrænsen.
+      // Bkg. 1263/2007 § 1, stk. 4; faktoren er uændret, fordi alderen er under 2-årsgrænsen.
       saerfaktor: 1.164,
       alderAar: 48,
       alderMaaneder: 1,

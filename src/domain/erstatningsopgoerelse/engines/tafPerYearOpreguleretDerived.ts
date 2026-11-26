@@ -120,7 +120,7 @@ export const buildTafPerYearOpreguleretBuildOutcome = (
 
   const years: TafOpreguleretYearEntry[] = [];
   // Afrundingen tilhører den samlede årsfordeling, ikke et bestemt år. Den videreføres
-  // derfor uændret og vises særskilt som i årsopgørelsen (udviklerbeslutning 2026-10-18).
+  // derfor uændret og vises særskilt som i årsopgørelsen (bevidst valg).
   let sumOpreguleretOre = tafPerYear.afrundingOre;
 
   for (const yearEntry of tafPerYear.years) {

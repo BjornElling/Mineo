@@ -3,9 +3,9 @@
  * §7.1's FÆLLES feltkontrakt – ÉN invariantliste kørt mod BEGGE adaptere for hver codecfamilie
  * Kørt mod BEGGE adaptere.
  *
- * **Hvad fundet var.** Form-suiterne (`useFieldEditor`, `useFormFieldSurface`) brugte kun `aargangField`
- * med integer-codec, og grid-suiten brugte primært `belobField` med amount-codec. Der fandtes INGEN
- * fælles suite kørt mod begge adaptere pr. familie, som §7.1 kræver. Separate codec-unit-tests
+ * **Hvorfor suiten findes.** Form-suiterne (`useFieldEditor`, `useFormFieldSurface`) bruger kun
+ * `aargangField` med integer-codec, og grid-suiten primært `belobField` med amount-codec. §7.1 kræver en
+ * fælles suite kørt mod begge adaptere pr. familie. Separate codec-unit-tests
  * (`fieldCodecs.test.ts`) og separate surface-tests beviser hver sin halvdel – men ikke
  * KOMPOSITIONEN, og det er dér, en regression i fx dato-, procent- eller choice-felters åbning,
  * paste, settle eller Escape kan ramme én surface uden at nogen fælles kontrakt bliver rød.
@@ -561,9 +561,8 @@ describe('§7.1 fælles feltkontrakt – samme suite mod form OG grid pr. codecf
  * Dækningskontrollen: hver LEVENDE codecfamilie i produktionen skal have en case ovenfor – eller stå
  * på den navngivne liste over familier, hvor produktionen KUN har den ene surface.
  *
- * Familielisten kommer fra produktionskataloget, ikke fra en konstant her. Det er hele grunden til, at
- * `FieldCodec.family` blev indført: en hånd-vedligeholdt liste ville have samme svaghed som den dækning,
- * fundet beskrev – den kan falde bagud uden at nogen kontrol bliver rød.
+ * Familielisten kommer fra produktionskataloget, ikke fra en konstant her. Det er hele grunden til
+ * `FieldCodec.family`: en hånd-vedligeholdt liste kan falde bagud uden at nogen kontrol bliver rød.
  */
 describe('§7.1 dækning – hver levende codecfamilie er dækket eller navngivet som enkelt-surface', () => {
   type FamilySurfaces = Readonly<{ form: readonly string[]; cell: readonly string[] }>;

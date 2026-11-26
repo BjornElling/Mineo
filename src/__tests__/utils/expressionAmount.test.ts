@@ -218,7 +218,7 @@ describe('parseAmountInput', () => {
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.error.kind).toBe('expression');
-    // BB-440: den fælles, konkrete beløbsbesked og den maskinlæsbare årsag, codec'en aflæser.
+    // Den fælles, konkrete beløbsbesked og den maskinlæsbare årsag, codec'en aflæser.
     expect(result.error.message).toBe('Beløbet kan ikke beregnes, fordi der divideres med 0');
     expect(result.error.code).toBe('DIVISION_BY_ZERO');
   });
@@ -259,9 +259,8 @@ describe('parseAmountInput', () => {
   });
 
   it('accepts a long multi-term expression within the real amount raw-length limit', () => {
-    // Regression: feltets faktiske loft (MAX_AMOUNT_RAW_LENGTH) skal rumme 10-15 led
-    // i formatet "xxxxx,xx + yyyyy,yy - zzzz,zz". Tidligere loft (64) afviste disse
-    // gyldige udtryk med en generisk fejl (rød ring + "Ugyldigt beløb").
+    // Feltets faktiske loft (MAX_AMOUNT_RAW_LENGTH) skal rumme 10-15 led i formatet
+    // "xxxxx,xx + yyyyy,yy - zzzz,zz"; et lavere loft (fx 64) afviser gyldige udtryk.
     const terms = Array.from({ length: 12 }, (_unused, i) => {
       const integer = 10000 + i * 111;
       const decimal = ((i * 7) % 100).toString().padStart(2, '0');

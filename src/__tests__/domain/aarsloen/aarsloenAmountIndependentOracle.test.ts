@@ -34,7 +34,7 @@ const values: AarsloenValues = {
   loenPaaHelligdage: LOEN_PAA_HELLIGDAGE.ALMINDELIG,
 };
 
-describe('CALC-002 – uafhængigt facit for direkte tillægsbeløb', () => {
+describe('uafhængigt facit for direkte tillægsbeløb', () => {
   it('summerer beløbstilstandens seks lønkolonner og omregner én måned til et år', () => {
     const result = computeAarsloenBeregning({ values, omregningAktiveret: true });
 

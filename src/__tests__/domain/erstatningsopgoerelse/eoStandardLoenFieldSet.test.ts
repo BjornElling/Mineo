@@ -102,7 +102,7 @@ describe('eoStandardLoenFieldSet', () => {
     expect(resolveStandardLoenTableValidationFromReader(createEoStandardLoenFieldSet('af-2'), reader, 'maaned', 'procent').errors.length).toBeGreaterThan(0);
   });
 
-  // BB-099: den delte tabel viser «—» i de afledte kolonner, når en sats er rød. Satserne bor på
+  // Den delte tabel viser «—» i de afledte kolonner, når en sats er rød. Satserne bor på
   // ansættelsesforholdet, så feltsættet skal binde DETTE forholds satser – ikke naboens.
   describe('hasStandardLoenSatsFejl', () => {
     const buildEoWithSatser = (af1: Partial<ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number]>) => {
@@ -132,7 +132,7 @@ describe('eoStandardLoenFieldSet', () => {
       expect(hasStandardLoenSatsFejl(reader, createEoStandardLoenFieldSet('af-1'), 'beloeb')).toBe(false);
     });
 
-    it('er sand, når fladens kravregel melder en tom påkrævet sats – men ikke i Beløb-tilstand (M-37)', () => {
+    it('er sand, når fladens kravregel melder en tom påkrævet sats – men ikke i Beløb-tilstand', () => {
       const reader = buildReader(buildEoWithSatser({ feriePct: undefined }));
       const fieldSet = createEoStandardLoenFieldSet('af-1');
       expect(hasStandardLoenSatsFejl(reader, fieldSet, 'procent', { satserUkendte: true })).toBe(true);
@@ -141,7 +141,7 @@ describe('eoStandardLoenFieldSet', () => {
     });
   });
 
-  // BB-099, rækkeformen: en rød beløbscelle læses som tom, så rækkens afledte kolonner ellers blev regnet uden den.
+  // Rækkeformen: en rød beløbscelle læses som tom, så rækkens afledte kolonner ellers regnes uden den.
   describe('hasStandardLoenRowBeloebFejl', () => {
     const buildEoWithRows = (rows: readonly StandardLoenTableRow[], tillaegAngivesSom: 'procent' | 'beloeb' = 'procent') => {
       const base = createErstatningsopgoerelseInitialValues();

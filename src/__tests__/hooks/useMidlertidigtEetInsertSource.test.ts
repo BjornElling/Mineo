@@ -147,7 +147,7 @@ describe('buildMidlertidigtEetInsertSource', () => {
     }]);
   });
 
-  it('nævner HVER rød celle i afgørelsen med række, kolonne og årsag – ikke én generisk fejl (BB-407)', () => {
+  it('nævner HVER rød celle i afgørelsen med række, kolonne og årsag – ikke én generisk fejl', () => {
     const source = buildMidlertidigtEetInsertSource(buildEvaluation({
       afgoerelseEetPct: 101,
       rejectedVirkningsdato: '31-02-2026',
@@ -222,11 +222,11 @@ describe('buildMidlertidigtEetInsertSource', () => {
 
     const issue = source.issues?.find((candidate) => candidate.id === 'midlertidigt-eet-faelles-aarsloen-schema-invalid');
     expect(issue).toBeDefined();
-    // Feltets konkrete besked, ikke «… er ikke gyldigt udfyldt» (BB-407).
+    // Feltets konkrete besked, ikke «… er ikke gyldigt udfyldt».
     expect(issue?.message).not.toContain('ikke gyldigt udfyldt');
   });
 
-  it('gengiver ASL-årslønnens konkrete loft, når beløbet er for højt (BB-407)', () => {
+  it('gengiver ASL-årslønnens konkrete loft, når beløbet er for højt', () => {
     const source = buildMidlertidigtEetInsertSource(buildEvaluation({ aslAarsloen: 9000000 }));
 
     const issue = source.issues?.find((candidate) => candidate.id === 'midlertidigt-eet-faelles-aarsloen-schema-invalid');
@@ -284,7 +284,7 @@ describe('buildMidlertidigtEetInsertSource', () => {
         severity: 'error',
       }),
     ]));
-    // Feltets navn og årsag, ikke «Stamdata kunne ikke valideres» (BB-407).
+    // Feltets navn og årsag, ikke «Stamdata kunne ikke valideres».
     expect(source.issues?.some((issue) => issue.message.startsWith('Stamdata kunne ikke valideres'))).toBe(false);
   });
 

@@ -50,8 +50,7 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
   /**
    * ALLE indtastede TAF-perioder siden skaden – også dem før denne opgørelses periode (`buildTafRangesUdenEoPeriode`).
    * Kun 4-månedersgrænsen ved skader før 2015 læser dem: retten er sammenlagt 4 måneder fra tilskadekomsten, og en
-   * ny opgørelse starter ikke en ny periode (udviklerafgørelse 2026-10-24, BB-320). Før talte grænsen kun
-   * `tafRanges`, så opgørelse nr. 2 begyndte forfra.
+   * ny opgørelse starter ikke en ny periode. Talte grænsen kun `tafRanges`, ville opgørelse nr. 2 begynde forfra.
    */
   tafRangesSidenSkaden: readonly IsoRange[];
   /** Lønnens reguleringsopslag pr. ansættelsesforhold (jf. buildSfggReguleringOpslagMap). */

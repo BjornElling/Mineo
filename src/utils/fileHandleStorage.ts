@@ -172,8 +172,7 @@ export const deleteFileHandleFromIndexedDB = async (): Promise<boolean> => {
  * VIGTIGT: ID'et genereres og returneres af denne funktion. UI-laget skal bruge dette ID –
  * IKKE generere sit eget.
  *
- * Handle og metadata skrives i SAMME transaction, så de to nøgler ikke kan komme ud af sync
- * (tidligere blev det koordineret med manuelle `handleDone`/`metaDone`-flag pr. request).
+ * Handle og metadata skrives i SAMME transaction, så de to nøgler ikke kan komme ud af sync.
  */
 export const saveDefaultDirectoryHandle = async (
   directoryHandle: FileSystemDirectoryHandle

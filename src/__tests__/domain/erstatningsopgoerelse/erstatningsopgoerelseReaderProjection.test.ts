@@ -63,7 +63,7 @@ const buildValidEo = (): ErstatningsopgoerelseValues => {
   return {
     ...base,
     eoNummer: 'EO-42',
-    // Øvrige krav-rækken er kun udfyldt, når tabellen vises; bag «Skjul» læses den som tom (BB-228).
+    // Øvrige krav-rækken er kun udfyldt, når tabellen vises; bag «Skjul» læses den som tom.
     kravPaaOevrigeErstatningskrav: 'Ja',
     forligAnsvarsgradProcent: 50,
     forligAnsvarsgradBroek: '',
@@ -71,7 +71,7 @@ const buildValidEo = (): ErstatningsopgoerelseValues => {
     beregnesUdFra: 'Beregningsperiode',
     tafBeregningsperiodeFra: toISODateString('2022-04-01'),
     tafBeregningsperiodeTil: toISODateString('2022-06-30'),
-    // TAF-perioden ligger efter beregningsperioden: et overlap er en rød feltfejl (BB-262) og ville spærre.
+    // TAF-perioden ligger efter beregningsperioden: et overlap er en rød feltfejl og ville spærre.
     tafPerioder: [
       { id: 'taf-1', fra: toISODateString('2022-07-01'), til: toISODateString('2022-09-30'), loseFeriedage: 2 },
     ],
@@ -91,7 +91,7 @@ const buildValidEo = (): ErstatningsopgoerelseValues => {
         loenudviklingBeregningsgrundlag: 'Ingen',
         loenPaaHelligdage: 'Almindelig løn',
         // Uden fuld løn under ferie og med løn i beregningsperioden opgøres TAF i arbejdsdage, så TAF-rækkens
-        // løse feriedage er relevante og læses tilbage (BB-247).
+        // løse feriedage er relevante og læses tilbage.
         fuldLoenUnderFerie: 'Nej',
         indtaegtsoplysningerTableData: [
           {
@@ -572,7 +572,7 @@ describe('buildErstatningsopgoerelseReaderProjection', () => {
   );
 
   // Sygeferiegodtgørelsens referenceperiode-regler projekteres som de øvrige: rød ring på feltet og spærret
-  // beregning (BB-319). Perioden januar 2022 har ingen løn – fixturets eneste lønrække er maj 2022.
+  // beregning. Perioden januar 2022 har ingen løn – fixturets eneste lønrække er maj 2022.
   it('projekterer en referenceperiode uden løn til SFGG-feltet og spærrer beregningen', () => {
     const eo = buildValidEo();
     const reader = buildReader({
@@ -599,7 +599,7 @@ describe('buildErstatningsopgoerelseReaderProjection', () => {
     expect(projection.snapshot.data).toBeNull();
   });
 
-  // BÆRENDE PRINCIP (udviklerafgørelse 2026-10-24, BB-319): referenceperioden må ligge efter – eller hen over –
+  // BÆRENDE PRINCIP (bevidst valg): referenceperioden må ligge efter – eller hen over –
   // skadedatoen. Skadelidte arbejder ofte videre et stykke tid efter skaden eller får fuld løn under sygdom, før
   // sygeforløbet begynder. Den eneste tidsgrænse er før første TAF-periode. Foreslå ALDRIG en grænse ved skadedatoen.
   it('accepterer en referenceperiode efter skadedatoen, når den ligger før første TAF-periode', () => {

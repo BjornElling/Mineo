@@ -81,7 +81,7 @@ import { resolveStamdataDatoReference, type SkadestypeDatoLabel } from '../polic
 //      * ASL-årsløns-reglen (delelig 1.000 / maks i skadesår) → `fieldErrors.faellesAarsloen.aslAarsloen`. Samme
 //        regel bæres af Forsørgertab-slicen af samme grund; `faellesAarsloen.aslAarsloen` er delt mellem dem.
 //      * ASL-afgørelsesrækkernes indbyrdes valideringsfejl (`collectEetAslAfgoerelseValidationIssues`) → sammen med
-//        cellernes egne feltfejl i `fieldErrors.aslAfgoerelser`, én linje pr. rød celle med cellen som mål (BB-406).
+//        cellernes egne feltfejl i `fieldErrors.aslAfgoerelser`, én linje pr. rød celle med cellen som mål.
 //      * Forligs-blokeringen ("begge udfyldt"/brøk > 1/ugyldigt rå draft) føres via `forlig`-argumentet uændret ind.
 //  - Køn-reglen (køn påkrævet ved beregning/kapitalisering før 1. marts 2015) er en ren save-gate-fejl.
 //    Den påvirker derfor ikke beregningsprojektionen.
@@ -210,7 +210,7 @@ const issueOf = <T>(read: ReadFieldResult<T>): FieldIssue | undefined =>
  * Rekonstruerer én committed ASL-afgørelsesrække fra readeren. En celle med rød feltfejl (eetPct/kapPct-bounds)
  * skjules til `undefined`, præcis som readeren gør – rækkevaliderings-collectoren (der udleder de indbyrdes
  * regler) ser derfor samme værdier som beregningen. `fsTilbageholdtEet` er required-choice (tomværdi 'Nej').
- * ALLE rækkens røde feltfejl følger med, så fejloversigten kan nævne hver celle (BB-406).
+ * ALLE rækkens røde feltfejl følger med, så fejloversigten kan nævne hver celle.
  */
 const readCommittedAslRow = (
   reader: InputReader,
@@ -295,7 +295,7 @@ export const buildErhvervsevnetabReaderProjection = (reader: InputReader): Erhve
     skadestype.value,
   ));
   // Snapshottet får ALLE tabellens røde celler – feltfejl og regler – som hver sin linje med sin celle som mål,
-  // præcis som tabellen selv viser dem (BB-406). Før aftog det kun den første.
+  // præcis som tabellen selv viser dem. Før aftog det kun den første.
   const aslAfgoerelserIssues = buildAslAfgoerelserSummaryIssues(
     [...aslRowReads.flatMap(({ fieldIssues }) => fieldIssues), ...aslAfgoerelserRuleFieldIssues],
     aslAfgoerelser,
@@ -330,7 +330,7 @@ export const buildErhvervsevnetabReaderProjection = (reader: InputReader): Erhve
     // Snapshottet aftager skadedato + skadestype fra stamdata (skadelidteFodselsdato læses fra
     // composedValues). De øvrige stamdata-felter er irrelevante for EET-beregningen.
     //
-    // `skadestype` blev LÆST ovenfor, men ikke videregivet (BB-121). Følgen var, at `eetSnapshot`s fire
+    // `skadestype` blev LÆST ovenfor, men ikke videregivet. Følgen var, at `eetSnapshot`s fire
     // opslag af `input.stamdata?.skadestype` altid gav `undefined`, og hele EET-fladen faldt tilbage til
     // «Skadedato»-formen – også ved erhvervssygdom. Uden denne linje virker de skadestype-afledte
     // tekster ikke, uanset hvor mange af dem der rettes.
@@ -369,7 +369,7 @@ export const buildErhvervsevnetabReaderProjection = (reader: InputReader): Erhve
       datoErrorMessage: forligDato.errorMessage,
       // Feltets egne beskeder bæres med, så «Fejl og advarsler» kan skrive den konkrete regel
       // («Procent skal være mellem 1 og 100», «Kan ikke udfylde både procent og brøk») frem for en
-      // generisk «indeholder en ugyldig værdi» (BB-196).
+      // generisk «indeholder en ugyldig værdi».
       procentErrorMessage: forligProcent.errorMessage,
       broekErrorMessage: forligBroek.errorMessage,
       // Et ikke-committbart rå forligsdraft er i modellen en rød reader-feltfejl (format-issue).

@@ -159,7 +159,7 @@ describe('createDocxWriter', () => {
     expect(footerFiles).toEqual([]);
   });
 
-  // NY-12a-1: Word-kanalen gengiver brugertekst tegn for tegn – et ISO-formet fragment i et
+  // Word-kanalen gengiver brugertekst tegn for tegn – et ISO-formet fragment i et
   // journalnummer eller en fritekst omformes ikke til dansk datoformat.
   it('gengiver ISO-formede fragmenter i brevhoved, brødtekst, label/værdi og tabel ordret', async () => {
     const writer = createDocxWriter();

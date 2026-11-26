@@ -93,7 +93,7 @@ export const formatAnvendtReguleringsdatoInfoTooltip = (
 /**
  * Hvordan lønnen faktisk er reguleret i forhold til reguleringsdatoen. Afgør sætningen om lønnen, så papiret
  * ikke siger «tillagt efterfølgende lønstigninger» over en nedregulering eller over et tal uden regulering
- * (BB-314). Læses af motorens segmenter – den anvendte faktor, ikke den valgte form.
+ * Læses af motorens segmenter – den anvendte faktor, ikke den valgte form.
  */
 export type LoenReguleringsforloeb = 'ingen' | 'efterfoelgende' | 'foerOgEfter';
 

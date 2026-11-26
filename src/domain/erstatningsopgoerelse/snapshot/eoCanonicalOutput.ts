@@ -101,8 +101,8 @@ const eoCanonicalOutputSchema = z.object({
   }).strict(),
   svieSmerte: z.object({
     maxApplied: z.boolean(),
-    // Ophørsgrundens to maksimum-tilstande, så EO-kontrollen læser samme udfald som dokumentet
-    // (NY-12b-1). Påvirker ingen beløb.
+    // Ophørsgrundens to maksimum-tilstande, så EO-kontrollen læser samme udfald som dokumentet.
+    // Påvirker ingen beløb.
     maksimumOpbrugtFoerPerioden: z.boolean(),
     maksimumNaaet: z.boolean(),
   }).strict(),

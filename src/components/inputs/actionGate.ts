@@ -8,7 +8,7 @@
  *  2. Årsagen har ÉN visningskanal: tooltippet, og kun ved hover.
  *  3. Et klik på en inaktiv knap er TAVST. Ingen besked, ingen tekstknude, intet visuelt svar.
  *
- * Udviklerbeslutning 2026-08-15: den regel er ikke download-specifik. Den er programmets mønster for
+ * Bevidst valg: den regel er ikke download-specifik. Den er programmets mønster for
  * ENHVER grå knap, og en grå knap må derfor gerne nøjes med en generisk årsag frem for en
  * håndskrevet, handlingsanvisende sætning pr. knap. Det er en bevidst afvejning: forudsigelighed
  * (alle grå knapper svarer ens) over handlingsanvisning (hver knap forklarer sit eget særtilfælde).
@@ -32,7 +32,7 @@ import {
 
 /**
  * Hvorfor en handling er spærret. Bevidst de SAMME to klasser, downloadgaten skelner mellem
- * (`missing-input` / `invalid-input`) – brugerkravet 2026-07-30: «der mangler noget» og «noget er
+ * (`missing-input` / `invalid-input`): «der mangler noget» og «noget er
  * forkert» sender brugeren to forskellige steder hen.
  *
  * `limit` er den tredje klasse, en almindelig knap har brug for, og som en downloadgate ikke kender:

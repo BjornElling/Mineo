@@ -94,7 +94,7 @@ const canonicalViewOf = (reader: ValidationReader): CanonicalView => Object.free
  * reduceren (`clearFieldsHiddenWhileRed`) RYDDER et felt, som en ændring skjuler, mens det bar en rød fejl (§7.5 pkt. 2) –
  * ellers ville en skjult rejection blokere `.eo`-save globalt (§8) uden et felt at pege på. Rydningen og
  * denne tavshed er to halvdele af samme regel: det skjulte er tavst, FORDI det er ryddet. Undtagelsen er et
- * `ubestemt` felt (BB-433): dets afviste råtekst bevares, mens årsagen – selv afvist og synlig – spærrer Gem.
+ * `ubestemt` felt: dets afviste råtekst bevares, mens årsagen – selv afvist og synlig – spærrer Gem.
  */
 export const deriveFieldIssueSet = (
   reader: ValidationReader,
@@ -120,7 +120,7 @@ export const deriveFieldIssueSet = (
 
     const rejected = reader.readRejected(field);
     if (rejected !== undefined) {
-      // Rejected råtekst er efter kravændringen 2026-07-18 altid `format` (§1.6): en schema-repræsenterbar
+      // Rejected råtekst er altid `format` (§1.6): en schema-repræsenterbar
       // out-of-bounds-værdi er canonical og fanges i stedet af validatorerne nedenfor.
       //
       // Et DATOfelt formulerer sin egen tekst her, hvor feltets `dateBounds`-erklæring er kendt. Codec'et
@@ -134,8 +134,8 @@ export const deriveFieldIssueSet = (
         )
         : undefined;
       const detail = dateTooltip === undefined ? rejected.detail : { ...rejected.detail, tooltip: dateTooltip };
-      // Samme princip for en codec-leveret konkret tekst (ugenummeret, BB-296): tooltippet sagde «Uge skal være
-      // mellem 1 og 52 i 2017», mens boksen sagde «ugyldig værdi».
+      // Samme princip for en codec-leveret konkret tekst (ugenummeret): ellers siger tooltippet «Uge skal være
+      // mellem 1 og 52 i 2017», mens boksen siger «ugyldig værdi».
       const specificMessage = typeof detail?.tooltip === 'string' ? detail.tooltip : undefined;
       issues.push(Object.freeze({
         kind: 'field',
@@ -143,13 +143,12 @@ export const deriveFieldIssueSet = (
         severity: 'error',
         field: anyRef,
         reason: rejected.reason,
-        // Den konkrete datotekst er også BESKEDEN, ikke kun tooltippet (BB-128).
+        // Den konkrete datotekst er også BESKEDEN, ikke kun tooltippet.
         //
-        // Teksten blev udledt korrekt, men sat udelukkende som `tooltip`, mens `message` blev ved med at
-        // være den generiske «Der er udfyldt en ugyldig værdi i feltet 'X'». `message` er den, «Fejl og
-        // advarsler» og a11y-laget læser, så de to ender af samme interval svarede med hver sin slags
-        // besked: `01-01-1899` fik den generiske tekst, mens `01-01-2030` fik «Datoen er efter dags dato».
-        // Brugeren, der havde tastet et forkert århundrede, fik at vide, at datoen var «ugyldig» – hvilket
+        // `message` er den, «Fejl og advarsler» og a11y-laget læser. Er den konkrete tekst kun `tooltip`,
+        // svarer de to ender af samme interval med hver sin slags besked: `01-01-1899` får den generiske
+        // «Der er udfyldt en ugyldig værdi i feltet 'X'», mens `01-01-2030` får «Datoen er efter dags dato».
+        // Brugeren, der har tastet et forkert århundrede, får da at vide, at datoen er «ugyldig» – hvilket
         // den ikke er som dato.
         message: specificMessage ?? buildFieldIssueMessage(anyRef),
         ...(detail === undefined ? {} : { detail }),
@@ -311,12 +310,9 @@ export type InputEvaluation = Readonly<{
  * Kobler input, issue-snapshot og token i én factory. Consumers kan derfor ikke ved en fejl sætte et gammelt
  * issue-snapshot sammen med et nyt input/token og eksponere en bounds-fejlende canonical værdi.
  *
- * **Tager ikke `settings`.** Factoryen havde tidligere en generisk `settings: TSettings` plus en
- * valgfri `deriveSettingsFieldIssues`-hook. Ingen produktionskaldssted leverede nogensinde hooken –
- * dens eneste eksercerer var en test af mekanismen selv – så `settings` blev udelukkende dybfrosset
- * og kastet væk. Den frie typeparameter var samtidig den sidste vej, ad hvilken hele `AppSettings`
- * kunne nå evalueringen. En fremtidig settings-læsning her ville derfor kunne
- * ændre et issue uden at indgå i `SOURCE_SETTINGS_KEYS` og altså uden at gøre et optaget
+ * **Tager ikke `settings`.** En generisk `settings: TSettings` og en valgfri `deriveSettingsFieldIssues`-hook
+ * er slettet: intet produktionskaldssted leverede hooken, og den frie typeparameter er en vej, ad hvilken hele
+ * `AppSettings` kan nå evalueringen. En settings-læsning her ville kunne ændre et issue uden at indgå i `SOURCE_SETTINGS_KEYS` og altså uden at gøre et optaget
  * `EvaluationSourceToken` stale.
  *
  * Capabilityen er derfor FJERNET frem for bevogtet – samme afgørelse som inputkernens skrivegrænse.
@@ -375,7 +371,7 @@ export const canonicalOverride = <T>(field: FieldRef<T>, value: T): CanonicalOve
  * selv havde valgt dem. Det er det, der gør varianten sikker: et felt, valget skjuler, er tavst og tomt for enhver
  * læser, ikke kun for den, der husker at filtrere det fra.
  *
- * Bruges af erstatningsopgørelsens TAF-dokumenter, der ikke må spærres af fejl i krav, de ikke viser (BB-370).
+ * Bruges af erstatningsopgørelsens TAF-dokumenter, der ikke må spærres af fejl i krav, de ikke viser.
  * Den indtastede tilstand ændres aldrig – varianten er en ny, uafhængig evaluering med samme token.
  *
  * Returnerer `undefined` for en evaluering, der ikke er dannet af {@link createInputEvaluation}; så findes der

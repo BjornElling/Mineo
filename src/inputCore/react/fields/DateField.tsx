@@ -49,7 +49,7 @@ export type DateFieldProps = Readonly<{
   crossFieldIssue?: FieldIssue;
   /**
    * Ikke-blokerende feltadvarsel (gul ring + tooltip), som i `TextField`. Bruges, når datoen er lovlig, men
-   * usandsynlig i sagens egen sammenhæng – fx en afgørelse dateret efter «Opgørelse lavet den» (BB-242).
+   * usandsynlig i sagens egen sammenhæng – fx en afgørelse dateret efter «Opgørelse lavet den».
    */
   warning?: FieldWarning;
 }>;

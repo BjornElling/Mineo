@@ -68,8 +68,8 @@ const resolveBeggeSider = (values: ErstatningsopgoerelseValues, skadedatoISO: IS
 };
 
 describe('TAF-ophørsgrund: EO-kontrol og dokument vælger samme grund', () => {
-  // BB-425: endelig EET og differencekrav på samme dato. Dokumentet lader differencekravet bringe TAF til
-  // ophør; EO-kontrollen sagde før «Endelig EET-afgørelse».
+  // Endelig EET og differencekrav på samme dato: dokumentet lader differencekravet bringe TAF til ophør, og
+  // EO-kontrollen skal sige det samme – ikke «Endelig EET-afgørelse».
   it('nævner differencekravet begge steder, når endelig EET og differencekrav falder på samme dato', () => {
     const { dokument, kontrol } = resolveBeggeSider(buildValues({
       endeligtEETAfgorelse: 'Ja',

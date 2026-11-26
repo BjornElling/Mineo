@@ -9,7 +9,7 @@ type OverskriftKilde = Readonly<{
 }>;
 
 /**
- * Tillæg til en afgørelses overskrift, når den ellers ville være ordret lig en anden afgørelses (BB-411/M-52).
+ * Tillæg til en afgørelses overskrift, når den ellers ville være ordret lig en anden afgørelses.
  *
  * To afgørelser samme dag med samme procent er gyldige, fx med virkning fra 01-01-2020 og 01-01-2022. De fik
  * begge «Afgørelse 1. juni 2022 (30 %)», og i et dokument, hvor siderne ikke ses samtidig, kunne læseren ikke

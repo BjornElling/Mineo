@@ -195,7 +195,7 @@ const CASES: readonly Case[] = [
     expectedSummary: 'Uddannelse og arbejdssted for sygeferiegodtgørelse er ikke valgt',
     expectedFocus: focus(eoSfggSatsvalgField, 'af-1'),
   },
-  // «SFGG – overenskomst ikke valgt» bærer sin egen tekst og sit eget fokusmål fra row-builderen (BB-330) og er
+  // «SFGG – overenskomst ikke valgt» bærer sin egen tekst og sit eget fokusmål fra row-builderen og er
   // dækket i `eoRowSygeferiegodtgoerelseRows.test.ts`.
   {
     name: 'lønindkomst – manglende arbejdsstedsnavn peger på tekstfeltet',
@@ -204,8 +204,8 @@ const CASES: readonly Case[] = [
     expectedFocus: focus(eoEmploymentFields.navnPaaArbejdssted, 'af-1'),
   },
   // ── Lønudvikling / regulering ─────────────────────────────────────────────
-  // «Valgt regulering» og «KL-/RLTN-oplysninger» bærer selv tekst og feltmål fra builderen (BB-316); de er
-  // dækket i `loenudviklingBrugerblik12i.test.ts`.
+  // «Valgt regulering» og «KL-/RLTN-oplysninger» bærer selv tekst og feltmål fra builderen; de er
+  // dækket i `loenudviklingOgRegulering.test.ts`.
   // ── Mén / EET-datoer ──────────────────────────────────────────────────────
   {
     name: 'mén – afgørelsesdato ikke angivet',

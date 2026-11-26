@@ -47,7 +47,7 @@ describe('resolveAnsaettelsesforholdNavn', () => {
     expect(resolveAnsaettelsesforholdNavn(undefined, 3, navne)).toBe('Ansættelsesforhold 4');
   });
 
-  it('skelner et navn, der rammer et andet korts standardnavn (BB-466)', () => {
+  it('skelner et navn, der rammer et andet korts standardnavn', () => {
     const navne = ['Ansættelsesforhold 2', undefined];
     expect(resolveAnsaettelsesforholdNavn('Ansættelsesforhold 2', 0, navne)).toBe('Ansættelsesforhold 1 (Ansættelsesforhold 2)');
     expect(resolveAnsaettelsesforholdNavn(undefined, 1, navne)).toBe('Ansættelsesforhold 2');
@@ -71,7 +71,7 @@ describe('resolveAnsaettelsesforholdNavn', () => {
 });
 
 describe('formatAnsaettelsesforholdKortOverskrift', () => {
-  it('giver kortets overskrift: nummer altid, navnet i parentes når det er indtastet (BB-438)', () => {
+  it('giver kortets overskrift: nummer altid, navnet i parentes når det er indtastet', () => {
     expect(formatAnsaettelsesforholdKortOverskrift('Fiktiv kommune A', 1)).toBe('Ansættelsesforhold 2 (Fiktiv kommune A)');
     expect(formatAnsaettelsesforholdKortOverskrift('  Netto  ', 0)).toBe('Ansættelsesforhold 1 (Netto)');
     expect(formatAnsaettelsesforholdKortOverskrift(undefined, 1)).toBe('Ansættelsesforhold 2');

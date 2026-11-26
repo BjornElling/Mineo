@@ -13,7 +13,7 @@ const surchargeRates: ReadonlyArray<RateEntry> = [
   { effectiveDate: iso('2010-01-01'), ratePct: 8 },
 ];
 
-describe('CALC-003 – uafhængigt facit for dagtillæg ved satsskift', () => {
+describe('uafhængigt facit for dagtillæg ved satsskift', () => {
   it('lander på 30. juni og deler renten korrekt ved 1. juli', () => {
     const result = computeRentekravRow(
       {

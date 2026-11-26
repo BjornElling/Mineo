@@ -238,8 +238,8 @@ describe('calculateProcessInterestWithRates – null-paths', () => {
 // ─── Satsvalg: to satser, to regler (renteberegning-contract.md §2.10) ───────
 //
 // Referencesatsen er periodisk (slås op pr. halvårsstart), mens tillægssatsen fastlægges ÉN gang
-// ud fra kravets rentedato og gælder hele beregningen. De to regler er bevidst forskellige og har
-// givet forkerte brugervendte tekster før (BB-092/BB-093), så de er hævdet her.
+// ud fra kravets rentedato og gælder hele beregningen. De to regler er bevidst forskellige og let at
+// forveksle i brugervendte tekster, så de er hævdet her.
 
 describe('calculateProcessInterestBreakdownWithRates – satsvalg pr. krav', () => {
   const rates = {

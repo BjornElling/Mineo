@@ -12,7 +12,7 @@ import { varigeMenCollections, varigeMenFields } from './varigeMenDescriptors';
 import { createProductionFieldLocations } from './fieldLocationCatalog';
 
 // Produkt-descriptor-kataloget (§3.2). Det ene statiske katalog over alle persisterede
-// brugerfelter – fusion af de tidligere ti binding-manifester til inputCore-descriptors. Hvert descriptor
+// brugerfelter som inputCore-descriptors. Hvert descriptor
 // ejer id, codec, semantisk tomhed, canonical read/write, label, kontroltype (relevans/validators tilføjes
 // pr. domæneområde). Kataloget valideres ÉN gang i `createInputCatalog`; ingen seal/brand/WeakSet.
 

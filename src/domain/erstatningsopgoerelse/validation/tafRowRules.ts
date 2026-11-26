@@ -10,12 +10,11 @@ import { clampTafRow, resolveTafConstraintBounds } from './tafPeriodConstraints'
 /**
  * TAF- og ferierækkernes regler og deres ordlyd – ÉN kilde for cellen, «Fejl og advarsler» og validatoren.
  *
- * Rækkerne blev før vurderet af to lag hver for sig (M-33): rækkebyggeren og validatoren. Samme mangel fik to
- * ordlyde («Til-dato er ikke angivet» / «Til-dato mangler»), og en regel, der kun stod i validatoren, kunne
- * hverken farve cellen eller linkes (BB-252, BB-253). Reglerne bor nu her, og alle lag læser dem.
+ * Vurderer rækkebyggeren og validatoren hver for sig, får samme mangel to ordlyde, og en regel, der kun står i
+ * validatoren, kan hverken farve cellen eller linkes. Reglerne bor derfor her, og alle lag læser dem.
  */
 
-/** Den faglige betegnelse for rækkens løse fridage: de kan være både feriedage og feriefridage (BB-256). */
+/** Den faglige betegnelse for rækkens løse fridage: de kan være både feriedage og feriefridage. */
 export const TAF_LOSE_FERIEDAGE_LABEL = 'Løse ferie-/feriefridage';
 
 const danish = (iso: ISODateString): string => isoToDanish(iso) ?? iso;
@@ -33,7 +32,7 @@ export type TafLoseFeriedageOverskridelse = Readonly<{
 /**
  * Beskeden står ordret i cellens tooltip og i «Fejl og advarsler». Er rækken afgrænset, navngiver den den talte
  * del: ellers så det ud, som om de løse dage var for mange for hele rækken, selv om den samme indtastning var
- * gyldig, når hele rækken lå i erstatningsperioden (BB-427).
+ * gyldig, når hele rækken lå i erstatningsperioden.
  */
 export const buildTafLoseFeriedageMaxMessage = (overskridelse: TafLoseFeriedageOverskridelse): string => {
   const { maksimum, talteDel } = overskridelse;
@@ -76,7 +75,7 @@ export const resolveTafLoseFeriedageMaksimum = (
 
 /**
  * En TAF-periode uden en eneste arbejdsdag inden for opgørelsen – fx en weekend. Den er næsten altid en
- * tastefejl, og i arbejdsdage bidrager den med nul (BB-257). Advarslen er IKKE-blokerende. En række, der
+ * tastefejl, og i arbejdsdage bidrager den med nul. Advarslen er IKKE-blokerende. En række, der
  * ligger helt uden for opgørelsen, er normaltilstanden fra 2. opgørelse og advares ikke.
  */
 export const TAF_PERIODE_UDEN_ARBEJDSDAGE_MESSAGE = 'Perioden indeholder ingen arbejdsdage';
@@ -109,7 +108,7 @@ export const assessPeriodeDatoMangler = (
 
 /**
  * Rækkens navn, så to rækker med samme mangel aldrig giver ordret samme linje – «Fejl og advarsler» folder
- * ens linjer til én (BB-218), og den anden række forsvandt da uden at blive nævnt (BB-231, BB-253). Navnet
+ * ens linjer til én, og den anden række forsvinder da uden at blive nævnt. Navnet
  * er det, brugeren ser i rækken: datoerne, og for en TAF-række uden datoer de løse feriedage.
  */
 export const buildPeriodeRaekkeNavn = (
@@ -126,8 +125,8 @@ export const buildPeriodeRaekkeNavn = (
 };
 
 /**
- * Rækkens datoer til navnet, også når de er røde. Readeren giver en rød dato som tom, så en omvendt række hed
- * før «Ferieperioden uden datoer», selv om begge datoer står i cellerne (BB-265). Kronologifejlen bærer
+ * Rækkens datoer til navnet, også når de er røde. Readeren giver en rød dato som tom, så en omvendt række ville
+ * ellers hedde «Ferieperioden uden datoer», selv om begge datoer står i cellerne. Kronologifejlen bærer
  * modpartens dato (`detail.counterpart`): fra-cellens issue kender til-datoen og omvendt.
  */
 export const resolvePeriodeNavneDatoer = (
@@ -143,7 +142,7 @@ export const resolvePeriodeNavneDatoer = (
   return { ...(fra === undefined ? {} : { fra }), ...(til === undefined ? {} : { til }) };
 };
 
-/** Én linje pr. tabel om overlap: den røde celles tooltip navngiver modparten (BB-251). */
+/** Én linje pr. tabel om overlap: den røde celles tooltip navngiver modparten. */
 export const TAF_OVERLAP_LINJE = 'Der er overlappende TAF-perioder';
 export const FERIE_OVERLAP_LINJE = 'Der er overlappende ferieperioder';
 export const BEREGNINGSPERIODE_FERIE_OVERLAP_LINJE = 'Der er overlappende ferieperioder i beregningsperioden';

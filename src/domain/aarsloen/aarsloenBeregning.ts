@@ -98,7 +98,7 @@ const computeAarsloenPeriodeOgShDageResults = ({
 /**
  * Periodedata og SH-dage alene – det SH-dage-dokumentet bygger på. Læser kun periodecellerne, valget «Løn på
  * helligdage» og om omregningen er slået til, så en rød sats, overenskomst eller et beløb, som SH-dage ikke bruger,
- * ikke kan spærre dokumentet (samme princip som BB-419).
+ * ikke kan spærre dokumentet: et dokument blokeres kun af de felter, det selv bruger.
  */
 export const computeAarsloenPeriodeOgShDage = (input: AarsloenPeriodeInput): Readonly<{
   periodeData: PeriodeResult | null;
@@ -176,16 +176,16 @@ export const computeAarsloenBeregning = ({
   // regel: descriptorernes `relevance` og `resolveAarsloenCanonicalRangeIssues` spørger om præcis det samme.
   const satserErIBrug = erAarsloenSatsFelterRelevante(tillaegAngivesSom);
   // Ferie-/SH-advarslerne holder satserne op mod «Fuld løn under ferie» og «Løn på helligdage» og følger derfor
-  // samme relevans som de to valgs synlighed – ens i Procent og Overenskomst (BB-353/BB-354). Skjulte
+  // samme relevans som de to valgs synlighed – ens i Procent og Overenskomst. Skjulte
   // ferieugevalg må ikke advare. En SH/SO-sats, overenskomsten selv har fastsat og låst, kan brugeren ikke rette;
-  // den er overenskomstens egen og vurderes ikke (BB-352).
+  // den er overenskomstens egen og vurderes ikke.
   const shSoErLaast = tillaegAngivesSom === 'overenskomst' && resolveAarsloenSatsBindings(values).shSoPct.kind !== 'bruger';
   const fejlmeddelelser = satserErIBrug && erAarsloenLoenforholdValgRelevante({ tillaegAngivesSom, omregningAktiveret }) && periodeData !== null
     ? beregnFejlmeddelelser(feriePct, shSoErLaast ? undefined : shSoPct, fuldLoenUnderFerie, retTilSjetteFerieuge, loenPaaHelligdage, { medtagFerieuge: omregningAktiveret })
     : [];
 
   // Den høje feriesats vurderes, når satserne bruges – i Procent som i Overenskomst og som på Lønindkomst.
-  // Udviklerafgørelse 2026-10-27: gælder også tidligere gemte sager (en ny, ikke-blokerende advarsel efter load).
+  // Gælder bevidst også tidligere gemte sager (en ny, ikke-blokerende advarsel efter load).
   if (satserErIBrug && periodeData !== null) {
     const hoejFerie = resolveHoejFeriePctAdvarsel(feriePct);
     if (hoejFerie !== undefined) fejlmeddelelser.push(hoejFerie);
@@ -203,11 +203,10 @@ export const computeAarsloenBeregning = ({
   else if (shDageAntalResult && isErr(shDageAntalResult)) beregningsFejl = 'Fejl ved beregning af SH-dage';
   else if (beregnetAarsloenResult && isErr(beregnetAarsloenResult)) beregningsFejl = 'Fejl ved beregning af årsløn';
   // En samlet negativ løn kan ikke danne en årsløn. Den spærrer med en navngiven linje som en samlet negativ kilde
-  // på EO (BB-290); før kunne dokumentet hentes med fx «Omregnet årsløn -360.000 kr.» (værdiklasse-gennemgangen
-  // 2026-11-24, fund E, godkendt af udvikleren 2026-11-25).
+  // på EO; ellers kunne dokumentet hentes med fx «Omregnet årsløn -360.000 kr.».
   else if (beregnetAarsloen < 0) beregningsFejl = `Lønnen i tabellen er samlet negativ (${formatAsAmount(beregnetAarsloen, 2)} kr.) – kontrollér lønrækkerne`;
   else if (beregningsDataResult && isErr(beregningsDataResult)) beregningsFejl = 'Fejl ved beregning af omregnet årsløn';
-  // Ingen dage at dele med: omregningen ville vise `0,00 kr.` som en årsløn (BB-400). Fatal, så resultatet er «—»
+  // Ingen dage at dele med: omregningen ville vise `0,00 kr.` som en årsløn. Fatal, så resultatet er «—»
   // og dokumentet spærret. Er det feriedagene, der æder dagene, er det i stedet feltets røde grænse.
   else if (omregningAktiveret && harAarsloenIngenOmregningsdage(beregningsData, loenperiode)) beregningsFejl = AARSLOEN_INGEN_OMREGNINGSDAGE_BESKED;
 

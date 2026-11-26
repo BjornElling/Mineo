@@ -75,7 +75,7 @@ import {
   OVERENSKOMST_SKAL_SLAAS_TIL_BESKED,
 } from '../erstatningsopgoerelse/validation/loenudviklingReguleringsdato';
 
-/** Ydelsescellens feltadresse – linket fra en ydelseslinje fører til netop cellen (BB-291). */
+/** Ydelsescellens feltadresse – linket fra en ydelseslinje fører til netop cellen. */
 const offentligeYdelserCellAddress = (rowId: string, colKey: OffentligeYdelserTableColumnKey): FieldAddress => {
   switch (colKey) {
     case 'fraDato': return eoOffentligeYdelserFraDatoField.bind(rowId).address;
@@ -127,11 +127,11 @@ const resolveSidsteTafKravDato = (
  * afgørelsen normalt medfører for beregningen – her en løbende ydelse, der skal fradrages i TAF – er en
  * FORVENTNING, programmet kun kan påpege. Uoverensstemmelsen er derfor altid en ikke-blokerende advarsel:
  * retten til ydelsen kan være bortfaldet siden afgørelsen, og så er det rigtigt, at ydelsen ikke står der
- * (udviklerafgørelse 2026-09-24, BB-240). Gør aldrig disse rækker til `error`.
+ * (bevidst valg). Gør aldrig disse rækker til `error`.
  *
  * Afgørelsens dato læses som oplysning (`resolveMidlertidigEetDato`) – uden 2011-grænsen og uden klagen,
- * som hører til afskæringen af TAF. Med afskæringsprædikatet var advarslen slukket for alle skader fra
- * 16. juni 2011, netop dér, hvor TAF løber videre og ydelsen skal fradrages (M-34). For en skade før 2011
+ * som hører til afskæringen af TAF. Med afskæringsprædikatet ville advarslen være slukket for alle skader fra
+ * 16. juni 2011, netop dér, hvor TAF løber videre og ydelsen skal fradrages. For en skade før 2011
  * afskærer afgørelsen selv TAF, så «TAF efter datoen» forekommer kun ved en verserende klage – det klarer
  * clampingen i `resolveSidsteTafKravDato` uden en særregel her.
  */
@@ -142,8 +142,8 @@ export const buildEoMidlertidigtEetKonsistensRows = (
   const harYdelser = harMidlertidigtEetYdelser(values);
 
   if (values.midlertidigtEETAfgorelse !== 'Ja') {
-    // Med togglen slået til siger snapshottets EET-linje, om der hentes noget (BB-372); denne linje gælder kun
-    // ydelser, brugeren selv har tastet. Før udløste togglen alene den, også når intet var indtastet eller hentet.
+    // Med togglen slået til siger snapshottets EET-linje, om der hentes noget; denne linje gælder kun ydelser,
+    // brugeren selv har tastet. Togglen alene må ikke udløse den, når intet er indtastet eller hentet.
     if (values.midlertidigtEetFraEetSiden === 'Ja') return [];
     return harYdelser
       ? [{
@@ -158,7 +158,7 @@ export const buildEoMidlertidigtEetKonsistensRows = (
 
   if (harYdelser) return [];
   // En påbegyndt midlertidig-EET-række (fx uden beløb endnu) er indtastet og får sin egen konkrete mangel.
-  // «… ikke indtastet ydelser» ved siden af var usand (samme fejltype som BB-423).
+  // «… ikke indtastet ydelser» ved siden af ville være usand.
   if ((values.offentligeYdelserRows ?? []).some((row) => erMidlertidigtEetYdelsestype(row.ydelsestype))) return [];
   const afgoerelseDato = resolveMidlertidigEetDato(values);
   if (!afgoerelseDato) return [];
@@ -179,13 +179,13 @@ export const buildEoMidlertidigtEetKonsistensRows = (
 
 
 /**
- * Programmet har ikke den valgte private overenskomsts satser på en dato, kortet skal bruge (BB-275).
+ * Programmet har ikke den valgte private overenskomsts satser på en dato, kortet skal bruge.
  *
  * - Ligger datoen, satserne slås op på, før overenskomstens første satsperiode, kan beregningsgrundlaget ikke
- *   regnes: rød, blokerende linje (udviklerafgørelse 2026-10-06). Er datoen den særlige fra-dato, bærer feltet
+ *   regnes: rød, blokerende linje. Er datoen den særlige fra-dato, bærer feltet
  *   selv den røde ring og linjen, og rækken her springes over.
  * - Ligger kun lønrækker før dækningen, regnes deres tillæg uden overenskomstens satser: gul, ikke-blokerende
- *   linje (udviklerafgørelse 2026-10-06).
+ *   linje.
  *
  * Begge kræver procent-tilstand og indtastede lønoplysninger: uden dem bruges satserne ikke.
  */
@@ -245,7 +245,7 @@ const buildOverenskomstSatsDaekningRows = (
 export const buildEoIndkomstRows = (
   values: ErstatningsopgoerelseValues,
   skadedato: ISODateString | undefined,
-  // Ubrugt siden BB-307: de manuelle tabellers røde celler læses nu pr. celle fra `manualReguleringFieldIssues`.
+  // Ubrugt: de manuelle tabellers røde celler læses pr. celle fra `manualReguleringFieldIssues`.
   // Positionen bevares, så kaldestederne ikke flytter argumenter.
   _manualReguleringInputErrors: Readonly<Record<string, true>> = {},
   rowPolicy: EoRowPolicy = DEFAULT_EO_ROW_POLICY,
@@ -254,7 +254,7 @@ export const buildEoIndkomstRows = (
   manualReguleringFieldIssues: Readonly<Record<string, readonly FieldIssue[]>> = {},
   loenindkomstKortFieldIssues: Readonly<Record<string, readonly FieldIssue[]>> = {},
   loenindkomstTableCellIssues: Readonly<Record<string, readonly FieldIssue[]>> = {},
-  /** Den angivne løns egne felter med en rød værdi (BB-306). */
+  /** Den angivne løns egne felter med en rød værdi. */
   angivetLoenFieldIssues: readonly FieldIssue[] = [],
 ): EoRowModel[] => {
   const today = getToday();
@@ -264,7 +264,7 @@ export const buildEoIndkomstRows = (
   const tafBoundaryDates = resolveTafBoundaryDatesInSkadetPeriode(values);
 
   const sections = buildIndkomstSectionStatuses(values, loenindkomstKortFieldIssues);
-  // Et ansættelsesforhold med samlet negativ løn i en periode spærrer (BB-290, `negativeIndkomstkilder.ts`).
+  // Et ansættelsesforhold med samlet negativ løn i en periode spærrer (`negativeIndkomstkilder.ts`).
   const negativeIndkomstkilder = resolveNegativeIndkomstkilder(values, skadedato);
   sections.forEach((section) => {
     const employment = (values.loenindkomstAnsaettelsesforhold ?? []).find((item) => item.id === section.id);
@@ -296,9 +296,8 @@ export const buildEoIndkomstRows = (
       status: section.arbejdsstedNavnStatus,
     });
 
-    // Linjen hedder som satsafsnittets overskrift på skærmen, og beskeden er feltets egen regeltekst (BB-284).
-    // Før stod der fast «Satser på skadedatoen» og «Forkert værdi indtastet i …» – en overskrift, skærmen ikke
-    // viste, og en fejl uden den regel, feltet forklarede i sin tooltip.
+    // Linjen hedder som satsafsnittets overskrift på skærmen, og beskeden er feltets egen regeltekst – ikke en fast
+    // overskrift, skærmen ikke viser, eller en fejl uden den regel, feltet forklarer i sin tooltip.
     rows.push({
       id: `loenindkomst.${section.id}.satserSkadestidspunkt`,
       employmentId: section.id,
@@ -309,9 +308,9 @@ export const buildEoIndkomstRows = (
       status: section.satserStatus,
     });
 
-    // Kortets egne felter med en rød eller gul værdi får hver sin linje med feltets navn og link (BB-277). Før
-    // nåede fx en pensionssats på 150 kun boksen gennem sikkerhedsnettet – uden feltnavn og link – og forsvandt,
-    // så snart en anden fejl stod i boksen.
+    // Kortets egne felter med en rød eller gul værdi får hver sin linje med feltets navn og link. Ellers når fx en
+    // pensionssats på 150 kun boksen gennem sikkerhedsnettet – uden feltnavn og link – og forsvinder, så snart en
+    // anden fejl står i boksen.
     kortFieldIssues.forEach((issue) => {
       const status: EoRowStatus = issue.severity === 'error' ? 'error' : 'warning';
       rows.push({
@@ -346,7 +345,7 @@ export const buildEoIndkomstRows = (
     }
 
     // Én linje pr. lønrække med en fejl eller advarsel, med rækkens navn, cellens egen tekst og link til cellen
-    // (BB-291). Uden linjer står den samlede «Ja»-række, som inspektionen viser.
+    // Uden linjer står den samlede «Ja»-række, som inspektionen viser.
     const tableLines = employment === undefined
       ? []
       : buildLoenindkomstTableLines(values, employment, loenindkomstTableCellIssues[section.id] ?? [], skadedato, today);
@@ -374,7 +373,7 @@ export const buildEoIndkomstRows = (
       });
     });
 
-    // En RØD dato læses som tom af readeren; den har sin egen linje ovenfor og er ikke «ikke indtastet» (BB-277).
+    // En RØD dato læses som tom af readeren; den har sin egen linje ovenfor og er ikke «ikke indtastet».
     if (employment?.ansaettelsesforholdOphoert === true && !sidsteArbejdsdag && !harFeltfejl('sidsteArbejdsdag')) {
       const message = 'Det angives, at skadelidte er opsagt, men sidste dag i ansættelsesforholdet er ikke indtastet';
       rows.push({
@@ -417,12 +416,12 @@ export const buildEoIndkomstRows = (
       : `taf.beregningsgrundlag.loenudvikling.${ansaettelsesforhold.id}`;
 
     // BEVIDST før enhver early return herunder: advarslen er uafhængig af, om reguleringen er
-    // færdigopsat (udviklerbeslutning 2026-09-13). Den skal kunne ses, også mens ansættelsesforholdet
+    // færdigopsat. Den skal kunne ses, også mens ansættelsesforholdet
     // har en blokerende reguleringsfejl – ellers kan brugeren nå at rette fejlen og downloade uden
     // nogensinde at have set advarslen.
     //
     // Ved angivet dagsløn er der aldrig krav på tillægget, og dagsløn slår det fra som standard; en advarsel
-    // ville påtale programmets eget, korrekte valg (BB-267, se `kanDerVaereKravPaaStoreBededagstillaeg`).
+    // ville påtale programmets eget, korrekte valg (se `kanDerVaereKravPaaStoreBededagstillaeg`).
     const storeBededagFravalgtAdvarsel = resolveFravalgtStoreBededagstillaegAdvarsel(
       tafDatoFraStoreBededag, ansaettelsesforhold,
     );
@@ -465,8 +464,8 @@ export const buildEoIndkomstRows = (
     const employmentIdProp = erBeregningsperiode ? { employmentId: ansaettelsesforhold.id } : {};
 
     // Den angivne løns egne felter med en rød værdi får hver sin linje med feltets navn og link – som
-    // ansættelsesforholdets kortfelter (BB-277). Før nåede de kun boksen gennem sikkerhedsnettet, og kun når intet
-    // andet stod der; en rød løntrin under angivet løn blev i stedet meldt som «Løntrin er ikke angivet» (BB-306).
+    // ansættelsesforholdets kortfelter. Ellers når de kun boksen gennem sikkerhedsnettet, og kun når intet andet står
+    // der; et rødt løntrin under angivet løn ville i stedet blive meldt som «Løntrin er ikke angivet».
     if (!erBeregningsperiode) {
       angivetLoenFieldIssues.forEach((issue) => {
         const issueStatus: EoRowStatus = issue.severity === 'error' ? 'error' : 'warning';
@@ -481,15 +480,14 @@ export const buildEoIndkomstRows = (
       });
     }
 
-    // «Valgt regulering». Beskederne bruger feltets eget navn (BB-316): før stod der «Regulering er sat til 'KRL',
-    // men ingen KRL-satstabel er valgt» om et felt, der hedder «Satstabel».
+    // «Valgt regulering». Beskederne bruger feltets eget navn (fx «Satstabel»), ikke reguleringsformens.
     const valgt = ((): Readonly<{ message: string; focusAddress: FieldAddress }> | undefined => {
       if (!loenudviklingBasis) {
         return { message: 'Lønudvikling er ikke angivet', focusAddress: ownerFieldAddress('loenudviklingBeregningsgrundlag') };
       }
       if (loenudviklingBasis === 'Overenskomst' && erBeregningsperiode && !ansaettelsesforhold.harOverenskomst) {
         // Kortets overenskomst er slået fra, men lønudviklingen bygger på den. Linket fører til knappen, ikke til
-        // det skjulte valg (BB-316).
+        // det skjulte valg.
         return {
           message: OVERENSKOMST_SKAL_SLAAS_TIL_BESKED,
           focusAddress: eoEmploymentFields.harOverenskomst.bind(ansaettelsesforhold.id).address,
@@ -541,7 +539,7 @@ export const buildEoIndkomstRows = (
       const trinValue = ansaettelsesforhold.offentligLoenTrin;
       const gruppeValue = ansaettelsesforhold.offentligLoenGruppe;
       // Et rødt løntrin eller en rød gruppe har sin egen linje med feltets tekst; readeren giver dem som tomme her,
-      // så de må ikke også meldes som «ikke angivet». Begge mangler meldes på én gang (BB-316).
+      // så de må ikke også meldes som «ikke angivet». Begge mangler meldes på én gang.
       const trinFejl = harFeltfejl('offentligLoenTrin');
       const gruppeFejl = harFeltfejl('offentligLoenGruppe');
       const manglerTrin = !trinFejl && typeof trinValue !== 'number';
@@ -579,7 +577,7 @@ export const buildEoIndkomstRows = (
         ],
       });
 
-      // En forhøjet grundløn over selve trinlønnen er gul (BB-313): typisk et månedsbeløb angivet pr. time.
+      // En forhøjet grundløn over selve trinlønnen er gul: typisk et månedsbeløb angivet pr. time.
       resolveForhoejetGrundloenAdvarsler(values, { skadedato })
         .filter((advarsel) => advarsel.ownerKey === ansaettelsesforhold.id)
         .forEach((advarsel) => {
@@ -598,8 +596,8 @@ export const buildEoIndkomstRows = (
         });
     }
 
-    // Anciennitetstillægget: slået til uden dato eller sats spærrer (BB-304), og en dato efter erstatningsperioden
-    // advarer (BB-305). Feltrelevansen giver et skjult tillæg som slået fra.
+    // Anciennitetstillægget: slået til uden dato eller sats spærrer, og en dato efter erstatningsperioden
+    // advarer. Feltrelevansen giver et skjult tillæg som slået fra.
     const anciennitetMangel = resolveAnciennitetstillaegMangel(values, ansaettelsesforhold, harFeltfejl);
     if (anciennitetMangel !== undefined) {
       rows.push({
@@ -629,7 +627,7 @@ export const buildEoIndkomstRows = (
           ...(cell === undefined ? {} : { focusTarget: { kind: 'fieldAddress' as const, address: cell.address } }),
           dependsOn: [{ kind: 'id', id: valgtReguleringRowId }],
         });
-    // Et tillæg over selve trinlønnen er gult (BB-446): typisk en månedssats angivet pr. time.
+    // Et tillæg over selve trinlønnen er gult: typisk en månedssats angivet pr. time.
     resolveAnciennitetstillaegOverTrinloenAdvarsler(values, { skadedato })
       .filter((advarsel) => advarsel.ownerKey === ansaettelsesforhold.id)
       .forEach((advarsel) => {
@@ -668,9 +666,9 @@ export const buildEoIndkomstRows = (
     const erManuel = loenudviklingBasis === 'Manuelt angivet' || loenudviklingBasis === 'Manuel procentsats';
     const alleVaerdierRowId = `${loenudviklingRowPrefix}.alleVaerdier`;
 
-    // De manuelle tabeller: én linje pr. rød celle med rækkens navn og cellens egen tekst og link – på begge flader
-    // (BB-307, BB-308, form som BB-291). Før stod kun den første røde celle som «Manuel regulering: Dato», og på EO
-    // oplysninger slet ingen; brugeren så i stedet følgen («'Reguleringsværdi på slut-dato …' er ikke angivet»).
+    // De manuelle tabeller: én linje pr. rød celle med rækkens navn og cellens egen tekst og link – på begge flader,
+    // i samme form som lønindkomsttabellens linjer. Ellers ser brugeren kun følgen («'Reguleringsværdi på
+    // slut-dato …' er ikke angivet») frem for årsagen.
     const manuelCelleRowIds: string[] = [];
     if (erManuel) {
       const aktivTabel = loenudviklingBasis === 'Manuel procentsats'
@@ -738,7 +736,7 @@ export const buildEoIndkomstRows = (
         const procentsatsRows = (ansaettelsesforhold.loenudviklingManuelProcentsatsTableData ?? []).slice(1);
         const aktiveRows = procentsatsRows.filter(isManuelProcentsatsRowAktiv);
         // En procentsats-tabel uden en eneste sats regnes som 0 %, mens papiret skriver «tillagt efterfølgende
-        // lønstigninger». Brugeren har valgt en reguleringsform og glemt satserne (BB-303).
+        // lønstigninger». Brugeren har valgt en reguleringsform og glemt satserne.
         if (aktiveRows.length === 0) {
           return {
             displayValue: 'Nej',
@@ -782,8 +780,7 @@ export const buildEoIndkomstRows = (
       // Supplement-konsistens: bruges et tillæg (feriepenge/SH-SO/fritvalg/AG-pension) på nogle
       // aktive rækker, kræves det udfyldt på ALLE aktive rækker – ellers markeres rækken rød.
       // BEVIDST strengere end validatoren og motoren (som tolker et blankt tillæg som 0 / base-
-      // fallback): udviklerens beslutning 2026-07-04 (regulering-review G13-1) er, at et tomt tillæg
-      // ikke må falde stille tilbage til basissatsen uden en synlig markering. Fjern ikke dette som
+      // fallback): bevidst valg – et tomt tillæg må ikke falde stille tilbage til basissatsen uden en synlig markering. Fjern ikke dette som
       // "unødig" streng-hed – asymmetrien er tilsigtet, ikke drift.
       const usedSupplements = MANUEL_ANGIVET_SUPPLEMENT_FELTER.filter((field) =>
         aktiveRows.some((row) => hasFinitePct(row[field]))
@@ -820,7 +817,7 @@ export const buildEoIndkomstRows = (
       });
     }
 
-    // De manuelle tabellers gule advarsler (BB-302, BB-313) – samme domæneregel som fladens gule ring.
+    // De manuelle tabellers gule advarsler – samme domæneregel som fladens gule ring.
     if (erManuel) {
       resolveManualRegulationWarnings(values, { skadedato }, tafBoundaryDates.last, overenskomstUdloebMaanederGraense)
         .filter((advarsel) => advarsel.ownerKey === ansaettelsesforhold.id)
@@ -859,7 +856,7 @@ export const buildEoIndkomstRows = (
       }
       if (erManuel) {
         // En manuel tabel gælder, til næste række ændrer den: der er intet kildeudløb at måle mod. At den ikke er
-        // ændret i lang tid, er en gul advarsel ovenfor, ikke en manglende reguleringsværdi (BB-302).
+        // ændret i lang tid, er en gul advarsel ovenfor, ikke en manglende reguleringsværdi.
         return { min: anvendtReguleringsdato, max: tafBoundaryDates.last ?? anvendtReguleringsdato };
       }
       return {} as ReguleringsRange;
@@ -868,14 +865,14 @@ export const buildEoIndkomstRows = (
     // Kontrolrækkerne nedenfor er kontroltabellens. Et problem, de finder, meldes i «Fejl og advarsler» af det felt,
     // brugeren skal ændre – reguleringsgrundlagets dækning på «Lønudvikling beregnes ud fra» (eller den særlige
     // fra-dato) og en manglende dato ved sit eget felt. Rækkerne afhænger derfor af de linjer og står kun selv i
-    // boksen, hvis ingen af dem gør – da med en sætning i brugerens sprog, ikke rækkens interne navn (BB-306).
+    // boksen, hvis ingen af dem gør – da med en sætning i brugerens sprog, ikke rækkens interne navn.
     const kildeNavn = resolveReguleringskildeNavn(ansaettelsesforhold);
     const grundlagFocus = { kind: 'fieldAddress' as const, address: ownerFieldAddress('loenudviklingBeregningsgrundlag') };
     const daekningDependsOn: DependencySpec[] = [
       { kind: 'id', id: alleVaerdierRowId },
       { kind: 'id', id: feltRowId('loenudviklingBeregningsgrundlag') },
       { kind: 'id', id: feltRowId('saerligFraDatoRegulering') },
-      // En privat overenskomst uden satser på reguleringsdatoen meldes af kortets satslinje (BB-306).
+      // En privat overenskomst uden satser på reguleringsdatoen meldes af kortets satslinje.
       ...(erBeregningsperiode ? [{ kind: 'id' as const, id: `loenindkomst.${ansaettelsesforhold.id}.overenskomstSatserMangler` }] : []),
       // En manglende reguleringsdato skyldes en manglende skadedato, beregningsperiode eller angivet dato.
       { kind: 'id', id: 'stamdata.skadedato' },
@@ -929,8 +926,8 @@ export const buildEoIndkomstRows = (
         // blokeres med synlig fejl); rækkens 'ok' er en bevidst, sikker asymmetri, ikke tavs
         // under-regulering.
         return {
-          // «Ja» som naborækkerne: værdien dækker slutdatoen, fordi sidste sats videreføres. Før stod kun
-          // «(< 6 måneder)», som ikke svarede på rækkens spørgsmål.
+          // «Ja» som naborækkerne: værdien dækker slutdatoen, fordi sidste sats videreføres. Et blot
+          // «(< 6 måneder)» svarer ikke på rækkens spørgsmål.
           displayValue: `Ja (sidste værdi under ${overenskomstUdloebMaanederGraense} måneder før)`,
           status: 'ok' as EoRowStatus,
           summaryText: undefined,
@@ -1033,7 +1030,7 @@ export const buildEoOffentligeYdelserRows = (
     rows.push({
       id: `offentligeYdelser.${row.id}`,
       label: row.label,
-      // «Ja» som lønindkomstens «Alle lønoplysninger indtastet korrekt»; før stod det engelske «ok» (BB-384).
+      // «Ja» som lønindkomstens «Alle lønoplysninger indtastet korrekt», ikke det interne «ok».
       displayValue: row.status === 'ok' ? 'Ja' : formatStatusMessage(row.status, row.message),
       status: row.status,
       summaryDisplay: row.summaryDisplay ?? 'default',

@@ -36,8 +36,7 @@ type AutoSatsFields = Pick<
 
 /**
  * Satsen, en LØNRÆKKE regner med i et segment. Et utilgængeligt opslag regnes bevidst som 0: lønrækker før
- * overenskomstens første satsperiode får ingen overenskomsttillæg og en gul advarsel (udviklerafgørelse
- * 2026-10-06). Ligger selve reguleringsdatoen før dækningen, er beregningen i stedet spærret.
+ * overenskomstens første satsperiode får ingen overenskomsttillæg og en gul advarsel. Ligger selve reguleringsdatoen før dækningen, er beregningen i stedet spærret.
  */
 const resolveSatsForSegment = (binding: OverenskomstSatsBinding, brugerValue: number | undefined): number | undefined => {
   switch (binding.kind) {
@@ -122,8 +121,8 @@ export const resolveAutoStoreBededagPct = (
 /**
  * Meldes reguleringsdatoen allerede som uden overenskomstsatser for kortet? Det gør den, når satserne faktisk
  * bruges – procent-tilstand og indtastede lønoplysninger – og en privat overenskomst ikke dækker datoen
- * (`buildOverenskomstSatsDaekningRows`, BB-275). Lønudviklingens dækningsregel bruger svaret til ikke at melde
- * samme problem en gang til (udviklerafgørelse 2026-10-23, BB-306).
+ * (`buildOverenskomstSatsDaekningRows`). Lønudviklingens dækningsregel bruger svaret til ikke at melde
+ * samme problem en gang til.
  */
 export const erReguleringsdatoUdenOverenskomstSatserMeldt = (
   af: Pick<LoenindkomstAnsaettelsesforhold, 'harOverenskomst' | 'overenskomstId' | 'tillaegAngivesSom' | 'indtaegtsoplysningerTableData'>,

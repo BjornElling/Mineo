@@ -8,10 +8,8 @@
  * gaten afhængig af, at hver callsite samlede snapshottet korrekt – de øvrige 16 outputs udleder
  * derimod deres gate af en reader-projektion.
  *
- * Beregningsreglerne er bevaret 1:1: samme prædikater, samme rækkefølge, samme koder og samme
- * beskeder. Stamdata er ikke længere en del af denne gate, fordi brevhovedets toggle afgør den
- * separate dokumentafhængighed i definitionen. INPUTTET er ensartet, så gaten nu læser den
- * kanoniske `buildAarsloenReaderProjection` frem for et komponent-samlet objekt.
+ * Stamdata er ikke en del af denne gate, fordi brevhovedets toggle afgør den separate
+ * dokumentafhængighed i definitionen. Gaten læser den kanoniske `buildAarsloenReaderProjection` frem for et komponent-samlet objekt.
  *
  * `calculation === null` er projektionens måde at sige "feltgaten er rød, så motoren blev ikke kaldt"
  * (§3.9). Det er derfor en blokerings-årsag her, ikke en manglende værdi at gætte om.
@@ -34,11 +32,10 @@ import { hasAtLeastOneCompletePeriodRow } from './standardLoenRowCalculations';
 /**
  * Én tabelfejl som en klassificeret blokerings-årsag.
  *
- * **Fundet, der gjorde det nødvendigt (2026-08-15).** Gaten svarede før «Fejl i indtastning» på HELE
- * `tableValidation.errors` gennem én hardkodet klasse. En lønrække med komplet periode (fx `11`/`2012`) og
- * intet beløb giver `missing_amount` – en ren MANGEL – og brugeren blev derfor sendt ud at lede efter en
- * ugyldig værdi, der ikke fandtes. `TableError` bar hele tiden svaret i sin `issue`-diskriminant; kun gaten
- * kastede det væk.
+ * **Hvorfor klassen udledes pr. fejl.** Én hardkodet klasse for HELE `tableValidation.errors` svarer
+ * «Fejl i indtastning» også på en lønrække med komplet periode (fx `11`/`2012`) og intet beløb – en ren
+ * MANGEL (`missing_amount`) – og sender brugeren ud at lede efter en ugyldig værdi, der ikke findes.
+ * `TableError` bærer svaret i sin `issue`-diskriminant.
  *
  * Switchen er UDTØMMENDE: en ny `TableError`-art giver en compile-fejl her, så dens brugerklasse besvares
  * sammen med arten frem for at arve en tilfældig default. `message` er gate-intern diagnostik (tests, logs)
@@ -56,7 +53,7 @@ const toTableBlockingCause = (error: TableError): DocumentBlockingCause => {
       // Rækken er påbegyndt, men periodens anden halvdel mangler.
       return { scope: 'aggregate', kind: 'missing-input', message: 'Ufuldstændig periode i tabel' };
     case 'missing_amount':
-      // Komplet periode uden ét eneste beløb – præcis brugerfundets tilstand.
+      // Komplet periode uden ét eneste beløb.
       return { scope: 'aggregate', kind: 'missing-input', message: 'Manglende beløb i tabelrække' };
   }
 };
@@ -68,12 +65,11 @@ const toTableBlockingCause = (error: TableError): DocumentBlockingCause => {
  * flere, ville et citat af det første skjule de øvrige, og klasseteksten er da det ærlige svar – issuene er
  * `bounds` på canonical værdier, så felterne bærer selv de konkrete grænser.
  *
- * Klasseteksten er «Fejl i indtastning»: en `row`-cause er rød som en feltfejl. Det blev den først
- * 2026-08-15. Før da kiggede `classifyBlockingCauses` kun efter `scope: 'field'`, så to samtidige
- * `row`-årsager faldt helt ned i mangel-grenen og ville have svaret «Indtastning mangler» på udfyldte
- * felter – samme forveksling som brugerfundet, blot i den modsatte retning. Grenen her er et
- * fail-closed sikkerhedsnet (feltvalidatorerne fanger i praksis en out-of-range-sats først, og readeren
- * skjuler da værdien), men hullet lå i den DELTE klassifikation, ikke i denne gren.
+ * Klasseteksten er «Fejl i indtastning»: en `row`-cause er rød som en feltfejl. `classifyBlockingCauses`
+ * skal derfor se på `row` lige så vel som `scope: 'field'`; ellers falder to samtidige `row`-årsager ned i
+ * mangel-grenen og svarer «Indtastning mangler» på udfyldte felter. Grenen her er et fail-closed
+ * sikkerhedsnet (feltvalidatorerne fanger i praksis en out-of-range-sats først, og readeren skjuler da
+ * værdien).
  */
 const blockedByCanonicalRange = (
   projection: AarsloenReaderProjection,
@@ -119,7 +115,7 @@ export const evaluateAarsloenDownloadGate = (
   if (values.tableData.length === 0) {
     return blockDocumentDownload({ code: 'aarsloen:no-table-data', message: 'Ingen data i tabel' });
   }
-  // Gentagne rækker spærrer ikke længere (udviklerafgørelse 2026-10-19, BB-289): de er en gul advarsel.
+  // Gentagne rækker spærrer bevidst ikke: de er en gul advarsel.
   const feriedageBlocked = blockedByFeriedageOverPerioden(projection, 'aarsloen:feriedage-over-perioden');
   if (feriedageBlocked) return feriedageBlocked;
   if (tableValidation.errors.length > 0) {
@@ -133,19 +129,16 @@ export const evaluateAarsloenDownloadGate = (
       'Valideringsfejl i tabel'
     );
   }
-  // En lønrække med beløbet 0 kr. er LOVLIG (udviklerbeslutning 2026-08-26). Brugeren kan have behov for at
-  // vise, at der i en måned ikke var lønindkomst – det er tydeligere end at udelade perioden, hvor den
-  // kunne se glemt ud. Gaten spurgte tidligere, om nogen række havde en samlet løn FORSKELLIG FRA NUL, mens
-  // tabelvalideringen regnede et eksplicit 0 som udfyldt. De to var uenige om præcis nullet, så en udfyldt
-  // tabel kunne give «Indtastning mangler» uden ét rødt felt at gå efter. Nu er kravet det samme begge
-  // steder: mindst én række med komplet periode.
+  // En lønrække med beløbet 0 kr. er LOVLIG (bevidst valg). Brugeren kan have behov for at vise, at der i en
+  // måned ikke var lønindkomst – det er tydeligere end at udelade perioden, hvor den kunne se glemt ud. Kravet
+  // er det samme som tabelvalideringens: mindst én række med komplet periode. Spurgte gaten i stedet efter en
+  // samlet løn forskellig fra nul, kunne en udfyldt tabel give «Indtastning mangler» uden ét rødt felt.
   if (!hasAtLeastOneCompletePeriodRow(values.tableData, values.loenperiode)) {
     return blockDocumentDownload({ code: 'aarsloen:no-valid-rows', message: 'Ingen gyldige rækker i tabel' });
   }
   // `calculation === null` betyder, at feltgaten var RØD, så motoren aldrig blev kaldt (§3.9) – ikke at
-  // noget mangler. Klassen udledes derfor af projektionens egne `fieldIssues`; før svarede grenen
-  // "Indtastning mangler" på et felt, der var udfyldt med en ugyldig værdi (samme forveksling som
-  // brugerkravet 2026-07-30 rettede andre steder).
+  // noget mangler. Klassen udledes derfor af projektionens egne `fieldIssues`; ellers svarede grenen
+  // "Indtastning mangler" på et felt, der er udfyldt med en ugyldig værdi.
   if (calculation === null) {
     return blockDocumentDownloadFromCauses(
       'aarsloen:fatal-calculation-error',
@@ -165,8 +158,8 @@ export const evaluateAarsloenDownloadGate = (
 
 /**
  * SH-dage-dokumentet. Det bygger alene på periodecellerne og «Løn på helligdage» og blokeres derfor kun af dem –
- * ikke af årslønnens satser, overenskomst, feriedage eller beløb, som dokumentet ikke bruger (BB-419-princippet,
- * udviklerens afgørelse 2026-11-19). Grundlaget er projektionens `shDage`.
+ * ikke af årslønnens satser, overenskomst, feriedage eller beløb, som dokumentet ikke bruger (bevidst
+ * valg: et dokument blokeres kun af de felter, det selv bruger). Grundlaget er projektionens `shDage`.
  */
 export const evaluateShDageDownloadGate = (
   projection: AarsloenReaderProjection

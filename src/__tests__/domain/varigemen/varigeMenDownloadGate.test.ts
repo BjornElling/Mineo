@@ -11,8 +11,8 @@ import type { VarigeMenBeregningResult } from '../../../domain/varigemen/varigeM
 //   - projektion blokeret KUN af missing → varigemen:missing-fields,
 //   - projektion ready men beregningsResultat=null → varigemen:no-result,
 //   - projektion ready med resultat → tilladt.
-// Datoordenen (skadedato < fødselsdato) er nu en rød feltfejl på stamdata-datoerne (jf. stamdataDescriptors), så
-// den byttede orden manifesterer sig som `field-error` – ikke længere en separat gate-kode.
+// Datoordenen (skadedato < fødselsdato) er en rød feltfejl på stamdata-datoerne (jf. stamdataDescriptors), så
+// den byttede orden manifesterer sig som `field-error` – ikke som en separat gate-kode.
 
 const TOKEN: EvaluationSourceToken = {
   inputRevision: createInputRevision(1),
@@ -118,10 +118,9 @@ describe('varigeMenDownloadGate', () => {
   });
 
   /**
-   * Sondringen ligger nu i `kind`, ikke i to forskellige koder: gaten sender HELE issue-listen til
+   * Sondringen ligger i `kind`, ikke i to forskellige koder: gaten sender HELE issue-listen til
    * `classifyBlockingCauses` under én kode, og klassen – som afgør brugerteksten – udledes derfra.
-   * Tidligere valgte gaten selv mellem `field-error` og `missing-fields`, og kunne derfor kun se ÉT
-   * feltissue ad gangen.
+   * Valgte gaten selv mellem `field-error` og `missing-fields`, kunne den kun se ÉT feltissue ad gangen.
    */
   it('blokerer ved manglende felter (kun consumerfejl) med missing-input-klassen', () => {
     const gate = evaluateVarigeMenDownloadGate(

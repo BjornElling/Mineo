@@ -94,7 +94,7 @@ describe('måneds- og årsforslaget modsiger aldrig hinanden', () => {
   });
 });
 
-describe('et spring i måned/år-serien giver intet månedsforslag (BB-441)', () => {
+describe('et spring i måned/år-serien giver intet månedsforslag', () => {
   it('12/2010 og 1/2018 foreslår hverken måned eller år', () => {
     const built = build([['12', '2010'], ['1', '2018']]);
     expect(ghost(built, 0)).toBeNull();

@@ -121,13 +121,13 @@ const toWarning = (id: string, message: string): EetIssue => ({
 /**
  * Beskeden når hverken en EAL-procent eller en afgørelse kan give erhvervsevnetabsprocenten.
  *
- * Nævner BEGGE veje, fordi begge er lovlige udgange, og fanen ikke kan vide hvilken sagen har
- * (BB-181): erstatningsansvarsloven er udgangspunktet – en sag kan være omfattet af EAL alene – men
+ * Nævner BEGGE veje, fordi begge er lovlige udgange, og fanen ikke kan vide hvilken sagen har:
+ * erstatningsansvarsloven er udgangspunktet – en sag kan være omfattet af EAL alene – men
  * er sagen også en arbejdsskadesag, er en afgørelse den sædvanlige kilde. Beskeden linker til
  * EAL-feltet, fordi det er den vej, der altid er åben; den anden nævnes i teksten.
  *
- * Den hedder bevidst ikke blot «Erhvervsevnetabsprocent er ikke udfyldt» længere: det navngav et
- * begreb frem for et felt og fortalte ikke, at der var to måder at afhjælpe manglen.
+ * Den hedder bevidst ikke blot «Erhvervsevnetabsprocent er ikke udfyldt»: det navngiver et begreb frem
+ * for et felt og fortæller ikke, at der er to måder at afhjælpe manglen.
  */
 export const EAL_AARSLOEN_MISSING_ID = 'eal-aarsloen-missing';
 export const EAL_AARSLOEN_MISSING_MESSAGE = 'Årslønnen mangler: angiv årslønnen efter EAL eller efter ASL';
@@ -296,7 +296,7 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
     issues.push(toIssue('aarsloen-zero', `${SKADELIDTES_AARSLOEN_ASL_LABEL} skal være større end 0 kr`));
   } else if (aarsloen.value === null || aarsloen.source === null) {
     // Begge årslønninger kan bære EAL-kravet, og en ren EAL-sag har ingen ASL-årsløn. Beskeden nævner derfor
-    // begge veje og fører til EAL-feltet, som EET_PCT_MISSING_MESSAGE (BB-418).
+    // begge veje og fører til EAL-feltet, som EET_PCT_MISSING_MESSAGE.
     issues.push(toIssue(EAL_AARSLOEN_MISSING_ID, EAL_AARSLOEN_MISSING_MESSAGE));
   }
 
@@ -309,7 +309,7 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
   const eetPctResolution = resolveEetPct(values);
   issues.push(...eetPctResolution.issues);
   if (!eetPctResolution.resolved && eetPctResolution.issues.length === 0) {
-    // To tilstande efterlader fanen uden en procent, og de kræver hver sit svar (BB-181).
+    // To tilstande efterlader fanen uden en procent, og de kræver hver sit svar.
     //
     // Erstatningsansvarsloven er udgangspunktet her: brugeren angiver procenten specifikt for EAL, og
     // en sag kan være omfattet af EAL alene, hvor det ville være meningsløst at pege på ASL. Derfor
@@ -328,7 +328,7 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
   }
 
   // Fanen valgte sin procent ved en sortering, brugeren ikke kan se, og en midlertidig afgørelse kan
-  // vinde over en tidligere endelig (BB-178). Udvælgelsen er bevidst: EAL kender ikke et
+  // vinde over en tidligere endelig. Udvælgelsen er bevidst: EAL kender ikke et
   // midlertidigt erhvervsevnetab, så den seneste ASL-procent gælder uanset type. Men fanen var helt
   // tavs om, at der VAR mere end én afgørelse at vælge imellem, mens Løbende ydelser og
   // Differencekrav advarede i samme sag. Advarslen er kun relevant ved fallbacken – med en udfyldt
@@ -391,7 +391,7 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
 
   const alderVedSkade = calculateAgeInWholeYears(fodselsdato, skadedato);
   if (alderVedSkade === null) {
-    // Samme navneregel som de to øvrige issues i denne funktion (BB-121); referencen er udledt ovenfor.
+    // Samme navneregel som de to øvrige issues i denne funktion; referencen er udledt ovenfor.
     issues.push(toIssue('alder-unresolved', `Alder på ${stamdataDatoReference.tidspunkt} kan ikke beregnes`));
   }
 
@@ -411,7 +411,7 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
 
   const ealAarsloenInput = amountValueToNumber(values.ealAarsloen);
   // Ordlyden ejes af feltadvarslen, så den gule ring på EAL-årslønsfeltet og linjen i «Fejl og
-  // advarsler» er ordret den samme besked (BB-183).
+  // advarsler» er ordret den samme besked.
   const maxAarsloenWarningMessage = EET_EAL_AARSLOEN_MAX_WARNING;
   const isSkadeFraJuli2024EllerSenere = skadedato >= SKAERING_2024_07_01;
 
@@ -427,7 +427,7 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
     );
   }
 
-  // Samme to prædikater som feltringen bruger (BB-183), i samme rækkefølge: en udfyldt EAL-årsløn
+  // Samme to prædikater som feltringen bruger, i samme rækkefølge: en udfyldt EAL-årsløn
   // på maksimum er det konkrete problem; først når feltet er tomt, handler advarslen om ASL-værdien.
   if (hasEetEalAarsloenMaxWarning(values.ealAarsloen, skadedato, input.aarsloenAslMax)) {
     issues.push(toWarning('warn-eal-aarsloen-is-max', maxAarsloenWarningMessage));
@@ -485,7 +485,7 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
   const computation: EetEalComputation = {
     beregningsdato,
     skadedato,
-    // Skadestypen følger med ud, så skærm og dokument kan navngive datoen ens (BB-121).
+    // Skadestypen følger med ud, så skærm og dokument kan navngive datoen ens.
     skadestype: input.skadestype,
     fodselsdato,
     skadesaar,

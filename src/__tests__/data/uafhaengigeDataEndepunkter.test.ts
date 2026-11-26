@@ -32,7 +32,7 @@ const findAldersraekke = <T extends Readonly<{ alder: number }>>(
   return raekke;
 };
 
-describe('TD-020 – uafhængige dataendepunkter', () => {
+describe('uafhængige dataendepunkter', () => {
   it('registrerer alle 35 kapitaliseringstabeller med deres PDF-kilde', () => {
     // Dette er en uafhængig mængde fra katalogets afledte Object.keys-kontrol. Den
     // fanger en bortfaldet tabel eller en ny tabel uden registrering i index.ts.
@@ -189,7 +189,7 @@ describe('TD-020 – uafhængige dataendepunkter', () => {
       G: 'afloesningsbeloeb',
       H: 'varigt-men',
     });
-    // Kilden trykker 2,061 – en slåfejl for 2,601 (udviklerbeslutning 2026-11-12). Tabel E's identiske
+    // Kilden trykker 2,061 – en slåfejl for 2,601 (bevidst valg). Tabel E's identiske
     // række (kvinder, alder 54) bekræfter værdien.
     expect(findAldersraekke(tabel.forsoergertabTabellerMaend, 'D', 50).faktorerPraHeleAar[2]).toBe(2.601);
     expect(findAldersraekke(tabel.forsoergertabTabellerKvinder, 'E', 54).faktorerPraHeleAar[2]).toBe(2.601);

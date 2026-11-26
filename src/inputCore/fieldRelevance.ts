@@ -11,7 +11,7 @@ import type { RejectedInputs } from './settledInput';
  * - `ubestemt` – relevansreglen svarede «ikke relevant», men svaret byggede på et felt med afvist råtekst. Den
  *   ugyldige indtastning har tomt canonical slot (XOR-invarianten), så reglen kunne ikke kende brugerens reelle
  *   valg: svaret er en midlertidig konsekvens af en fejl ANDETSTEDS, ikke et valg. Feltet er skjult og
- *   læses som tomt som et irrelevant felt, men dets afviste råtekst BEVARES (BB-433).
+ *   læses som tomt som et irrelevant felt, men dets afviste råtekst BEVARES.
  *
  * Hvorfor ubestemt ikke må rydde: rydningen af skjult+rødt findes, fordi en usynlig rød fejl ellers kunne spærre
  * Gem uden et felt at pege på. Ved `ubestemt` er det ikke tilfældet – den afviste årsag spærrer selv Gem, og

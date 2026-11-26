@@ -45,7 +45,7 @@ export const buildOffentligOverenskomstSegmenter = (
   const applyShRegel = konsolideret.loenPaaHelligdage === LOEN_PAA_HELLIGDAGE.ALMINDELIG;
   const applyStoreBededagstillaeg = harValgtStoreBededagstillaeg(konsolideret);
   // Pakkens enhed er løntrinssatsens enhed («Ansættelse»). Beløbet regnes om fra den enhed, brugeren har
-  // angivet det i – aldrig fra TAF-enheden, som intet siger om beløbets enhed (fund A1, afklaringslog 10a).
+  // angivet det i – aldrig fra TAF-enheden, som intet siger om beløbets enhed.
   const wageUnit = resolveOffentligLoenEnhed(offentlig.loenType);
   const offentligLoenEkstraGrundloen = resolveOffentligLoenEkstraGrundloen(
     konsolideret.offentligLoenEkstraGrundloen,

@@ -238,11 +238,9 @@ const EOInspektionEmploymentSections = React.memo<{
             const sfggRows = section.sfggRows ?? [];
             const sfggTables = section.sfggTables ?? [];
             /*
-              Tidligere blev tabellerne delt i "primære" og "footer" efter præfikset
-              `sfgg.aarsfordeling.` – et id, INGEN row-builder producerer (en eksisterende test
-              hævder eksplicit `toBeUndefined()` for det). Footer-listen var derfor altid tom, og
-              dens ~24 linjers render-blok kunne aldrig nås. Opdelingen er fjernet; alle
-              SFGG-tabeller er nu simpelthen SFGG-tabeller.
+              SFGG-tabellerne deles bevidst ikke i "primære" og "footer" efter præfikset
+              `sfgg.aarsfordeling.` – et id, INGEN row-builder producerer. Alle SFGG-tabeller er
+              simpelthen SFGG-tabeller.
             */
             const sfggPostTableRows = sfggRows.filter((row) => isSfggPostTableRowId(row.id));
             const sfggPrimaryRows = sfggRows.filter((row) => !isSfggPostTableRowId(row.id));

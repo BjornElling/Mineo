@@ -86,7 +86,7 @@ export type StyledTextFieldBaseProps = {
    */
   warning?: FieldWarning;
   /**
-   * Forklarende hover-tekst til et LÅST felt – fx «Fastsat af overenskomsten på 31-05-2018» (BB-287). Vises
+   * Forklarende hover-tekst til et LÅST felt – fx «Fastsat af overenskomsten på 31-05-2018». Vises
    * kun, når feltet hverken har fejl eller advarsel; de har altid forrang.
    */
   infoTooltipText?: string;

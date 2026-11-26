@@ -35,15 +35,12 @@ const buildSammentaelling = () => {
 };
 
 /**
- * Facit-testen blev skrevet 2026-09-14 og fastholdt dengang også `tabelValue: 5` ved siden af
- * `beregnetValue: null`. Netop den asymmetri viste sig 2026-09-17 at være en fejl: kontrolmodellen
- * læser «beregnet=-, tabel=5» som en uoverensstemmelse, og `control:sammentaelling_mismatch` er en
- * SYSTEMFEJL, der åbner notitsen «Teknisk fejl registreret». En bruger, der lige har sat «Øvrigt
- * fravær uden løn» til Ja og endnu ikke har tastet antallet, fik altså programmet til at melde sig
- * selv som defekt midt i en helt normal indtastning.
- *
- * Testens EGEN pointe – at der ikke vises et beregnet beregningsgrundlag, før fraværsantallet er
- * afsluttet – er uændret. Tabelsiden deler nu blot samme inputgate, jf. `eo-snapshot-contract.md` §6.1.
+ * Der vises ikke et beregnet beregningsgrundlag, før fraværsantallet er afsluttet – og tabelsiden
+ * deler samme inputgate (`eo-snapshot-contract.md` §6.1). Ellers står `tabelValue: 5` ved siden af
+ * `beregnetValue: null`: kontrolmodellen læser «beregnet=-, tabel=5» som en uoverensstemmelse, og
+ * `control:sammentaelling_mismatch` er en SYSTEMFEJL, der åbner notitsen «Teknisk fejl registreret».
+ * En bruger, der lige har sat «Øvrigt fravær uden løn» til Ja og endnu ikke har tastet antallet, ville
+ * få programmet til at melde sig selv som defekt midt i en helt normal indtastning.
  */
 describe('EO-sammentællingens manglende øvrige fraværsdage', () => {
   it('viser ikke et beregnet beregningsgrundlag før fraværsantallet er afsluttet', () => {

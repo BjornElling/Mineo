@@ -60,8 +60,7 @@ describe('roundByMethod', () => {
   });
 
   /**
-   * Fund A i værdiklasse-gennemgangen 2026-11-24: et resultat, der i decimaler går præcis op eller ligger
-   * præcis på en halv, må ikke afrundes efter den binære regnestøj, kommatallet bærer.
+   * Et resultat, der i decimaler går præcis op eller ligger præcis på en halv, må ikke afrundes efter den binære regnestøj, kommatallet bærer.
    */
   it('afrunder efter den decimale værdi, ikke efter binær regnestøj', () => {
     // 64.500 × 82 % = 52.890 – kommatallet er 52.890,00000000001.

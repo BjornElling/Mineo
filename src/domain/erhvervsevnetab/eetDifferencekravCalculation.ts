@@ -137,7 +137,7 @@ export const filterAslRowsKnownAtBeregningsdato = (
     const afgoerelsesdato = coerceToISODateString(row.afgoerelsesDato);
     const virkningsdato = resolveAslVirkningsdato(row);
     // Fane 5 afgrænser kun på virkningsdato. Afgørelsesdatoen kan godt ligge efter beregningsdatoen
-    // uden at afskære beregningen; uden særskilt virkningsdato gælder afgørelsesdatoen (BB-368).
+    // uden at afskære beregningen; uden særskilt virkningsdato gælder afgørelsesdatoen.
     if (afgoerelsesdato === undefined || virkningsdato === undefined) return false;
     return virkningsdato <= beregningsdato;
   });
@@ -203,7 +203,7 @@ const analyzeAslRowsAtBeregningsdato = (
       issues,
     };
   }
-  // Samme ene linje som på løbende ydelser (BB-159): årsagen er beregningsdatoen, ikke tre
+  // Samme ene linje som på løbende ydelser: årsagen er beregningsdatoen, ikke tre
   // uafhængige problemer. Delt id og ordlyd, så de to faner ikke kan drive fra hinanden.
   if (
     beregningsdato &&
@@ -247,7 +247,7 @@ const computeProformaKapitalisering = (
   const stamdataDatoReference = resolveStamdataDatoReference(args.skadestype);
 
   // Køn bruges kun af alderstabellerne. Særfaktoren ved ≤ 2 år til folkepension er kønsneutral, så
-  // kravet må ikke spærre den gren – før 2026-11-12 nåede sådanne sager slet ikke proformaen.
+  // kravet må ikke spærre den gren; ellers når sådanne sager slet ikke proformaen.
   if (!args.koen && beregningsdato < SKAERING_2015_03_01 && !args.underToAarTilFp) {
     issues.push(MISSING_KOEN_ISSUE);
     return null;
@@ -302,14 +302,13 @@ const computeProformaKapitalisering = (
       ));
       return null;
     }
-    // Udviklerens afgørelse 2026-11-12: særfaktoren gælder hele 2-årsvinduet, men nedsættes her
-    // forholdsmæssigt efter den faktiske restperiode (fx 18 mdr. → 18/24 af særfaktoren). Månederne
-    // afrundes ikke (2026-11-19); særfaktoren og den nedsatte faktor afrundes til tre decimaler som vist.
+    // Bevidst valg: særfaktoren gælder hele 2-årsvinduet, men nedsættes her forholdsmæssigt efter den
+    // faktiske restperiode (fx 18 mdr. → 18/24 af særfaktoren). Månederne afrundes ikke; særfaktoren og den nedsatte faktor afrundes til tre decimaler som vist.
     const dagenFoerFolkepensionsdato = getDagenFoerFolkepensionsdato(fodselsdato, beregningsdato);
     if (!dagenFoerFolkepensionsdato || beregningsdato > dagenFoerFolkepensionsdato) return null;
     maanederTilFolkepension = Math.min(
       24,
-      // Månedsbrøken afrundes ikke i beregningen; den vises med fem decimaler (udviklerens afgørelse 2026-11-19).
+      // Månedsbrøken afrundes ikke i beregningen; den vises med fem decimaler.
       sumMaanedsbroekForInterval(beregningsdato, dagenFoerFolkepensionsdato)
     );
     if (maanederTilFolkepension <= 0) return null;
@@ -538,7 +537,7 @@ type LoebendeAfgoerelseComputation =
  * Den endelige afgørelse, der overtager tidligere midlertidige ydelser: den med tidligste virkningsdato.
  * `sidsteYdelsesdag` er sat, når den er omfattet af toårsreglen – så betragtes de overtagne ydelser som
  * endelige og stopper dagen før toårsgrænsen, mens kapitalbeløbet dækker de sidste to år
- * (udviklerafgørelse 2026-11-13).
+ * (bevidst valg).
  */
 type EndeligOvertagelse = Readonly<{
   virkningsdato: ISODateString;
@@ -704,7 +703,7 @@ export const composeEetDifferencekravCalculation = (
       // Ved ≤ 2 år proformakapitaliseres resten med forholdsmæssigt nedsat særfaktor. Kun hvor
       // bekendtgørelsen ikke fastsætter nogen særfaktor (skader før 1. juli 2007, hvis ældre
       // tabeller i stedet er «uden omsætningsmulighed» de sidste 2 år), opgøres resten fortsat som
-      // de resterende løbende ydelser (udviklerens afgørelse 2026-11-12).
+      // de resterende løbende ydelser (bevidst valg).
       // Kun skadedatoen afgør undtagelsen. Manglende data for nyere skader skal give
       // en opslagsfejl, aldrig tavst skifte fradraget til løbende ydelser.
       if (beregningUnderEllerLigeToAarTilFp && skadedato < SKAERING_2007_07_01) {
@@ -778,13 +777,10 @@ export const composeEetDifferencekravCalculation = (
   // Fradrag 3- og 4-issues merges ind før blocking-evaluering, så fejl i rest-EET- og
   // mer-erstatningsberegningen blokerer download på linje med fejl fra fane 2, 3 og 4.
   //
-  // Mer-erstatningens issues blev tidligere skrevet i en lokal liste, der ALDRIG blev merget: fejlede
-  // et bekendtgørelses-, tabel- eller faktoropslag på en forhøjelsesdato, udgik fradraget tavst, og
-  // differencekravet blev tilsvarende FOR HØJT – i den målte sag ville 26.072 + 43.453 kr. være
-  // forsvundet, uden at noget sagde det. Begrundelsen var, at et forkert (for lavt) fradrag er værre
-  // end intet fradrag, og det er rigtigt; men den tredje mulighed – at sige det – manglede.
-  // Udvikleren afgjorde 2026-09-09, at beregningen skal være fail-closed: fradraget udgår fortsat,
-  // OG downloaden blokeres med den konkrete opslagsfejl (BB-189).
+  // Mer-erstatningens issues SKAL merges: fejler et bekendtgørelses-, tabel- eller faktoropslag på en
+  // forhøjelsesdato, udgår fradraget, og differencekravet bliver tilsvarende FOR HØJT. Et forkert (for lavt)
+  // fradrag er værre end intet fradrag, men det skal siges. Beregningen er derfor fail-closed: fradraget
+  // udgår, OG downloaden blokeres med den konkrete opslagsfejl.
   for (const issue of [...fradrag3Issues, ...merErstatningIssues]) {
     allSourceIssues.push(issue);
   }
@@ -803,7 +799,7 @@ export const composeEetDifferencekravCalculation = (
       // Risk: hvis underberegninger senere får flere "tom input"-fejl, skal denne afgrænsning genbesøges.
       if (issue.id === 'asl-afgoerelser-empty') return false;
       // Differencekravet kræver ASL-årslønnen. Mangler den, melder ASL-grenene det præcist; EAL-fanens
-      // «angiv efter EAL eller ASL» (BB-418) ville her være en anden besked om samme tomme felt.
+      // «angiv efter EAL eller ASL» ville her være en anden besked om samme tomme felt.
       if (issue.id === EAL_AARSLOEN_MISSING_ID && allSourceIssues.some((other) => other.id === 'aarsloen-missing')) {
         return false;
       }
@@ -813,7 +809,7 @@ export const composeEetDifferencekravCalculation = (
     ...deduped,
     ...aslRowsAnalysis.issues,
   ]);
-  // En påbegyndt afgørelse er ikke en tom tabel (BB-423). Analysen kan kun se, om en række er
+  // En påbegyndt afgørelse er ikke en tom tabel. Analysen kan kun se, om en række er
   // beregnelig; når underberegningerne allerede navngiver rækkens konkrete mangel, er
   // tomhedsmeldingen forkert og udgår. Uden en sådan mangel – fx en række med kun en procent, som
   // beregningsdato-filteret har sorteret fra – bevares den, så fanen stadig blokerer fail-closed.
@@ -1055,8 +1051,8 @@ export const composeEetDifferencekravCalculation = (
       kapitaliseringerAfgoerelser: kapAfgoerelser,
       loebendeComputation: loebendeResult?.computation ?? null,
       // Bilaget dokumenterer de kapitaliseringer, opgørelsen trækker fra – på eller før beregningsdatoen. En senere
-      // kapitalisering stod i bilaget, mens forsiden skrev «Ikke kapitaliseret på beregningsdatoen» (BB-420).
-      // Kapitalisering-fanen og dens eget dokument viser fortsat alle (BB-166).
+      // kapitalisering stod i bilaget, mens forsiden skrev «Ikke kapitaliseret på beregningsdatoen».
+      // Kapitalisering-fanen og dens eget dokument viser fortsat alle.
       kapComputation: kapResult.computation === null ? null : {
         ...kapResult.computation,
         afgoerelser: kapResult.computation.afgoerelser.filter((a) => a.kapitaliseringsdato <= beregningsdato),

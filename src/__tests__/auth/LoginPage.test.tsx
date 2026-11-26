@@ -68,7 +68,7 @@ describe('LoginPage', () => {
   });
 
   /**
-   * BB-056: de to tekniske årsager delte én generisk sætning, som ikke kunne handles på – og login er
+   * De to tekniske årsager har hver sin sætning; én generisk sætning kan ikke handles på – og login er
    * det ene sted, hvor en fejl er en total blindgyde. Blokeret lagring kan brugeren selv rette på et
    * minut, så netop den skal sige hvordan. Prøven skal kunne SKELNE de to: den generiske tekst må
    * ikke stå her, og vejledningen må ikke stå i testen ovenfor.

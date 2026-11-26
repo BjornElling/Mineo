@@ -125,8 +125,8 @@ describe('collectManualRegulationIssues', () => {
   });
 });
 
-// Den manuelle tabels feriesats er samme sats som ansættelsesforholdets, fra en senere dato, og vurderes ens
-// (udviklerafgørelse 2026-11-04): et ferietillæg (under 12 %) er gult ved løn under ferie og rødt, når brugeren har
+// Den manuelle tabels feriesats er samme sats som ansættelsesforholdets, fra en senere dato, og vurderes ens:
+// et ferietillæg (under 12 %) er gult ved løn under ferie og rødt, når brugeren har
 // svaret Nej til fuld løn under ferie; over 20 % er gult.
 describe('den manuelle tabels feriesats', () => {
   const setup = (fuldLoenUnderFerie: 'Ja' | 'Nej', feriepenge: number, tillaegAngivesSom: 'procent' | 'beloeb' = 'procent') => {

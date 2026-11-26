@@ -137,7 +137,7 @@ const ForsoergertabAslSection = React.memo(() => {
         <>
           <Box className="row--label-right-hover">
             <Typography className="row--text">
-              {/* Ét gangetegn i hele linjen (BB-132); den brugte før både `x` og `×` i samme sætning. */}
+              {/* Ét gangetegn (`x`) i hele linjen. */}
               {`Årlig ydelse i ${aslComputation.beregningsaar}-værdi: 30 % x ${formatKr(aslComputation.benyttetAarsloen)} x (${formatAsAmountTrimmed(aslComputation.aarsloenMaxBeregningsaar, 0)} / ${formatAsAmountTrimmed(aslComputation.aarsloenMaxSkadesaar, 0)}) =`}
             </Typography>
             <Box className="row--label-right-hover__content">
@@ -210,7 +210,7 @@ const ForsoergertabAslSection = React.memo(() => {
 
                   <Box className="row--label-right-hover">
                     <Typography className="row--text">
-                      {/* Afsluttende `=` som alle andre formellinjer med et resultat i højre kolonne (BB-132). */}
+                      {/* Afsluttende `=` som alle andre formellinjer med et resultat i højre kolonne. */}
                       {`Beregnet kapitalbeløb (${formatKr(aslComputation.opreguleretAarligYdelse, 2)} x ${formatAsAmountTrimmed(aslComputation.kapitalfaktor, 3)}) (oprundet) =`}
                     </Typography>
                     <Box className="row--label-right-hover__content">

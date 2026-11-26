@@ -26,7 +26,7 @@ export const SFGG_ENHEDSSKIFT_DIALOG_TITLE = 'Fraværsdagene skifter enhed';
 export const SFGG_ENHEDSSKIFT_CONFIRM_TEXT = 'Ja, skift';
 
 /**
- * Den ene bekræftelse før et valg, der skifter enheden for et indtastet antal fraværsdage uden løn (BB-449, M-68).
+ * Den ene bekræftelse før et valg, der skifter enheden for et indtastet antal fraværsdage uden løn.
  * Alle kontroller, der kan flytte enheden, går gennem denne hook, så teksten, beslutningen og undo/redo er ens.
  *
  * Valget committes FØRST ved bekræftelsen og med præcis den dispatch, feltet selv ville have sendt – samme command

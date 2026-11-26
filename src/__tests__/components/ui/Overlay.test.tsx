@@ -24,7 +24,7 @@ describe('Overlay', () => {
     const onClose = vi.fn();
 
     // En wrapper der re-renderer Overlay med en frisk inline-onClose-arrow ved hver render –
-    // det mønster der tidligere genstartede auto-close-timeren på hver re-render.
+    // det mønster der ikke må genstarte auto-close-timeren på hver re-render.
     const Wrapper = () => {
       const [, setTick] = React.useState(0);
       React.useEffect(() => {
@@ -61,9 +61,8 @@ describe('Overlay', () => {
   });
 });
 
-// Fejlbeskeden bliver stående, indtil brugeren lukker den. Den kunne tidligere KUN lukkes med et
-// museklik på selve boksen: ingen synlig lukkeknap, ingen Escape, ingen plads i tab-rækkefølgen – og
-// museteksten «Klik for at lukke» som eneste vejledning.
+// Fejlbeskeden bliver stående, indtil brugeren lukker den, og den skal kunne lukkes uden mus: med en
+// synlig lukkeknap, med Escape og fra tab-rækkefølgen – ikke kun med et museklik på selve boksen.
 describe('Overlay: fejlbeskeden kan lukkes uden mus', () => {
   beforeEach(() => { vi.useFakeTimers(); });
   afterEach(() => {

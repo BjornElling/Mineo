@@ -50,7 +50,7 @@ const ForsoergertabOplysningerSection = React.memo(() => {
 
       {(vm.visKoenValg || vm.koenFieldHasError) && (
         <Box className="row--label-right-hover">
-          {/* Fladen har to personer i sig; rækken navngiver derfor sin person som de øvrige rækker (BB-134). */}
+          {/* Fladen har to personer i sig; rækken navngiver derfor sin person som de øvrige rækker. */}
           <Typography className="row--text">{FORSOERGERTAB_SKADELIDTES_KOEN_LABEL}</Typography>
           <Box className="row--label-right-hover__content">
             <ChoiceField<Koen>

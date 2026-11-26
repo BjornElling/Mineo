@@ -192,7 +192,7 @@ describe('Årsløn – uafhængigt downstream-facit for dokumentgeneratoren', ()
     expect(artifact.filename).toBe('Årslønsberegning.pdf');
   });
 
-  it('trykker rækkerne kronologisk, uanset skærmens sortering (BB-294)', async () => {
+  it('trykker rækkerne kronologisk, uanset skærmens sortering', async () => {
     // Skærmen er sorteret faldende (februar før januar); dokumentet trykker alligevel januar først.
     const { session, requests } = createFixtureSession();
     await generateAarsloenDocument(session, {
@@ -219,7 +219,7 @@ describe('Årsløn – uafhængigt downstream-facit for dokumentgeneratoren', ()
     ]);
   });
 
-  it('angiver overenskomst og satsdato før satserne, når satserne er overenskomstens (BB-355)', async () => {
+  it('angiver overenskomst og satsdato før satserne, når satserne er overenskomstens', async () => {
     const { session, requests } = createFixtureSession();
     await generateAarsloenDocument(session, {
       satser: { feriePct: 12.5, shSoPct: 8.8, pensionPct: 10.15 },

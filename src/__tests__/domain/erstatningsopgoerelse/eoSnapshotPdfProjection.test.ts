@@ -191,7 +191,7 @@ describe('EO snapshot PDF projections', () => {
 
     expect(projection.kind).toBe('blocked');
     if (projection.kind !== 'blocked') return;
-    // Tilstanden med bilagsvalgenes ord, citeret af gaten (BB-371).
+    // Tilstanden med bilagsvalgenes ord, citeret af gaten.
     expect(projection.message).toMatch(/^Der er (ikke krav på tabt arbejdsfortjeneste|ingen TAF-perioder) i EO-perioden$/);
     expect(projection.specific).toBe(true);
   });
@@ -222,7 +222,7 @@ describe('EO snapshot PDF projections', () => {
 
     expect(projection.kind).toBe('blocked');
     if (projection.kind !== 'blocked') return;
-    // Tilstanden med bilagsvalgenes ord, citeret af gaten (BB-371).
+    // Tilstanden med bilagsvalgenes ord, citeret af gaten.
     expect(projection.message).toMatch(/^Der er (ikke krav på tabt arbejdsfortjeneste|ingen TAF-perioder) i EO-perioden$/);
     expect(projection.specific).toBe(true);
   });

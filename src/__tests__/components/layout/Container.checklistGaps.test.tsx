@@ -9,8 +9,7 @@ import TransientTextInput from '../../../components/inputs/transient/TransientTe
 import { toISODateString } from '../../../types/branded';
 
 /**
- * Container keyboard-navigation – dækning af punkter der tidligere kun var i den
- * manuelle QA-tjekliste (nu migreret til automatiske tests; jf. `src/contracts/keyboard-navigation.md`).
+ * Container keyboard-navigation – automatisk dækning af punkter i `src/contracts/keyboard-navigation.md`.
  *
  * Disse tests dækker de punkter, der KAN verificeres i JSDOM:
  *  - Afsnit 4: Container intercepter IKKE museklik (klik giver fokus til det klikkede felt)

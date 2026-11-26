@@ -23,8 +23,8 @@ export const GRID_UX_SPEC = {
      *   Tab på tværs af tabel-celler OG videre ud af tabellen til de øvrige felter – fokus er bevidst IKKE
      *   trapped. Grid-kernen aflæser kun den startcelle (anchor), Enter-vertikal-navigation tager udgangspunkt i.
      *
-     * (Tidligere blev Tab trappet og brugt til horisontal traversering; "ny samlet tabel-navigation"
-     * konsoliderede Tab til Container-niveau for et ensartet flow på tværs af tabeller og felter.)
+     * (Tab trappes bevidst ikke til horisontal traversering; Tab håndteres på Container-niveau for et
+     * ensartet flow på tværs af tabeller og felter.)
      */
     traversalModel: 'excel-like' as const,
 

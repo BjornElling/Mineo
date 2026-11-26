@@ -120,7 +120,7 @@ const legacyPathForFieldIssue = (
   const supportedCollections = {
     tafPerioder: rowIds(values.tafPerioder),
     svieSmertePerioder: rowIds(values.svieSmertePerioder),
-    // Et beløb på 0 kr. er rødt (BB-232) og læses derfor som tomt: uden denne post fik det også
+    // Et beløb på 0 kr. er rødt og læses derfor som tomt: uden denne post ville det også få
     // «Beløb er ikke udfyldt» om et beløb, der står i cellen.
     oevrigeKravPerioder: rowIds(values.oevrigeKravPerioder),
     // En omvendt referenceperiode er rød på begge datoer og derfor tom for validatoren, som da også meldte

@@ -59,7 +59,7 @@ test.describe('EET-fejloversigt', () => {
     expect(runtimeErrors).toEqual([]);
   });
 
-  test('viser alle røde celler i afgørelsestabellen og fører til hver celle (BB-406)', async ({ page, runtimeErrors }) => {
+  test('viser alle røde celler i afgørelsestabellen og fører til hver celle', async ({ page, runtimeErrors }) => {
     await login(page);
     await openPage(page, 'Stamdata');
     await setVerbatimFieldValueAndSettle(page.locator('input[name="skadelidteFodselsdato"]'), '01-01-1970');

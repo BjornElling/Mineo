@@ -100,7 +100,7 @@ export const buildMidlertidigtEetInsertSource = (evaluation: InputEvaluation): E
 
   // Alle røde celler i afgørelsestabellen – feltfejl og tabellens samlede regler – med række, kolonne og konkret
   // årsag, hver med sin celle som mål. Samme builder som EET-fanerne, så EO og EET siger det samme om samme celle.
-  // Før blev feltfejlene samlet til «Afgørelsen er ikke gyldigt udfyldt», og kun den første regel nåede EO (BB-407).
+  // Før blev feltfejlene samlet til «Afgørelsen er ikke gyldigt udfyldt», og kun den første regel nåede EO.
   // Reglerne køres på præcis tabellens rækker og feltmapping, så EO ikke beregner på et afvist forløb.
   sourceIssues.push(...buildAslAfgoerelserSummaryIssues(
     [
@@ -114,7 +114,7 @@ export const buildMidlertidigtEetInsertSource = (evaluation: InputEvaluation): E
     ],
     eetValues.aslAfgoerelser,
   ));
-  // ASL-årslønnens konkrete besked (fx beløbsloftet) frem for «… er ikke gyldigt udfyldt» (BB-407).
+  // ASL-årslønnens konkrete besked (fx beløbsloftet) frem for «… er ikke gyldigt udfyldt».
   for (const issue of aarsloenProjection.readIssues()) {
     sourceIssues.push(buildFieldSummaryIssue('midlertidigt-eet-faelles-aarsloen-schema-invalid', issue));
   }
@@ -135,7 +135,7 @@ export const buildMidlertidigtEetInsertSource = (evaluation: InputEvaluation): E
       focusTarget: { kind: 'fieldAddress', address: stamdataSkadedatoField.bind().address },
     });
   } else {
-    // Hvert Stamdata-felts navn og konkrete årsag frem for «Stamdata kunne ikke valideres …» (BB-407).
+    // Hvert Stamdata-felts navn og konkrete årsag frem for «Stamdata kunne ikke valideres …».
     for (const issue of stamdataProjection.readIssues()) {
       sourceIssues.push(buildFieldSummaryIssue('midlertidigt-eet-stamdata-schema-invalid', issue));
     }
@@ -154,7 +154,7 @@ export const buildMidlertidigtEetInsertSource = (evaluation: InputEvaluation): E
  *
  * Den ENESTE EO-læsning af EET-siden uden for midlertidigt EET-togglen (`domain-boundary-contract.md` §9 pkt. 11):
  * EO bruger datoerne alene til en gul, ikke-blokerende advarsel, når TAF fortsætter forbi en kapitalisering
- * (BB-187, udviklerafgørelse 2026-10-30). Ingen beregning på EO læser dem. Datoen læses af samme committed
+ * (bevidst valg). Ingen beregning på EO læser dem. Datoen læses af samme committed
  * rækkeprojektion som importen, så en rød kapitaliseringsdato er tom her og meldes på Erhvervsevnetab-siden.
  */
 export const resolveDelvistEndeligeKapitaliseringsdatoer = (
@@ -172,7 +172,7 @@ export const resolveDelvistEndeligeKapitaliseringsdatoer = (
 export type EetAfgoerelseDatoer = Readonly<{
   afgoerelseType: 'Midlertidig' | 'Delvist endelig' | 'Endelig';
   afgoerelsesdato: ISODateString;
-  /** Udledt som i beregningen: den særskilte virkningsdato, ellers afgørelsesdatoen (BB-368). */
+  /** Udledt som i beregningen: den særskilte virkningsdato, ellers afgørelsesdatoen. */
   virkningsdato: ISODateString;
 }>;
 
@@ -181,7 +181,7 @@ export type EetAfgoerelseDatoer = Readonly<{
  *
  * EO bruger dem alene, mens midlertidigt EET hentes fra siden, til en gul advarsel, når datoerne for den
  * midlertidige eller endelige afgørelse på EO oplysninger ikke svarer til en afgørelse her
- * (`domain-boundary-contract.md` §9 pkt. 12, udviklerafgørelse 2026-11-04). Ingen beregning læser dem.
+ * (`domain-boundary-contract.md` §9 pkt. 12). Ingen beregning læser dem.
  */
 export const resolveEetAfgoerelseDatoer = (
   source: EetImportSource | null | undefined

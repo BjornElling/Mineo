@@ -2,18 +2,16 @@
 /**
  * §7.4's transaktionsinvarianter EXHAUSTIVT over hver runtime-command-kind.
  *
- * **Hvad fundet var.** Runtime-unionen omfatter 12 mutationsarter plus `undo`/`redo`, men de fulde
- * assertions for write, revision, history og rollback blev kun kørt for `settleField`. De øvrige commands
- * havde spredte adfærdstests – "gør denne command det rigtige ved værdien?" – men ikke §7.4's SAMLEDE
- * invariantsuite: én session-write, ét store-write, én monoton revision, højst ét history-trin, no-op uden
- * nogen af de tre, og rollback ved fejl. `resetSection` blev slet ikke dispatchet gennem runtime i den
- * suite, og `structuralTransaction` optrådte primært som en origin-afvisning.
+ * **Hvorfor suiten findes.** Runtime-unionen omfatter 12 mutationsarter plus `undo`/`redo`. Spredte
+ * adfærdstests – "gør denne command det rigtige ved værdien?" – dækker ikke §7.4's SAMLEDE invariantsuite
+ * for hver art: én session-write, ét store-write, én monoton revision, højst ét history-trin, no-op uden
+ * nogen af de tre, og rollback ved fejl.
  *
  * **Hvorfor et typebundet register.** Kataloget nedenfor er
  * `satisfies Record<RuntimeInputCommand['kind'], …>`. Tilføjes en trettende command-art til unionen, er
  * det en COMPILERFEJL her, indtil den har en case – invarianten kan altså ikke udvides uden dækning. Det
  * er den samme mekanik, `STRUCTURAL_KIND_SET` bruger i produktionen, og den er valgt frem for en
- * hånd-vedligeholdt liste netop fordi fundet handlede om en dækning, der stille faldt bagud.
+ * hånd-vedligeholdt liste, fordi en sådan liste stille kan falde bagud.
  *
  * **Hvad hver case skal levere.** En `mutate` (en reel ændring), et `noop` (samme command igen eller en
  * ækvivalent, der intet ændrer) og – hvor det er meningsfuldt – en `reject` (en command, kataloget skal

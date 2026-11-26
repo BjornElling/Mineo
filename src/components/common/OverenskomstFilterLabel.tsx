@@ -10,7 +10,7 @@ const KORT_ETIKET = Object.freeze({ loenmodtager: 'L:', arbejdsgiver: 'A:' } as 
 
 /**
  * Etiketten foran et overenskomstfilter. Den korte form «L:»/«A:» står bevidst for at spare plads, men
- * forklarede ikke sig selv – brugeren skulle gætte, hvad bogstaverne stod for (BB-287). Tooltippen giver den
+ * forklarer ikke sig selv. Tooltippen giver den
  * fulde betegnelse samme sted, alle tre filterpar står: ansættelsesforholdet, angivet løn og Indstillinger.
  */
 const OverenskomstFilterLabel = ({

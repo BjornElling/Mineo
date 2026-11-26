@@ -1,6 +1,6 @@
 import { findAmountOutliers } from '../../utils/tableAmountOutlierDetection';
 
-// BB-297 (udviklerafgørelse 2026-10-19): kun «ti gange større», sammenlignet med medianen af gruppens øvrige rækker.
+// Bevidst valg: kun «ti gange større», sammenlignet med medianen af gruppens øvrige rækker.
 
 const maaneder = (antal: number, beloeb: number, group = 'g') =>
   Array.from({ length: antal }, (_, index) => ({ id: `m${index}`, group, value: beloeb }));

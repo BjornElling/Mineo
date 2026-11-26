@@ -16,27 +16,27 @@ import { dateToISO, parseISODate, type ISODateString } from '../../types/branded
 // værdier, og en runtime-fejl dér ville ramme brugeren midt i en indtastning.
 //
 // ── Hvorfor MODAL-skridtet og ikke «de to seneste rækker» ────────────────────────────────────────────
-// Den oprindelige plan dannede mønstret ud af de to seneste udfyldte rækker. Det knækker på det krav,
-// udvikleren udtrykkeligt stillede: er januar–juni og august–november indtastet, skal december foreslås.
+// At danne mønstret ud af de to seneste udfyldte rækker knækker på kravet: er januar–juni og
+// august–november indtastet, skal december foreslås.
 // De to seneste rækker er da oktober og november (skridt +1) og ville faktisk give december – men den
 // samme regel giver et FORKERT svar, når hullet ligger til sidst: juni og august (skridt +2) ville
 // foreslå oktober, hvor brugeren vil have september.
 //
 // Derfor vælges det skridt, der forekommer HYPPIGST mellem seriens naboer, med det senest forekommende
-// skridt som tiebreak. Et enkelt hul ændrer ikke længere mønstret, og med præcis to prøver er det modale
+// skridt som tiebreak. Et enkelt hul ændrer ikke mønstret, og med præcis to prøver er det modale
 // skridt trivielt det ene, der findes – kravet om «mønster efter to rækker» er dermed uændret.
 //
 // ── Hvorfor en PERIODEserie skal være strengt monoton ────────────────────────────────────────────────
-// Modalvalget alene var ikke nok. Reviewet 2026-09-07 kørte motoren på halvt indtastede tabeller og fandt
-// tre familier af forslag, som ingen bruger kan læse som «næste værdi»:
+// Modalvalget alene er ikke nok. På halvt indtastede tabeller giver det tre familier af forslag, som ingen
+// bruger kan læse som «næste værdi»:
 //
-//  - **Gentagelsen.** 6, 6 og 5, 6, 6 foreslog 6 igen. Skridtet mellem to ens naboprøver er 0, og med
-//    lige stemmer vandt netop det, fordi tiebreaket tog det SENESTE skridt. En periodekolonne, der
+//  - **Gentagelsen.** 6, 6 og 5, 6, 6 ville foreslå 6 igen. Skridtet mellem to ens naboprøver er 0, og med
+//    lige stemmer vinder netop det, fordi tiebreaket tager det SENESTE skridt. En periodekolonne, der
 //    gentager sig, er en indtastning på vej til at blive rettet – ikke en kadence.
-//  - **Retningsskiftet.** 1, 2, 1 foreslog december året før, og 2025, 2026, 2025 foreslog 2024. Vilkårligt
-//    hvilken af de to retninger der vandt, modsagde forslaget den serie, brugeren så.
-//  - **Den uafgjorte kadence.** 01-01, 15-01, 01-02 foreslog 18-02: to lige hyppige dagsskridt (+14 og
-//    +17), hvor det seneste vandt. Halvmånedsperioder ER et mønster, men ikke et, motoren kender, og et
+//  - **Retningsskiftet.** 1, 2, 1 ville foreslå december året før, og 2025, 2026, 2025 ville foreslå 2024.
+//    Vilkårligt hvilken af de to retninger der vinder, modsiger forslaget den serie, brugeren ser.
+//  - **Den uafgjorte kadence.** 01-01, 15-01, 01-02 ville foreslå 18-02: to lige hyppige dagsskridt (+14 og
+//    +17), hvor det seneste vinder. Halvmånedsperioder ER et mønster, men ikke et, motoren kender, og et
 //    gæt midt imellem to kadencer er værre end ingen ghost.
 //
 // Derfor gælder for hver periodeart (dato, uge, måned/år, årstal): nulskridt kasseres, blandede retninger
@@ -92,10 +92,10 @@ type SeriesShape<TValue, TStep> = Readonly<{
   /**
    * Skridtet, når kolonnen kun har ÉN prøve at fremskrive fra.
    *
-   * Findes kun for MÅNEDSserierne, og det er ikke en bekvemmelighed. Kravet er udviklerens «altid én
-   * måned op», og uden et defaultskridt var den første række efter en tom tabel usammenhængende: skrev
-   * brugeren måned 1, år 2026 og løn 30.000 og gik en række ned, fik LØNNEN en ghost (den gentager blot
-   * cellen ovenover), mens måned og år stod tomme, fordi et mønster krævede to prøver. To ghosts og to
+   * Findes kun for MÅNEDSserierne, og det er ikke en bekvemmelighed. Kravet er «altid én måned op», og
+   * uden et defaultskridt er den første række efter en tom tabel usammenhængende: skriver brugeren måned 1,
+   * år 2026 og løn 30.000 og går en række ned, får LØNNEN en ghost (den gentager blot cellen ovenover),
+   * mens måned og år står tomme, fordi et mønster krævede to prøver. To ghosts og to
    * tomme celler i samme række, uden nogen forskel brugeren kunne se.
    *
    * En månedskolonne har en kanonisk enhed – én måned – og derfor et forsvarligt skridt fra en enkelt
@@ -247,9 +247,9 @@ const isLastDayOfMonth = (date: Date): boolean => date.getUTCDate() === getDaysI
 /**
  * Den nominelle dag bag mønstret «samme dag i hver måned», eller `null` når de to datoer ikke deler en.
  *
- * En ren `fromDag === tilDag`-prøve rakte ikke, og reviewet 2026-09-07 målte prisen: 30-01 → 28-02 er den
- * 30. i hver måned, hvor februar har clampet dagen – men fordi dagstallene er forskellige, faldt parret
- * igennem til et DAGSskridt på +29 og foreslog 29-03. Det er hverken brugerens mønster eller et tal, der
+ * En ren `fromDag === tilDag`-prøve rækker ikke: 30-01 → 28-02 er den
+ * 30. i hver måned, hvor februar har clampet dagen – men fordi dagstallene er forskellige, ville parret falde
+ * igennem til et DAGSskridt på +29 og foreslå 29-03. Det er hverken brugerens mønster eller et tal, der
  * betyder noget.
  *
  * Derfor bæres den nominelle dag med i skridtet: en dag, der er månedens SIDSTE, kan være en clampet
@@ -477,9 +477,8 @@ export const projectAbsoluteMonthSeries = (values: readonly number[]): number | 
  *
  * Begrænsningen er den degenererede sags pris. Med et årstal ved siden af er måneden en plads i en
  * kalender, og hvert skridt er entydigt. Uden årstal er den et punkt på en cirkel, hvor ethvert skridt
- * kan læses to veje – og den tidligere MODULÆRE skridtberegning valgte altid vejen fremad, så et
- * faldende par fik fortegnet vendt: 6, 1 blev skridtet +7 og foreslog august, 1, 12 blev +11 og foreslog
- * november. Kontrakten lover netop og kun wrappet 12 → 1 for en årsløs månedskolonne, og et skridt på
+ * kan læses to veje – en MODULÆR skridtberegning vælger altid vejen fremad, så et faldende par får
+ * fortegnet vendt: 6, 1 bliver skridtet +7 og foreslår august, 1, 12 bliver +11 og foreslår november. Kontrakten lover netop og kun wrappet 12 → 1 for en årsløs månedskolonne, og et skridt på
  * ±1 er det eneste, der ikke kan forveksles med sin egen modsatte retning.
  */
 const CYCLIC_MONTH_STEPS: readonly number[] = Object.freeze([1, -1]);
@@ -521,6 +520,6 @@ export const projectMonthOfYearSeries = (values: readonly number[]): number | nu
   );
 
 // Beløb og katalogvalg har bevidst INGEN projektion i dette modul. De gentager cellen umiddelbart
-// ovenover, og det er hele reglen (udviklerens beslutning 2026-09-07, se motorens regel 3). Tidligere
-// krævede de to ENS prøver og en gate på kalenderår, og prisen var uforudsigelighed: brugeren kunne ikke
-// se, hvorfor beløbskolonnen nogle gange havde en ghost og nogle gange ikke.
+// ovenover, og det er hele reglen (bevidst valg, se motorens regel 3). Et krav om to ENS prøver og en gate
+// på kalenderår gør forslaget uforudsigeligt: brugeren kan ikke se, hvorfor beløbskolonnen nogle gange har
+// en ghost og nogle gange ikke.

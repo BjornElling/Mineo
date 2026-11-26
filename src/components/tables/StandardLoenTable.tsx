@@ -92,8 +92,8 @@ export type StandardLoenTableProps = {
   cellWarnings?: ReadonlyMap<SerializedFieldAddress, FieldWarning>;
   /**
    * En sats, de afledte kolonner regner med, er ukendt efter fladens egne regler, uden at feltet står rødt: en tom
-   * påkrævet sats (M-37: Årslønnens projektion, EO's satsvurdering) eller Årslønnens overenskomstsatser, der ikke
-   * kan slås op (BB-402). De afledte kolonner viser da «—» som sammentællingen (BB-099). Udeladt = satserne er kendte.
+   * påkrævet sats (Årslønnens projektion, EO's satsvurdering) eller Årslønnens overenskomstsatser, der ikke
+   * kan slås op. De afledte kolonner viser da «—» som sammentællingen. Udeladt = satserne er kendte.
    */
   satserUkendte?: boolean;
 };
@@ -174,9 +174,9 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
       pensionPct: satser?.pension,
     }), [satser?.bededag, satser?.ferie, satser?.fritvalg, satser?.pension, satser?.shSo]);
 
-    // En rød sats skjules af readeren bag sin tomværdi, og en tom påkrævet sats er ukendt. Uden denne gren viste
-    // rækken et tal regnet med satsen som 0 % – ved siden af en sammentælling, der siger «kan ikke beregnes»
-    // (BB-099). Det samme gælder en rød beløbscelle i rækken selv. De afledte kolonner viser da samme «—» som
+    // En rød sats skjules af readeren bag sin tomværdi, og en tom påkrævet sats er ukendt. Uden denne gren viser
+    // rækken et tal regnet med satsen som 0 % – ved siden af en sammentælling, der siger «kan ikke beregnes».
+    // Det samme gælder en rød beløbscelle i rækken selv. De afledte kolonner viser da samme «—» som
     // sammentællingen; beløbene i Beløb-tilstand er brugerens egne og vises uændret.
     const satsFejl = hasStandardLoenSatsFejl(evaluation.reader, fieldSet, tillaegAngivesSom, { satserUkendte });
     // Rækkerne med en rød beløbscelle afgøres én gang pr. revision – ikke pr. celle, sortering og render. Kun en

@@ -35,8 +35,8 @@ const FORM_BY_STRATEGI: ReadonlyMap<LoenudviklingStrategi, ReguleringForm> = new
 
 /**
  * Bygger beregnings-resultatet (segmenter + evt. autoritativt forløb) for en allerede konsolideret
- * form. Dispatcher på `konsolideret.strategi` gennem registeret ÉT sted (afløser både den tidligere
- * if-kæde og den parallelle forløbs-`switch` i motoren). "Ingen" bygges direkte i orkestratoren
+ * form. Dispatcher på `konsolideret.strategi` gennem registeret ÉT sted (ingen if-kæde eller parallel
+ * forløbs-`switch` i motoren). "Ingen" bygges direkte i orkestratoren
  * (konsolideret er null) og når aldrig hertil.
  */
 export const byggReguleringsResultat = (

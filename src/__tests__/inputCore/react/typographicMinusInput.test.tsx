@@ -23,11 +23,11 @@ import { createTestCatalog, belobField, makeRow, testRowOrigin, testLocation } f
 import { codecAllowsNegative } from '../../../inputCore/react/fields/signPolicy';
 
 /**
- * BB-430 / M-61: typografiske minustegn i beløbsfelter.
+ * Typografiske minustegn i beløbsfelter.
  *
- * `10−1` (U+2212) og `10–1` (U+2013) blev indsat som `101,00`: tegnfilteret kendte kun ASCII-minus og
- * sprang tegnet over, så cifrene smeltede sammen. I et fortegnet felt blev `−1200` positivt. Rettelsen
- * normaliserer tegnet til '-' FØR tegnfilteret – i paste, tastning og første tegn, på både formularfelt
+ * Kender tegnfilteret kun ASCII-minus, indsættes `10−1` (U+2212) og `10–1` (U+2013) som `101,00`, fordi
+ * tegnet springes over og cifrene smelter sammen, og i et fortegnet felt bliver `−1200` positivt. Derfor
+ * normaliseres tegnet til '-' FØR tegnfilteret – i paste, tastning og første tegn, på både formularfelt
  * og tabelcelle – så det derefter følger præcis samme regler som '-' (inkl. §8.2's spring over et unært
  * minus i et felt uden negative værdier).
  */

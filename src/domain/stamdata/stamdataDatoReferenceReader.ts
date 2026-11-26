@@ -9,7 +9,7 @@ const skadestypeRef = stamdataSkadestypeField.bind();
  *
  * Læsningen blokerer intet: en tom eller fejlende skadestype giver standardnavnet. Den findes, fordi et
  * dokument ikke må hente skadestypen fra brevhovedets stamdata – de er tomme, når brevhovedet er fravalgt,
- * og dokumentet skiftede da tavst «Anmeldelsesdato» ud med «Skadedato» (BB-398).
+ * og dokumentet skiftede da tavst «Anmeldelsesdato» ud med «Skadedato».
  */
 export const readStamdataDatoReference = (reader: InputReader): StamdataDatoReference => {
   const skadestype = reader.read(skadestypeRef);

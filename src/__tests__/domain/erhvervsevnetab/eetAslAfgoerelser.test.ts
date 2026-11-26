@@ -406,7 +406,7 @@ describe('validateKapPctByAfgoerelsestype', () => {
     const error = validateTidlKapDatoByAfgoerelsestype(
       buildRow({ afgoerelseType: 'Midlertidig', tidlKapDato: toISODateString('2024-01-10'), kapDato: toISODateString('2024-01-10') })
     );
-    // Samme sætningsform som de to nabo-cellers regel (BB-148), ikke reglen baglæns.
+    // Samme sætningsform som de to nabo-cellers regel, ikke reglen baglæns.
     expect(error).toContain('må kun udfyldes ved endelig');
   });
 
@@ -1009,7 +1009,7 @@ describe('genoptagelsesdatoer og ikke-endelig-advarsel', () => {
     expect(resolved).toHaveLength(1);
   });
 
-  it('læser en tom virkningsdato som afgørelsesdatoen (BB-368)', () => {
+  it('læser en tom virkningsdato som afgørelsesdatoen', () => {
     const resolved = resolveNonEndeligAfterEndeligRows([
       buildRow({
         afgoerelsesDato: toISODateString('2024-01-01'),

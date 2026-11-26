@@ -219,7 +219,7 @@ describe('buildErhvervsevnetabReaderProjection', () => {
       stamdata: {
         skadedato: validStamdata.skadedato,
         skadelidteFodselsdato: validStamdata.skadelidteFodselsdato,
-        // Skadestypen videregives nu af projektionen (BB-121), så goldenen skal sende den samme vej ind.
+        // Skadestypen videregives af projektionen, så goldenen skal sende den samme vej ind.
         skadestype: validStamdata.skadestype,
         journalnr: '', advokat: '', sagsbehandler: '',
       } as StamdataValues,
@@ -278,7 +278,7 @@ describe('buildErhvervsevnetabReaderProjection', () => {
     expect(projection.snapshot.loebendeYdelser.hasBlockingErrors).toBe(true);
   });
 
-  it('viser ALLE røde celler i afgørelsestabellen på resultatfanerne, hver med række, kolonne og celle (BB-406)', () => {
+  it('viser ALLE røde celler i afgørelsestabellen på resultatfanerne, hver med række, kolonne og celle', () => {
     const reader = buildReader(
       {
         ...validErhvervsevnetab,
@@ -492,7 +492,7 @@ describe('buildErhvervsevnetabReaderProjection', () => {
     expect(projection.snapshot.differencekrav.hasBlockingErrors).toBe(true);
   });
 
-  // NY-12a-4: brøkens nedre grænse (1 %) er fælles for de to sider, der deler forligsfelterne.
+  // Brøkens nedre grænse (1 %) er fælles for de to sider, der deler forligsfelterne.
   it.each([
     ['1/100', false],
     ['2/200', false],

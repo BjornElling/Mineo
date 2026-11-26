@@ -110,8 +110,8 @@ export default function BilagsnumreSection() {
           // Advarslen er en ren funktion af feltets egen værdi plus ét andet valg, og den har en
           // HÅNDGRIBELIG virkning: et inkonsistent bilagsnummer udelades tavst af dokumentet
           // (`getBilag` i opgoerelseSection.ts). Stod den kun i boksen på Beregning-fanen, havde
-          // brugeren – som netop står her og skriver numrene – ingen anledning til at opdage det
-          // (BB-207, samme afgørelse som BB-142 og BB-159). Teksten er ordret boksens egen, så de to
+          // brugeren – som netop står her og skriver numrene – ingen anledning til at opdage det.
+          // Teksten er ordret boksens egen, så de to
           // kanaler ikke kan drifte.
           const advarselstekst = resolveBilagWarning(values, raekke.fieldName, values[raekke.fieldName] as string | undefined);
           const warning = advarselstekst === null ? undefined : createFieldWarning(advarselstekst);

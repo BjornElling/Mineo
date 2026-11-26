@@ -5,7 +5,7 @@ import { varigeMenPrGrad } from '../../data/lovbestemteRates';
 import { formatKr } from '../../utils/formatUtils';
 
 // Varige mén vises konsekvent i hele kroner uden decimaler (`varigemen-contract.md` §2.9), og
-// enheden kommer fra den kanoniske `formatKr` frem for en inline " kr."-streng (BB-078).
+// enheden kommer fra den kanoniske `formatKr` frem for en inline " kr."-streng.
 const formatKronerPerMengrad = (value: number): string => formatKr(value);
 
 const VarigeMenSatserTable = React.memo(() => {

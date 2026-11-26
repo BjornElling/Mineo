@@ -255,8 +255,8 @@ describe('calculateLoenindkomstRowDerived', () => {
     });
   });
 
-  // BB-292: rækken uden arbejdsdage fordeles på fald-tilbage-dage som i beregningen (periodisering-contract.md
-  // §3A) – før stod den til 0,00 kr. i tabel og bilag, mens grundlaget regnede lønnen med.
+  // Rækken uden arbejdsdage fordeles på fald-tilbage-dage som i beregningen (periodisering-contract.md §3A) –
+  // ellers står den til 0,00 kr. i tabel og bilag, mens grundlaget regner lønnen med.
   it('viser lønnen, når alle arbejdsdage er dækket af ferie – samme fald-tilbage som beregningen', () => {
     const dag = toISODateString('2024-01-11');
     const ansaettelsesforhold = {

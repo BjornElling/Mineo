@@ -50,7 +50,7 @@ describe('buildLoenindkomstTableLines', () => {
     expect(linesFor(values)).toEqual([]);
   });
 
-  it('navngiver den manglende celle og rækkens plads, når perioden ikke er hel (BB-291)', () => {
+  it('navngiver den manglende celle og rækkens plads, når perioden ikke er hel', () => {
     const { values, af } = buildValuesWithAnsForhold();
     af.indtaegtsoplysningerTableData = [
       { id: 'row-1', col0_maaned: '1', col1_maaned: '2024', col2: amount(100) },
@@ -64,7 +64,7 @@ describe('buildLoenindkomstTableLines', () => {
     })]);
   });
 
-  it('giver én linje pr. fejlbehæftet række – ikke kun den første (BB-291)', () => {
+  it('giver én linje pr. fejlbehæftet række – ikke kun den første', () => {
     const { values, af } = buildValuesWithAnsForhold();
     af.indtaegtsoplysningerTableData = [
       { id: 'row-1', col1_maaned: '2024', col2: amount(100) },
@@ -77,7 +77,7 @@ describe('buildLoenindkomstTableLines', () => {
     ]);
   });
 
-  it('bruger cellens egen tekst for en rød celle og siger ikke «ikke angivet» om den (BB-291)', () => {
+  it('bruger cellens egen tekst for en rød celle og siger ikke «ikke angivet» om den', () => {
     const { values, af } = buildValuesWithAnsForhold();
     // Readeren læser en rød celle som tom; issuet bærer cellens egen tekst og adresse.
     af.indtaegtsoplysningerTableData = [{ id: 'row-1', col1_maaned: '2024', col2: amount(100) }];

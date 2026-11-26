@@ -90,7 +90,7 @@ const buildCanonicalOutput = (): EoCanonicalOutput => ({
   },
 });
 
-describe('CALC-006 – uafhængigt facit for canonical KL-regulering i EO-viewmodel', () => {
+describe('uafhængigt facit for canonical KL-regulering i EO-viewmodel', () => {
   it('viser den beregnede tabel med reguleret månedsløn fra canonical segmenter', () => {
     const sections = buildRegulationInspektionSections({
       timeline: buildTimeline(),

@@ -208,7 +208,7 @@ describe('canonical rangevalidering', () => {
     });
     const errors = erstatningsopgoerelseValidator.validateParsed(values).errors;
 
-    // Beregningsgrundlagets dagfelter og SFGG-fraværsdagene bærer selv loftet på descriptoren (BB-264, 12i);
+    // Beregningsgrundlagets dagfelter og SFGG-fraværsdagene bærer selv loftet på descriptoren;
     // validatoren melder dem ikke.
     expect(errors.some((error) => error.path === 'uspecificeredeFerieFridage' || error.path === 'oevrigeFravaersdage'
       || error.path === 'sfggAnsaettelsesforhold[0].sfggReferenceperiodeFravaersdageUdenLoen')).toBe(false);
@@ -221,7 +221,7 @@ describe('canonical rangevalidering', () => {
     ]));
   });
 
-  it('afviser fortsat et negativt beløb for øvrige krav – nulreglen ejes nu af feltet selv (BB-232)', () => {
+  it('afviser fortsat et negativt beløb for øvrige krav – nulreglen ejes af feltet selv', () => {
     const zero = makeValues({
       kravPaaOevrigeErstatningskrav: 'Ja',
       oevrigeKravPerioder: [{ id: 'krav-0', dato: iso('2024-01-01'), udgiftTil: 'Transport', beloeb: asAmount(0) }],
@@ -430,7 +430,7 @@ describe('TAF validering', () => {
   // Satsdækning for "TAF opreguleret til beregningsåret" valideres IKKE i den rå-values-validator.
   // Den hører hjemme i compute-laget (buildTafPerYearOpreguleretBuildOutcome), der er eneste
   // sandhed for hvilke år der reelt opreguleres (kun år med nettobeløb ≠ 0) og som fail-closer
-  // via en invariant der KUN blokerer TAF-opreguleret-PDF'en. Jf. 4.12-review.
+  // via en invariant der KUN blokerer TAF-opreguleret-PDF'en.
   it('emitterer IKKE en pre-compute satsdæknings-fejl for TAF-opreguleringens startår', () => {
     const values = makeValues({
       tafPerioder: [
@@ -609,7 +609,7 @@ describe('SFGG validering', () => {
     expect(hasError(values, "'Sygeferiegodtgørelse beregnes ud fra' er ikke valgt")).toBe(false);
   });
 
-  // Grænsen ejes nu af `collectSfggReferenceperiodeIssues` (rød ring og én linje med link, BB-322); validatoren
+  // Grænsen ejes af `collectSfggReferenceperiodeIssues` (rød ring og én linje med link); validatoren
   // må ikke også melde den, ellers står samme fejl to gange i «Fejl og advarsler».
   it('overlader grænsen før første TAF-periode til referenceperiode-reglerne', () => {
     const values = makeValues({
@@ -707,9 +707,9 @@ describe('SFGG validering', () => {
     // ('bygge-anlaeg') med SFGG-kilde 'Overenskomst' og slog derefter harOverenskomst fra;
     // overenskomst-ID'et blev hængende. resolveSfggSource behandler dette som overenskomst_ferielov
     // (referenceperiode-sporet), og validatoren skal følge samme kildeopløsning: IKKE kræve
-    // satsvalg. Referenceperioden kræves heller ikke, fordi sektionen skjuler den uden aktiv overenskomst. Tidligere genudledte validatoren policyen uden
-    // harOverenskomst-betingelsen og gav selvmodsigende beskeder (satsvalg krævet, referenceperiode
-    // sprunget over) i uoverensstemmelse med motoren.
+    // satsvalg. Referenceperioden kræves heller ikke, fordi sektionen skjuler den uden aktiv overenskomst. Genudleder
+    // validatoren policyen uden harOverenskomst-betingelsen, giver den selvmodsigende beskeder (satsvalg
+    // krævet, referenceperiode sprunget over) i uoverensstemmelse med motoren.
     const values = makeValues({
       kravPaaTabtArbejdsfortjeneste: 'Ja',
       beregnesUdFra: 'Angivet månedsløn',
@@ -742,8 +742,8 @@ describe('SFGG validering', () => {
       }],
     });
 
-    // Intet satsvalg-krav. Referenceperioden er skjult på skærmen, så længe der ikke er en aktiv overenskomst
-    // (brugerblik 12i): et skjult felt er ikke udfyldt og kræves derfor ikke.
+    // Intet satsvalg-krav. Referenceperioden er skjult på skærmen, så længe der ikke er en aktiv overenskomst:
+    // et skjult felt er ikke udfyldt og kræves derfor ikke.
     expect(hasError(values, 'Uddannelse og arbejdssted for sygeferiegodtgørelse er ikke valgt')).toBe(false);
     expect(hasError(values, 'Referenceperiode fra-dato mangler')).toBe(false);
     // Den primære blokerende besked står stadig, fordi der ikke er en aktiv overenskomst.
@@ -800,7 +800,7 @@ describe('øvrige krav validering', () => {
     ]);
   });
 
-  it.each(['Nej', 'Skjul'] as const)('validerer ikke rækkerne, når kravvalget er «%s» (BB-228)', (kravvalg) => {
+  it.each(['Nej', 'Skjul'] as const)('validerer ikke rækkerne, når kravvalget er «%s»', (kravvalg) => {
     const values = makeValues({
       kravPaaOevrigeErstatningskrav: kravvalg,
       oevrigeKravPerioder: [
@@ -1122,7 +1122,7 @@ describe('TAF – fanger manglende fra-dato alene', () => {
     expect(hasError(values, 'Fra-dato er ikke angivet')).toBe(true);
   });
 
-  it('melder en række med kun løse feriedage som én mangel (BB-253)', () => {
+  it('melder en række med kun løse feriedage som én mangel', () => {
     const values = makeValues({
       tafPerioder: [
         { id: '1', fra: undefined, til: undefined, loseFeriedage: 3 },
@@ -1751,7 +1751,7 @@ describe('validateLoenudviklingsKravForAktivKilde – Statistik og KRL', () => {
 // =============================================================================
 
 describe('øvrige krav – ekstra valideringscases', () => {
-  it('godtager en række uden dato – datoen er valgfri (BB-229)', () => {
+  it('godtager en række uden dato – datoen er valgfri', () => {
     const values = makeValues({
       kravPaaOevrigeErstatningskrav: 'Ja',
       oevrigeKravPerioder: [

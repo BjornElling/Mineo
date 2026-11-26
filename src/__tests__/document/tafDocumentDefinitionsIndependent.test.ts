@@ -169,7 +169,7 @@ const projectTafGraf = (): TafKravGrafDocumentInput => {
 const tooltipOf = (result: DocumentProjectionResult<unknown>): string | undefined =>
   result.status === 'blocked' ? resolveBlockedGateTooltip(result.reasons) : undefined;
 
-describe('CALC-006/DOC-001 – TAF-dokumentdefinitioner og renderers', () => {
+describe('TAF-dokumentdefinitioner og renderers', () => {
   it('blokerer alle tre TAF-definitioner, når sagen ikke beregner TAF', () => {
     const withoutTaf: ErstatningsopgoerelseValues = {
       ...erstatningsopgoerelse,
@@ -186,13 +186,13 @@ describe('CALC-006/DOC-001 – TAF-dokumentdefinitioner og renderers', () => {
     expect(blockedFordelt.status).toBe('blocked');
     expect(blockedOpreguleret.status).toBe('blocked');
     expect(blockedGraf.status).toBe('blocked');
-    // Knappen siger tilstanden, ikke «Indtastning mangler» – TAF «Nej» er et valg, ikke en mangel (BB-371).
+    // Knappen siger tilstanden, ikke «Indtastning mangler» – TAF «Nej» er et valg, ikke en mangel.
     for (const result of [blockedFordelt, blockedOpreguleret, blockedGraf]) {
       expect(tooltipOf(result)).toBe('Der er ikke krav på tabt arbejdsfortjeneste i EO-perioden');
     }
   });
 
-  it('siger «Der er ingen TAF-perioder i EO-perioden», når TAF er rejst uden periode i EO-perioden (BB-371)', () => {
+  it('siger «Der er ingen TAF-perioder i EO-perioden», når TAF er rejst uden periode i EO-perioden', () => {
     const tafFoerEoPerioden: ErstatningsopgoerelseValues = {
       ...erstatningsopgoerelse,
       tafPerioder: [{ id: 'taf-foer', fra: iso('2024-01-01'), til: iso('2024-03-31'), loseFeriedage: 0 }],
@@ -208,7 +208,7 @@ describe('CALC-006/DOC-001 – TAF-dokumentdefinitioner og renderers', () => {
     }
   });
 
-  describe('fejl i krav, TAF-dokumenterne ikke viser (BB-370)', () => {
+  describe('fejl i krav, TAF-dokumenterne ikke viser', () => {
     const medFejlISvieSmerteOgOevrigeKrav: ErstatningsopgoerelseValues = {
       ...erstatningsopgoerelse,
       kravPaaSvieSmerteGodtgoerelse: 'Ja',
@@ -262,7 +262,7 @@ describe('CALC-006/DOC-001 – TAF-dokumentdefinitioner og renderers', () => {
       renderer(session, input, { visBrevhoved: false })
     );
 
-    // Samme navn som knappen (BB-376).
+    // Samme navn som knappen.
     expect(filename).toContain('TAF fordelt på kalenderår');
     expect(xmlToPlainText(documentXml)).toContain('TAF fordelt på kalenderår');
   });

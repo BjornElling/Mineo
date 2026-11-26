@@ -16,7 +16,7 @@ type StamdataFieldIssues = FieldIssueSet;
  *
  * «Underskrift-linje» trykker navnet under selve underskriftslinjen. Uden det skrev dokumentet ordret
  * `*skadelidtes navn*` i et papir, der skulle sendes til underskrift, mens download var tilladt og den
- * eneste advarsel handlede om brevhovedet (BB-214). Navnet er uundværligt PRÆCIS i den tilstand: ved
+ * eneste advarsel handlede om brevhovedet. Navnet er uundværligt PRÆCIS i den tilstand: ved
  * «Bekræftet godkendt» og «Ingen» sættes det ikke, og en manglende værdi er da fortsat kun en advarsel.
  */
 const kraeverSkadelidtesNavn = (afsluttesMed: AfsluttesMed | undefined): boolean =>
@@ -61,7 +61,7 @@ export const buildEoStamdataRows = (
 
   // Blokerer et tomt navn, skal beskeden sige HVORFOR. Den generiske «'Skadelidtes navn' er ikke angivet»
   // ville ikke forklare, at det netop er afslutningsformen, der gør navnet uundværligt – og brugeren ville
-  // stå med en blokeret download uden at kunne se, at det andet valg fjerner kravet (BB-214).
+  // stå med en blokeret download uden at kunne se, at det andet valg fjerner kravet.
   const skadelidteBlokerer =
     kraeverSkadelidtesNavn(erstatningsopgoerelseAfsluttesMed) && !isNonEmptyString(values.skadelidte);
   const skadelidteIssue = topLevelFieldIssue(errors, 'stamdata', 'skadelidte');

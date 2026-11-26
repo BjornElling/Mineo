@@ -9,7 +9,7 @@ import { deployWithRetry, isTransientDeployFailure, MAX_ATTEMPTS } from '../../.
 
 type RunResult = { status: number | null; output: string };
 
-/** Ordlyden fra den udrulning, der fejlede 2026-10-12. */
+/** Ordlyden fra en reel fejlet udrulning. */
 const CLOUDFLARE_504 = [
   '✘ [ERROR] Received a malformed response from the API',
   '  <!DOCTYPE html>',

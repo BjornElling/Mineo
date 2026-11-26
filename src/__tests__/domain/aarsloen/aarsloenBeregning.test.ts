@@ -8,11 +8,9 @@ import { harTabelData } from '../../../domain/aarsloen/aarsloenValidationPolicie
 import { beregnMaanedPeriode } from '../../../utils/periodeBeregning';
 import { toISODateString } from '../../../types/branded';
 
-// Testene kalder den rene beregning direkte. En test gennem `renderHook` ville måle en React-adapter, INGEN
-// produktionskode brugte. De hævdede altså kontrolflowet gennem en død vej, mens den levende
-// (`aarsloenProjection.ts` → `computeAarsloenBeregning`) var utestet på netop disse grene. Adapteren er
-// slettet; invarianterne er bevaret ordret mod den aktive indgang og har ikke længere brug for et
-// React-miljø, en render eller `@testing-library`.
+// Testene kalder den rene beregning direkte – den samme indgang, produktionen bruger
+// (`aarsloenProjection.ts` → `computeAarsloenBeregning`). En test gennem en React-adapter ville måle en
+// vej, ingen produktionskode bruger, og kræver hverken et React-miljø, en render eller `@testing-library`.
 
 vi.mock('../../../utils/safeComputation', () => ({
   safeCompute: vi.fn(),

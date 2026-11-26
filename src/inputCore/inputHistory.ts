@@ -37,8 +37,7 @@ type RequiredOriginDestination = Readonly<{
  * - `kind: 'collection'` (strukturel rækkehandling: insert/delete/reorder) har intet enkelt felt, men SKAL
  *   bære collectionen, så destinationen er entydig. Restoren navigerer til lokationen uden at fokusere et felt.
  *
- * Tidligere var `field` blot valgfri; da kunne et feltcommit type-lovligt sendes uden adresse. Unionen gør den
- * fejl urepræsenterbar.
+ * Unionen gør et feltcommit uden adresse urepræsenterbart; et blot valgfrit `field` ville tillade det.
  */
 export type FieldHistoryOrigin = OriginDestination & Readonly<{
   kind: 'field';

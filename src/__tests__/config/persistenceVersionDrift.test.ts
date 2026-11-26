@@ -19,76 +19,13 @@ import { persistenceSchemas } from '../../config/persistenceRegistry';
  * Hardkodet snapshot af schemas' fingerprint.
  * Opdateres manuelt ved intentionelle schema-ændringer (ledsaget af versionsbump).
  */
-// Opdateret 2026-05-29: nyt felt endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft
-// på erhvervsevnetab-sektionen (flyttet fra app-settings til sagsdata). PERSISTED_DATA_VERSION
-// bumpet til 1.7 (reel persisted schema-ændring).
-// Opdateret 2026-05-29: nyt felt indregnMerErstatningVedForhoejetPensionsalder på
-// erhvervsevnetab-sektionen. PERSISTED_DATA_VERSION bumpet til 1.8 (reel persisted schema-ændring).
-// Opdateret 2026-05-30: nyt bilag-felt merErstatningPensionsalder på
-// eetDifferencekravBilagSelection. PERSISTED_DATA_VERSION bumpet til 1.9 (reel persisted schema-ændring).
-// Opdateret 2026-06-03: allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden og
-// allowReguleringMedUdloebMedMaaneder blev flyttet fra erstatningsopgørelsen til device-lokale
-// app-settings. Den historiske overgang må ikke bruges som model for nye load-brud; de gamle
-// sagsfelter er ikke længere sagsdata, mens de øvrige historiske værdier fortsat skal bevares.
-// Samme ændring omdøbte beregnesSvieSmerteGodtgoerelse -> kravPaaSvieSmerteGodtgoerelse og
-// beregnesTabtArbejdsfortjeneste -> kravPaaTabtArbejdsfortjeneste og udvidede enum til Ja/Nej/Skjul.
-// De gamle navne dækkes nu af en eksplicit load-migrering.
-// Opdateret 2026-06-03: nyt felt kravPaaOevrigeErstatningskrav (Ja/Nej/Skjul) på erstatningsopgoerelse-sektionen,
-// magen til de to ovenstående. PERSISTED_DATA_VERSION bumpet til 3.1 (reel persisted schema-ændring).
-// Opdateret 2026-06-03: nyt felt offentligeYdelserKommentarer (optionalString) på erstatningsopgoerelse-sektionen
-// – kommentarfelt på Offentlige ydelser-siden. PERSISTED_DATA_VERSION bumpet til 3.2 (reel persisted schema-ændring).
-// Opdateret 2026-06-03: afsluttesMedEnum udvidet med 'Ingen' (udelader godkendelses-afsnittet fra EO-PDF'en).
-// PERSISTED_DATA_VERSION bumpet til 3.3 (reel persisted schema-ændring; enum-værdimængde ændret).
-// Opdateret 2026-06-10: defaults tilføjet på aarsloen-sektionens påkrævede felter (loenperiode='maaned',
-// tableData=[], omregningTilFuldtAar=false, fuldLoenUnderFerie=true, retTilSjetteFerieuge=true,
-// loenPaaHelligdage='Almindelig løn') for forward/backward-tolerant load. Felterne bliver input-optional
-// → fingerprint ændret. PERSISTED_DATA_VERSION bumpet til 3.4 (reel persisted schema-/parse-semantikændring).
-// Opdateret 2026-06-20: nyt felt tillaegAngivesSom ('procent'|'beloeb', default 'procent') på
-// erstatningsopgoerelse-AF og aarsloen-sektionen, samt to nye lønindkomst-rækkefelter
-// (fpFvShSoBeloeb, pensionBeloeb) til Beløb-tilstand. PERSISTED_DATA_VERSION bumpet til 3.5
-// (reel persisted schema-ændring; nye inputfelter).
-// Opdateret 2026-06-23: loenudviklingBeregningsgrundlagEnum udvidet med 'KL-lønaftaler' (ny
-// lønudviklings-model). PERSISTED_DATA_VERSION bumpet til 3.6 (reel persisted schema-ændring;
-// enum-værdimængde udvidet).
-// Opdateret 2026-07-01: loenudviklingBeregningsgrundlagEnum udvidet med 'Manuel procentsats'
-// og nyt felt loenudviklingManuelProcentsatsTableData på lønudviklingsgruppen.
-// PERSISTED_DATA_VERSION bumpet til 3.7 (reel persisted schema-ændring; enum + nye inputrækker).
-// Opdateret 2026-07-11: varigemen-sektionens øvre méngradsgrænse udvidet fra 100 til 120.
-// PERSISTED_DATA_VERSION bumpet til 3.8 (reel, bagudkompatibel parse-semantikændring).
-// Opdateret 2026-07-14: alle persisted række-id’er kræver nu ikke-tom, trimmet identitet, numeriske værdier skal
-// kunne repræsenteres præcist, og parsebare range-/domæneværdier bevares canonical til den afledte issue-model.
-// PERSISTED_DATA_VERSION bumpet til 3.9 (parse-semantikændringer; Zod-refinements ændrer ikke fingerprintet).
-// Opdateret 2026-07-16: tre ubrugte schemafelter uden editor eller consumer er fjernet fra
-// erstatningsopgørelsen. PERSISTED_DATA_VERSION bumpet til 3.10 (reel persisted schema-ændring).
-// Opdateret 2026-07-30: den rent afledte Store Bededagssats er fjernet fra det aktuelle persisted
-// EO-schema; ældre `.eo` får slottet fjernet af sektionsmigratoren. PERSISTED_DATA_VERSION bumpet til 3.11.
-// Slottet blev først fjernet med en `.transform()` på ansættelsesschemaet. Det gav et FALSKT stabilt
-// fingerprint: `z.toJSONSchema` udsender en tom `items: {}` for et transformeret array, så hele det nestede
-// løntræ forsvandt ud af både fingerprintet og ledgerens felt-/collection-udledninger. Fjernelsen sker
-// derfor i migratoren, og fingerprintet dækker igen hvert persisteret felt.
-// Opdateret 2026-08-07: `eoAngivetLoenLoenudvikling.loenPaaHelligdage` var valgfri, mens
-// ansættelsesforholdets tvilling var påkrævet – samme logiske felt med to forskellige kontrakter. Feltet er
-// nu required-with-default ('Almindelig løn') for BEGGE ejere, præcis som årslønssektionen fik det i 3.4.
-// Load-tolerancen består (ældre `.eo` uden feltet får defaulten), men `undefined` kan ikke længere
-// repræsenteres – og dermed heller ikke nå motorens fail-closed-sti.
-// PERSISTED_DATA_VERSION bumpet til 3.12 (reel persisted schema-/parse-semantikændring).
-// Opdateret 2026-09-09: nyt bilag-felt `opgoerelse` på eetDifferencekravBilagSelection – differencekravets
-// forside, som fladen viser låst til (samme model som EO's «Opgørelse»). Feltet er required-with-default
-// `true`, så en ældre `.eo` uden det indlæses uændret og uden preflight-afvigelse: den får præcis den
-// tilstand, filen reelt havde (forsiden var altid med). Ingen eksisterende værdi ændres, intet beløb
-// flytter sig. PERSISTED_DATA_VERSION bumpet til 3.13 (reel persisted schema-ændring; nyt inputfelt).
-// Opdateret 2026-09-13: Store Bededagstillæg er nu et eksplicit valg på både ansættelsesforhold og
-// angivet løn. Historiske filer migreres tavst til den tidligere automatiske betydning.
-// PERSISTED_DATA_VERSION bumpet til 3.14 (reel persisted schema- og semantikændring).
-// Opdateret 2026-10-16: «Forhøjet grundløn ud over løntrin» har fået sin egen gemte enhed
-// (`offentligLoenEkstraGrundloenAngivesPer`) på ansættelsesforhold og angivet løn, og angivet løns
-// anciennitetsenhed læses nu som brugerens valg (afklaringslog 10a/12). Ældre filer får ved indlæsning den
-// enhed, felterne hidtil har vist/brugt. PERSISTED_DATA_VERSION bumpet til 3.15 (reel persisted schema- og
-// semantikændring).
-// Opdateret 2026-10-23: «Ansættelse» (`offentligLoenType`) er required-with-default ('Månedsløn') for begge ejere
-// (BB-300), præcis som `loenPaaHelligdage` i 3.12. Ældre `.eo` med et tomt felt indlæses som Månedsløn – det, feltet
-// altid har vist. PERSISTED_DATA_VERSION bumpet til 3.16 (reel persisted schema-/parse-semantikændring).
-// 2026-10-27: årslønnens overenskomstgrundlag og fem optional inputfelter; version 3.17.
+// Ældre versioners felter og omdøbninger dækkes af eksplicitte load-migreringer, ikke af schemaet.
+// En ændring, der kun tilføjer Zod-refinements, ændrer ikke fingerprintet, men kan stadig være en
+// parse-semantikændring, der kræver versionsbump.
+// Fjern aldrig et persisteret felt med `.transform()` på schemaet: `z.toJSONSchema` udsender en tom
+// `items: {}` for et transformeret array, så hele det nestede løntræ forsvinder ud af både fingerprintet og
+// ledgerens felt-/collection-udledninger, og fingerprintet bliver falsk stabilt. Fjernelser sker i
+// sektionsmigratoren, så fingerprintet dækker hvert persisteret felt.
 const SCHEMA_FINGERPRINT_SNAPSHOT = 'fnv1a-59d26e3c';
 
 describe('persistenceVersionDrift', () => {

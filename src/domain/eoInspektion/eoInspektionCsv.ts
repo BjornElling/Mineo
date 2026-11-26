@@ -6,16 +6,16 @@ import { isAmountColumnId, parseEmploymentIndexFromColumnId } from './eoInspekti
 /** Byte order mark, så dansk Excel læser filen som UTF-8. */
 const UTF8_BOM = String.fromCharCode(0xfeff);
 
-/** Titlen i CSV-filens navn: `{journalnr} - Kontroltabel.csv` efter dokumenternes filnavnsregel (BB-382). */
+/** Titlen i CSV-filens navn: `{journalnr} - Kontroltabel.csv` efter dokumenternes filnavnsregel. */
 export const KONTROLTABEL_CSV_TITEL = 'Kontroltabel';
 
 /**
  * Kolonnenavnene i CSV-filen.
  *
  * På skærmen står ansættelsesforholdets navn som gruppeoverskrift over dets kolonner; den overskrift findes ikke i
- * en CSV-fil. Med to ansættelsesforhold stod «Løn», «Samlet løn» osv. derfor to gange uden at sige, hvilket
- * ansættelsesforhold de hørte til, og et regneark, der slår op på kolonnenavn, tog den første (BB-381). Navnet
- * står nu foran hver af ansættelsesforholdets kolonner: «Fiktivt arbejdssted – Løn».
+ * en CSV-fil. Med to ansættelsesforhold ville «Løn», «Samlet løn» osv. ellers stå to gange uden at sige, hvilket
+ * ansættelsesforhold de hører til, og et regneark, der slår op på kolonnenavn, tager den første. Navnet
+ * står derfor foran hver af ansættelsesforholdets kolonner: «Fiktivt arbejdssted – Løn».
  *
  * Har to ansættelsesforhold samme navn, får de deres nummer bag navnet, så kolonnenavnene stadig er entydige.
  */

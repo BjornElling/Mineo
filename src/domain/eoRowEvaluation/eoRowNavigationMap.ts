@@ -83,10 +83,10 @@ export type EoRowNavigationContext = Readonly<{
  * Linknavnet for en linje om ét ansættelsesforhold.
  *
  * Med flere kort hedder linket kortets nummer, «Ansættelsesforhold 2», så brugeren kan se, hvilket kort linjen
- * gælder, uden at klikke – og to kort med samme mangel giver to linjer (BB-278). Nummeret står i linket og
- * ikke foran beskeden: et præfiks med kortets fulde overskrift gjorde de lange satslinjer to-tre linjer høje.
+ * gælder, uden at klikke – og to kort med samme mangel giver to linjer. Nummeret står i linket og
+ * ikke foran beskeden: et præfiks med kortets fulde overskrift ville gøre de lange satslinjer to-tre linjer høje.
  * Med ét kort er der intet at skelne, og linket hedder fanens afsnit, «Lønindkomst» – også for
- * sygeferiegodtgørelsens linjer, som før hed «Ansættelsesforhold» om samme kort.
+ * sygeferiegodtgørelsens linjer.
  */
 const resolveAnsaettelsesforholdSectionTitle = (
   rowId: string,
@@ -216,7 +216,7 @@ export const getNavigationTargetFromRowId = (
       sectionId: 'taf-beregningsgrundlag',
       tabName: 'EO oplysninger',
       // Linket bærer sektionens SYNLIGE overskrift som alle andre sektionslinks. Det hed «Indkomstgrundlag» –
-      // en overskrift, der ikke findes på skærmen (BB-270).
+      // en overskrift, der ikke findes på skærmen.
       sectionTitle: `Indtægt før ${resolveSkadeEllerAnmeldelsesdatoReference(context.skadestype).labelLower}`,
     };
   }

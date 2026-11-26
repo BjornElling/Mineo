@@ -1,6 +1,6 @@
 /**
  * ÉT sandt sted for, hvad satsen i «Feriegodtgørelse/-tillæg» BETYDER – på begge lønflader
- * (`feriepenge-begreber-contract.md` §2d, udviklerafgørelse 2026-11-04).
+ * (`feriepenge-begreber-contract.md` §2d).
  *
  * Feltet rummer to forskellige ydelser, og den indtastede sats afgør, hvilken der er tale om:
  * - under 12 % er det et **ferietillæg** (1 % – eller et forhøjet ferietillæg på typisk op til ca. 3 %) – lønmodtageren
@@ -15,7 +15,7 @@
 /** Skillelinjen: en sats herunder er et ferietillæg, en sats herfra er feriegodtgørelse. */
 export const FERIEGODTGOERELSE_MIN_PCT = 12;
 
-/** Over denne sats gives en ikke-blokerende advarsel på begge lønflader (BB-286). */
+/** Over denne sats gives en ikke-blokerende advarsel på begge lønflader. */
 export const FERIE_PCT_ADVARSELSGRAENSE = 20;
 
 /** Feriegodtgørelse er aldrig over denne sats; en højere indtastning er en rød feltfejl på begge flader. */

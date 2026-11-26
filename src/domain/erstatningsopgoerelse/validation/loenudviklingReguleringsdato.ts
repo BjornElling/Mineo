@@ -21,9 +21,9 @@ export const buildMissingLoenudviklingReguleringsdatoMessage = (
 
 /**
  * Lønudviklingen bygger på kortets overenskomst, men den er slået fra. Validatoren og rækkebyggeren bruger samme
- * tekst, så sikkerhedsnettet genkender linjen som dækket (BB-316).
+ * tekst, så sikkerhedsnettet genkender linjen som dækket.
  */
 export const OVERENSKOMST_SKAL_SLAAS_TIL_BESKED = 'Overenskomst skal slås til, når lønudviklingen beregnes ud fra overenskomst';
 
-/** En «Manuel procentsats» uden en eneste sats ud over den låste første række (BB-303). */
+/** En «Manuel procentsats» uden en eneste sats ud over den låste første række. */
 export const MANUEL_PROCENTSATS_UDEN_SATSER_BESKED = 'Manuel procentsats mangler: angiv mindst én sats – eller vælg «Ingen»';

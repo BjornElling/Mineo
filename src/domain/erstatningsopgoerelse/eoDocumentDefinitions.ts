@@ -1,11 +1,9 @@
 /**
  * De fire EO-dokumentdefinitioner.
  *
- * Definitionerne GENBRUGER den eksisterende reader-projektion og gate uændret (§5.4): de flytter
- * kun ejerskabet af rækkefølgen fra `useEoBeregningViewModel` ind i kataloget. Bilag-selektionen,
- * `midlertidigtEetGroups` og de fire per-dokument-projektioner er nu en del af definitionens
- * `project`, så det, der før var view-model-lokale `resolveFreshBilag`/`prepareFreshDownload`,
- * er blevet dependencies på outputtet.
+ * Definitionerne GENBRUGER reader-projektionen og gaten uændret (§5.4); kataloget ejer rækkefølgen.
+ * Bilag-selektionen, `midlertidigtEetGroups` og de fire per-dokument-projektioner er en del af definitionens
+ * `project` og dermed dependencies på outputtet – ikke view-model-lokale hjælpere.
  *
  * Alle fire deler ÉN projektion og ÉT gate-sæt gennem `context.shared`, så den dyre
  * `collectAllEoRows`-aggregering kører én gang pr. kildekontekst – ikke fire. Kun når et TAF-dokument er spærret,
@@ -105,7 +103,7 @@ const TAF_DOCUMENT_KEYS = ['tafFordeltPaaAar', 'tafOpreguleret', 'tafKravGraf'] 
  * Kilden for de tre TAF-dokumenter: sagen, som den ville se ud, hvis svie/smerte og øvrige krav var «Skjul».
  *
  * Ingen af de tre viser svie/smerte eller øvrige krav, men de delte opgørelsens spærring, så en fejl i et af de to
- * krav spærrede dokumentet til skattemyndighederne (BB-370, udviklerafgørelse 2026-10-29). Varianten er en hel ny
+ * krav ville spærre dokumentet til skattemyndighederne. Varianten er en hel ny
  * evaluering (`createCounterfactualInputEvaluation`), ikke et filter på fejllisten: de to krav og alt bag dem er
  * skjult for enhver læser – snapshot, rækker, gate og dokument – så hverken en fejl eller et tal derfra kan nå de
  * tre dokumenter. TAF afhænger ikke af de to krav, så tallene er de samme som i den indtastede sag.
@@ -131,13 +129,13 @@ const readTafEoSource = (context: DocumentSourceContext<MineoDocumentGateSetting
   return { projection, gates: evaluateErstatningsopgoerelseDownloadGates(projection, context.settings) };
 };
 
-/** Test-adgang til TAF-dokumenternes kilde (BB-370). */
+/** Test-adgang til TAF-dokumenternes kilde. */
 export const __testReadTafEoSource = readTafEoSource;
 
 /**
  * Bilagsvalget, som det gælder for det FRISKE snapshot: sagens gemte valg, hvor hvert dynamisk
- * bilag slås fra, hvis det ikke er tilgængeligt i den aktuelle beregning. Var før `resolveFreshBilag`
- * i view-modellen; er nu en dependency på de to outputs, der har bilag.
+ * bilag slås fra, hvis det ikke er tilgængeligt i den aktuelle beregning. En dependency på de to
+ * outputs, der har bilag.
  */
 const resolveBilagSelection = (projection: ErstatningsopgoerelseReaderProjection): SelectedElements => {
   const availability = getEoBilagAvailability({

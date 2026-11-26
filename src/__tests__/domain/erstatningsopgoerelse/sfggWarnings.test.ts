@@ -98,7 +98,7 @@ describe('resolveSfggGamleReferenceperiodeAdvarsler', () => {
     expect(resolveSfggGamleReferenceperiodeAdvarsler({ values, stamdata: STAMDATA_INITIAL_VALUES })).toEqual([]);
   });
 
-  it('navngiver reguleringsdatoen og konsekvensen (BB-324)', () => {
+  it('navngiver reguleringsdatoen og konsekvensen', () => {
     expect(buildSfggGammelReferenceperiodeBesked(iso('2023-02-28'))).toBe(
       'Referenceperioden slutter mere end 12 måneder før reguleringsdatoen (28-02-2023) – satsen er regnet med lønnen på reguleringsdatoen uden regulering'
     );
@@ -106,7 +106,7 @@ describe('resolveSfggGamleReferenceperiodeAdvarsler', () => {
 });
 
 describe('buildSfggSeksMaanederBesked', () => {
-  it('siger hvornår lønnen stopper, og hvor et ophør angives (BB-325)', () => {
+  it('siger hvornår lønnen stopper, og hvor et ophør angives', () => {
     const { values } = buildWarningCase('2024-09-02');
     values.loenindkomstAnsaettelsesforhold[0] = { ...values.loenindkomstAnsaettelsesforhold[0]!, navnPaaArbejdssted: 'Firma A' };
     expect(buildSfggSeksMaanederBesked(values, values.loenindkomstAnsaettelsesforhold[0]!)).toBe(
@@ -114,7 +114,7 @@ describe('buildSfggSeksMaanederBesked', () => {
     );
   });
 
-  it('udelader datoen uden registreret løn (BB-325, 2026-10-30)', () => {
+  it('udelader datoen uden registreret løn', () => {
     const { values } = buildWarningCase('2024-09-02', 0);
     values.loenindkomstAnsaettelsesforhold[0] = { ...values.loenindkomstAnsaettelsesforhold[0]!, navnPaaArbejdssted: 'Firma A' };
     expect(buildSfggSeksMaanederBesked(values, values.loenindkomstAnsaettelsesforhold[0]!)).toBe(
@@ -157,7 +157,7 @@ describe('harSfggSygeloenUdenLoenraekker', () => {
     return result.perAnsaettelsesforhold[0]!;
   };
 
-  it('advarer, når «Ja» er valgt, men der ingen lønrækker er i erstatningsperioden (BB-326)', () => {
+  it('advarer, når «Ja» er valgt, men der ingen lønrækker er i erstatningsperioden', () => {
     expect(harSfggSygeloenUdenLoenraekker(caseFor('Ja', false))).toBe(true);
   });
 
@@ -182,7 +182,7 @@ describe('findSfggSixMonthWarningEmploymentIds', () => {
     expect(findSfggSixMonthWarningEmploymentIds(afterThreshold)).toEqual(['af-1']);
   });
 
-  it('regner uden registreret løn de seks måneder fra sygeferiegodtgørelsens første dag (BB-325)', () => {
+  it('regner uden registreret løn de seks måneder fra sygeferiegodtgørelsens første dag', () => {
     const kortVarig = buildWarningCase('2024-08-01', 0);
     expect(findSfggSixMonthWarningEmploymentIds(kortVarig)).toEqual([]);
 
@@ -198,7 +198,7 @@ describe('findSfggSixMonthWarningEmploymentIds', () => {
     expect(findSfggSixMonthWarningEmploymentIds({ values: langVarig.values, result })).toEqual(['af-1']);
   });
 
-  it('tæller tillæg og arbejdsgiverpension som løn i Beløb-tilstand, ikke i Procent-tilstand (BB-325)', () => {
+  it('tæller tillæg og arbejdsgiverpension som løn i Beløb-tilstand, ikke i Procent-tilstand', () => {
     const { values, result } = buildWarningCase('2024-08-01');
     const employment = values.loenindkomstAnsaettelsesforhold[0]!;
     const tillaegsraekke = {

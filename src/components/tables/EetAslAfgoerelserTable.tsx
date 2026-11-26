@@ -100,7 +100,7 @@ export type EetAslAfgoerelserTableProps = Readonly<{
   skadedato: ISODateString | undefined;
   /** Fødselsdatoen afgør, om en endelig afgørelse er ≤ 2 år til folkepension (kapitaliseringsdatoens advarsel). */
   skadelidteFodselsdato: ISODateString | undefined;
-  /** Beregningsdatoen, som de tre datoceller advares mod at ligge efter (BB-159). */
+  /** Beregningsdatoen, som de tre datoceller advares mod at ligge efter. */
   beregningsdato: ISODateString | undefined;
   saveOrderPath?: TableSaveOrderPath;
 }>;
@@ -310,7 +310,7 @@ const EetAslAfgoerelserTable = React.memo(
             <StandardLooseHeaderCell {...sortableHeader('afgoerelsesDato')}>Afgørelsesdato</StandardLooseHeaderCell>
             <StandardLooseHeaderCell {...sortableHeader('virkningsDato')}>
               Virkningsdato
-              {/* En tom virkningsdato er afgørelsesdatoen (`resolveAslVirkningsdato`, BB-368); overskriften sagde det ikke. */}
+              {/* En tom virkningsdato er afgørelsesdatoen (`resolveAslVirkningsdato`); tooltippet siger det. */}
               <InfoTooltipIcon title={ASL_VIRKNINGSDATO_INFO} />
             </StandardLooseHeaderCell>
             <StandardLooseHeaderCell {...sortableHeader('eetPct')}>EET %</StandardLooseHeaderCell>

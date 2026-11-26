@@ -205,7 +205,7 @@ const collectResolvedRows = (
     (row) => row.afgoerelseType === 'Endelig' || row.afgoerelseType === 'Delvist endelig'
   );
   // Typen testes på alle PÅBEGYNDTE rækker: en endelig afgørelse, der mangler sin EET %, er stadig indtastet og
-  // får sin konkrete mangel. «Ingen endelig … indtastet» ved siden af var usand (samme fejltype som BB-423).
+  // får sin konkrete mangel. «Ingen endelig … indtastet» ved siden af ville være usand.
   const harPaabegyndtKapitaliserbarAfgoerelse = startedRows.some(
     (row) => row.afgoerelseType === 'Endelig' || row.afgoerelseType === 'Delvist endelig'
   );
@@ -399,7 +399,7 @@ export const computeEetKapitaliseringCalculation = (
       ? Math.max(0, row.eetPct - kumulativKapPct)
       : row.kapPct;
     // Ved ≤ 2 år sker kapitaliseringen som udgangspunkt på afgørelsesdatoen; en senere indtastet
-    // kapitaliseringsdato er tilladt (gul advarsel) og lægges til grund (udviklerafgørelse 2026-11-13).
+    // kapitaliseringsdato er tilladt (gul advarsel) og lægges til grund.
     const effectiveKapDato = isEndeligUnderOrEqualTwoYears
       ? row.kapDato ?? row.afgoerelsesdato
       : row.kapDato;

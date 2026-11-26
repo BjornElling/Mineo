@@ -13,17 +13,15 @@ import {
 } from './numericDraftAdmission';
 import { type TwoDigitYearPolicy } from './yearDraftCore';
 
-// `findNextDigitIndex`, `extractContiguousDigits` og `isWithinBounds` er fjernet 2026-08-18. De tjente
-// UDELUKKENDE års- og uge-normaliseringernes egne fortolkere: «find den første ciffergruppe, og forkort
-// den til den passer grænserne». Den fremgangsmåde er ophævet ved udviklerbeslutning (§1.2a punkt 5: en
-// grænse må aldrig forkorte en indsat tekst – grænser er bounds og hører i feltvalidatoren), og
-// hjælperne er ikke efterladt: de er byggeklodserne til præcis den regel, der ikke må opstå igen.
+// `findNextDigitIndex`, `extractContiguousDigits` og `isWithinBounds` er slettet og må ikke genindføres. De
+// tjente års- og uge-fortolkere efter mønstret «find den første ciffergruppe, og forkort den til den passer
+// grænserne», som §1.2a punkt 5 forbyder: en grænse må aldrig forkorte en indsat tekst – grænser er bounds
+// og hører i feltvalidatoren.
 //
 // Bemærk hvad der IKKE er ophævet: `normalizeDatePaste` nedenfor fortolker fortsat en hel indsat tekst
-// og er bevaret med vilje (§1.2a punkt 7, udviklerens afgørelse af BB-003: indsættelse må gerne være mere
-// tolerant end tastning). Kravet er, at samme paste giver samme resultat uanset feltets tilstand – ikke
-// at paste er identisk med tastning. Det, der var forkert i års- og ugefortolkerne, var grænse-
-// afkortningen og tilstandsafhængigheden, ikke fortolkningen af hele teksten.
+// og er bevaret med vilje (§1.2a punkt 7: indsættelse må gerne være mere tolerant end tastning). Kravet er,
+// at samme paste giver samme resultat uanset feltets tilstand – ikke at paste er identisk med tastning. Det
+// forbudte er grænseafkortning og tilstandsafhængighed, ikke fortolkning af hele teksten.
 
 type NumericPasteOptions = Readonly<{
   allowNegative?: boolean;
@@ -74,7 +72,7 @@ export const normalizeClipboardText = (
  * Den del af en indsat tekst, et typed enkeltlinjefelt (beløb, procent, tal, dato, år, uge, brøk) skal bruge:
  * teksten fra første synlige tegn frem til første tabulator eller linjeskift.
  *
- * **Hvorfor (BB-439).** To regnearksceller (`1200<TAB>200` eller `1200\n200`) blev til beløbet 1.200.200,00,
+ * **Hvorfor.** To regnearksceller (`1200<TAB>200` eller `1200\n200`) blev til beløbet 1.200.200,00,
  * fordi tegnfilteret tavst sprang adskillelsen over. Paste skal give samme resultat som at taste tegnene ét ad
  * gangen (§1.2a), og ved tastning AFSLUTTER Tab og Enter feltets indtastning – de efterfølgende tegn havner
  * aldrig i samme felt. Derfor slutter den indsatte indtastning ved første adskillelse.
@@ -176,7 +174,7 @@ export const normalizeAmountPaste = (
   text: string,
   options: AmountPasteOptions = {}
 ): string => {
-  // `allowDecimals` styrer IKKE længere tegnsættet (BB-118): decimalkommaet er lovligt i alle
+  // `allowDecimals` styrer IKKE længere tegnsættet: decimalkommaet er lovligt i alle
   // beløbsfelter, og et decimalløst felt afrunder i stedet ved settle. Kun `maxDecimalDigits` begrænser
   // draften. Optionen bevares på `AmountPasteOptions`, fordi codec'en stadig sender den – men den må
   // ikke røre tegnfilteret igen; det var netop dét, der gjorde «400.000,00» til 4.000.000.
@@ -204,7 +202,7 @@ export const normalizePercentPaste = (
   text: string,
   options: NumericPasteOptions = {}
 ): string => {
-  // Samme regel som beløb (BB-118): kommaet er lovligt uanset `allowDecimals`, og settle afrunder.
+  // Samme regel som beløb: kommaet er lovligt uanset `allowDecimals`, og settle afrunder.
   // Bemærk at defaulten her var `=== true` mod beløbets `!== false` – to modsatte defaults for samme
   // flag. Uenigheden er væk med flaget selv.
   const maxIntegerDigits = normalizePositiveIntegerOption(options.maxIntegerDigits, 3);
@@ -234,20 +232,17 @@ export const normalizeFractionPaste = (
 /**
  * Uge-paste (§1.2a): tegn for tegn gennem ugefeltets EGET tegnprædikat.
  *
- * Funktionen byggede før uge- og årssegmentet hver for sig og limede dem sammen med `/`, og den kaldte
- * samtidig årsfeltets tilsvarende fortolker (se {@link normalizeYearPaste}). Begge er fjernet ved
- * udviklerbeslutning 2026-08-18, fordi de forkortede en indsat tekst for at få den inden for
- * årsgrænserne – og fordi de kun blev kaldt i et tomt felt, så samme paste gav to udfald.
- *
- * Ugefamilien har derfor bevidst INGEN egen fortolkning tilbage. Det er ikke et generelt forbud mod at
+ * Ugefamilien har bevidst INGEN egen fortolkning (ingen separat opbygning af uge- og årssegment): en sådan
+ * fortolker ville forkorte en indsat tekst for at få den inden for årsgrænserne og, kaldt kun i et tomt
+ * felt, give samme paste to udfald. Det er ikke et generelt forbud mod at
  * fortolke en hel indsat tekst – datofamilien gør det fortsat (§1.2a punkt 7) – men her er der intet
  * uomtvisteligt at udlede: `17-12` kan lige så godt være uge 17 i 2012 som en dato, og settle løser det
  * bedre end paste kan.
  *
  * Sammensætningen tabes ikke ved det. `weekAdmission` accepterer selv `-`, `.`, `,`, `/`, `\` og
  * mellemrum som separator, og `parseWeekDraftForCommit` normaliserer separatoren til `/` og nulstiller
- * ugenummeret ved settle. `17-12` bliver derfor stadig `17/12` – men nu ad præcis samme vej som
- * tastning, i settle frem for i paste.
+ * ugenummeret ved settle. `17-12` bliver derfor `17/12` – ad præcis samme vej som tastning, i settle
+ * frem for i paste.
  */
 export const normalizeWeekPaste = (
   text: string,
@@ -262,20 +257,19 @@ export const normalizeWeekPaste = (
 /**
  * Års-paste (§1.2a): tegn for tegn gennem årsfeltets tegnprædikat – højst fire cifre.
  *
- * **Fjernet ved udviklerbeslutning 2026-08-18.** Funktionen udtrak før den første sammenhængende
- * ciffergruppe og forkortede den derefter, indtil resultatet lå inden for feltets årsgrænser. Det gav
- * to fejl, som brugerfundet BB-031 målte:
+ * **Ingen fortolkning, der udtrækker den første ciffergruppe og forkorter den til årsgrænserne.** Den
+ * ville give to fejl:
  *
- * 1. **Samme paste gav to forskellige værdier.** Normaliseringen kaldes kun, når draften er tom
- *    (`normalizePasteForDraft`); et udfyldt felt fik den almindelige tegn-for-tegn-regel i stedet.
- *    `2.026` blev derfor `2` → 2002 i et tomt felt, men `2026` i et udfyldt.
- * 2. **En værdi uden for grænserne blev tavst en anden, gyldig værdi.** `2035` med maksimum 2030 blev
- *    forkortet til `20` → 2020. Det er præcis det, §1.2a punkt 5 forbyder: et filtreret resultat, der
+ * 1. **Samme paste giver to forskellige værdier.** Normaliseringen kaldes kun, når draften er tom
+ *    (`normalizePasteForDraft`); et udfyldt felt får den almindelige tegn-for-tegn-regel i stedet.
+ *    `2.026` ville derfor blive `2` → 2002 i et tomt felt, men `2026` i et udfyldt.
+ * 2. **En værdi uden for grænserne bliver tavst en anden, gyldig værdi.** `2035` med maksimum 2030
+ *    ville blive forkortet til `20` → 2020. Det er præcis det, §1.2a punkt 5 forbyder: et filtreret resultat, der
  *    stadig er ugyldigt, skal bevares som fejltekst – ikke ændres til noget gyldigt.
  *
  * Årsgrænserne hører derfor slet ikke til her. De er bounds og ejes af feltvalidatoren (§1.6), som
  * giver rød ring og konkret tooltip på en canonical værdi. `options` beholdes i signaturen, fordi
- * kalderne sender feltets fulde codec-konfiguration; ingen af felterne bruges længere til filtrering.
+ * kalderne sender feltets fulde codec-konfiguration; ingen af felterne bruges til filtrering.
  */
 export const normalizeYearPaste = (
   text: string,

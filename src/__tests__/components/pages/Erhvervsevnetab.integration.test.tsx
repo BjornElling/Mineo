@@ -177,7 +177,7 @@ describe('Erhvervsevnetab – samlet surface og reader-projektion', () => {
     const describedBy = input?.getAttribute('aria-describedby');
     const statusId = describedBy?.split(' ').at(-1);
     expect(statusId).toBeDefined();
-    // BB-125: skadesårsloftet er ikke længere en bounds-grænse, men ejes af domænereglen
+    // Skadesårsloftet er ikke en bounds-grænse, men ejes af domænereglen
     // `validateAslAarsloenBySkadesaarMax`. Det er dens besked – med satsen formateret dansk – brugeren ser.
     // Maksimum-beskeden har desuden forrang over delelighedsreglen, når begge er brudt.
     expect(document.getElementById(statusId!)?.textContent).toBe(
@@ -196,7 +196,7 @@ describe('Erhvervsevnetab – samlet surface og reader-projektion', () => {
     const input = document.querySelector('input[name="ealAarsloen"]') as HTMLInputElement;
     await userEvent.setup().hover(input);
 
-    // BB-124: de to advarsler for samme situation er samlet til én. `EET_ASL_AARSLOEN_MAX_WARNING` er nu
+    // Der er én advarsel for situationen: `EET_ASL_AARSLOEN_MAX_WARNING` er
     // et alias for `ASL_AARSLOEN_MAX_NOTICE`, så EET-fanen og øvrige flader siger det samme.
     expect(await screen.findByRole('tooltip')).toHaveTextContent(
       'Når Skadelidtes årsløn (efter ASL) svarer til maksimum, skal den faktiske årsløn indtastes.',

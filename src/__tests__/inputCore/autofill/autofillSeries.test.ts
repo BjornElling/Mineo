@@ -168,9 +168,8 @@ describe('autofillSeries', () => {
     });
 
     it('foreslår INTET, når serien står stille', () => {
-      // Reviewet 2026-09-07: en gentaget dato er en indtastning på vej til at blive rettet, ikke en
-      // kadence. Tidligere vandt nulskridtet tiebreaket «seneste skridt», og ghosten gentog rækken
-      // ovenfor.
+      // En gentaget dato er en indtastning på vej til at blive rettet, ikke en kadence. Ellers ville
+      // nulskridtet vinde tiebreaket «seneste skridt», og ghosten gentage rækken ovenfor.
       expect(projectDateSeries([iso('2026-03-03'), iso('2026-03-03')])).toBeNull();
       // Nulskridtet kasseres, men ugyldiggør ikke resten af serien: +1 måned står stadig.
       expect(projectDateSeries([iso('2026-01-01'), iso('2026-01-01'), iso('2026-02-01')]))
@@ -244,9 +243,9 @@ describe('autofillSeries', () => {
     });
 
     it('kræver et skridt på ±1, når årskolonnen ikke bidrager', () => {
-      // Uden årstal er måneden et punkt på en cirkel, og ethvert større skridt kan læses to veje. Den
-      // tidligere MODULÆRE skridtberegning valgte altid vejen fremad og vendte derfor fortegnet på et
-      // faldende par: 6, 1 blev +7 og foreslog august, 1, 12 blev +11 og foreslog november.
+      // Uden årstal er måneden et punkt på en cirkel, og ethvert større skridt kan læses to veje. En
+      // MODULÆR skridtberegning vælger altid vejen fremad og vender derfor fortegnet på et faldende
+      // par: 6, 1 bliver +7 og foreslår august, 1, 12 bliver +11 og foreslår november.
       expect(projectMonthOfYearSeries([6, 1])).toBeNull();
       expect(projectMonthOfYearSeries([1, 7])).toBeNull();
       expect(projectMonthOfYearSeries([1, 3, 5])).toBeNull();
@@ -300,10 +299,10 @@ describe('autofillSeries', () => {
     });
   });
 
-  describe('periodeseriens invarianter (review 2026-09-07)', () => {
+  describe('periodeseriens invarianter', () => {
     it('kasserer nulskridtet, men lader resten af serien stå', () => {
       // Dubletten er en indtastning på vej til at blive rettet. Mønstret +1 er intakt, og forslaget
-      // ligger efter seriens sidste værdi. Tidligere vandt nulskridtet, og ghosten gentog den.
+      // ligger efter seriens sidste værdi – nulskridtet må ikke vinde, så ghosten gentager den.
       expect(projectMonthOfYearSeries([5, 6, 6])).toBe(7);
       expect(projectMonthOfYearSeries([3, 4, 4, 5, 5])).toBe(6);
       expect(projectWeekSeries([{ week: 10, year: 2026 }, { week: 10, year: 2026 }])).toBeNull();
@@ -315,8 +314,8 @@ describe('autofillSeries', () => {
     });
 
     it('forkaster en serie med blandede retninger', () => {
-      // En serie, der både vokser og falder, har ingen næste værdi. Modalvalget valgte tidligere
-      // vilkårligt den ene retning: 1, 2, 1 foreslog december året før.
+      // En serie, der både vokser og falder, har ingen næste værdi. Et modalvalg ville vælge
+      // vilkårligt den ene retning: 1, 2, 1 ville foreslå december året før.
       expect(projectAbsoluteMonthSeries(
         [1, 2, 1].map((month) => toAbsoluteMonth(2026, month))
       )).toBeNull();
@@ -329,7 +328,7 @@ describe('autofillSeries', () => {
 
     it('forkaster en uafgjort strid mellem to kadencer af SAMME art', () => {
       // 01-01, 15-01, 01-02 er halvmånedsperioder: skridtene er +14 og +17 dage, lige hyppige og uden
-      // basisrelation. Tidligere vandt det seneste, og ghosten foreslog 18-02 – et gæt midt imellem to
+      // basisrelation. Vandt det seneste, foreslog ghosten 18-02 – et gæt midt imellem to
       // kadencer, brugeren ikke kan læse som næste værdi.
       expect(projectDateSeries([iso('2026-01-15'), iso('2026-02-01')])).toBeNull();
       expect(projectWeekSeries([{ week: 4, year: 2026 }, { week: 6, year: 2026 }]))
@@ -350,7 +349,7 @@ describe('autofillSeries', () => {
     });
 
     it('fortsætter en serie med et enkelt hul uændret', () => {
-      // Den ulogiske rækkefølge, udvikleren nævnte: 1, 2, 3, 5, 6 har skridtene +1, +1, +2, +1. Modalen
+      // En ulogisk rækkefølge: 1, 2, 3, 5, 6 har skridtene +1, +1, +2, +1. Modalen
       // er +1, og forslaget er 7 – ikke en gentagelse af 6.
       expect(projectMonthOfYearSeries([1, 2, 3, 5, 6])).toBe(7);
       const pairs = [1, 2, 3, 5, 6].map((month) => toAbsoluteMonth(2026, month));

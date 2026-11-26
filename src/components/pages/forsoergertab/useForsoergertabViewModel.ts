@@ -115,10 +115,9 @@ export function useForsoergertabViewModel() {
   const skadedatoError = skadedatoRead.status === 'error' ? skadedatoRead.issue.message : undefined;
   const skadedatoLabel = evaluation.reader.labelOf(skadedatoRef);
   /**
-   * Datoens navn i alle afledte tekster (BB-121). Rækken øverst hed korrekt «Anmeldelsesdato» ved en
-   * erhvervssygdom, mens de tre EAL-tekster tolv linjer nede stadig sagde «skadestidspunktet»,
-   * «skadesår» og «skadestidspunkt» om nøjagtig samme dato. Referencen bærer alle formerne, så de ikke
-   * kan komme fra hinanden igen.
+   * Datoens navn i alle afledte tekster. Referencen bærer alle formerne («Anmeldelsesdato» ved en
+   * erhvervssygdom, ellers «skadestidspunktet», «skadesår» osv.), så rækken og EAL-teksterne ikke kan
+   * navngive samme dato forskelligt.
    */
   const skadestypeRead = evaluation.reader.read(skadestypeRef);
   const datoReference = resolveStamdataDatoReference(
@@ -150,8 +149,7 @@ export function useForsoergertabViewModel() {
   );
 
   /**
-   * Feltets beregningsafvisende domæneregel som `crossFieldIssue`-prop, eller `{}` når feltet ikke har en
-   * (BB-117).
+   * Feltets beregningsafvisende domæneregel som `crossFieldIssue`-prop, eller `{}` når feltet ikke har en.
    *
    * Spredningsformen `{...vm.domainIssueProps(felt)}` er valgt frem for en altid-tilstedeværende prop med
    * `undefined`, fordi `exactOptionalPropertyTypes` ellers ville afvise den – samme form som de øvrige
@@ -172,7 +170,7 @@ export function useForsoergertabViewModel() {
     [beregningsdatoController]
   );
 
-  // "Indsæt dags dato" må ikke kunne producere en værdi, feltet selv afviser (BB-068/BB-405): ligger dags
+  // "Indsæt dags dato" må ikke kunne producere en værdi, feltet selv afviser: ligger dags
   // dato efter satsdækningens slutdato ELLER før beregningsdatoens nedre grænse (virkningsdatoen eller
   // skadedatoen), er knappen inaktiv med årsagen i tooltippen, og den indtastede dato bliver stående.
   // Kun brugbare (ikke-røde) datoer hæver grænsen – samme læsning som feltets egen `narrowMin`.

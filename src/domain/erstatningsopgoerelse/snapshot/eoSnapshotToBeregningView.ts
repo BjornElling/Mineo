@@ -13,9 +13,9 @@ export type EoBeregningView = Readonly<{
 /**
  * Beregning-fanens projektion af snapshottet.
  *
- * `tafPerioder` falder tilbage til den UAFHÆNGIGE TAF-gren, når aggregatet er blokeret. Uden det fald-tilbage forsvandt en fuldstændig GYLDIG TAF-periodisering fra fanen,
- * så snart et svie/smerte-felt var rødt: `data` er `null` på den blokerede sti, og fanen ser ikke
- * `inspektionSnapshot`. Udviklerbeslutning 2 (2026-07-25) forbyder netop det.
+ * `tafPerioder` falder tilbage til den UAFHÆNGIGE TAF-gren, når aggregatet er blokeret. Uden det fald-tilbage forsvinder en fuldstændig GYLDIG TAF-periodisering fra fanen,
+ * så snart et svie/smerte-felt er rødt: `data` er `null` på den blokerede sti, og fanen ser ikke
+ * `inspektionSnapshot`. Det er bevidst forbudt (eo-snapshot-contract.md).
  *
  * ⚠️ `canonicalOutput` har BEVIDST intet fald-tilbage: det er det krydsgående aggregat, og et canonical
  * output uden alle led ville ikke være autoritativt (valgt model A). Fanen viser derfor fortsat `-` for

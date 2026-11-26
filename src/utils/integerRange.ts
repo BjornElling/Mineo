@@ -2,7 +2,7 @@ import { formatAsAmount } from './formatUtils';
 
 // Interval-beskeden for heltals- OG beløbsfelter.
 //
-// **Tallene formateres dansk (BB-125).** Beskeden skrev før grænserne rå: «Værdi skal være mellem 1000 og
+// **Tallene formateres dansk.** Beskeden skrev før grænserne rå: «Værdi skal være mellem 1000 og
 // 551000» – uden tusindseparator, i et felt, der selv viser værdien som `600.000`, og ved siden af feltets
 // anden regel, som formaterer korrekt («Skadelidtes årsløn (efter ASL) skal være deleligt med 1.000.»). To tekster om samme
 // størrelsesorden i to former på det samme felt. AGENTS.md kræver danske talkonventioner i tooltips.
@@ -19,10 +19,9 @@ export type IntegerRangeMessageOptions = Readonly<{
   /**
    * Den nedre grænse er EKSKLUSIV: `minValue` selv er ikke tilladt («skal være større end 0 kr.»).
    *
-   * Findes, fordi et felt, hvor 0 heller ikke er et svar, før måtte erklære to validatorer – en inklusiv
-   * bounds-grænse på 0 og en separat «> 0»-regel. Et negativt resultat ramte begge, og bounds-beskeden
-   * («Værdi skal være 0 kr. eller højere») vandt efter §1.8's prioritet og påstod, at 0 var tilladt
-   * (NY-12c-4). Med grænsen erklæret som eksklusiv udledes ÉN besked, der er sand for både 0 og negativt.
+   * Med en inklusiv bounds-grænse på 0 og en separat «> 0»-regel rammer et negativt resultat begge, og
+   * bounds-beskeden («Værdi skal være 0 kr. eller højere») vinder efter §1.8's prioritet og påstår, at 0 er
+   * tilladt. Med grænsen erklæret som eksklusiv udledes ÉN besked, der er sand for både 0 og negativt.
    */
   minExclusive?: boolean;
   /** Sætningens subjekt, fx `'Beløbet'` eller `'Månedslønnen'`. Udeladt = `'Værdi'`. */

@@ -32,7 +32,7 @@ export type TextFieldProps = Readonly<{
   /**
    * Ikke-blokerende feltadvarsel (gul ring + tooltip). Bruges til en oplysning, der afhænger af feltets
    * egen værdi plus et andet valg, og som derfor hører hjemme dér, hvor brugeren står – ikke kun som
-   * tekst i en boks på en anden fane (BB-142, BB-159, BB-207).
+   * tekst i en boks på en anden fane.
    */
   warning?: FieldWarning;
   inputRef?: React.Ref<HTMLInputElement>;

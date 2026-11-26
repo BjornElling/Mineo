@@ -99,8 +99,8 @@ describe('documentGeneratorSetup', () => {
     });
 
     it('henter creator fra det aktive dokument-brand (værn mod den lukkede brand-drift)', () => {
-      // Tidligere hardkodede de fleste generatorer 'mineo.dk' direkte; et brand-override
-      // ville så kun slå igennem på rente-PDF'erne. Nu går creator ensartet gennem brandet.
+      // Creator går ensartet gennem brandet; en hardkodet 'mineo.dk' i en generator ville lade et
+      // brand-override slå igennem på nogle dokumenter og ikke andre.
       setDocumentBrand('MinProcesrente');
       expect(getDocumentCreatorBrand()).toBe('minprocesrente');
 

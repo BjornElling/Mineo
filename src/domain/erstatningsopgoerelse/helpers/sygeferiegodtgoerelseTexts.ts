@@ -94,14 +94,14 @@ export const resolveSfggReferenceperiodeAuthorityText = (sourceKind: SfggSourceK
 };
 
 /**
- * Referenceperioden er fri (udviklerafgørelse 2026-10-24, BB-321): reglens længde er kun vejledende, og perioden kan
+ * Referenceperioden er bevidst fri: reglens længde er kun vejledende, og perioden kan
  * fx være en kalendermåned (én lønseddel) eller ligge langt tilbage. Bilaget påstår derfor ingen længde.
  */
 export const SFGG_REFERENCEPERIODE_INTRO_TEXT = 'Opgøres som den gennemsnitlige feriepengebetaling i referenceperioden.';
 
 /**
  * Skærmens forklaring ved «Referenceperiode». Udgangspunktet er overenskomstens længde, når kilden er en overenskomst,
- * der følger ferieloven med egen længde; ellers ferielovens 4 uger (BB-321).
+ * der følger ferieloven med egen længde; ellers ferielovens 4 uger.
  */
 export const buildSfggReferenceperiodeTooltip = (
   sourceKind: SfggSourceKind,
@@ -169,13 +169,13 @@ export const SFGG_TABLE_TOTAL_LABEL = 'Samlet';
 
 export const SFGG_FERIEPENGE_HVIS_IKKE_SKADE_LABEL = 'Feriepenge, hvis skaden ikke var sket (+ AG-pension)';
 
-// Uden «=»: linjen er et fradrag, ikke et resultat (BB-328).
+// Uden «=»: linjen er et fradrag, ikke et resultat.
 export const SFGG_FERIEPENGE_MODTAGET_LABEL = 'Feriepenge modtaget i perioden (+ AG-pension)';
 
 /**
  * Ingen dage at beregne sygeferiegodtgørelse for i erstatningsperioden – fx fordi 4-månedersgrænsen er nået før
  * perioden, ansættelsen er ophørt, eller der er betalt sygeløn hele perioden. Det er et gyldigt resultat (kravet er
- * 0 kr.), ikke en fejl i indtastningen (BB-320).
+ * 0 kr.), ikke en fejl i indtastningen.
  */
 export const buildSfggNoEligibleDaysReason = (
   dayBasis: 'kalenderdage' | 'arbejdsdage'
@@ -186,14 +186,14 @@ export const buildSfggNoEligibleDaysReason = (
 );
 
 // Beskederne bruger feltets navn i apostroffer, når det er flere ord – samme form som «Fejl og advarsler»s øvrige
-// linjer (`quoteLabelIfMultiWord`, udviklerafgørelse 2026-10-24, BB-331).
+// linjer (`quoteLabelIfMultiWord`).
 export const SFGG_BEREGNINGSKILDE_MANGLER_MESSAGE = "'Sygeferiegodtgørelse beregnes ud fra' er ikke valgt";
 export const SFGG_MANUEL_DAGSSATS_MANGLER_MESSAGE = "'Dagssats for sygeferiegodtgørelse' er ikke angivet";
 export const SFGG_SATSVALG_MANGLER_MESSAGE = 'Uddannelse og arbejdssted for sygeferiegodtgørelse er ikke valgt';
 
 /**
  * «Overenskomst» er valgt som grundlag, men kortet har ingen overenskomst. Beskeden siger, hvad brugeren kan gøre –
- * slå togglen til eller vælge en, eller vælge Ferieloven – frem for at pege på et skjult felt (BB-330).
+ * slå togglen til eller vælge en, eller vælge Ferieloven – frem for at pege på et skjult felt.
  */
 export const buildSfggOverenskomstManglerBesked = (
   employment: Pick<LoenindkomstAnsaettelsesforhold, 'harOverenskomst'>

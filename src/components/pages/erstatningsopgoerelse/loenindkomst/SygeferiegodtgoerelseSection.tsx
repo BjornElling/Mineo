@@ -61,7 +61,7 @@ type Props = Readonly<{
   onNavigateToTabtArbejdsfortjeneste: () => void;
   /**
    * Projekterede regler og gule ringe på feltets egen bundne adresse – referenceperiodens grænser, fraværsdagenes
-   * loft og en periode uden løn (BB-319, BB-322, BB-323), og en gammel referenceperiode (BB-324).
+   * loft og en periode uden løn, og en gammel referenceperiode.
    */
   feedbackFor: <T>(ref: FieldRef<T>) => Readonly<{ crossFieldIssue?: FieldIssue; warning?: FieldWarning }>;
 }>;
@@ -92,7 +92,7 @@ const SygeferiegodtgoerelseSection = ({
     <>
       <Typography className="row--subheading">Sygeferiegodtgørelse</Typography>
 
-      {/* Samme tekst og samme gule markering som linjen i «Fejl og advarsler» (BB-325). */}
+      {/* Samme tekst og samme gule markering som linjen i «Fejl og advarsler». */}
       {showSfggSixMonthWarning && sfgg.seksMaanederBesked !== undefined ? (
         <Box className="row--label-right-hover">
           <Box className="row--label-right-hover__content" sx={{ width: '100%', justifyContent: 'flex-start' }}>
@@ -188,7 +188,7 @@ const SygeferiegodtgoerelseSection = ({
       {sfgg.relevanteFelter.referenceperiode ? (
         <>
           <Box className="row--label-right-hover">
-            {/* Perioden er fri; tooltippen siger reglens udgangspunkt (BB-321). */}
+            {/* Perioden er fri; tooltippen siger reglens udgangspunkt. */}
             <Typography className="row--text">Referenceperiode<InfoTooltipIcon title={sfgg.referenceperiodeTooltip} /></Typography>
             <Box className="row--label-right-hover__content">
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -211,7 +211,7 @@ const SygeferiegodtgoerelseSection = ({
 
           <Box className="row--label-right-hover">
             {/* Enheden står ved feltet og følger opgørelsen: en uges fravær er 7 kalenderdage eller 5 arbejdsdage
-                (BB-329). «i referenceperioden» er udeladt, fordi feltet står lige under perioden. */}
+                «i referenceperioden» er udeladt, fordi feltet står lige under perioden. */}
             <Typography className="row--text">{`Evt. ferie- og fraværsdage uden løn (${sfgg.fravaersdageEnhed})`}</Typography>
             <Box className="row--label-right-hover__content">
               <IntegerField
@@ -263,7 +263,7 @@ const SygeferiegodtgoerelseSection = ({
             </Box>
           </Box>
 
-          {/* Valget virker kun gennem lønrækker i erstatningsperioden; det siger tooltippen (BB-326). */}
+          {/* Valget virker kun gennem lønrækker i erstatningsperioden; det siger tooltippen. */}
           <LabeledControlRow
             label={(
               <>

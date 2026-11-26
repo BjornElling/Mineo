@@ -49,7 +49,7 @@ const createWeekModeValues = (): ErstatningsopgoerelseValues => {
   return values;
 };
 
-describe('CALC-006 – uafhængigt inspection-kolonnefacit for ugeperiode', () => {
+describe('uafhængigt inspection-kolonnefacit for ugeperiode', () => {
   it('fordeler en uge-række i Beløb-tilstand på fem hverdage', () => {
     const model = buildEOInspektionModel(createWeekModeValues(), {
       tafRanges: [{ fra: iso('2024-01-08'), til: iso('2024-01-14') }],

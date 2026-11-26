@@ -11,7 +11,7 @@ import { EO_TAB_KEYS } from '../../../../../config/eoTabKeys';
  *
  * «Eventuelle» står KUN her, hvor indtastningen sker, og siger at feltet er valgfrit. Sagen selv hedder
  * «Særlige bemærkninger» – både som feltets eget navn og som dokumentets overskrift – så brugeren, der
- * leder efter sin tekst i papiret, finder den under det navn, han skrev den under (BB-212). I dokumentet
+ * leder efter sin tekst i papiret, finder den under det navn, han skrev den under. I dokumentet
  * er teksten en konstatering og bærer derfor ikke forbeholdet.
  */
 export default function SaerligeKommentarerSection() {

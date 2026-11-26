@@ -10,12 +10,12 @@ import {
   type IncomeNegativeSource,
 } from '../helpers/indtaegtPerioder';
 
-// En indtægtskilde, hvis rækker SAMLET er negative i beregningsperioden eller erstatningsperioden (BB-290).
+// En indtægtskilde, hvis rækker SAMLET er negative i beregningsperioden eller erstatningsperioden.
 //
-// Negative rækker regnes med og modregnes i kildens øvrige indtægt (udviklerafgørelse 2026-10-19). Er kildens
+// Negative rækker regnes med og modregnes i kildens øvrige indtægt (bevidst valg). Er kildens
 // samlede indtægt i en periode negativ, er der intet at modregne i: lønudviklingen kan ikke regulere en negativ
 // basisløn, og et negativt fradrag ville forhøje kravet ud over det fulde tab. Opgørelsen spærrer derfor med en
-// navngiven linje (udviklerafgørelse 2026-10-19, valg A for begge perioder) – i stedet for at kilden forsvinder
+// navngiven linje i begge perioder – i stedet for at kilden forsvinder
 // tavst eller beregningen ender i en intern undtagelse. Brugeren må modregne beløbet i en anden række.
 
 export type NegativIndkomstkildeFund = Readonly<{
@@ -26,7 +26,7 @@ export type NegativIndkomstkildeFund = Readonly<{
 
 const formatKroner = (amount: number): string => `${formatAsAmount(amount, 2)} kr.`;
 
-// Fladen siger «EO-perioden» – den korte form – om erstatningsperioden (BB-375).
+// Fladen siger «EO-perioden» – den korte form – om erstatningsperioden.
 const PERIODE_TEKST: Readonly<Record<NegativIndkomstkildeFund['periode'], string>> = {
   beregningsperioden: 'beregningsperioden',
   erstatningsperioden: 'EO-perioden',

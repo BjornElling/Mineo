@@ -107,7 +107,7 @@ export const formatPercentRounded4 = (value: number): string => `${formatPercent
  *
  * Fortegnet vælges på den AFRUNDEDE værdi, ikke på den rå: en regulering, der afrunder til nul,
  * skal skrives «+ 0 %», fordi «- 0 %» er misvisende. Skærmen og dokumentet havde hver sin
- * implementering, som var uenige netop dér (BB-162); denne ene kilde deles nu af begge.
+ * implementering, som var uenige netop dér; denne ene kilde deles nu af begge.
  */
 export const formatReguleringPctSigned = (value: number): string => {
   const rounded = round4(Math.abs(value));

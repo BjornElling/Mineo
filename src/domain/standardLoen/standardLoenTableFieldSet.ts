@@ -100,14 +100,14 @@ export const readStandardLoenTableRows = (
 ): StandardLoenTableRow[] => rowIdsFor(fieldSet, reader).map((rowId) => rebuildRow(reader, fieldSet, rowId));
 
 /**
- * Om tabellens satser er ukendte i en tilstand, hvor satserne læses (BB-099): en sats står med en rød fejl,
+ * Om tabellens satser er ukendte i en tilstand, hvor satserne læses: en sats står med en rød fejl,
  * eller fladen melder en sats ukendt uden rød ring (`satserUkendte`).
  *
  * Readeren skjuler en rød sats bag sin tomværdi, så rækkens afledte kolonner ellers ville blive regnet med satsen
  * som 0 % og vise et forkert tal ved siden af en sammentælling, der netop siger «kan ikke beregnes». Betingelsen er
  * den samme som Årslønnens feltgate (`resolveAarsloenFieldErrorGate`): en rød sats tæller, medmindre tillæggene
  * angives som beløb – dér læses satserne ikke. `satserUkendte` leveres af fladens egne regler (Årsløn:
- * projektionens `tabelSatserUkendte` – tom feriesats M-37 og overenskomstsatser, der ikke kan slås op, BB-402;
+ * projektionens `tabelSatserUkendte` – tom feriesats og overenskomstsatser, der ikke kan slås op;
  * EO: satsvurderingens `missing`), så gaten og tabellen læser samme svar.
  */
 export const hasStandardLoenSatsFejl = (
@@ -134,7 +134,7 @@ const amountCellsFor = (
 ];
 
 /**
- * Om én af rækkens egne beløbsceller står med en rød fejl (BB-099, rækkeformen).
+ * Om én af rækkens egne beløbsceller står med en rød fejl (rækkeformen).
  *
  * Readeren læser den røde celle som tom, så rækkens «Samlet løn» ellers blev regnet uden den. Sammentællingen
  * regner ikke på en række med en `invalid`-celle; rækkens afledte kolonner viser da samme «—». Cellerne er de
@@ -197,7 +197,7 @@ const collectCellErrorsByCellKey = (
  * De røde cellers egne feltissues, nøglet `rowId:colKey` som `TableError`.
  *
  * `TableError` bærer kun AT cellen er ugyldig. En oversigt, der vil sige HVORFOR – fx at et regnestykke dividerer
- * med 0 (BB-440) – skal have cellens issue; det læses her på samme adresse, som cellen redigeres på.
+ * med 0 – skal have cellens issue; det læses her på samme adresse, som cellen redigeres på.
  */
 export const resolveStandardLoenInvalidCellIssues = (
   fieldSet: StandardLoenTableFieldSet,

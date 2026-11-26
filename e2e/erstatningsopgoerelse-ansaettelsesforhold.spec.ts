@@ -48,14 +48,14 @@ const fillSag = async (page: Page): Promise<void> => {
 };
 
 const tilfoejAnsaettelsesforhold = async (page: Page): Promise<void> => {
-  // Tilføj sker uden bekræftelsesdialog (BB-288).
+  // Tilføj sker uden bekræftelsesdialog.
   await page.getByRole('button', { name: 'Tilføj nyt ansættelsesforhold', exact: true }).last().click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
 };
 
 const errorBox = (page: Page) => page.locator('.content-box').filter({ hasText: 'Fejl og advarsler' });
 
-// Flade 12g (BB-274–BB-288): ansættelsesforholdets ramme, lønforhold og satser. Basisbanen er nok – intet her
+// Ansættelsesforholdets ramme, lønforhold og satser. Basisbanen er nok – intet her
 // afhænger af motor eller viewport.
 test.describe('Erstatningsopgørelse – ansættelsesforholdets ramme og satser', () => {
   test('tilføj ruller det nye kort frem, og linjerne navngiver kortet, når der er flere', async ({
@@ -73,7 +73,7 @@ test.describe('Erstatningsopgørelse – ansættelsesforholdets ramme og satser'
     await expect(andetKort).toBeInViewport();
 
     await page.getByRole('tab', { name: 'Beregning', exact: true }).click();
-    // Samme mangel på to kort giver to linjer – linket hedder kortets nummer (BB-278).
+    // Samme mangel på to kort giver to linjer – linket hedder kortets nummer.
     await expect(errorBox(page).getByRole('button', { name: 'Ansættelsesforhold 1', exact: true }).first()).toBeVisible();
     await expect(errorBox(page).getByRole('button', { name: 'Ansættelsesforhold 2', exact: true }).first()).toBeVisible();
     await errorBox(page).screenshot({ path: testInfo.outputPath('fejl-og-advarsler-to-kort.png') });
@@ -96,12 +96,12 @@ test.describe('Erstatningsopgørelse – ansættelsesforholdets ramme og satser'
     await setFieldValueAndSettle(pension, '150');
     await expect(pension).toHaveAttribute('aria-invalid', 'true');
 
-    // Et tomt feriefelt er ikke rødt – brugeren har ikke skrevet noget (BB-274).
+    // Et tomt feriefelt er ikke rødt – brugeren har ikke skrevet noget.
     await expect(page.locator('input[name$=":feriePct"]')).toHaveAttribute('aria-invalid', 'false');
 
     await page.getByRole('tab', { name: 'Beregning', exact: true }).click();
     await expect(errorBox(page)).toContainText('Arbejdsgivers pensionsbidrag: Procent skal være mellem 0,00 og 100,00');
-    // Beregningen er spærret, men TAF-perioden findes – sammendraget må ikke sige «Ingen perioder angivet» (BB-277).
+    // Beregningen er spærret, men TAF-perioden findes – sammendraget må ikke sige «Ingen perioder angivet».
     const tafSammendrag = page.locator('.row--label-right-hover').filter({
       has: page.getByText('TAF-periode', { exact: true }),
     });
@@ -112,7 +112,7 @@ test.describe('Erstatningsopgørelse – ansættelsesforholdets ramme og satser'
     expect(externalRequests).toEqual([]);
   });
 
-  test('manglende feriesats med en lønrække vises og spærrer, indtil satsen er udfyldt (BB-274)', async ({
+  test('manglende feriesats med en lønrække vises og spærrer, indtil satsen er udfyldt', async ({
     page,
     runtimeErrors,
     externalRequests,
@@ -129,7 +129,7 @@ test.describe('Erstatningsopgørelse – ansættelsesforholdets ramme og satser'
     await setFieldValueAndSettle(loenRaekke.nth(2), '30000');
 
     const feriePct = page.locator('input[name$=":feriePct"]').first();
-    // Udviklerens godkendte adfærd: et tomt felt får ingen rød ring, men manglen vises på Beregning.
+    // Bevidst adfærd: et tomt felt får ingen rød ring, men manglen vises på Beregning.
     await expect(feriePct).toHaveAttribute('aria-invalid', 'false');
     await page.getByRole('tab', { name: 'Beregning', exact: true }).click();
     const summary = errorBox(page);

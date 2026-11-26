@@ -78,7 +78,7 @@ const differingKeys = (
 /**
  * Bevidste afvigelser mellem den levende sag og den fabrik, testfixturene bruger.
  *
- * Efter at ny-sags-defaults har fået ét sandt sted, er der kun ÉN grund tilbage: greenfields pladsholderrække
+ * Ny-sags-defaults har ét sandt sted, så der er kun ÉN grund: inputmodellens pladsholderrække
  * er virtuel og findes ikke i den persisterede sag, mens fixturene har brug for en materialiseret række at
  * skrive i. Enhver anden afvigelse er en fabrik, der har fået sin egen mening om, hvad en ny sag er.
  */

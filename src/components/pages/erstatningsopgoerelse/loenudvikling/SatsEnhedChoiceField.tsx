@@ -8,8 +8,7 @@ import type { BoundField } from './loenudviklingBinding';
  *
  * Bruges af både «Evt. forhøjet grundløn udover løntrin» og anciennitetstillæggets «Satsen angives per» på
  * begge overflader, så de to kronefelter tilbyder nøjagtig samme valg. «Dag» tilbydes bevidst ikke: det
- * ville kræve en faktor mellem dag og time, som programmet ikke har og ikke kan kende ved deltid
- * (afklaringslog 10 og 10a i `docs/review/regulering-taf-gennemgang-2026-10-13.md`).
+ * ville kræve en faktor mellem dag og time, som programmet ikke har og ikke kan kende ved deltid.
  */
 export default function SatsEnhedChoiceField({
   binding,

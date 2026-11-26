@@ -37,7 +37,7 @@ export default function AesAfgoerelserSection() {
   const {
     values,
   } = useEoOplysningerVm();
-  // Gul ring på en dato efter «Opgørelse lavet den» – samme regel og tekst som «Fejl og advarsler» (BB-242).
+  // Gul ring på en dato efter «Opgørelse lavet den» – samme regel og tekst som «Fejl og advarsler».
   const datoWarning = (felt: AesDatoEfterOpgoerelseFelt) => {
     const message = resolveAesDatoEfterOpgoerelseMessage(felt, values);
     const warning = message === undefined ? undefined : createFieldWarning(message);

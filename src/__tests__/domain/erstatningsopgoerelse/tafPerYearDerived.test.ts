@@ -192,7 +192,6 @@ describe('buildTafPerYearResult', () => {
   });
 
   it('fører et negativt år igennem, når indtægten i ét år overstiger det tabte, og årene summerer til kravet', () => {
-    // Værdiklasse-gennemgangen 2026-11-24: et negativt år ved positiv total var ikke testet i årsfordelingen.
     const eoValues = makeValues({
       beregnesUdFra: 'Angivet dagsløn',
       dagsloenenUdgoer: asAmountValue(1000),
@@ -225,8 +224,8 @@ describe('buildTafPerYearResult', () => {
     ['over 1 kr.', -1000],
     ['under 1 kr.', -0.5],
   ])('giver året et negativt fradrag, når en samlet positiv kilde er negativ i netop det år (%s)', (_navn, negativ) => {
-    // Fund B (2026-11-25): før faldt kilden ud af året. Over 1 kr. spærrede det begge årsdokumenter med en
-    // uforklaret afstemningsfejl; under 1 kr. havnede forskellen tavst i «Afrunding».
+    // Kilden må ikke falde ud af året: over 1 kr. spærrer det begge årsdokumenter med en uforklaret
+    // afstemningsfejl, under 1 kr. havner forskellen tavst i «Afrunding».
     const eoValues = makeValues({
       beregnesUdFra: 'Angivet dagsløn',
       dagsloenenUdgoer: asAmountValue(1000),
@@ -328,8 +327,8 @@ describe('buildTafPerYearResult', () => {
   });
 
   it('viser et helt regnestykke pr. år, når allerede betalt TAF overstiger kravet efter forlig', () => {
-    // Fund F (2026-11-25): før stod «I alt (50 % af 0,00 kr.) 9.523,81 kr.» – årets andel af det betalte under
-    // et nulstillet krav. Nu går «50 % af X − betalt = 0» op for hvert år.
+    // «50 % af X − betalt = 0» skal gå op for hvert år – ikke «I alt (50 % af 0,00 kr.) 9.523,81 kr.», årets
+    // andel af det betalte under et nulstillet krav.
     const eoValues = makeValues({
       beregnesUdFra: 'Angivet dagsløn',
       dagsloenenUdgoer: asAmountValue(1000),

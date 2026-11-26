@@ -7,7 +7,7 @@ import {
 import { getOffentligeYdelserTableHeaderNodes } from '../../../components/tables/offentligeYdelserTableHeaderNodes';
 
 describe('offentligeYdelserTableColumns', () => {
-  it('bruger Ydelse og Tillæg på skærmen og i bilaget (BB-361)', () => {
+  it('bruger Ydelse og Tillæg på skærmen og i bilaget', () => {
     expect(OFFENTLIGE_YDELSER_TABLE_HEADERS).toEqual([
       'Fra dato',
       'Til dato',

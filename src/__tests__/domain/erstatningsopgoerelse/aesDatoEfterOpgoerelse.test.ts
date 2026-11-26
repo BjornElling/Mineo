@@ -79,7 +79,7 @@ describe('buildEoAesRows', () => {
     expect(rows.filter((row) => row.status !== 'ok')).toEqual([]);
   });
 
-  // BB-243: «Fejl og advarsler» navngiver feltet med skærmens egen tekst.
+  // «Fejl og advarsler» navngiver feltet med skærmens egen tekst.
   it('bruger datofelternes synlige navne som rækkeetiketter', () => {
     const labels = Object.fromEntries(
       buildEoAesRows(eoWith({}), EMPTY_FIELD_ISSUE_SET).map((row) => [row.id, row.label])

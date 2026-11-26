@@ -9,8 +9,8 @@
  * derimod pr. side (jf. `documentCatalog.ts`), netop for at bevare route-opdelingen.
  *
  * Målestokken er `documentOutputId.ts` – det afhængighedsfrie ID-inventar – og ikke en optælling af
- * exports i et enkelt modul. Den tidligere målestok (en regex over `documentService.ts`) kunne kun
- * fungere, så længe alle outputs lå i ét modul; definitionerne bor nu ved deres domænegrænser.
+ * exports i et enkelt modul: definitionerne bor ved deres domænegrænser, så en optælling i ét modul
+ * ville overse dem.
  */
 import {
   standaloneRenteAlleDocumentDefinition,

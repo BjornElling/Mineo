@@ -43,7 +43,7 @@ import * as k9921_2019 from './9921-2019';
  * - `kildetabeller` er HELE kildens tabelliste. Hver tabel er enten i registret (og så peger et tabelvalg på
  *   den) eller står i `udeladteKildetabeller` med en begrundelse. Integritetskontrollen herunder afviser
  *   både en valgt tabel uden faktorer, en indlæst tabel uden tabelvalg og en kildetabel, der hverken er
- *   indlæst eller begrundet udeladt – en manglende tabel kan derfor ikke længere opstå tavst.
+ *   indlæst eller begrundet udeladt – en manglende tabel kan derfor ikke opstå tavst.
  * - Tabelvalgene er eksplicitte og fuldstændige: EET-årgangene er sammenhængende intervaller, og
  *   forsørgertabsvalget (inkl. kønsopdeling) står i data – ikke i domænekoden.
  * - Særfaktoren (≤ 2 år til folkepension) findes for præcis de skadesintervaller fra 1. juli 2007, som

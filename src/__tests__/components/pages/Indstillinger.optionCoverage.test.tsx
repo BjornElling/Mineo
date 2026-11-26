@@ -23,12 +23,11 @@ import {
 /**
  * Indstillingssidens valg-kontroller: dækker det hul, TYPEN ikke kan dække.
  *
- * Siden havde tidligere fem håndskrevne `is…Option`-typeguards, ét pr. kontrol, hver med kroppen
- * `(OPTIONS as readonly string[]).includes(value)`. De fandtes udelukkende for at reparere en
- * widening, siden selv indførte ved at annotere sine handlere `StyledDropdownChangeEvent<string>`:
- * `StyledDropdown` er generisk, så uden annotationen inferes literal-unionen, og guarden har intet
- * at lave. Guardens `as readonly string[]`-cast kastede netop den type væk, den bagefter påstod at
- * etablere – et run-time-tjek sat i stedet for et compile-time-tjek, der allerede var muligt.
+ * Siden har ingen håndskrevne `is…Option`-typeguards (`(OPTIONS as readonly string[]).includes(value)`):
+ * de ville kun reparere en widening, som annotationen `StyledDropdownChangeEvent<string>` selv indfører.
+ * `StyledDropdown` er generisk, så uden annotationen inferes literal-unionen, og en guard har intet
+ * at lave. Dens `as readonly string[]`-cast ville kaste netop den type væk, den påstod at
+ * etablere – et run-time-tjek sat i stedet for et compile-time-tjek, der allerede er muligt.
  *
  * TYPENS MÅLTE LOFT er grunden til, at denne fil findes. `TValue` inferes fra `value`-proppen
  * ALENE – ikke fra de rendrede `MenuItem`-børn (MUI typer `value` bredt). Målt i begge retninger:

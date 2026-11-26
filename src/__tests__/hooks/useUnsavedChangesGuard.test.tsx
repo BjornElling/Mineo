@@ -54,7 +54,7 @@ describe('useUnsavedChangesGuard', () => {
     expect(captured.hasUnsavedChanges).toBe(false);
   });
 
-  it('bevarer markeringen af ugemt arbejde gennem en genindlæsning (BB-394/BB-395)', () => {
+  it('bevarer markeringen af ugemt arbejde gennem en genindlæsning', () => {
     const first = createCapture();
     const beforeReload = render(<first.Capture revision={1} epoch={1} />);
     beforeReload.rerender(<first.Capture revision={2} epoch={1} />);
@@ -89,7 +89,7 @@ describe('useUnsavedChangesGuard', () => {
     rendered.unmount();
   });
 
-  it('beskytter en faktisk ændret, åben indtastning uden afsluttede ændringer (BB-396)', () => {
+  it('beskytter en faktisk ændret, åben indtastning uden afsluttede ændringer', () => {
     let openDraftChanged = false;
     const { Capture } = createCapture(() => openDraftChanged);
     const rendered = render(<Capture revision={1} epoch={1} />);

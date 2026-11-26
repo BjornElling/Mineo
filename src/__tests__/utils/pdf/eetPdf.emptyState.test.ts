@@ -134,7 +134,7 @@ describe('EET PDF empty states', () => {
     expect(joinedText).toContain('x 50 % x 80 % =');
     // `<=`, ikke `≤`: PDF-kanalen normaliserer tegnet, fordi jsPDF-fonten ikke kan sætte det
     // (`normalizeTextForDocument`). Skærm og Word bærer det rigtige `≤`. Begge PDF-linjer om
-    // ≤2-års-reglen normaliseres ens, så BB-172's krav om ÉN operator holder også her.
+    // ≤2-års-reglen normaliseres ens, så kravet om ÉN operator holder også her.
     expect(renderedText).toContain('Særfaktor pga. <= 2 år til folkepension?');
     expect(renderedText).not.toContain(
       'Grundydelse (50 %): Grundløn x Kap. % x Erstatningsniveau x (100 % − AM-bidrag) ='
@@ -265,7 +265,7 @@ describe('EET PDF empty states', () => {
     expect(joinedText).toContain('x 50 % x 80 % =');
     // `<=`, ikke `≤`: PDF-kanalen normaliserer tegnet, fordi jsPDF-fonten ikke kan sætte det
     // (`normalizeTextForDocument`). Skærm og Word bærer det rigtige `≤`. Begge PDF-linjer om
-    // ≤2-års-reglen normaliseres ens, så BB-172's krav om ÉN operator holder også her.
+    // ≤2-års-reglen normaliseres ens, så kravet om ÉN operator holder også her.
     expect(renderedText).toContain('Særfaktor pga. <= 2 år til folkepension?');
     expect(renderedText).not.toContain(
       'Grundydelse (50 %): Grundløn x Rest-EET x Erstatningsniveau x (100 % − AM-bidrag) ='
@@ -351,8 +351,8 @@ describe('EET PDF empty states', () => {
     expect(renderedText).toContain('15-01-2026');
     // Ophørsdatoen (14-01-2026) ligger FØR virkningsdatoen (15-01-2026), fordi beregningsdatoen
     // afgrænser opgørelsen før afgørelsen fik virkning. Et interval, der slutter før det begynder,
-    // er en selvmodsigelse; dokumentet skriver derfor årsagen i stedet (BB-154). Bilaget må ikke kalde
-    // dagen før for beregningsdatoen, når forsiden viser den rigtige (BB-421).
+    // er en selvmodsigelse; dokumentet skriver derfor årsagen i stedet. Bilaget må ikke kalde
+    // dagen før for beregningsdatoen, når forsiden viser den rigtige.
     const samletTekst = renderedText.join(' ').replace(/\s+/g, ' ');
     expect(samletTekst).toContain(
       'Løbende ydelser til differencekravet opgøres til og med dagen før beregningsdatoen (14-01-2026). Afgørelsen har virkning fra 15-01-2026.'

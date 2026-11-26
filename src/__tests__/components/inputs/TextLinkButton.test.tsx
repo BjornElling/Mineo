@@ -6,8 +6,8 @@ import TextLinkButton from '../../../components/inputs/TextLinkButton';
 import { CONTAINER_FOCUSABLE_SELECTOR } from '../../../components/tables/gridCore/tableFocusHelpers';
 
 /**
- * Reparationslinkene i «Fejl og advarsler» og Stamdata-linket lå uden for Containerens Tab-ring, og Enter
- * på et fokuseret link flyttede fokus til sidens første felt i stedet for at følge linket (BB-463/BB-464).
+ * Reparationslinkene i «Fejl og advarsler» og Stamdata-linket skal ligge i Containerens Tab-ring, og Enter
+ * på et fokuseret link skal følge linket i stedet for at flytte fokus til sidens første felt.
  * Testene måler adfærden i en ægte Container – Tab når linket, Enter og mellemrum aktiverer det og lader
  * fokus blive – så en senere ændring til fx et `<span>` med markøren også fanges.
  */

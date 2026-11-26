@@ -200,7 +200,7 @@ const loenudviklingOgSatser = (ctx: Context, idPrefix: string) => {
   const offentligLoenTypeTraek = optEnum(ctx, offentligLoenTypeEnum.options);
   return {
     ...foerOffentligLoen,
-    // «Ansættelse» kan ikke være tom (BB-300); et tomt træk er schemaets standardværdi. Trækket bevares, så de
+    // «Ansættelse» kan ikke være tom; et tomt træk er schemaets standardværdi. Trækket bevares, så de
     // eksisterende seeds genererer de samme sager.
     offentligLoenType: offentligLoenTypeTraek ?? 'Månedsløn',
     offentligLoenTrin: optWhole(ctx, [26, 0, 1, 11, 15, 20, 30, 35, 41, 50, 99]),

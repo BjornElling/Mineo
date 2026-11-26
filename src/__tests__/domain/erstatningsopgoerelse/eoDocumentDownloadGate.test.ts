@@ -149,7 +149,7 @@ describe('evaluateEoDocumentDownloadGate – brugerrettet tooltip', () => {
   /**
    * En autoritativ invariant på et bygget snapshot står altid i boksen – sikkerhedsnettet
    * (`selectEoSafetyNetInvariants`) viser den, når ingen række gør – så knappen henviser til boksen. Før sagde
-   * den «Indtastning mangler» om en værdi, der var forkert (BB-265).
+   * den «Indtastning mangler» om en værdi, der var forkert.
    */
   it('bruger page-errors ved autoritativ invariant', () => {
     const gate = evaluateEoDocumentDownloadGate({
@@ -176,7 +176,7 @@ describe('evaluateEoDocumentDownloadGate – brugerrettet tooltip', () => {
     expect(resolveBlockedGateTooltip(gate.reasons)).toBe(DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE);
   });
 
-  it('nævner det dokument, knappen henter, når fejlboksen spærrer (BB-370)', () => {
+  it('nævner det dokument, knappen henter, når fejlboksen spærrer', () => {
     const gate = evaluateEoDocumentDownloadGate({
       ...baseInput,
       hasBlockingRows: true,
@@ -186,7 +186,7 @@ describe('evaluateEoDocumentDownloadGate – brugerrettet tooltip', () => {
     expect(resolveBlockedGateTooltip(gate.reasons)).toBe('TAF fordelt på kalenderår kan ikke hentes, når der er fejl ovenfor');
   });
 
-  it('citerer en projektion, der selv siger tilstanden – ikke «Indtastning mangler» (BB-371)', () => {
+  it('citerer en projektion, der selv siger tilstanden – ikke «Indtastning mangler»', () => {
     const gate = evaluateEoDocumentDownloadGate({
       ...baseInput,
       projection: { kind: 'blocked', message: 'Der er ingen TAF-perioder i EO-perioden', specific: true },

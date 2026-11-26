@@ -13,7 +13,7 @@ const surchargeRates: ReadonlyArray<RateEntry> = [
   { effectiveDate: iso('2013-03-01'), ratePct: 8 },
 ];
 
-describe('CALC-003 – enginefacit for tillægssatsens historiske skæringsdato', () => {
+describe('enginefacit for tillægssatsens historiske skæringsdato', () => {
   it('bruger 8 procent fra 1. marts efter dagtillæg og beregner to rentedage', () => {
     const result = computeRentekravRow(
       {
