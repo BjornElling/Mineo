@@ -140,8 +140,14 @@ Instruks: `kontrakt-regler.md`. Én agent pr. gruppe, højst to ad gangen.
 ## 5. Forhold, der skal forelægges udvikleren
 
 (Udfyldes fra fundfilerne: steder hvor koden strider mod en dokumenteret afgørelse om UI/UX eller beregning, og
-åbne punkter fra udtrækkenes afsnit C.) Allerede kendt:
-- Afskæringen ved 16. juni 2011 for midlertidigt EET læser ved erhvervssygdom anmeldelsesdatoen. Det ser bevidst
-  ud i koden, men står ingen steder; udvikleren skal bekræfte reglen (`udtraek-3` C1).
-- Modstridende status for to gamle Årsløn-fund om visning af 0 % og et tomt feriedagefelt trykt som «0»
-  (`udtraek-1` C1) – afklares mod koden, før det forelægges.
+åbne punkter fra udtrækkenes afsnit C.)
+
+Afklaret (behandl ikke igen):
+- `udtraek-3` C1: 16. juni 2011-grænsen gælder også erhvervssygdomme og læser anmeldelsesdatoen (bekræftet af
+  udvikleren). Skrevet ind i `docs/domain/taf/tabt-arbejdsfortjeneste.md` §Periodeafgrænsning,
+  `docs/domain/eet/differencekrav.md` og `loebende-eet.md`; koden læser allerede `stamdata.skadedato`.
+  Kontraktfasen skal skrive «skade-/anmeldelsesdato» i `eo-snapshot-contract.md` ved 2011-reglen.
+- `udtraek-1` C1 (BB-109/BB-110): ingen modstrid. Udviklerens afgørelser er de gældende, og koden følger dem
+  (0 %-sats udelades, 0 kr. i tabellen bevares, tomt antal ferie-/SH-dage trykkes som 0); låst af
+  `aarsloenDocumentIndependent.test.ts`. M-13/M-19 var generelle mønstre, som afgørelserne undtager. Kontraktfasen
+  (G5) skriver `udtraek-2` A5–A7 ind i `aarsloen-contract.md`.

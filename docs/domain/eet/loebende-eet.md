@@ -32,6 +32,11 @@ Fire datoer styrer beregningsreglerne:
 | **16-06-2011** | Grænse for fradragsregler i differencekravet (gælder primært fane 5) |
 | **01-07-2024** | Nyt lønniveau: ASL-maksimum hæves fra 367.000 kr. til 608.000 kr. |
 
+Alle skæringsdatoer sammenlignes med sagens skade-/anmeldelsesdato (`stamdata.skadedato`): ved en arbejdsulykke
+datoen for ulykken, ved en erhvervssygdom datoen for anmeldelsen. En erhvervssygdom anmeldt før en skæringsdato
+følger de tidligere regler, en erhvervssygdom anmeldt på eller efter datoen de nye. For 16-06-2011 er det
+bekræftet af udvikleren (se `docs/domain/taf/tabt-arbejdsfortjeneste.md` §Periodeafgrænsning).
+
 ### Trin-for-trin beregning
 
 #### Trin 1 – Grundløn (beregnes én gang per skade)

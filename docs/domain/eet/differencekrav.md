@@ -59,9 +59,12 @@ Fradrag 1 beregnes med samme grundmodel som fane 2, men altid kun til og med dag
 Differencekravet medregner alle indtastede afgørelser med virkning på eller før beregningsdatoen.
 Afgørelsesdatoen må derfor godt ligge efter beregningsdatoen. I så fald indgår afgørelsen fortsat i differencekravet, fordi brugeren opgør differencekravet ud fra de indtastede afgørelser og deres virkningstidspunkt.
 
-Fradragsreglen per afgørelse afhænger fortsat af skadedatoen:
+Fradragsreglen per afgørelse afhænger fortsat af skadedatoen. Ved en erhvervssygdom er det anmeldelsesdatoen:
+lovændringen pr. 16. juni 2011 omfatter også erhvervssygdomme, og en erhvervssygdom anmeldt før denne dato følger
+de tidligere regler, en erhvervssygdom anmeldt fra denne dato de nye (udviklerens afgørelse). Koden læser derfor
+`stamdata.skadedato`, der ved erhvervssygdom er anmeldelsesdatoen.
 
-| Skadedato | Afgørelsestype | Fradrages? |
+| Skade-/anmeldelsesdato | Afgørelsestype | Fradrages? |
 |---|---|---|
 | Før 16-06-2011 | Midlertidig | Ja |
 | Før 16-06-2011 | Delvist endelig | Ja |

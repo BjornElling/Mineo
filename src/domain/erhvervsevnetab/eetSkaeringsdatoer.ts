@@ -1,5 +1,7 @@
 import type { ISODateString } from '../../types/branded';
 
+// Skæringsdatoerne sammenlignes med `stamdata.skadedato`: ulykkesdatoen ved arbejdsulykke, anmeldelsesdatoen
+// ved erhvervssygdom. En erhvervssygdom anmeldt før en skæringsdato følger de tidligere regler.
 export const SKAERING_2007_07_01 = '2007-07-01' as ISODateString;
 export const SKAERING_2011_01_01 = '2011-01-01' as ISODateString;
 export const SKAERING_2011_06_16 = '2011-06-16' as ISODateString;

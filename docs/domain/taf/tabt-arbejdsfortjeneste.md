@@ -67,7 +67,15 @@ TAF-perioderne, som brugeren angiver, clampes automatisk til gældende grænser:
 - **Fejlgivende clamping** (rød kant + tooltip): perioden må ikke nå op til eller forbi `differencekravDato − 1 dag`, endelig EET-virkningsdato − 1 dag, eller (ved skadedato < 16. juni 2011) midlertidig EET-virkningsdato − 1 dag. Differencekrav-grænsen gælder altid. EET-grænserne (endelig og midlertidig) ophæves hvis der er verserende klage over EET-afgørelsen.
 
 For skader opstået **før 16. juni 2011** (`TAF_MIDLERTIDIG_EET_SKAERINGSDATO` i `helpers/eoConstants.ts`,
-re-eksporteret fra `periodiseringsMotor.ts`) afgrænser en upåklaget midlertidig EET-afgørelse retten til tabt arbejdsfortjeneste på præcis samme måde som en endelig afgørelse. Betingelserne er identiske: `midlertidigtEetAfgorelse = 'Ja'`, dato angivet, og `verserendeKlageEet ≠ 'Ja'`. Beregnet dato: `midlertidigEETVirkningsdato ?? midlertidigEETAfgoerelseDato`. Logikken er indkapslet i `resolveMidlertidigEetDatoHvisAktiv` i `tafPeriodConstraints.ts`.
+re-eksporteret fra `periodiseringsMotor.ts`) afgrænser en upåklaget midlertidig EET-afgørelse retten til tabt arbejdsfortjeneste på præcis samme måde som en endelig afgørelse.
+
+**Juridisk grundlag for skæringsdatoen ved erhvervssygdom.** Lovændringen pr. 16. juni 2011 omfatter både
+arbejdsulykker og erhvervssygdomme. For en erhvervssygdom er det afgørende anmeldelsesdatoen: en erhvervssygdom
+anmeldt før 16. juni 2011 er omfattet af de tidligere regler, en erhvervssygdom anmeldt fra og med 16. juni 2011 af
+de nye (udviklerens afgørelse). Alle 2011-sammenligninger læser derfor `stamdata.skadedato`, som ved
+erhvervssygdom er anmeldelsesdatoen, og teksterne siger «Skaden er anmeldt før 16. juni 2011»
+(`resolveStamdataDatoReference`). Det gælder både TAF-afskæringen her og fradragsreglen i differencekravet
+(`docs/domain/eet/differencekrav.md`). Brug aldrig en anden dato (fx en debutdato) til denne grænse. Betingelserne er identiske: `midlertidigtEetAfgorelse = 'Ja'`, dato angivet, og `verserendeKlageEet ≠ 'Ja'`. Beregnet dato: `midlertidigEETVirkningsdato ?? midlertidigEETAfgoerelseDato`. Logikken er indkapslet i `resolveMidlertidigEetDatoHvisAktiv` i `tafPeriodConstraints.ts`.
 
 Afskæringen (anvendelsen) og afgørelsens dato (oplysningen) er to funktioner: `resolveMidlertidigEetDato` svarer
 på «er der truffet en midlertidig afgørelse, og hvornår?» uden 2011-grænsen og uden klagen, og

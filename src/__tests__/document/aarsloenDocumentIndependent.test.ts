@@ -244,4 +244,43 @@ describe('Årsløn – uafhængigt downstream-facit for dokumentgeneratoren', ()
       { label: 'Feriegodtgørelse', value: '12,5 %' },
     ]);
   });
+
+  // Udviklerens afgørelser: en tillægssats på 0 % betyder «satsen findes ikke» og udelades, mens et beløb på
+  // 0 kr. i tabellen er en bevidst indtastning og bevares. Et tomt antal ferie-/SH-dage regnes som 0 og skal
+  // fremgå af dokumentet som 0.
+  it('udelader en sats på 0 %, bevarer 0 kr. i tabellen og skriver tomme ferie-/SH-dage som 0', async () => {
+    const { session, requests } = createFixtureSession();
+    const [januar, februar] = values.tableData;
+    if (januar === undefined || februar === undefined) throw new Error('Fixturen mangler rækker');
+    await generateAarsloenDocument(session, {
+      satser: { feriePct: 12.5, fritvalgPct: 0 },
+      loenperiode: values.loenperiode,
+      tillaegAngivesSom: 'procent',
+      tableData: [januar, { ...februar, col2: { kind: 'number', value: 0 } }],
+      beregnetAarsloen: 22_500,
+      omregningTilFuldtAar: true,
+      periodeData,
+      fuldLoenUnderFerie: false,
+      retTilSjetteFerieuge: false,
+      antalFeriedage: undefined,
+      loenPaaHelligdage: LOEN_PAA_HELLIGDAGE.SH_UDBETALING,
+      shDageAntal: null,
+      beregningsData,
+    });
+
+    const blocks = requests[0]?.model.blocks ?? [];
+    const rows = labelValues(blocks);
+    expect(rows.map((row) => row.label)).not.toContain('Fritvalg');
+    expect(rows).toEqual(expect.arrayContaining([
+      { label: 'Feriegodtgørelse', value: '12,5 %' },
+      { label: 'Antal feriedage (mandag-fredag) i de indtastede perioder', value: '0' },
+      { label: 'Antal SH-dage i de indtastede perioder', value: '0' },
+    ]));
+
+    const table = blocks.find((block) => block.kind === 'table');
+    if (table?.kind !== 'table') throw new Error('Indtægtstabellen mangler');
+    expect(table.spec.rows.map((row) => row.cells.slice(0, 3).map((cell) => cell.text))).toContainEqual(
+      ['2', '2024', '0,00']
+    );
+  });
 });
