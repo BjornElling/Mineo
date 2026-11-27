@@ -68,7 +68,6 @@ export type EoDagsgrundlag = Readonly<{
   tafDates: ReadonlySet<ISODateString>;
   cutoff?: Readonly<{ referenceDato: ISODateString; kilde: TafCutoffKilde }>;
   columns: readonly CsvDayColumn[];
-  coverage: string;
 }>;
 
 const inRange = (date: ISODateString, range: IsoRange) => range.fra <= date && date <= range.til;
@@ -172,13 +171,7 @@ export const buildEoDagsgrundlag = (args: Readonly<{
     }
   }
 
-  const coverage = [
-    ...(reference ? ['beregningsperioden'] : []),
-    ...(hasTaf ? ['tabt arbejdsfortjeneste'] : []),
-    ...(svieSmertePeriods?.length ? ['svie/smerte'] : []),
-  ].join(' og ');
-
-  return { dates, columns, ferie, sh, workdays, tafDates, hasTaf, cutoff, svieSmertePeriods, coverage };
+  return { dates, columns, ferie, sh, workdays, tafDates, hasTaf, cutoff, svieSmertePeriods };
 };
 
 export const renderEoDagsgrundlagCsv = (basis: EoDagsgrundlag): string => {

@@ -783,7 +783,7 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
       if (!sourceTokensEqual(token, csvInput.readCurrentSourceToken())) return;
       downloadBlob(
         new Blob([csv], { type: 'text/csv;charset=utf-8' }),
-        resolveSagsFilnavn('Dagsgrundlag', 'csv', fresh.stamdataValues.journalnr),
+        resolveSagsFilnavn('Dataudtræk (CSV)', 'csv', fresh.stamdataValues.journalnr),
       );
     } catch (error) {
       reportSystemIssue({
@@ -834,7 +834,6 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
     handleDownloadTafOpreguleretPdf,
     handleDownloadTafKravGrafPdf,
     canDownloadDagsgrundlag: dagsgrundlag !== undefined,
-    dagsgrundlagCoverage: dagsgrundlag?.coverage,
     handleDownloadDagsgrundlag,
 
     // Navigation + bilag

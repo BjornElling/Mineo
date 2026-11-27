@@ -220,7 +220,7 @@ describe('uafhængigt håndfacit gennem EO-snapshot', () => {
     const document = eoSnapshotToEoDocument(snapshot);
     expect(document.kind).toBe('blocked');
 
-    expect(snapshot.dagsgrundlag?.coverage).toBe('tabt arbejdsfortjeneste');
+    expect(snapshot.dagsgrundlag?.hasTaf).toBe(true);
     expect(snapshot.dagsgrundlag?.svieSmertePeriods).toBeUndefined();
   });
 });

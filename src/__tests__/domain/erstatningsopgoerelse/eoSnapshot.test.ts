@@ -538,7 +538,7 @@ describe('computeEoSnapshot', () => {
 
     expect(snapshot.status).toBe('error');
     expect(snapshot.data).toBeNull();
-    expect(snapshot.dagsgrundlag?.coverage).toContain('tabt arbejdsfortjeneste');
+    expect(snapshot.dagsgrundlag?.hasTaf).toBe(true);
     expect(snapshot.dagsgrundlag?.svieSmertePeriods).toBeUndefined();
   });
 

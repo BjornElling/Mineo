@@ -70,18 +70,18 @@ test.describe('Beregning – dagsgrundlag som CSV', () => {
       await expect(page.getByRole('button', { name: 'Kontroltabel' })).toHaveCount(0);
       await expect(page.getByRole('button', { name: 'EO-kontrol' })).toHaveCount(0);
       await page.getByRole('tab', { name: 'Beregning', exact: true }).click();
-      await expect(page.getByText('Dagsgrundlag (CSV) – tabt arbejdsfortjeneste', { exact: true })).toBeVisible();
+      await expect(page.getByText('Dataudtræk i CSV-format', { exact: true })).toBeVisible();
       if (partial) {
         await expect(page.getByText('Fejl og advarsler', { exact: true })).toBeVisible();
         await expect(page.locator('.row--label-right-hover').filter({ hasText: 'Hent opgørelse' }).getByRole('button')).toBeDisabled();
       }
-      const button = page.getByRole('button', { name: 'Download dagsgrundlag som CSV-udtræk' });
+      const button = page.getByRole('button', { name: 'Download dataudtræk i CSV-format' });
       await button.scrollIntoViewIfNeeded();
       await page.screenshot({ path: testInfo.outputPath('dagsgrundlag.png') });
       const downloaded = page.waitForEvent('download');
       await button.click();
       const file = await downloaded;
-      expect(file.suggestedFilename()).toBe('EET-2010-FIKTIV - Dagsgrundlag.csv');
+      expect(file.suggestedFilename()).toBe('EET-2010-FIKTIV - Dataudtræk (CSV).csv');
       const csv = await readFile(await file.path(), 'utf-8');
       expect(csv.charCodeAt(0)).toBe(0xfeff);
       const [header, ...days] = csv.slice(1).split('\r\n').map((line) => line.split(';'));

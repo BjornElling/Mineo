@@ -71,7 +71,6 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
     handleDownloadTafOpreguleretPdf,
     handleDownloadTafKravGrafPdf,
     canDownloadDagsgrundlag,
-    dagsgrundlagCoverage,
     handleDownloadDagsgrundlag,
     handleNavigate,
     bilagAvailability,
@@ -460,15 +459,12 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
           </Box>
         </Box>
         <Box className="row--label-right-hover">
-          <Typography className="row--text">
-            Dagsgrundlag (CSV)
-            {dagsgrundlagCoverage && ` – ${dagsgrundlagCoverage}`}
-          </Typography>
+          <Typography className="row--text">Dataudtræk i CSV-format</Typography>
           <Box className="row--label-right-hover__content">
             <DocumentDownloadButton
               disabled={!canDownloadDagsgrundlag}
               onClick={handleDownloadDagsgrundlag}
-              label="Download dagsgrundlag som CSV-udtræk"
+              label="Download dataudtræk i CSV-format"
               disabledReason="Der er intet gyldigt dagsgrundlag at hente"
             />
           </Box>

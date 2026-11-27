@@ -452,7 +452,7 @@ der faktisk står i CSV-filen, og sammenholder dem med opgørelsens indtægtsfra
 
 ### 6.2 CSV på Beregning
 
-- «Download dagsgrundlag som CSV-udtræk» henter `{journalnr} - Dagsgrundlag.csv` efter sagens
+- «Dataudtræk i CSV-format» henter `{journalnr} - Dataudtræk (CSV).csv` efter sagens
   filnavnsregel. Filen læser den afsluttede revisions snapshot. Dansk Excel kan læse filens
   semikolon, decimaltegn og UTF-8 med BOM.
 - Dage, regulering og indtægter kommer fra beregningens perioder, reguleringssegmenter og
@@ -462,7 +462,7 @@ der faktisk står i CSV-filen, og sammenholder dem med opgørelsens indtægtsfra
   kolonnetotal. For TAF-fradraget svarer totalen til opgørelsens beløb, også ved midlertidigt EET,
   hvis fradrag afrundes pr. periode. Fx vises 100 kr. over tre dage som tre gange 33,33 kr. og
   0,01 kr. på afrundingslinjen.
-- Beregning angiver, hvilke dele filen dækker. Hvis en fejl i svie/smerte spærrer opgørelsen,
+- Hvis en fejl i svie/smerte spærrer opgørelsen,
   kan brugeren stadig hente et gyldigt TAF-grundlag. En blokeret grens oplysninger udelades.
   Når der ikke er et gyldigt dagsgrundlag, er downloadknappen deaktiveret.
 

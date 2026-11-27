@@ -38,8 +38,8 @@ describe('resolveDocumentFileName', () => {
 
 describe('resolveSagsFilnavn', () => {
   it('giver dagsgrundlagets CSV-fil sagens journalnr som dokumenterne', () => {
-    expect(resolveSagsFilnavn('Dagsgrundlag', 'csv', 'REGULERING-FIKTIV')).toBe('REGULERING-FIKTIV - Dagsgrundlag.csv');
-    expect(resolveSagsFilnavn('Dagsgrundlag', 'csv', '  ')).toBe('Dagsgrundlag.csv');
-    expect(resolveSagsFilnavn('Dagsgrundlag', 'csv', 'J:1/2')).toBe('J_1_2 - Dagsgrundlag.csv');
+    expect(resolveSagsFilnavn('Dataudtræk (CSV)', 'csv', 'REGULERING-FIKTIV')).toBe('REGULERING-FIKTIV - Dataudtræk (CSV).csv');
+    expect(resolveSagsFilnavn('Dataudtræk (CSV)', 'csv', '  ')).toBe('Dataudtræk (CSV).csv');
+    expect(resolveSagsFilnavn('Dataudtræk (CSV)', 'csv', 'J:1/2')).toBe('J_1_2 - Dataudtræk (CSV).csv');
   });
 });
