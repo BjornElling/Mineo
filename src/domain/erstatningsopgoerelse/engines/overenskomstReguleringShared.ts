@@ -3,7 +3,7 @@ import {
   getGrundloenAngivetPerForOverenskomst,
   type OverenskomstPeriodeSats,
 } from '../../../data/overenskomstRates';
-import { STORE_BEDEDAG_PCT, STORE_BEDEDAG_START } from '../../../data/indskudteLoentillaeg';
+import { STORE_BEDEDAG_SATSTRAPPE, resolveIndskudtLoentillaegPct } from '../../../data/indskudteLoentillaeg';
 import { round2 } from '../../../utils/roundingShortcuts';
 import type { OffentligLoenType } from '../../../data/offentligLoenTypes';
 import { convertAnciennitetSats, resolvePctPointFromSatsOrInput } from '../helpers/eoSharedUtils';
@@ -90,8 +90,8 @@ export const buildOffentligOverenskomstFormulaComponents = (args: Readonly<{
   fritvalgPct: resolvePctPointFromSatsOrInput(args.tillaegsSatser?.fritvalg, args.fritvalgPctInput),
   shSoPct: resolvePctPointFromSatsOrInput(args.tillaegsSatser?.shSoSats, args.shSoPctInput),
   pensionPct: resolvePctPointFromSatsOrInput(args.tillaegsSatser?.agPension, args.pensionPctInput),
-  storeBededagPct: args.applyStoreBededagstillaeg && args.dateIso >= STORE_BEDEDAG_START
-    ? STORE_BEDEDAG_PCT
+  storeBededagPct: args.applyStoreBededagstillaeg
+    ? resolveIndskudtLoentillaegPct(STORE_BEDEDAG_SATSTRAPPE, args.dateIso)
     : 0,
 });
 
@@ -110,7 +110,7 @@ export const buildPrivateOverenskomstFormulaComponents = (args: Readonly<{
   fritvalgPct: resolvePctPointFromSatsOrInput(args.sats.fritvalg, args.fritvalgPctInput),
   shSoPct: resolvePctPointFromSatsOrInput(args.sats.shSoSats, args.shSoPctInput),
   pensionPct: resolvePctPointFromSatsOrInput(args.sats.agPension, args.pensionPctInput),
-  storeBededagPct: args.applyStoreBededagstillaeg && args.dateIso >= STORE_BEDEDAG_START
-    ? STORE_BEDEDAG_PCT
+  storeBededagPct: args.applyStoreBededagstillaeg
+    ? resolveIndskudtLoentillaegPct(STORE_BEDEDAG_SATSTRAPPE, args.dateIso)
     : 0,
 });

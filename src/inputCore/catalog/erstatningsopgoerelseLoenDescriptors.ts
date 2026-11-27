@@ -699,6 +699,8 @@ export const eoAngivetLoenFields = {
   anciennitetstillaegDato: eoLoenDate('anciennitetstillaegDato', 'Dato for opnået anciennitetstillæg', systemrammeSpec, eoLoenudviklingRelevance('anciennitetDetaljer')),
   anciennitetstillaegSatsAngivesPer: reqChoiceField(EO_LOEN_ID, eoLoenPath, 'anciennitetstillaegSatsAngivesPer', 'Satsen angives per', anciennitetSatsPerEnum.options, 'Måned', 'choice', eoLoenudviklingRelevance('anciennitetDetaljer')),
   anciennitetstillaegSats: eoLoen<AmountValue>('anciennitetstillaegSats', 'Anciennitetstillægssats', 'text', amountCodec, eoLoenAmountBounds('anciennitetstillaegSats'), eoLoenudviklingRelevance('anciennitetDetaljer')),
+  // Persisteret slot uden editor (fælles shape med ansættelsesforholdet). Beregningen læser den ikke
+  // (`angivetLoenHelpers.ts`): angivet løns feriesats står i basisrækkens celle under «Manuelt angivet».
   feriePct: eoLoen<number>('feriePct', 'Feriegodtgørelse/-tillæg', 'text', percentCodec, [percentBoundsValidator(`${EO_LOEN_ID}.feriePct.bounds`, { minValue: 0, maxValue: 100, allowDecimals: true })]),
   // Samme required-choice-kontrakt som ansættelsesforholdets tvilling (`eoEmploymentFields.loenPaaHelligdage`).
   // Tomværdien er den samme konkrete sats, som schemaets `.default()` giver: en tomværdi på `undefined` ville

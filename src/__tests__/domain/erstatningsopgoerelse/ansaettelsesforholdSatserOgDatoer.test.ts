@@ -18,7 +18,8 @@ import {
   createInputRevision,
   createSettingsRevision,
 } from '../../../inputCore/evaluationSource';
-import { toISODateString } from '../../../types/branded';
+import { dateRange_systemramme } from '../../../config/dateRanges';
+import { isoToDanish, toISODateString } from '../../../types/branded';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 import { withSfggIngenForEmployments } from '../../utils/sfggTestSupport';
 
@@ -366,6 +367,19 @@ describe('skjulte satser og en skjult beregningsperiode er ikke udfyldt', () => 
       if (!roed) expect(result.projection.eoValues.tafBeregningsperiodeTil).toBeUndefined();
     },
   );
+});
+
+describe('en rød slutdato på beregningsperioden', () => {
+  it('er rød, og satsreferencen følger den røde slutdato', () => {
+    const efterSystemrammen = `${Number(dateRange_systemramme.max.slice(0, 4)) + 1}-01-10`;
+    const result = project(sag({ tafBeregningsperiodeTil: iso(efterSystemrammen) }));
+    const felt = serializeFieldAddress(eoTafBeregningsperiodeTilField.bind().address);
+    const satslinje = result.rows.allRows.find((row) => row.id === 'loenindkomst.af-1.satserSkadestidspunkt');
+
+    expect(result.projection.eoErrors.get(felt)).toMatchObject({ reason: 'bounds', priority: 'context' });
+    expect(result.projection.eoValues.tafBeregningsperiodeTil).toBe(efterSystemrammen);
+    expect(satslinje?.label).toBe(`Satser ved beregningsperiodens udløb (${isoToDanish(iso(efterSystemrammen))})`);
+  });
 });
 
 describe('en privat overenskomst uden satser på reguleringsdatoen giver én linje', () => {

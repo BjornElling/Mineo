@@ -59,8 +59,7 @@ export const resolveLoenudviklingKilde = (
   // Lønudviklingsmotoren arbejder på månedlig regulering; angivet dagsløn er kun input-reference.
   const loenudviklingErOverenskomst = eo.loenudviklingBeregningsgrundlag === 'Overenskomst';
   // `loenPaaHelligdage` er required-with-default i det persisterede schema OG i inputdescriptoren, så der
-  // findes ingen manglende/ugyldig værdi at kaste på. Det defensive kast, der stod her, var kun nåeligt,
-  // fordi feltet var valgfrit – og det var netop den vej, en nyoprettet sag altid tog.
+  // findes ingen manglende/ugyldig værdi at kaste på.
   const loenPaaHelligdage = eo.loenPaaHelligdage;
 
   return [{
@@ -73,11 +72,14 @@ export const resolveLoenudviklingKilde = (
     sidsteArbejdsdag: undefined,
     harAnciennitetstillaegEfterSkadedatoen: eo.harAnciennitetstillaegEfterSkadedatoen,
     anciennitetstillaegDato: eo.anciennitetstillaegDato,
-    // Brugerens eget enhedsvalg. Enheden blev tidligere tvunget efter «Beregnes ud fra»; ældre filer får
-    // den tvungne enhed ved indlæsning (`persistedLoadAdapter.ts`), så her udledes intet af et andet felt.
+    // Brugerens eget enhedsvalg. Filer uden valget får enheden efter «Beregnes ud fra» ved indlæsning
+    // (`persistedLoadAdapter.ts`), så her udledes intet af et andet felt.
     anciennitetstillaegSatsAngivesPer: eo.anciennitetstillaegSatsAngivesPer,
     anciennitetstillaegSats: eo.anciennitetstillaegSats,
-    feriePct: eo.feriePct,
+    // Angivet løn har intet feriesatsfelt; under «Manuelt angivet» er basisrækkens celle brugerens feriesats, og en
+    // tom celle er 0 %. Den persisterede `feriePct` (fælles shape med ansættelsesforholdet) læses derfor ikke, så en
+    // værdi i filen aldrig kan indgå usynligt.
+    feriePct: undefined,
     fritvalgPct: undefined,
     shSoPct: undefined,
     storeBededagPct: undefined,

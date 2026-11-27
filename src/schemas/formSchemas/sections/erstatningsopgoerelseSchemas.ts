@@ -239,15 +239,14 @@ const overenskomstFilterSchema = z.object({
 
 // Fælles lønudviklingsfelter for de to persisted ejere (ansættelsesforhold og EO-angivet løn).
 //
-// ⚠️ `loenPaaHelligdage` var tidligere PARAMETRISERET, så EO-angivet løn kunne loades uden feltet, mens
-// ansættelsesforholdet krævede det. Den parametrisering er selve fælden: den gør `undefined` – en værdi,
-// motoren erklærer umulig – til den tilstand en nyoprettet sag altid har. Load-tolerance og "må mangle" er
-// ikke det samme krav: en `.default()` giver ældre `.eo`-filer uden feltet en gyldig værdi OG holder typen
-// påkrævet, så den umulige tilstand ikke kan repræsenteres. Genindfør ikke `.optional()` her.
+// ⚠️ `loenPaaHelligdage` er påkrævet for begge ejere. Gøres feltet valgfrit for én af dem, bliver `undefined` –
+// en værdi, motoren erklærer umulig – den tilstand, en nyoprettet sag har. Load-tolerance og "må mangle" er ikke
+// det samme krav: en `.default()` giver ældre `.eo`-filer uden feltet en gyldig værdi OG holder typen påkrævet,
+// så den umulige tilstand ikke kan repræsenteres. Indfør ikke `.optional()` her.
 const loenudviklingOgSatserShape = {
   feriePct: decimalNumber,
   loenPaaHelligdage: loenPaaHelligdageEnum.default('Almindelig løn'),
-  // Store Bededagstillæg er et udtrykkeligt sagsvalg. Det må aldrig igen udledes alene af
+  // Store Bededagstillæg er et udtrykkeligt sagsvalg. Det må aldrig udledes alene af
   // "Løn på helligdage", så den passive default er bevidst false.
   beregnStoreBededagstillaeg: z.boolean().default(false),
   saerligFraDatoRegulering: optionalIsoDateString,

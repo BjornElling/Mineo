@@ -113,9 +113,12 @@ Instruks: `kontrakt-regler.md`. Én agent pr. gruppe, højst to ad gangen.
 - [x] G1: `input-field-behavior-contract.md`, `mineo-field-pattern.md`, `form-contract.md`, `keyboard-navigation.md`.
       Fundfil `fund-G1.md`: alle fund lukket (fire forelagt og afgjort, resten rettet); seks udtrækspunkter
       overladt til G2–G5 (står i fundfilens (a) – G2–G5 skal tage dem).
-- [ ] G2: `eo-snapshot-contract.md`, `eet-snapshot-contract.md`, `forsoergertab-snapshot-contract.md`,
+- [x] G2: `eo-snapshot-contract.md`, `eet-snapshot-contract.md`, `forsoergertab-snapshot-contract.md`,
       `snapshot-contract.md`, `indskudte-loentillaeg-contract.md`, `feriepenge-begreber-contract.md`.
-- [ ] Gennemse fundfilerne; flyt konflikter til §5; commit.
+      Fundfiler `fund-G2a.md` (EOS) og `fund-G2b.md` (de fem øvrige): alle fund lukket (tre forelagt og afgjort,
+      resten rettet). G7-noter i `fund-G2b.md` (indledningen): udtraek-2/A29 er forældet; `forsoergertab-beregning.md`
+      §5.3 står stadig åben.
+- [x] Gennemse fundfilerne; flyt konflikter til §5; commit.
 
 ### Arbejdsstykke 4 – Kontrakter, gruppe G3–G5
 - [ ] G3: `document-output-contract.md`, `document-format-contract.md`, `critical-action-contract.md`,
@@ -134,6 +137,9 @@ Instruks: `kontrakt-regler.md`. Én agent pr. gruppe, højst to ad gangen.
       `docs/implementation/README.md` omskrives til kun reglen; afklar om planen for særligt ferietillæg findes
       (AGENTS.md påstår det).
 - [ ] Commit.
+
+### Efter oprydningen (ikke en del af 1.0-oprydningen)
+- Afvikling af kontrolfanerne efter EOS §6 «Besluttet afvikling».
 
 ### Arbejdsstykke 6 – Topniveau, skills og sletning
 - [ ] `AGENTS.md`, `CLAUDE.md`, `README.md`, `src/__tests__/AGENTS.md`: efterprøv og rens for historik
@@ -173,3 +179,6 @@ Afklaret (behandl ikke igen):
   procentfelter med decimaler viser `0,00` også på formularer (FC §8.1); fejlboksen tager kun en Escape, som intet
   andet har brugt, og lukkeknappen står uden for Tab-ringen (KN §Escape); toggles med et spørgsmål som tekst
   beholder et kort navn i Inspektion og fejltekster (MFP §Lag A).
+- G2 (2026-11-27), skrevet ind og gennemført: kontrolfanernes afvikling skrives ind i EOS §6 og udføres som et
+  selvstændigt stykke efter 1.0; særligt ferietillæg har ingen plan (AGENTS.md, ILT §6, satser i TAF-domænedokumentet,
+  memory slettet); angivet løns skjulte feriesats læses ikke (EOS §15).

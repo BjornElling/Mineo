@@ -576,8 +576,8 @@ export const buildEOInspektionSammentaellingModel = (args: {
     beregningsenhed,
     tafBranchAvailable,
     beregningsperiode: buildSammentaellingControl({
-      // Grundlaget mangler, når beregningsperioden ikke er et gyldigt, færdigt input – fx to
-      // perioder der deler en dag, eller et påkrævet fraværsantal der endnu ikke er tastet.
+      // Grundlaget mangler, når beregningsperioden ikke er et gyldigt, færdigt input – fx en
+      // ufuldstændig periode, eller et påkrævet fraværsantal der endnu ikke er tastet.
       beregnet: erBeregningsperiodeInputKlar
         ? beregnetVaerdi(beregningsperiodeArbejdsdage, formatOptionalInt(beregningsperiodeArbejdsdage))
         : grundlagMangler,

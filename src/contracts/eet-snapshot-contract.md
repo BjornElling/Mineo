@@ -1,67 +1,81 @@
-# Mineo - EET snapshot-kontrakt
+# Mineo – EET snapshot-kontrakt
 
 **Status:** Normativ og gældende
 **Type:** Domænekontrakt
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md` og `snapshot-contract.md`.
-**Senest verificeret mod kode:** 2026-11-18
+**Senest verificeret mod kode:** 2026-11-27
+
+De fælles snapshotregler (inputgrænse, afhængighedsspecifik blokering, runtimefejl, issues og dokumentgate,
+friskhed) står i `snapshot-contract.md` og gentages ikke her.
 
 ---
 
 ## 1. Autoritativ entry og canonical output
 
-`computeEetSnapshot(...)` er den autoritative beregningsentry for Erhvervsevnetab-sidevisning, tabprojektioner og
+`computeEetSnapshot(...)` er den autoritative beregningsentry for Erhvervsevnetab-sidevisning, faneprojektioner og
 EET-dokumentflow. Den kaldes kun inde fra `buildErhvervsevnetabReaderProjection(...)`, som læser de nødvendige værdier
-gennem `InputReader` og binder resultatet til den aktuelle `EvaluationSourceToken`. UI og dokumentflow må kun aftage
-denne reader-projektion; rå canonical sektioner må ikke gives som bypass.
+gennem `InputReader` og binder resultatet til den aktuelle `EvaluationSourceToken`. UI og dokumentflow aftager kun
+denne reader-projektion; EO-importen aftager importporten (§5).
 
-UI, PDF og EO-import må ikke lave parallelle EET-beregninger uden om snapshot/projektioner eller de helpers, som denne kontrakt udpeger.
+`EetSnapshot` er samtidig EET-domænets canonical output. Formen valideres af `eetCanonicalOutputSchema`, og
+TypeScript-typen afledes af schemaet. Et snapshot udleveres først til UI, dokument eller EO-import, når hele outputtet
+er schema-valideret; fejler valideringen, fail-closer alle fire projektioner med et blokerende issue.
 
-`EetSnapshot` er samtidig EET-domænets canonical output. Formen skal valideres af et
-Zod-schema, og TypeScript-typen skal afledes af dette schema. Et snapshot må først udleveres
-til UI, PDF eller EO-import, når hele outputtet er schema-valideret.
-
-Alle offentlige pengefelter i snapshottet er `MoneyOre`. Konverteringen sker efter den
-afrunding, som den eksisterende domæneregel foreskriver; canonicaliseringen må ikke flytte
-eller ændre afrundingstidspunktet. Interne højpræcisionsmellemregninger kan fortsat være rå
-tal, når domænet kræver det, men de må ikke lække som offentlige pengebeløb.
+Alle offentlige pengefelter i snapshottet er `MoneyOre`. Konverteringen sker efter den afrunding, som domænereglen
+foreskriver; canonicaliseringen må ikke flytte eller ændre afrundingstidspunktet. Interne højpræcisionsmellemregninger
+kan være rå tal, når domænet kræver det, men de må ikke lække som offentlige pengebeløb.
 
 ---
 
 ## 2. Projektioner
 
-Snapshot-formen er issue-/tab-projektionsformen fra `snapshot-contract.md`.
-
-Aktuelle projektioner:
+Snapshottet har én projektion pr. resultatfane (projektionsformen i `snapshot-contract.md` §5):
 
 1. `loebendeYdelser`
 2. `kapitalisering`
 3. `efterEal`
 4. `differencekrav`
 
-Hver projektion skal deklarere issues, blocking-status og beregningsresultat på en måde, som tab- og PDF-laget kan bruge uden ny domæneberegning.
+Hver projektion har formen `issues`, `hasBlockingErrors` og `computation`, hvor `computation` er `null`, når
+projektionen ikke kan beregnes. Delresultater pakkes ikke i `Calculable<T>`, når formen allerede udtrykker fraværet
+entydigt. En projektion med mindst ét `error`-issue har altid `computation: null`, og `hasBlockingErrors` er sand,
+netop når der findes et `error`-issue. Begge invarianter håndhæves af output-schemaet, så en consumer ikke kan vise
+eller gemme et resultat fra en blokeret projektion. View- og dokumentprojektioner må kun formatere eller udvælge
+disse data.
 
-Den canonical projektionsform er `issues`, `hasBlockingErrors` og `computation`, hvor
-`computation` er `null`, når projektionen ikke kan beregnes. Delresultater skal ikke pakkes i
-`Calculable<T>`, når denne form allerede udtrykker fraværet entydigt.
+`differencekrav` orkestrerer ikke selv søsterberegninger og har ingen skjult blocking-semantik. Projektionen modtager
+de nødvendige, eksplicit komponerede underberegninger fra snapshot-orkestreringen (`eetCalculationGraph.ts`) og
+rapporterer enhver blokering som issue.
 
-En projektion med mindst ét `error`-issue skal altid have `computation: null`. Det er en
-canonical invariant, som både snapshot-gaten og output-schemas håndhæver, så en consumer ikke
-kan vise eller gemme et resultat fra en blokeret projektion.
+### Hver fanes afhængigheder
 
-Projektionerne er dele af det Zod-validerede `EetSnapshot`; view- og dokumentprojektioner må
-kun formatere eller udvælge disse data.
+En rød feltfejl blokerer kun de faner, der læser feltet:
 
-### ASL-afgørelsens virkningsdato
+- **Løbende ydelser:** beregningsdato, ASL-årsløn, Stamdatas datoer og ASL-afgørelsestabellen.
+- **Kapitalisering:** som løbende ydelser, men uden beregningsdatoen. Fanen er bevidst uafhængig af beregningsdatoen
+  (§4.3) og bevares, når datoen er rød eller tom.
+- **EET efter EAL:** beregningsdato, EAL-årsløn, EAL-procent, Stamdatas datoer og forliget (§4.1). ASL-årslønnen er
+  kun en afhængighed, når EAL-årslønnen er tom, og ASL-afgørelsestabellen kun, når EAL-procenten er tom. Også da
+  blokerer kun kolonner, der kan ændre, hvilken afgørelse og procent der vælges (afgørelsesdato, virkningsdato,
+  EET % og afgørelsestype). Røde værdier i «Kap.dato», «Kap. %» og «Hvis genopt. - tidl. kap.dato» stopper ikke
+  EAL-kravet, fordi EAL-motoren ikke læser dem.
+- **Differencekrav:** foreningen af de øvrige fanes afhængigheder samt forliget.
+
+### 2.1 ASL-afgørelsens virkningsdato
 
 Virkningsdatoen er frivillig. Uden særskilt virkningsdato bruges afgørelsesdatoen i alle beregninger,
-valideringsregler, afgørelsessorteringer og EO-importen gennem `resolveAslVirkningsdato` i
-`eetAslAfgoerelser.ts` (udviklerafgørelse 2026-10-29, BB-368). En tom virkningsdato og en virkningsdato
-lig afgørelsesdatoen skal give samme beregning og samme issues. Kun advarsler om den udtrykkeligt
-indtastede dato læser den rå feltværdi. Den udledte dato skrives aldrig tilbage til sagsdata.
+valideringsregler, afgørelsessorteringer og EO-importen gennem `resolveAslVirkningsdato` i `eetAslAfgoerelser.ts`.
+En tom virkningsdato og en virkningsdato lig afgørelsesdatoen giver samme beregning og samme issues; en virkningsdato
+lig afgørelsesdatoen giver aldrig en fejl eller advarsel. Kun advarsler om den udtrykkeligt indtastede dato læser den
+rå feltværdi. Den udledte dato skrives aldrig tilbage til sagsdata. Kolonnens info-ikon siger
+«Udfyldes kun, hvis den er forskellig fra afgørelsesdatoen.» (`ASL_VIRKNINGSDATO_INFO`).
+
+Reglen gælder ASL-afgørelsestabellen. Forsørgertabs «Virkningsdato» er et selvstændigt felt, som er påkrævet, når
+ASL-ydelsen er påbegyndt.
 
 Reglen dækkes af `src/__tests__/domain/erhvervsevnetab/eetVirkningsdatoFallback.test.ts`.
 
-### 2.1 Løbende ydelsers perioder
+### 2.2 Løbende ydelsers perioder
 
 `eetLoebendePerioder.ts` ejer den samlede periodeplan: afløsningsgrænser, kapitaliseringshændelser,
 satsår og faktisk tidligere opgjorte bidrag. `eetLoebendeYdelserCalculation.ts` omsætter planen til penge.
@@ -89,49 +103,57 @@ runtime-output og persisteres ikke i `.eo` eller browserlagrede sagsdata.
 
 ---
 
-## 3. Blocking og Runtimefejl
+## 3. Blokering og runtimefejl
 
-Forventelige brugerinputtilstande rapporteres som issues. Uventede runtimefejl må ikke give gyldige totals eller PDF-projektioner.
-
-Ved runtime exception skal snapshot/projektionen fail-close med blokerende issue og `computation: null` eller tilsvarende domænespecifik tom tilstand.
-
-Schemafejl, manglende påkrævet source og runtimefejl skal altid materialiseres som en
-eksplicit blokerende issue. `hasBlockingErrors` må ikke være `true`, uden at mindst én issue
-forklarer blokeringen.
-
-`differencekrav` må derfor ikke selv-orkestrere søsterberegninger eller have skjult
-blocking-semantik. Projektionen modtager de nødvendige, eksplicit komponerede underberegninger
-fra snapshot-orchestreringen og rapporterer enhver blokering som issue.
+Snapshottet følger `snapshot-contract.md` §7–§8. Schemafejl, manglende påkrævet source og runtimefejl
+materialiseres altid som et eksplicit blokerende issue med `computation: null`.
 
 ---
 
-## 4. Row-level issues
+## 4. ASL-afgørelsestabellen og fanernes issues
 
-ASL-/EAL-rækkeissues afledes fra samme `InputReader` og rækkevalidatorer som snapshotinputtet. De lagres ikke i en
-field-error-bus og må ikke afhænge af, om rækkekomponenten er mounted.
+### Rækkeissues
 
-Hver rød celle i ASL-afgørelsestabellen – readerens feltfejl og tabellens kryds-række-regler – går ind i snapshottet
-som sit eget `field-asl-afgoerelser`-issue med række, kolonne, feltets besked og cellen som `focusTarget`
+ASL-/EAL-rækkeissues afledes fra samme `InputReader` og rækkevalidatorer som snapshotinputtet. Hver rød celle i
+ASL-afgørelsestabellen – readerens feltfejl og tabellens kryds-række-regler – går ind i snapshottet som sit eget
+`field-asl-afgoerelser`-issue med række, kolonne, feltets besked og cellen som `focusTarget`
 (`buildAslAfgoerelserSummaryIssues`). Fanerne viser dem alle samtidig og fører til cellen; højst én linje pr. celle,
-feltfejlen før reglen (BB-406, mønster M-50).
+feltfejlen før reglen.
 
-Canonical EET-procenter større end 0 og mindre end 15 giver en ikke-blokerende `FieldWarning` med teksten
-`Der kan ikke tilkendes erhvervsevnetab under 15 %`. Den vises på både ASL-rækker og EAL-feltet og ændrer ikke
-snapshotets blocking-status eller beregning.
+**Dubletter.** To afgørelser med samme afgørelsesdato og samme (udledte) virkningsdato er en rød fejl på BEGGE rækker
+– i afgørelsesdato- og virkningsdatocellen – med «Der er angivet to identiske afgørelser med samme afgørelsesdato og
+virkningsdato» (`validateDuplicateAfgoerelse`). Markeringen afhænger aldrig af rækkernes sortering: rækkefølgen er
+visning, ikke en stabil identitet, så «den seneste» række kan ikke udpeges pålideligt.
 
-Kaldere må ikke antage, at snapshotets eget blocking-flag alene er komplet dokumentgate. Dokumentdefinitionen
-aggregerer snapshotissues, relevante rækkeissues og output-invariants ud fra sine strukturelle dependencies. Issues
-persisteres ikke og duplikeres ikke i `EetSnapshot` som selvstændig state.
+### EET-procenter
 
----
+Kun procentens form er en rød fejl: den skal være et heltal, delelig med 5, større end 0 og højst 100. Lovens øvrige
+grænser er gule, ikke-blokerende feltadvarsler, fordi en teoretisk beregning af en sådan værdi skal være mulig:
+
+- Under 15 % giver `Der kan ikke tilkendes erhvervsevnetab under 15 %` (`EET_UNDER_15_WARNING`) – både på ASL-rækkerne
+  og på EAL-feltet. Den ændrer ikke blocking-status eller beregning.
+- For ASL-skader med skadedato fra 1. juli 2024 giver en procent over 15, der ikke er et 10 %-trin,
+  `Erhvervsevnetab fastsættes i trin af 10 % for skader fra 1. juli 2024`. Trinreglen gælder ikke EAL, hvor
+  alle 5 %-trin fra 15 % er lovlige.
+- En kapitalisering under 15 % giver `Der er angivet kapitalisering med mindre end 15 %`, men kun når den første
+  kapitalisering eller den samlede kapitalisering er under 15 %. En senere delkapitalisering (fx forhøjelsen fra 20 %
+  til 30 %) vurderes aldrig isoleret. Ringen og fanelinjen følger samme regel (`kapitaliseringUnder15WarningRowIds`).
+
+Advarslerne bærer ingen hale om, at beregningen «ikke er lovmæssig»: hvad der kan bruges juridisk, er brugerens
+vurdering. Tilføj den ikke igen.
+
+De to «EET %»-felter behandler 0 forskelligt. I ASL-tabellen er 0 en rød fejl («Erhvervsevnetabet skal være mellem 5 og 100»). I
+«EET % (hvis afviger fra ASL)» betyder 0 «ingen afvigelse» og canonicaliseres til tomt uden besked
+(`input-field-behavior-contract.md` §2.3).
 
 ### Kapitalisering tæt på folkepension
 
 Ved en endelig afgørelse omfattet af den tvungne kapitalisering ved højst to år til folkepension skal brugeren
 selv angive kapitaliseringsdato og hele den resterende kapitaliseringsprocent. Mangler en værdi, rapporterer
-den fælles rækkevalidering en consumerfejl med link til det konkrete felt. Tomme felter får ingen rød ring,
-og manglen blokerer ikke `.eo`-save. Udfyldte værdier følger de samme feltregler i tabellen, beregningsmotorerne
-og EO-importen. Importen må aldrig udlede en skjult kapitalisering bag tomme eller ugyldige felter.
+den fælles rækkevalidering en consumerfejl med link til det konkrete felt; beskederne navngiver den værdi, der skal
+stå («Angiv afgørelsesdatoen eller en senere dato …», «Angiv hele det resterende EET % …»). Tomme felter får ingen
+rød ring, og manglen blokerer ikke `.eo`-save. Udfyldte værdier følger de samme feltregler i tabellen,
+beregningsmotorerne og EO-importen. Importen må aldrig udlede en skjult kapitalisering bag tomme eller ugyldige felter.
 
 En senere kapitaliseringsdato accepteres med gul feltadvarsel. Datoen bruges til kapitalbeløbet, reguleringsåret
 og fradragets tidsafgrænsning. Løbende ydelser fra en endelig afgørelse omfattet af toårsreglen stopper senest
@@ -144,8 +166,8 @@ Kontroltidspunktet for toårsreglen og kapitaliseringens regelvalg ejes alene af
 den tidligere kapitaliseringsdato. Dagen før toårsgrænsen ejes af `resolveToAarsreglensSidsteYdelsesdag`, som
 både periodeplanen og differencekravets fradrag for overtagne midlertidige ydelser bruger.
 
-Tidligere gemte filer med tomme kapitaliseringsfelter indlæses uændret uden ny load-advarsel; de afhængige
-beregninger blokeres herefter, indtil felterne udfyldes (udviklergodkendelse 2026-11-13).
+Gemte filer med tomme kapitaliseringsfelter indlæses uændret uden load-advarsel; de afhængige beregninger blokeres,
+indtil felterne udfyldes.
 
 ## 4.1 Forlig om ansvarsgrad: to faner, to grundlag
 
@@ -201,30 +223,68 @@ Samme opslag bruges af BÅDE fladen og dokumentkilden:
   gemt i en anden sagstilstand ikke kan love en side, dokumentet ikke har.
 - Tilstanden «inaktiv uden årsag» er umulig at konstruere: tilgængeligheden er en discriminated union.
 - Togglen «Medtag udvidet specifikation på løbende ydelser» følger løbende-ydelsesbilaget: den kan kun
-  betjenes, når det bilag både findes og er valgt.
+  betjenes, når det bilag både findes og er valgt. Den er bevidst uafhængig af fanen Løbende ydelsers egen
+  «Medtag udvidet specifikation»; de to dokumenter har hver sin toggle.
 - «Opgørelse» er ikke et valg, men forsiden. Fladen viser feltet låst til (`lockedOn`), kilden tvinger
   det sandt, og generatoren kaster, hvis det mangler – samme model som EO's «Opgørelse».
 
 ---
 
-## 5. EO Import
+## 4.3 Beregningsdatoen
 
-EO's midlertidigt-EET-import må kun bruge EET-domænets typed, Zod-validerede importport gennem den snævre undtagelse i `domain-boundary-contract.md` og `eo-snapshot-contract.md`.
+Beregningsdatoen er opgørelsesdato for løbende ydelser, EET efter EAL og differencekravet. Hver fane besvarer sit eget
+spørgsmål, og fanerne kan derfor bevidst vise forskellige tal under samme titel:
 
-Importrelevante grupper må kun være `Midlertidig` eller `Delvist endelig`. Ukendte eller kontraktstridige afgørelsestyper i importrelevant output skal fail-close; de må ikke silently droppes som irrelevante.
+- **Kapitalisering** gengiver myndighedernes kapitaliseringer og er uafhængig af beregningsdatoen: den viser også
+  kapitaliseringer efter datoen, har ingen beregningsdato-række på skærm eller i dokument og ingen samlet sum af
+  kapitalbeløbene. Folkepensionsalderen slås op på kapitaliseringstidspunktet, så to bokse kan vise forskellig alder.
+- **Differencekravet** lægger sagens forhold på beregningsdatoen til grund. Det medregner kun afgørelser med virkning
+  og kapitaliseringer på eller før beregningsdatoen, og dets bilag viser kun dem (uden kapitaliseringer:
+  «Ingen kapitalisering på eller før beregningsdatoen»). Løbende ydelser regnes til og med dagen før beregningsdatoen,
+  hvor resten proformakapitaliseres.
 
-Ændringer i EET-issue-typer skal altid revurdere EO-konsekvensen, fordi EO bevidst propagerer EET-issues ukritisk, når importen er aktiv.
+Bilagene i differencekravdokumentet kan derfor vise andre tal end nabofanernes egne dokumenter. Forskellen er
+tilsigtet og forklares ikke for brugeren. Mekanikken står i `docs/domain/eet/differencekrav.md`.
 
-Importporten bruger samme canonical løbende-ydelser-kerne som `EetSnapshot`, men en særskilt
-eksplicit `eo_import`-context, fordi TAF-slutdatoen er importens afgrænsning. Præmissen er, at løbende EET
-fortsætter til dagen før folkepensionsdatoen, medmindre en afgørelse kapitaliseres eller afløses; derfor
-læser importen ikke EET-sidens beregningsdato, som kun er opgørelsesdato for sidens egne beregninger og
-fortsat er påkrævet dér (`eo-snapshot-contract.md` §13). Contexten skal indeholde de canonical grupper og issues, som EO behøver, samt
-tilstrækkelig identitet/revision til deterministisk cache-invalidering. Pengefelter forbliver
-`MoneyOre` gennem porten. Kun EO-adapteren, der bygger `AmountValue`, må konvertere til kroner.
+---
 
-Manglende eller schema-ugyldig import-context er en anden tilstand end et gyldigt snapshot
-uden relevante afgørelser og skal give en blokerende issue.
+## 4.4 Tekster på fladen og i dokumenterne
+
+- Rækken hedder «Køn» på Erhvervsevnetab. Kun Forsørgertab skriver «Skadelidtes køn», fordi kun den flade blander
+  skadelidtes og efterladtes forhold.
+- «Bemærk»-boksen på EET oplysninger (fleksjob, tidligere tjenestemænd, den grønlandske arbejdsskadesikringslov) er en
+  juridisk påmindelse til brugeren. Den bliver på fladen og trykkes ikke i dokumenterne.
+- En afgørelses overskrift bærer altid EET-procenten, fx «Afgørelse 1. juni 2023 (40 %)». Kun hvor to overskrifter
+  ellers ville være ens, tilføjes « – virkning fra dd-mm-åååå» (`formatAfgoerelseVirkningsTillaeg`).
+- «Mdr.» vises med fem decimaler på skærm og i dokument (`formatDocumentMaanederFixed`).
+- En løbende ydelse, der afgrænses af beregningsdatoen, er «opgjort til og med»; ved en ægte ophørsårsag «ophører».
+- Kolonnen hedder «Grundydelse pr. år», fordi beløbet er et årsbeløb.
+- Toårsreglen skrives «≤ 2 år» overalt, fx «Særfaktor pga. ≤ 2 år til folkepension?». PDF'en normaliserer tegnet
+  til «<=».
+
+---
+
+## 5. EO-import
+
+EO's midlertidigt-EET-import bruger kun EET-domænets typed, Zod-validerede importport (`eetImportPort.ts`) gennem den
+snævre undtagelse i `domain-boundary-contract.md`. Hvordan EO aftager importen – togglen, den transiente injection,
+importens afgrænsning af TAF-slutdatoen og de EET-issues, EO viser – står i `eo-snapshot-contract.md` §13.
+
+For porten gælder:
+
+- Importrelevante grupper må kun være `Midlertidig` eller `Delvist endelig`. Ukendte eller kontraktstridige
+  afgørelsestyper i importrelevant output fail-closer; de må ikke tavst droppes som irrelevante.
+- Porten bruger samme canonical løbende-ydelser-kerne som `EetSnapshot`, men en særskilt, eksplicit
+  `eo_import`-context med TAF-slutdatoen som opgørelsesdato. EET-sidens beregningsdato læses ikke af importen og
+  forbliver påkrævet for sidens egne beregninger.
+- Contexten indeholder de canonical grupper og issues, EO behøver, samt tilstrækkelig identitet/revision til
+  deterministisk cache-invalidering. Pengefelter forbliver `MoneyOre` gennem porten; kun EO-adapteren, der bygger
+  `AmountValue`, konverterer til kroner.
+- Manglende eller schema-ugyldig import-context er en anden tilstand end et gyldigt snapshot uden relevante
+  afgørelser og giver et blokerende issue.
+
+EO viser EET-issues ukritisk, når importen er aktiv; en ændring i EET-issue-typerne skal derfor revurderes mod
+`eo-snapshot-contract.md` §13.
 
 ---
 
@@ -234,14 +294,22 @@ Tests skal dække:
 
 1. snapshot bygges fra en ready, `EvaluationSourceToken`-bundet inputprojektion uden raw-section-bypass,
 2. runtime exception giver blokerende tom projektion,
-3. schemafejl og manglende source giver en eksplicit blokerende issue,
+3. schemafejl og manglende source giver et eksplicit blokerende issue,
 4. de fire projektioners blocking-status og sammenhængen mellem blocking-flag og issues,
 5. `differencekrav` bruger eksplicit komponerede underberegninger,
 6. alle offentlige pengebeløb er `MoneyOre` efter uændret domæneafrunding,
 7. row-level issues er mount-uafhængige og indgår i relevante dokumentdefinitioner,
-8. importportens schema, revision og øre→krone-grænse.
-9. løbende-ydelses-kernens afløsningsregler: samme afgørelsesdato med forskellige virkningsdatoer, senere tilbagevirkende afgørelser med hver FS-variant, kapitalisering efter en sådan afløsningsgruppe samt den ikke-blokerende typeadvarsel.
-10. forligsgradens to grundlag (§4.1): at fane 4 reducerer EAL-kravet, at differencekravet reducerer beløbet efter alle fire fradrag, at differencekravets egen `ealComputation` aldrig bærer en forligsblok, og at et ugyldigt forlig blokerer præcis de to forligs-consumere.
-11. bilagsvalgenes tilgængelighed (§4.2): at et bilag uden indhold er inaktivt MED en årsag, at dokumentkilden slår det fra, og at opgørelsen er låst til i både visning og kilde.
+8. importportens schema, revision og øre→krone-grænse,
+9. løbende-ydelses-kernens afløsningsregler: samme afgørelsesdato med forskellige virkningsdatoer, senere
+   tilbagevirkende afgørelser med hver FS-variant, kapitalisering efter en sådan afløsningsgruppe samt den
+   ikke-blokerende typeadvarsel,
+10. forligsgradens to grundlag (§4.1): at fane 4 reducerer EAL-kravet, at differencekravet reducerer beløbet efter
+    alle fire fradrag, at differencekravets egen `ealComputation` aldrig bærer en forligsblok, og at et ugyldigt
+    forlig blokerer præcis de to forligs-consumere,
+11. bilagsvalgenes tilgængelighed (§4.2): at et bilag uden indhold er inaktivt MED en årsag, at dokumentkilden slår
+    det fra, og at opgørelsen er låst til i både visning og kilde.
 
-EO-import-konsekvensen (`Midlertidig`/`Delvist endelig` importeres, `Endelig` ignoreres, schema-/kontraktstridigt output fail-closer) testdækkes på EO-importens test-flade, ikke EET-snapshottets: se `src/__tests__/domain/erstatningsopgoerelse/midlertidigtEetTransientInjection.test.ts` og `midlertidigtEetInsertRows.test.ts`.
+EO-import-konsekvensen (`Midlertidig`/`Delvist endelig` importeres, `Endelig` ignoreres, schema-/kontraktstridigt
+output fail-closer) testdækkes på EO-importens test-flade, ikke EET-snapshottets: se
+`src/__tests__/domain/erstatningsopgoerelse/midlertidigtEetTransientInjection.test.ts` og
+`midlertidigtEetInsertRows.test.ts`.

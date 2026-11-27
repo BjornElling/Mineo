@@ -90,7 +90,7 @@ const makeValues = (patch: Partial<ErstatningsopgoerelseValues>): Erstatningsopg
       merged.eoAngivetLoenLoenudvikling = {
         ...merged.eoAngivetLoenLoenudvikling,
         overenskomstId: merged.eoAngivetLoenLoenudvikling.overenskomstId ?? first.overenskomstId,
-        feriePct: merged.eoAngivetLoenLoenudvikling.feriePct ?? first.feriePct,
+        // `feriePct` spejles ikke: angivet løn har intet feriesatsfelt, og motoren læser det ikke.
         loenPaaHelligdage: merged.eoAngivetLoenLoenudvikling.loenPaaHelligdage ?? first.loenPaaHelligdage,
         // Store Bededag-togglen er required-with-default (`false`), så et `??` ville aldrig nå
         // ansættelsesforholdet. Fixturerne udtrykker valget DER, og broen spejler det, så «Angivet løn»
@@ -2944,12 +2944,16 @@ describe('eoPdfModel', () => {
           loenudviklingBeregningsgrundlag: 'Overenskomst',
           // Maskinhandler-overenskomsten har historiske satser før 2024 og Store Bededag fra 01-01-2024.
           overenskomstId: 'maskinhandler-overenskomsten',
-          feriePct: 12.5,
           loenPaaHelligdage: loenPaaHelligdageEnum.enum['Almindelig løn'],
         },
       ],
     });
     const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2020-01-01') });
+    // Angivet løn har ingen feriesats; pakke = grundløn × (1 + fritvalg + SB) × (1 + pension), og «Almindelig løn»
+    // trækker 5 pp fra fritvalg (shDageAlmindeligLoenRegel).
+    //   Reguleringsdato (sats 01-03-2019): 117,95 × 1,095 × 1,085 = 140,13344625
+    //   01-12-2023 (sats 01-06-2023):       131,65 × 1,125 × 1,105 = 163,65740625 → +16,79 %
+    //   01-01-2024 (+ 0,45 % Store Bededag): 131,65 × 1,1295 × 1,105 = 164,31203588 → +17,25 %
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') });
     const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
 
@@ -2958,10 +2962,10 @@ describe('eoPdfModel', () => {
     const segmentsBeforeStore = segments.filter((segment) => segment.fra < toISODateString('2024-01-01'));
 
     expect(beforeStore).toBeDefined();
-    expect(beforeStore?.deltaPct).toBeCloseTo(16.47, 2);
-    expect(segmentsBeforeStore.every((segment) => Math.abs(segment.deltaPct - 16.47) < 0.005)).toBe(true);
+    expect(beforeStore?.deltaPct).toBeCloseTo(16.79, 2);
+    expect(segmentsBeforeStore.every((segment) => Math.abs(segment.deltaPct - 16.79) < 0.005)).toBe(true);
     expect(storeSegment).toBeDefined();
-    expect(storeSegment?.deltaPct).toBeCloseTo(16.89, 2);
+    expect(storeSegment?.deltaPct).toBeCloseTo(17.25, 2);
   });
 
   it('indregner indtastede pct-satser som basis ved privat overenskomst uden sats på reguleringsdatoen', () => {
@@ -3079,13 +3083,12 @@ describe('eoPdfModel', () => {
           loenudviklingManuelNavn: 'Manuelt angivet',
           saerligFraDatoRegulering: iso('2023-12-31'),
           loenPaaHelligdage: loenPaaHelligdageEnum.enum['Almindelig løn'],
-          feriePct: 16.95,
           loenudviklingManuelTableData: [
             {
               id: 'm1',
               dato: undefined,
               grundloen: asAmountValue(177.56),
-              feriepenge: undefined,
+              feriepenge: 16.95,
               shSoSats: undefined,
               fritvalg: undefined,
               agPension: 14.37,
@@ -3094,7 +3097,7 @@ describe('eoPdfModel', () => {
               id: 'm2',
               dato: toISODateString('2024-04-01'),
               grundloen: asAmountValue(184.66),
-              feriepenge: undefined,
+              feriepenge: 16.95,
               shSoSats: undefined,
               fritvalg: undefined,
               agPension: 14.37,
@@ -3103,7 +3106,7 @@ describe('eoPdfModel', () => {
               id: 'm3',
               dato: toISODateString('2024-10-01'),
               grundloen: asAmountValue(187.06),
-              feriepenge: undefined,
+              feriepenge: 16.95,
               shSoSats: undefined,
               fritvalg: undefined,
               agPension: 14.37,
@@ -3117,6 +3120,8 @@ describe('eoPdfModel', () => {
     const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
 
     expect(segments[0]?.fra).toBe(toISODateString('2024-01-26'));
+    // Feriesatsen står i rækkernes feriepenge-celle, hvor brugeren sætter den. Pension og grundløn er uændrede
+    // frem til 01-04-2024, så første segment rummer kun Store Bededag: 1,1740 / 1,1695 − 1 = +0,38 %.
     expect(segments[0]?.deltaPct).toBeCloseTo(0.38, 2);
   });
 

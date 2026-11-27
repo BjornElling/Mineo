@@ -111,6 +111,9 @@ Store Bededag er helligdag til og med 2023 og almindelig arbejdsdag fra 1. janua
 dermed kompenseret gennem antallet af arbejdsdage; hvem der i stedet har krav på Store Bededagstillægget, står i
 `src/contracts/indskudte-loentillaeg-contract.md` §2b.
 
+Særligt ferietillæg er 0,96 % og fra 1. maj 2024 1,48 %. Det indgår ikke i programmet
+(`indskudte-loentillaeg-contract.md` §6).
+
 ### Netto-TAF-beregningen
 
 ```

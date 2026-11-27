@@ -4,7 +4,7 @@
 **Type:** Tværgående kontrakt
 **Prioritet:** Sideordnet de øvrige tværgående kontrakter. Begrænser enhver domænekontrakt, der producerer
 brugervendt tekst om ferieydelser – herunder `aarsloen-contract.md` og erstatningsopgørelsens kontrakter.
-**Senest verificeret mod kode:** 2026-11-04 (§2d: satsen afgør ydelsen; §2b–2c: grænser og både-og)
+**Senest verificeret mod kode:** 2026-11-27
 
 ---
 
@@ -27,7 +27,7 @@ de valideringsregler, der holder satsen og «Fuld løn under ferie» i overensst
 
 ## 2. Normative regler
 
-Udviklerbeslutning 2026-08-26.
+Udviklerens afgørelse:
 
 1. **En lønmodtagers løn tillægges enten a) feriegodtgørelse eller b) ferietillæg. Aldrig begge.**
 2. **Hvad der udløser hvad:** Får lønmodtageren løn under ferie, får vedkommende **ferietillæg**. Ellers
@@ -55,7 +55,7 @@ rummer satser af begge slags, bruges feltets generiske navn.
 
 Ordene **«feriepengesats»** og **«feriegodtgørelsessats»** må ikke bruges om dette felts sats.
 
-### 2b. Krav og grænser på erstatningsopgørelsens satsfelt (udviklerbeslutning 2026-10-06, 2026-11-04)
+### 2b. Krav og grænser på erstatningsopgørelsens satsfelt
 
 Gælder «Feriegodtgørelse/-tillæg» på et ansættelsesforhold under Lønindkomst og samme sats i den manuelle
 lønudviklingstabel («Manuelt angivet»), som er satsen fra en senere dato
@@ -63,7 +63,7 @@ lønudviklingstabel («Manuelt angivet»), som er satsen fra en senere dato
 
 1. **Påkrævet, når kortet har lønoplysninger i procent-tilstand** – uanset beregningsmåde og reguleringsform.
    Lønrækkernes tillæg, fradraget for indtægt efter skaden og beregningsgrundlaget læser feltet i alle former,
-   og efter regel 1 får en lønmodtager altid en af de to ydelser (BB-274).
+   og efter regel 1 får en lønmodtager altid en af de to ydelser.
 2. **Et tomt felt er en manglende indtastning**: ingen rød ring (brugeren har ikke skrevet noget), men en
    blokerende linje i «Fejl og advarsler» – «Feriegodtgørelse/-tillæg er ikke udfyldt».
 3. **Tvungen både-og.** Erstatningsopgørelsen opgør TAF med satsen som feriegodtgørelse også ved løn under ferie
@@ -73,12 +73,12 @@ lønudviklingstabel («Manuelt angivet»), som er satsen fra en senere dato
    - har brugeren svaret **Nej** til «Fuld løn under ferie», siger satsen og svaret hinanden imod, og det er en
      **rød, blokerende** feltfejl.
 4. **Over 20 %** giver en gul, ikke-blokerende ring og linje: «Feriegodtgørelse over 20 % er usædvanligt –
-   kontrollér satsen» (BB-286).
+   kontrollér satsen».
 5. **Over 25 %** er feltets egen røde grænse: «Feriegodtgørelse kan ikke overstige 25 %».
 6. I beløb-tilstand er procentfeltet skjult og hverken påkrævet eller markeret. Den manuelle tabels basisrække er da
    brugerens egen indtastning og vurderes; i procent-tilstand er den en låst kopi af ansættelsesforholdets felt.
 
-### 2c. Ét krav for begge lønflader (udviklerbeslutning 2026-10-30, M-37; 2026-11-04)
+### 2c. Ét krav for begge lønflader
 
 Om satsen er påkrævet, afgøres ÉT sted for både Årsløn og erstatningsopgørelsens ansættelsesforhold:
 `erFeriePctPaakraevet` i `src/domain/loen/feriePctKrav.ts`. De to flader skal følges ad, så en ændret forudsætning ændres
@@ -100,7 +100,7 @@ derover) sammen med «Fuld løn under ferie» = Ja en **rød, blokerende** feltf
 bliver årslønnen ca. 11,5 % for høj. Et ferietillæg uden fuld løn under ferie er fortsat en advarselslinje. Grænserne
 over 20 % (gul) og over 25 % (rød) er de samme som i §2b.
 
-### 2d. Satsen afgør ydelsen (udviklerbeslutning 2026-11-04)
+### 2d. Satsen afgør ydelsen
 
 Én skillelinje i hele programmet (`src/domain/loen/feriePctYdelse.ts`, `FERIEGODTGOERELSE_MIN_PCT`):
 
@@ -115,9 +115,10 @@ over 20 % (gul) og over 25 % (rød) er de samme som i §2b.
 
 ## 3. Autoritative kilder
 
-- **Feltnavnet** ejes af descriptor-katalogerne, som begge flader binder sig til:
-  `src/inputCore/catalog/aarsloenDescriptors.ts` og
-  `src/inputCore/catalog/erstatningsopgoerelseLoenDescriptors.ts`.
+- **Feltnavnet, skillelinjen og grænserne** ejes af `src/domain/loen/feriePctYdelse.ts` (`FERIE_SATS_FELTNAVN`,
+  `FERIEGODTGOERELSE_MIN_PCT`, `FERIE_PCT_MAKS`), som begge descriptor-kataloger binder sig til:
+  `src/inputCore/catalog/aarsloenDescriptors.ts` og `src/inputCore/catalog/erstatningsopgoerelseLoenDescriptors.ts`.
+- **Kravet om udfyldelse** ejes af `erFeriePctPaakraevet` i `src/domain/loen/feriePctKrav.ts` (§2c).
 - **Årsløns advarselstekster** dannes ét sted: `beregnFejlmeddelelser` i
   `src/domain/aarsloen/aarsloenValidationPolicies.ts`. Sidekomponenterne renderer dem og formulerer dem
   ikke – en tekst, der er hardkodet i en komponent, står uden om både den kanoniske
@@ -152,5 +153,4 @@ SFGG-motorerne bruger «feriepengesats» om den **lovbestemte** sats på 12,5 %,
 hvad brugeren har indtastet for lønindkomsten. Her er ordet korrekt efter regel 4: teksten omtaler den
 generelle ret og ikke ét felts indtastede sats.
 
-*Risiko:* lav – ordet står i domænedokumentation og kodekommentarer, ikke i feltnær brugertekst.
-*Re-evaluering:* hvis en SFGG-tekst en dag skal navngive et felts sats, gælder regel 4's hovedregel.
+Skal en SFGG-tekst navngive et felts indtastede sats, gælder regel 4's hovedregel.

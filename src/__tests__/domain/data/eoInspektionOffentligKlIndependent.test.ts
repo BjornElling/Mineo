@@ -41,7 +41,13 @@ describe('KL-løn som EO-inspektion-consumer', () => {
     eoValues.beregnesUdFra = 'Angivet månedsløn';
     eoValues.maanedsloenenUdgoer = { kind: 'number', value: 30000 };
     eoValues.angivetMaanedsloenOpreguleresFraDato = eoValues.tafBeregningsperiodeTil;
-    eoValues.eoAngivetLoenLoenudvikling = { ...eoValues.eoAngivetLoenLoenudvikling, ...eoValues.loenindkomstAnsaettelsesforhold[0] };
+    // Angivet løn har intet feriesatsfelt, så ansættelsesforholdets 12,5 % følger ikke med: kilden regner uden
+    // feriesats, ligesom brugeren ser det.
+    eoValues.eoAngivetLoenLoenudvikling = {
+      ...eoValues.eoAngivetLoenLoenudvikling,
+      ...eoValues.loenindkomstAnsaettelsesforhold[0],
+      feriePct: undefined,
+    };
     const loenudvikling = buildLoenudviklingModel(eoValues, stamdataValues, 'Måneder', null, {
       tafRanges: [{ fra: eoValues.vedroererPeriodeFra!, til: eoValues.vedroererPeriodeTil! }],
     });
@@ -55,21 +61,21 @@ describe('KL-løn som EO-inspektion-consumer', () => {
     if (!employment || !entry) return;
 
     // Håndfacit fra KL-tabellen pr. 01-04-2024, trin 20, gruppe 0:
-    // 164,51 kr./time × (1 + 12,5 % feriepenge + 0,45 % Store Bededag)
-    // = 185,814045 kr. Der er ingen KL-tillægssats i den separate tillægstabel.
+    // 164,51 kr./time × (1 + 0,45 % Store Bededag) = 165,250295 kr. Angivet løn bærer ingen feriesats, og der er
+    // ingen KL-tillægssats i den separate tillægstabel.
     expect(employment.referenceIso).toBe(iso('2024-04-02'));
-    expect(employment.referenceValue).toBeCloseTo(185.814045, 10);
+    expect(employment.referenceValue).toBeCloseTo(165.250295, 10);
     expect(employment.entries).toHaveLength(1);
     expect(entry).toMatchObject({
       effectiveFrom: iso('2024-04-02'),
       grundloen: 164.51,
-      feriePct: 0.125,
+      feriePct: 0,
       shSoPct: 0,
       fritvalgPct: 0,
       pensionPct: 0,
       index: 100,
     });
     expect(entry.storeBededagPct).toBeCloseTo(0.0045, 10);
-    expect(entry.packageValue).toBeCloseTo(185.814045, 10);
+    expect(entry.packageValue).toBeCloseTo(165.250295, 10);
   });
 });

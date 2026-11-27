@@ -237,7 +237,9 @@ export type ManualRegulationWarning = Readonly<{
  * En manuel lønudvikling har ingen kilde, der udløber – den gælder, til brugeren ændrer den. Programmet regner
  * lønnen uændret efter sidste række. Har tabellen ikke været ændret i over et år (plus Indstillingernes
  * tolerance) ved TAF-periodens slutning, gør advarslen opmærksom på det. Det er bevidst en advarsel og ikke en
- * spærring: der er ingen manglende reguleringsværdi, kun en tabel, der måske er glemt.
+ * spærring: der er ingen manglende reguleringsværdi, kun en tabel, der måske er glemt. Det gælder også en tabel med
+ * basisrækken alene: «Manuelt angivet» uden ændringer er brugerens vej til Store Bededagstillæg på uændret løn
+ * (`eo-snapshot-contract.md` §15), så den må ikke gøres til en rød fejl.
  */
 const resolveUdloebWarning = (
   table: ActiveManualRegulationTable,

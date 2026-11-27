@@ -1,7 +1,11 @@
 import type { ISODateString } from '../../types/branded';
 import type { Beregningsmetode } from '../../schemas/formSchemas/enumSchemas';
 import { LOEN_PAA_HELLIGDAGE } from '../../types/loen';
-import { STORE_BEDEDAG_PCT, STORE_BEDEDAG_START } from '../../data/indskudteLoentillaeg';
+import {
+  STORE_BEDEDAG_SATSTRAPPE,
+  STORE_BEDEDAG_START,
+  resolveIndskudtLoentillaegPct,
+} from '../../data/indskudteLoentillaeg';
 
 /** Det fælles, persisted valg som alene kan aktivere Store Bededagstillægget. */
 export type StoreBededagstillaegValg = Readonly<{
@@ -10,16 +14,16 @@ export type StoreBededagstillaegValg = Readonly<{
 }>;
 
 /**
- * Load-migreringens værdi for en ældre fil UDEN togglen: hidtil beregnedes tillægget netop ved almindelig løn på
- * helligdage, så det er den kompatibilitetsbevarende værdi. Et NYT kort får altid `true`
+ * Load-migreringens værdi for en ældre fil UDEN togglen: sådanne filer beregnede tillægget netop ved almindelig løn
+ * på helligdage, så det er den kompatibilitetsbevarende værdi. Et NYT kort får altid `true`
  * (`createDefaultLoenindkomstAnsaettelsesforhold`).
  */
 export const resolveDefaultStoreBededagstillaeg = (loenPaaHelligdage: string | undefined): boolean =>
   loenPaaHelligdage === LOEN_PAA_HELLIGDAGE.ALMINDELIG;
 
 /**
- * "Løn på helligdage" er en forudsætning for at vise valget, men er ikke længere en beregningsregel.
- * Den særskilte toggle er nødvendig, så hverken skjult input eller en gammel automatisk antagelse kan
+ * "Løn på helligdage" er en forudsætning for at vise valget, men ikke en beregningsregel.
+ * Den særskilte toggle er nødvendig, så hverken skjult input eller en automatisk antagelse kan
  * føre tillægget ind i beregninger, kontrol eller dokumenter.
  */
 export const harValgtStoreBededagstillaeg = (valg: StoreBededagstillaegValg): boolean =>
@@ -29,8 +33,8 @@ export const harValgtStoreBededagstillaeg = (valg: StoreBededagstillaegValg): bo
 export const resolveStoreBededagstillaegPct = (
   iso: ISODateString | undefined,
   valg: StoreBededagstillaegValg
-): number => harValgtStoreBededagstillaeg(valg) && iso !== undefined && iso >= STORE_BEDEDAG_START
-  ? STORE_BEDEDAG_PCT
+): number => harValgtStoreBededagstillaeg(valg) && iso !== undefined
+  ? resolveIndskudtLoentillaegPct(STORE_BEDEDAG_SATSTRAPPE, iso)
   : 0;
 
 /** Om periodiseringen skal indsætte 1. januar 2024 som særskilt Store Bededag-grænse. */
@@ -57,7 +61,7 @@ export const kanDerVaereKravPaaStoreBededagstillaeg = (
 ): boolean =>
   beregnesUdFra !== 'Angivet dagsløn' && loenPaaHelligdage === LOEN_PAA_HELLIGDAGE.ALMINDELIG;
 
-/** Knappen læses kun, når valget faktisk kan påvirke løngrundlaget eller reguleringen (log 9b). */
+/** Knappen læses kun, når valget faktisk kan påvirke løngrundlaget eller reguleringen. */
 export const erStoreBededagstillaegRelevant = (valg: Readonly<{
   beregnesUdFra: Beregningsmetode | undefined;
   loenPaaHelligdage: string | undefined;

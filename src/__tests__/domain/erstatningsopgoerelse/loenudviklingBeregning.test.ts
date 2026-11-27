@@ -1295,7 +1295,9 @@ describe('buildLoenudviklingModel – Manuelt angivet i Beløb-tilstand (tillæg
   ] as const)(
     'giver samme regulerede TAF-beløb som Bygge-/anlægsoverenskomsten når manuel regulering udfyldes med samme satser ved %s i %s-tilstand',
     (beregnesUdFra, tillaegAngivesSom) => {
-      const stableFeriePct = 12.5;
+      // Begge sider skal regne med samme feriesats. Under angivet løn har «Overenskomst» intet feriesatsfelt (0 %),
+      // så de manuelle rækker udfyldes med 0 % dér; ved Beregningsperiode bærer ansættelsesforholdet 12,5 %.
+      const stableFeriePct = beregnesUdFra === 'Angivet månedsløn' ? 0 : 12.5;
       const overenskomstValues = buildByggeAnlaegParityValues(
         tillaegAngivesSom,
         'Overenskomst',
@@ -1462,7 +1464,6 @@ const buildByggeAnlaegParityValues = (
     values.eoAngivetLoenLoenudvikling = {
       ...values.eoAngivetLoenLoenudvikling,
       overenskomstId: 'bygge-anlaeg',
-      feriePct: stableFeriePct,
       loenPaaHelligdage: 'Almindelig løn',
       loenudviklingBeregningsgrundlag: basis,
       loenudviklingManuelTableData: manualRows,

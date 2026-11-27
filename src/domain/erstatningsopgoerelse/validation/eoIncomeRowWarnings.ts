@@ -3,6 +3,7 @@ import { coerceToISODateString, dateToISO, isoToDanish, parseISODate, type ISODa
 import { findAmountOutliers } from '../../../utils/tableAmountOutlierDetection';
 import { countInclusiveUtcDays } from '../../../utils/utcDayMath';
 import type { IsoRange } from '../../../utils/isoDateHelpers';
+import { rangesOverlap } from '../../../utils/closedDateRange';
 import { parseAarsloenRowInterval } from '../../aarsloen/aarsloenRowInterval';
 import { buildBeregningsperiodeRange, buildTafRanges } from '../helpers/indtaegtPerioder';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
@@ -54,7 +55,7 @@ type Ansaettelsesforhold = ErstatningsopgoerelseValues['loenindkomstAnsaettelses
 const buildIndtaegtsperiodeGruppe = (values: ErstatningsopgoerelseValues) => {
   const beregningsperiode = values.beregnesUdFra === 'Beregningsperiode' ? buildBeregningsperiodeRange(values) : undefined;
   const tafRanges = buildTafRanges(values);
-  const overlaps = (fra: ISODateString, til: ISODateString, range: IsoRange): boolean => fra <= range.til && range.fra <= til;
+  const overlaps = (fra: ISODateString, til: ISODateString, range: IsoRange): boolean => rangesOverlap({ fra, til }, range);
   return (fra: ISODateString | undefined, til: ISODateString | undefined): string => {
     if (fra === undefined || til === undefined) return 'ingen';
     if (beregningsperiode !== undefined && overlaps(fra, til, beregningsperiode)) return 'beregningsperiode';

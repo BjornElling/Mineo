@@ -9,6 +9,8 @@ import {
   getAngivetLoenOpreguleresFraDato,
   resolveLoenudviklingKilde,
 } from '../../../domain/erstatningsopgoerelse/helpers/angivetLoenHelpers';
+import { buildLoenudviklingModel } from '../../../domain/erstatningsopgoerelse/engines/loenudviklingBeregning';
+import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { erstatningsopgoerelseSchema } from '../../../schemas/formSchemas';
 import { LOEN_PAA_HELLIGDAGE } from '../../../types/loen';
 import { toISODateString } from '../../../types/branded';
@@ -89,6 +91,39 @@ describe('resolveLoenudviklingKilde', () => {
     const result = resolveLoenudviklingKilde(values);
     expect(result).toHaveLength(1);
     expect(result[0].loenPaaHelligdage).toBe(LOEN_PAA_HELLIGDAGE.ALMINDELIG);
+  });
+
+  // Angivet løn har intet feriesatsfelt; en persisteret `feriePct` (fælles shape med ansættelsesforholdet) må
+  // derfor aldrig indgå usynligt – hverken som pakke-feriesats eller som reserve for en tom basiscelle.
+  it('lader en skjult feriePct på angivet løn være ude af motoren, så en tom basiscelle regnes som 0 %', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Angivet månedsløn';
+    values.maanedsloenenUdgoer = { kind: 'number', value: 30000 };
+    values.angivetMaanedsloenOpreguleresFraDato = toISODateString('2022-12-31');
+    values.eoAngivetLoenLoenudvikling = {
+      ...values.eoAngivetLoenLoenudvikling,
+      feriePct: 12.5,
+      loenPaaHelligdage: LOEN_PAA_HELLIGDAGE.INGEN,
+      loenudviklingBeregningsgrundlag: 'Manuelt angivet',
+      loenudviklingManuelTableData: [
+        { id: 'basis', dato: undefined, grundloen: { kind: 'number', value: 1000 }, feriepenge: undefined },
+        { id: 'r1', dato: toISODateString('2023-06-01'), grundloen: { kind: 'number', value: 1000 }, feriepenge: 12.5 },
+      ],
+    };
+
+    expect(resolveLoenudviklingKilde(values)[0]?.feriePct).toBeUndefined();
+
+    const model = buildLoenudviklingModel(
+      values,
+      { ...STAMDATA_INITIAL_VALUES, skadedato: toISODateString('2023-01-01') },
+      'Måneder',
+      null,
+      { tafRanges: [{ fra: toISODateString('2023-01-01'), til: toISODateString('2023-12-31') }] }
+    );
+    // Basis 1000 × (1 + 0 %) = 1000; fra 01-06-2023 1000 × (1 + 12,5 %) = 1125 → +12,5 %. Læste motoren den
+    // skjulte 12,5 % som reserve for basiscellen, ville begge pakker være 1125 og deltaet 0.
+    const segment = model.beregnedeSegmenter.find((s) => s.fra === toISODateString('2023-06-01'));
+    expect(segment?.deltaPct).toBeCloseTo(12.5, 10);
   });
 
   it('kaster LoenudviklingKildeError med korrekt code ved ukendt beregnesUdFra', () => {
