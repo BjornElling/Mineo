@@ -8,7 +8,6 @@ import type { EoSnapshot, EoSnapshotComputedData } from '../../../domain/erstatn
 import type { EoModel } from '../../../domain/erstatningsopgoerelse/shared/eoTypes';
 import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import { createDefaultLoenindkomstAnsaettelsesforhold } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
-import { buildControlMismatchInvariant } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotInvariants';
 import { toISODateString } from '../../../types/branded';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 
@@ -150,7 +149,6 @@ const buildSnapshot = (): EoSnapshot => {
     status: 'ok',
     invariants: [],
     data,
-    inspektionSnapshot: null,
     input: {
       stamdata: { skadedato: iso('2024-01-01') } as EoSnapshot['input']['stamdata'],
       erstatningsopgoerelse: {
@@ -190,6 +188,16 @@ const buildLongSnapshot = (): EoSnapshot => {
   };
 };
 
+const testOutputInvariant = {
+  id: 'system:test',
+  passed: false,
+  severity: 'error',
+  source: 'system',
+  message: 'Testfejl i EO-beregningen.',
+  blocksAuthoritativeComputation: false,
+  blocksOutputs: ['eo_pdf', 'taf_per_year_pdf'],
+} as const;
+
 describe('eoSnapshotToTafKravGrafDocument', () => {
   it('blokerer ved manglende snapshot-data', () => {
     const snapshot = buildSnapshot();
@@ -206,7 +214,7 @@ describe('eoSnapshotToTafKravGrafDocument', () => {
   });
 
   it('blokerer ved en output-blokerende invariant', () => {
-    const invariant = buildControlMismatchInvariant(['TAF']);
+    const invariant = testOutputInvariant;
     const projection = projectFixture({
       ...buildSnapshot(),
       status: 'error',

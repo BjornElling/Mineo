@@ -12,8 +12,7 @@ export type PageTabItem<T extends string> = {
 export type PageTabsProps<T extends string> = {
   readonly items: readonly PageTabItem<T>[];
   /**
-   * Aktiv fane. `false` markerer ingen fane (fx når en side-fane er aktiv i
-   * stedet, jf. Erstatningsopgørelses kontrolfaner).
+   * Aktiv fane. `false` markerer ingen fane.
    */
   readonly value: T | false;
   readonly onChange: (value: T) => void;

@@ -125,25 +125,13 @@ describe('parseStoredSettings', () => {
     expect(result.brevhovedIndstillinger.aarsloensberegning).toBe(DEFAULT_APP_SETTINGS.brevhovedIndstillinger.aarsloensberegning);
   });
 
-  it('merger ny root-startside-setting med default ved schema-evolution', () => {
+  it('ignorerer begge gamle kontrolfaneindstillinger og bevarer øvrige præferencer', () => {
     const result = parseStoredSettings({
       showEOInspektionMenu: true,
+      showEODebugMenu: true,
+      themeMode: 'dark',
     });
-
-    expect(result.showEOInspektionMenu).toBe(true);
-    expect(result.defaultStartsideErStamdata).toBe(false);
-  });
-
-  it('migrerer gammel showEODebugMenu-nøgle til showEOInspektionMenu og bevarer værdien', () => {
-    // Sproglig oprydning: nøglen blev omdøbt. En tidligere gemt localStorage-blob med den gamle
-    // nøgle skal bevare brugerens valg, ikke tabe det til default via .strict()-strip.
-    const result = parseStoredSettings({ showEODebugMenu: true });
-    expect(result.showEOInspektionMenu).toBe(true);
-  });
-
-  it('bruger ny nøgle frem for gammel showEODebugMenu, hvis begge findes', () => {
-    const result = parseStoredSettings({ showEODebugMenu: false, showEOInspektionMenu: true });
-    expect(result.showEOInspektionMenu).toBe(true);
+    expect(result).toEqual({ ...DEFAULT_APP_SETTINGS, themeMode: 'dark' });
   });
 
   it('gamle gemte settings uden regulerings-felterne loader med defaults (bagudkompatibel injicering)', () => {
@@ -184,10 +172,10 @@ describe('resolveAppSettings', () => {
 describe('mergeAppSettings', () => {
   it('merger partial patch uden localStorage-parsing-semantik', () => {
     const result = mergeAppSettings(DEFAULT_APP_SETTINGS, {
-      showEOInspektionMenu: true,
+      themeMode: 'dark',
     });
 
-    expect(result.showEOInspektionMenu).toBe(true);
+    expect(result.themeMode).toBe('dark');
     expect(result.defaultFuldLoenUnderFerie).toBe(DEFAULT_APP_SETTINGS.defaultFuldLoenUnderFerie);
   });
 

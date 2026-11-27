@@ -1,5 +1,5 @@
 /**
- * Navigation-mapping for EOInspektion rows til Beregning-fanen
+ * Navigationsmål for fejl og advarsler på Beregning
  *
  * Dette modul håndterer mapping fra række-id’er til navigation-targets (sider/faner/sektioner)
  * for at understøtte klikbare links i Beregning-fanen.

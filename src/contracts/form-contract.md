@@ -3,7 +3,7 @@
 **Version:** 1.0
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
-**Senest verificeret mod kode:** 2026-11-26
+**Senest verificeret mod kode:** 2026-11-27
 
 **Formål:** At fastlægge én ensartet model for input, redigering, validering og beregningsgrænser i Mineo.
 
@@ -472,7 +472,7 @@ forbudt, kun de otte felt-komponenter ovenfor.
 
 **`fieldErrors` er ikke et forbudt navn.** Der findes ingen central skrivbar feltfejl-bus (`src/types/fieldErrors`,
 `useFormFieldErrorReporter`, `onFieldError` og tabeltrackerne er slettet), men `fieldErrors` er et almindeligt
-feltnavn i domænesnapshots – fx `EetSnapshot.fieldErrors` og `EOInspektionSnapshot.fieldErrors`. AST-værnet
+feltnavn i domænesnapshots – fx `EetSnapshot.fieldErrors`. AST-værnet
 undtager derfor navnet bevidst.
 
 Den ENE dokumenterede undtagelse fra den autoritative inputtilstand er `components/inputs/transient/`: tre flader

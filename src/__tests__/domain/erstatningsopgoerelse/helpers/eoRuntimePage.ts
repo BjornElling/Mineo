@@ -2,7 +2,6 @@
 import { buildErstatningsopgoerelseReaderProjection } from '../../../../domain/erstatningsopgoerelse/erstatningsopgoerelseReaderProjection';
 import { selectBlockingLoenindkomstEntityIds } from '../../../../domain/erstatningsopgoerelse/eoInputIssues';
 import { eoSnapshotToBeregningView } from '../../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToBeregningView';
-import { eoSnapshotToInspektionView } from '../../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToInspektionView';
 import {
   erstatningsopgoerelseDocumentDefinition,
   tafFordeltPaaAarDocumentDefinition,
@@ -23,7 +22,7 @@ import {
   createSettingsRevision,
 } from '../../../../inputCore/evaluationSource';
 import { createInputEvaluation } from '../../../../inputCore/inputReader';
-import { DEFAULT_EO_ROW_POLICY, __createTestSourceSettings } from '../../../../settings/sourceSettings';
+import { __createTestSourceSettings } from '../../../../settings/sourceSettings';
 import { persistedErstatningsopgoerelseSchema, stamdataSchema } from '../../../../schemas/formSchemas';
 import type { GeneratedEoCase } from './eoRuntimeInputArbitrary';
 
@@ -36,7 +35,12 @@ vi.mock('../../../../utils/systemIssueReporter', () => ({
 import { buildMidlertidigtEetInsertSource } from '../../../../domain/erhvervsevnetab/eetImportPort';
 import type { ErhvervsevnetabValues, FaellesAarsloenValues } from '../../../../schemas/formSchemas';
 import { collectAllEoRows } from '../../../../domain/eoRowEvaluation/eoRowAggregator';
-import { collectSammentaellingControlMismatchMessages } from '../../../../domain/erstatningsopgoerelse/control/eoControlMismatch';
+import { renderEoDagsgrundlagCsv } from '../../../../domain/erstatningsopgoerelse/snapshot/eoDagsgrundlagCsv';
+import { dateRange_systemramme } from '../../../../config/dateRanges';
+import { fromKroner } from '../../../../domain/money/money';
+import { STANDARD_LOEN_SAMLET_LABEL } from '../../../../domain/aarsloen/standardLoenTableColumns';
+import { parseDanishNumberString } from '../../../../utils/numberParsing';
+import { isDeepStrictEqual } from 'node:util';
 
 export type EoRuntimeCase = GeneratedEoCase & Readonly<{
   erhvervsevnetab?: ErhvervsevnetabValues;
@@ -61,7 +65,10 @@ const evaluationFor = (generated: EoRuntimeCase) => {
   });
 };
 
-export const eoRuntimeStats = { status: {} as Record<string, number> };
+export const eoRuntimeStats = {
+  status: {} as Record<string, number>,
+  checks: { reordered: 0, outside: 0, csv: 0 },
+};
 
 export type Failure = Readonly<{ seed: number; stage: string; message: string }>;
 
@@ -69,9 +76,12 @@ const describeError = (error: unknown) => (error instanceof Error
   ? `${error.name}: ${error.message}\n${(error.stack ?? '').split('\n').slice(1, 5).join('\n')}`
   : String(error));
 
+const csvCells = (line: string) => line.split(/;(?=(?:[^"]*"[^"]*")*[^"]*$)/)
+  .map((cell) => cell.startsWith('"') ? cell.slice(1, -1).replaceAll('""', '"') : cell);
+
 /**
  * Kører hele den kæde, Erstatningsopgørelse-siden kører på en afsluttet revision: reader-projektion (inkl.
- * snapshot, feltissues og dependency-gating), Beregning- og EO-kontrol-visningerne og alle syv dokumenter, siden
+ * snapshot, feltissues og dependency-gating), Beregning-visningen og alle syv dokumenter, siden
  * kan downloade. Hver stage skal enten lykkes eller afvise kontrolleret; en exception, et `runtime_exception`-
  * snapshot eller en indberettet systemfejl er et fund.
  */
@@ -99,9 +109,72 @@ export const runEoPage = (generated: EoRuntimeCase): Failure[] => {
   }));
   if (projection !== undefined) {
     const { snapshot } = projection;
-    if (snapshot.inspektionSnapshot) {
-      for (const message of collectSammentaellingControlMismatchMessages(snapshot.inspektionSnapshot.sammentaellingRows)) {
-        failures.push({ seed: generated.seed, stage: 'sammentaelling', message });
+    const canonical = snapshot.data?.canonicalOutput;
+    if (canonical?.taf.harTafPerioder && (snapshot.status === 'ok' || snapshot.status === 'warning')) {
+      const values = generated.erstatningsopgoerelse;
+      const compare = (kind: 'reordered' | 'outside', variant: GeneratedEoCase['erstatningsopgoerelse']) => {
+        stage(kind, () => {
+          const variantEvaluation = evaluationFor({ ...generated, erstatningsopgoerelse: variant });
+          const variantSnapshot = buildErstatningsopgoerelseReaderProjection(variantEvaluation.reader, {
+            midlertidigtEetInsertSource: buildMidlertidigtEetInsertSource(variantEvaluation),
+          }).snapshot;
+          if (!isDeepStrictEqual(variantSnapshot.data?.canonicalOutput, canonical)) {
+            const details = variantSnapshot.invariants.map((invariant) => invariant.message).join(' | ');
+            throw new Error(`Den samme beregning gav et andet kanonisk resultat (${details})`);
+          }
+          eoRuntimeStats.checks[kind] += 1;
+        });
+      };
+      if (values.loenindkomstAnsaettelsesforhold.some((employment) => employment.indtaegtsoplysningerTableData.length > 1)) {
+        compare('reordered', {
+          ...values,
+          loenindkomstAnsaettelsesforhold: values.loenindkomstAnsaettelsesforhold.map((employment) => ({
+            ...employment, indtaegtsoplysningerTableData: [...employment.indtaegtsoplysningerTableData].reverse(),
+          })),
+        });
+      }
+
+      const outside = dateRange_systemramme.min;
+      if (outside && ![values.tafBeregningsperiodeFra, values.vedroererPeriodeFra, ...canonical.periodiseringer.tafPerioder.map(({ fra }) => fra)]
+        .some((date) => date !== undefined && date <= outside)) {
+        compare('outside', {
+          ...values,
+          offentligeYdelserRows: [...values.offentligeYdelserRows, {
+            id: 'fuzz-ydelse-uden-for-perioder', fraDato: outside, tilDato: outside,
+            ydelsestype: 'andet', ydelse: { kind: 'number', value: 100 },
+          }],
+        });
+      }
+
+      const entries = snapshot.data?.engines.tafNetto.indkomstDagsgrundlag?.taf?.entries ?? [];
+      const dagsgrundlag = snapshot.dagsgrundlag;
+      const reference = snapshot.data?.engines.tafNetto.indkomstSkadestidspunkt;
+      const referenceColumns = [
+        ...(reference?.arbejdssteder ?? []).map(({ navn, breakdown }) => ({
+          name: `${navn} – ${STANDARD_LOEN_SAMLET_LABEL} (beregningsperiode)`,
+          amountOre: breakdown.samletOre,
+        })),
+        ...(reference?.offentligeYdelser ?? []).map(({ label, amountOre }) => ({
+          name: `${label} (beregningsperiode)`, amountOre,
+        })),
+      ];
+      const amounts = [...referenceColumns, ...entries.map((entry) => ({
+        name: entry.kind === 'loen' ? `${entry.label} – ${STANDARD_LOEN_SAMLET_LABEL}` : entry.label,
+        amountOre: entry.amountOre,
+      }))];
+      if (amounts.length > 0) {
+        stage('csv', () => {
+          if (!dagsgrundlag) throw new Error('Dagsgrundlaget mangler trods gyldig indkomst');
+          const [header, ...rows] = renderEoDagsgrundlagCsv(dagsgrundlag).slice(1).split('\r\n').map(csvCells);
+          for (const { name, amountOre } of amounts) {
+            const column = header.findIndex((cell) => cell === name || cell === `'${name}`);
+            const totalOre = rows.reduce((sum, row) => sum + fromKroner(parseDanishNumberString(row[column] ?? '') ?? 0), 0);
+            if (column === -1 || totalOre !== amountOre) {
+              throw new Error(`CSV-kolonnen «${name}» summerer til ${totalOre} øre, forventede ${amountOre}`);
+            }
+          }
+          eoRuntimeStats.checks.csv += 1;
+        });
       }
     }
     const statusKey = snapshot.status === 'error'
@@ -121,23 +194,6 @@ export const runEoPage = (generated: EoRuntimeCase): Failure[] => {
       selectBlockingLoenindkomstEntityIds(projection.eoErrors), undefined,
       snapshot.data?.canonicalOutput, snapshot.data?.pdfModel,
     ));
-    const inspektionView = stage('inspektionView', () => eoSnapshotToInspektionView({
-      snapshot,
-      rowPolicy: DEFAULT_EO_ROW_POLICY,
-      loenindkomstManuelReguleringInputErrors: selectBlockingLoenindkomstEntityIds(projection.eoErrors),
-    }));
-    if (inspektionView?.kind === 'ready') {
-      for (const [, rows] of inspektionView.rowsBySection) {
-        for (const row of rows) {
-          if (row.id.startsWith('eo.rowBuilder.')) {
-            failures.push({ seed: generated.seed, stage: row.id, message: String(row.displayValue) });
-          }
-        }
-      }
-    }
-    if (inspektionView?.kind === 'blocked' && snapshot.failClosedReason === undefined && snapshot.data !== null) {
-      failures.push({ seed: generated.seed, stage: 'inspektionView:blocked', message: inspektionView.message });
-    }
   }
 
   // Flere dokumentoutputs deler samme revisionskontekst og dens memo, som på den faktiske side.

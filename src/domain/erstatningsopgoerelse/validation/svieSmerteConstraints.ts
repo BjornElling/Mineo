@@ -146,7 +146,7 @@ export const resolveSvieSmerteSenesteKravDato = (
 
 /**
  * Hvilke afgrænsninger den seneste indgående svie/smerte-dag rammer. Ét udsagn, som både dokumentets
- * ménlinje («Afgørelsen bringer retten til svie- og smertegodtgørelse til ophør.») og EO-kontrollens
+ * ménlinje («Afgørelsen bringer retten til svie- og smertegodtgørelse til ophør.») og rækkens
  * «Svie/smerte-ophør skyldes» læser, så de ikke kan nævne hver sin grund.
  *
  * `senesteKravDato` SKAL være afklippet (`resolveSvieSmerteSenesteKravDato` eller motorens

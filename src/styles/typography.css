@@ -315,11 +315,6 @@
 }
 
 /* ==================== Navigation tabs ==================== */
-/* ÉN typografi for begge fanefamilier: de vandrette MUI-faner (`PageTabs`) og de roterede
-   side-faner (`SideTab`). Reglen sætter hele signaturen – ikke kun det, MUI ikke selv har – fordi
-   side-fanen er en native <button> uden MUI's tema-typografi. Var listen kortere, ville de to
-   familier stå med hver sin skriftstørrelse, -farve og -linjehøjde. Giv ikke side-fanens `sx` egne
-   håndkopierede værdier. */
 .MuiTab-root.tab-item,
 .tab-item {
   font-family: var(--font-family-base);
@@ -343,38 +338,6 @@
 .tab-item.active {
   color: var(--color-primary);
   opacity: 1;
-}
-
-/* Side-fanen er en native knap: browserens egen knap-signatur (ramme, baggrund, farve, skrift) skal
-   nulstilles her, hvor fane-typografien ovenfor kan slå igennem. Nulstillingen hører netop HER og
-   ikke i komponentens `sx`: emotion vinder over klassen, så et `border: none` i `sx` slettede den
-   blå streg, og et `color: inherit` gjorde etiketten usynlig i dark mode. */
-.side-tab {
-  appearance: none;
-  background-color: transparent;
-  border: none;
-}
-
-/* Den blå streg.
-   Fanen roteres 90° om venstre-bund, så dens BUND vender ind mod indholdsboksen: stregen står
-   lodret præcis på boksens højrekant og har samme rolle som `MuiTabs-indicator` under en vandret
-   fane. Den er også samme SLAGS ting – en 2 px malet kasse oven på fanens bundkant, ikke en
-   `border-bottom`. Forskellen er målbar: en ramme afrundes af browseren til hele enheds-pixels og
-   bliver 1 px tynd ved delvis zoom, mens indikatoren forbliver 2 px × skala. Kassen holder de to
-   ens ved enhver skala.
-   Stregen er malet på begge tilstande og skifter kun farve, så etiketten ikke kan flytte sig. */
-.side-tab::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 2px;
-  background-color: transparent;
-}
-
-.side-tab.active::after {
-  background-color: var(--color-primary);
 }
 
 /* ==================== Links ==================== */

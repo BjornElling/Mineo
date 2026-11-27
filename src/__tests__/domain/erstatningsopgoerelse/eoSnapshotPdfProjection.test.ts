@@ -13,7 +13,6 @@ import {
 } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearDocument';
 import { eoSnapshotToTafPerYearOpreguleretDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearOpreguleretDocument';
 import {
-  buildControlMismatchInvariant,
   buildTafPerYearOpreguleretManglendeReguleringssatsInvariant,
 } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotInvariants';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
@@ -72,6 +71,16 @@ const modelWithIndkomst = (indkomst: unknown): EoModel => ({
   tabtArbejdsfortjeneste: { indkomstSkadestidspunkt: indkomst },
 } as unknown as EoModel);
 
+const testOutputInvariant = {
+  id: 'system:test',
+  passed: false,
+  severity: 'error',
+  source: 'system',
+  message: 'Testfejl i EO-beregningen.',
+  blocksAuthoritativeComputation: false,
+  blocksOutputs: ['eo_pdf', 'taf_per_year_pdf'],
+} as const;
+
 describe('EO snapshot PDF projections', () => {
   it('blokerer EO-PDF-projektionen, når snapshot-data mangler', () => {
     const snapshot = buildBaseSnapshot();
@@ -111,13 +120,13 @@ describe('EO snapshot PDF projections', () => {
     const projection = eoSnapshotToTafPerYearDocument({
       ...snapshot,
       status: 'error',
-      invariants: [buildControlMismatchInvariant(['TAF'])],
+      invariants: [testOutputInvariant],
     });
 
     expect(projection.kind).toBe('blocked');
     if (projection.kind !== 'blocked') return;
     expect(projection.invariants).toHaveLength(1);
-    expect(projection.message).toContain('kontroluoverensstemmelser');
+    expect(projection.message).toBe(testOutputInvariant.message);
   });
 
   it('tillader EO-PDF ved warning-status uden eo_pdf-blokering', () => {
@@ -146,13 +155,13 @@ describe('EO snapshot PDF projections', () => {
     const projection = eoSnapshotToEoDocument({
       ...snapshot,
       status: 'error',
-      invariants: [buildControlMismatchInvariant(['Mismatch'])],
+      invariants: [testOutputInvariant],
     });
 
     expect(projection).toEqual({
       kind: 'blocked',
-      message: 'Der er konstateret kontroluoverensstemmelser i EO-beregningen.',
-      invariants: [buildControlMismatchInvariant(['Mismatch'])],
+      message: 'Testfejl i EO-beregningen.',
+      invariants: [testOutputInvariant],
     });
   });
 

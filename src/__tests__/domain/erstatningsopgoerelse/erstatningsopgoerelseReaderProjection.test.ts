@@ -25,7 +25,6 @@ import {
 import { toISODateString } from '../../../types/branded';
 import { erstatningsopgoerelseSchema, stamdataSchema } from '../../../schemas/formSchemas';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
-import { EMPTY_FIELD_ISSUE_SET } from '../../../inputCore/inputIssue';
 import { createSfggIngenRow } from '../../utils/sfggTestSupport';
 import { assessOevrigeKravRow } from '../../../domain/erstatningsopgoerelse/validation/oevrigeKravRowValidation';
 import {
@@ -229,7 +228,6 @@ describe('buildErstatningsopgoerelseReaderProjection', () => {
       .toBe(projection.eoValues.loenindkomstAnsaettelsesforhold[0].pensionPct);
     const direct = computeEoSnapshot({
       revision: 'direct', eoValues: projection.eoValues, stamdataValues: projection.stamdataValues,
-      eoErrors: EMPTY_FIELD_ISSUE_SET, stamdataErrors: EMPTY_FIELD_ISSUE_SET,
     });
     expect(projection.snapshot.data?.engines.tafNetto).toEqual(direct.data?.engines.tafNetto);
   });
@@ -265,12 +263,9 @@ describe('buildErstatningsopgoerelseReaderProjection', () => {
     expect(projection.snapshot.blockedDependencies?.svieSmerte).toBe(true);
     expect(projection.snapshot.readyBranches?.svieSmerte).toBeUndefined();
     expect(projection.snapshot.data).toBeNull();
-    expect(projection.snapshot.inspektionSnapshot?.inspektionDays.every((day) => day.svieSmerte === 'Ingen')).toBe(true);
-    expect(projection.snapshot.inspektionSnapshot?.sammentaelling.svieSmerteSygedage)
-      .toMatchObject({ beregnetValue: null, tabelValue: null });
   });
 
-  it('bevarer en fremtidig canonical S/S-dato til overlap, men skjuler S/S-resultater i inspektionen', () => {
+  it('bevarer en fremtidig canonical S/S-dato til overlap, men skjuler S/S-resultater i dagsgrundlaget', () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date('2026-10-24T12:00:00Z'));
     try {
@@ -297,15 +292,12 @@ describe('buildErstatningsopgoerelseReaderProjection', () => {
       expect(projection.snapshot.status).toBe('error');
       expect(projection.snapshot.blockedDependencies?.svieSmerte).toBe(true);
       expect(projection.snapshot.data).toBeNull();
-      expect(projection.snapshot.inspektionSnapshot?.inspektionDays.every((day) => day.svieSmerte === 'Ingen')).toBe(true);
-      expect(projection.snapshot.inspektionSnapshot?.sammentaelling.svieSmerteSygedage)
-        .toMatchObject({ beregnetValue: null, tabelValue: null });
     } finally {
       vi.useRealTimers();
     }
   });
 
-  it('fail-closes begge blokerede perioder i inspektionen frem for at genbruge rå datofelter', () => {
+  it('fail-closes begge blokerede perioder i dagsgrundlaget frem for at genbruge rå datofelter', () => {
     const eo: ErstatningsopgoerelseValues = {
       ...buildValidEo(),
       kravPaaSvieSmerteGodtgoerelse: 'Ja',
@@ -327,42 +319,6 @@ describe('buildErstatningsopgoerelseReaderProjection', () => {
     expect(projection.snapshot.data).toBeNull();
     expect(projection.snapshot.blockedDependencies).toMatchObject({ svieSmerte: true, taf: true });
     expect(projection.snapshot.readyBranches).toMatchObject({ svieSmerte: undefined, tafPerioder: undefined });
-    const inspection = projection.snapshot.inspektionSnapshot;
-    expect(inspection).not.toBeNull();
-    expect(inspection?.inspektionDays.every((day) => day.svieSmerte === 'Ingen')).toBe(true);
-    expect(inspection?.model.tableData.tafFlagsByIndex.every((flags) => flags.size === 0)).toBe(true);
-    expect(inspection?.sammentaelling.svieSmerteSygedage).toMatchObject({ beregnetValue: null, tabelValue: null });
-    expect(inspection?.sammentaelling.taf).toMatchObject({ beregnetValue: null, tabelValue: null });
-    expect(inspection?.sammentaelling.tafIndtaegter).toEqual([]);
-  });
-
-  it('bevarer kun datofejlfrie TAF-perioder i kontrolvisningen, når TAF-grenen er blokeret', () => {
-    const eo: ErstatningsopgoerelseValues = {
-      ...buildValidEo(),
-      beregnesUdFra: 'Angivet dagsløn',
-      vedroererPeriodeFra: toISODateString('2022-03-01'),
-      vedroererPeriodeTil: toISODateString('2022-03-31'),
-      tafPerioder: [
-        { id: 'taf-invalid', fra: toISODateString('2022-02-15'), til: toISODateString('2022-03-05'), loseFeriedage: 0 },
-        { id: 'taf-valid', fra: toISODateString('2022-03-10'), til: toISODateString('2022-03-15'), loseFeriedage: 0 },
-      ],
-    };
-    const projection = buildErstatningsopgoerelseReaderProjection(buildReader(eo, validStamdata));
-
-    expect(projection.snapshot.status).toBe('error');
-    expect(projection.snapshot.data).toBeNull();
-    expect(projection.snapshot.blockedDependencies?.taf).toBe(true);
-    const model = projection.snapshot.inspektionSnapshot?.model;
-    expect(model).toBeDefined();
-    const markedDates = model!.tableData.dates.filter((_, index) => model!.tableData.tafFlagsByIndex[index]?.size);
-    expect(markedDates).toEqual([
-      toISODateString('2022-03-10'),
-      toISODateString('2022-03-11'),
-      toISODateString('2022-03-14'),
-      toISODateString('2022-03-15'),
-    ]);
-    expect(projection.snapshot.inspektionSnapshot?.sammentaelling.taf)
-      .toMatchObject({ beregnetValue: null, tabelValue: null });
   });
 
   it('bruger samme manuelle basis med fritvalg og pension efter save/load som skærm og dokument', () => {
@@ -421,7 +377,6 @@ describe('buildErstatningsopgoerelseReaderProjection', () => {
       .toMatchObject({ feriepenge: 15, fritvalg: 7.43, agPension: 12, grundloen: asAmount(33436.04) });
     const direct = computeEoSnapshot({
       revision: 'direct', eoValues: after.eoValues, stamdataValues: after.stamdataValues,
-      eoErrors: EMPTY_FIELD_ISSUE_SET, stamdataErrors: EMPTY_FIELD_ISSUE_SET,
     });
     expect(after.snapshot.data?.engines.tafNetto).toEqual(direct.data?.engines.tafNetto);
   });
@@ -457,12 +412,9 @@ describe('buildErstatningsopgoerelseReaderProjection', () => {
         readErstatningsopgoerelseValues(reader),
         readStamdataValues(reader)
       ),
-      stamdataErrors: EMPTY_FIELD_ISSUE_SET,
-      eoErrors: EMPTY_FIELD_ISSUE_SET,
     });
 
     // Byte-identitet på ALLE beregnede/serialiserbare værdier (status, invariants, data/totaler/pdfModel, input).
-    // `inspektionSnapshot.model` bærer rene view-closures (getCell/getRowKey), som er ny closure-identitet pr. kald
     // og derfor aldrig kan `toEqual`-sammenlignes; JSON-normaliseringen fjerner dem og sammenligner de faktiske tal.
     const serializable = (snapshot: unknown): unknown => JSON.parse(JSON.stringify(snapshot));
     expect(serializable(projection.snapshot)).toEqual(serializable(expected));
@@ -702,7 +654,7 @@ describe('buildErstatningsopgoerelseReaderProjection', () => {
     expect(projection.snapshot.status).toBe('error');
   });
 
-  it('holder en ugyldig 1900-beregningsperiode ude af inspektion og sammentælling', () => {
+  it('holder en ugyldig 1900-beregningsperiode ude af dagsgrundlaget', () => {
     const eo: ErstatningsopgoerelseValues = {
       ...buildValidEo(),
       vedroererPeriodeFra: toISODateString('2022-03-01'),
@@ -713,61 +665,13 @@ describe('buildErstatningsopgoerelseReaderProjection', () => {
     const projection = buildErstatningsopgoerelseReaderProjection(buildReader(eo, validStamdata), {
       revision: 'inspektion-ugyldig-beregningsperiode',
     });
-    const inspection = projection.snapshot.inspektionSnapshot;
     const beregningsperiodeIssue = projection.eoErrors.get(
       serializeFieldAddress(eoTafBeregningsperiodeFraField.bind().address)
     );
 
     expect(beregningsperiodeIssue?.reason).toBe('bounds');
     expect(projection.eoValues.tafBeregningsperiodeFra).toBe(toISODateString('1900-01-01'));
-    expect(inspection).not.toBeNull();
-    expect(inspection?.model.sources.find((source) => source.label === 'Beregningsperiode')).toEqual({
-      label: 'Beregningsperiode', fra: undefined, til: undefined,
-    });
-    expect(inspection?.model.tableData.dates).not.toContain(toISODateString('1900-01-01'));
-    expect(inspection?.sammentaelling.beregningsperiode).toMatchObject({
-      beregnetValue: null,
-      tabelValue: null,
-      beregnetDisplay: '-',
-      tabelDisplay: '-',
-    });
-    const validTafDateIndex = inspection?.model.tableData.dates.indexOf(toISODateString('2022-07-01')) ?? -1;
-    expect(validTafDateIndex).toBeGreaterThanOrEqual(0);
-    expect(inspection?.model.tableData.tafDayStatusByIndex[validTafDateIndex]).toBe('Ja');
-  });
-
-  it('bevarer beregningsperiodens egne tællinger ved TAF-overlap, men spærrer TAF-tællingen', () => {
-    const eo: ErstatningsopgoerelseValues = {
-      ...buildValidEo(),
-      vedroererPeriodeFra: toISODateString('2022-03-01'),
-      vedroererPeriodeTil: toISODateString('2022-12-31'),
-      tafPerioder: [{
-        id: 'taf-overlap',
-        fra: toISODateString('2022-06-15'),
-        til: toISODateString('2022-07-31'),
-        loseFeriedage: 0,
-      }],
-    };
-    const projection = buildErstatningsopgoerelseReaderProjection(buildReader(eo, validStamdata), {
-      revision: 'inspektion-taf-overlap',
-    });
-    const inspection = projection.snapshot.inspektionSnapshot;
-
-    expect(projection.snapshot.blockedDependencies?.taf).toBe(true);
-    expect(projection.snapshot.data).toBeNull();
-    expect(inspection).not.toBeNull();
-    expect(inspection?.model.sources.find((source) => source.label === 'Beregningsperiode')).toEqual({
-      label: 'Beregningsperiode',
-      fra: toISODateString('2022-04-01'),
-      til: toISODateString('2022-06-30'),
-    });
-    expect(inspection?.sammentaelling.beregningsperiode.beregnetValue).toBeGreaterThan(0);
-    expect(inspection?.sammentaelling.beregningsperiode.tabelValue)
-      .toBe(inspection?.sammentaelling.beregningsperiode.beregnetValue);
-    expect(inspection?.sammentaelling.taf).toMatchObject({
-      beregnetValue: null,
-      tabelValue: null,
-    });
+    expect(projection.snapshot.dagsgrundlag?.dates ?? []).not.toContain(toISODateString('1900-01-01'));
   });
 
   it('udelader en cutoff-fejlet TAF-rækkes delvise interval, men bevarer den gyldige række', () => {
@@ -784,7 +688,6 @@ describe('buildErstatningsopgoerelseReaderProjection', () => {
     const projection = buildErstatningsopgoerelseReaderProjection(buildReader(eo, validStamdata), {
       revision: 'inspektion-taf-cutoff',
     });
-    const inspection = projection.snapshot.inspektionSnapshot;
     const cutoffIssue = projection.tafCellIssues.all.find((issue) =>
       issue.field.address.path.some((segment) => segment.kind === 'entity' && segment.entityId === 'taf-cutoff')
     );
@@ -792,36 +695,7 @@ describe('buildErstatningsopgoerelseReaderProjection', () => {
     expect(cutoffIssue?.reason).toBe('rule');
     expect(cutoffIssue?.code).toContain('tafCutoff');
     expect(projection.snapshot.blockedDependencies?.taf).toBe(true);
-    expect(inspection).not.toBeNull();
-    const statusFor = (iso: string) => {
-      const index = inspection?.model.tableData.dates.indexOf(toISODateString(iso)) ?? -1;
-      return index < 0 ? undefined : inspection?.model.tableData.tafDayStatusByIndex[index];
-    };
-    expect(statusFor('2022-07-15')).toBe('Ja');
-    expect(statusFor('2022-08-15')).toBe('-');
+    expect(projection.snapshot.dagsgrundlag?.tafDates.size ?? 0).toBe(0);
   });
 
-  it('udelader en omvendt TAF-datorække fra inspektionen uden at skjule gyldig TAF', () => {
-    const eo: ErstatningsopgoerelseValues = {
-      ...buildValidEo(),
-      vedroererPeriodeFra: toISODateString('2022-03-01'),
-      vedroererPeriodeTil: toISODateString('2022-12-31'),
-      tafPerioder: [
-        { id: 'taf-valid', fra: toISODateString('2022-07-01'), til: toISODateString('2022-07-31') },
-        { id: 'taf-reversed', fra: toISODateString('2022-09-01'), til: toISODateString('2022-08-01') },
-      ],
-    };
-    const projection = buildErstatningsopgoerelseReaderProjection(buildReader(eo, validStamdata), {
-      revision: 'inspektion-taf-omvendt',
-    });
-    const inspection = projection.snapshot.inspektionSnapshot;
-    const reversedDateIndex = inspection?.model.tableData.dates.indexOf(toISODateString('2022-08-15')) ?? -1;
-    const validDateIndex = inspection?.model.tableData.dates.indexOf(toISODateString('2022-07-15')) ?? -1;
-
-    expect(projection.snapshot.blockedDependencies?.taf).toBe(true);
-    expect(inspection).not.toBeNull();
-    expect(reversedDateIndex).toBeGreaterThanOrEqual(0);
-    expect(inspection?.model.tableData.tafDayStatusByIndex[reversedDateIndex]).toBe('-');
-    expect(inspection?.model.tableData.tafDayStatusByIndex[validDateIndex]).toBe('Ja');
-  });
 });

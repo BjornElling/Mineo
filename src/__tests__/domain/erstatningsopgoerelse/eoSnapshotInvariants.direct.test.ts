@@ -2,7 +2,6 @@ import type { ValidationError } from '../../../types/validation';
 import type { EoInvariant } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotInvariants';
 import {
   buildBlockingMessageForOutput,
-  buildControlMismatchInvariant,
   buildMidlertidigtEetSourceInvariants,
   buildStructuralFieldIssueInvariants,
   buildTafPerYearAfrundingInvariant,
@@ -149,7 +148,7 @@ describe('eoSnapshotInvariants – direkte partitioner', () => {
     ]);
   });
 
-  it('bygger de systemmæssige TAF- og kontrolinvarianter for begge beskedpartitioner', () => {
+  it('bygger de systemmæssige TAF-invarianter for begge beskedpartitioner', () => {
     expect(buildTafPerYearAfrundingInvariant({ afrundingOre: moneyOre(101), sumYearTafOre: moneyOre(899), samletTafKravOre: moneyOre(1000) })).toEqual(
       expect.objectContaining({ id: 'taf_per_year:afrunding_over_100', evidence: ['Afrunding: 101', 'Årssum: 899', 'Samlet TAF-krav: 1000'] })
     );
@@ -157,9 +156,6 @@ describe('eoSnapshotInvariants – direkte partitioner', () => {
     expect(buildTafPerYearOpreguleretManglendeReguleringssatsInvariant([]).message).toContain('mangler reguleringssats.');
     expect(buildTafPerYearUnavailableInvariant('missing_loenudvikling').message).toContain('lønudvikling');
     expect(buildTafPerYearUnavailableInvariant('missing_taf_indtaegter').message).toContain('indtægter');
-    expect(buildControlMismatchInvariant(['første mismatch', 'anden mismatch'])).toEqual(
-      expect.objectContaining({ id: 'control:sammentaelling_mismatch', evidence: ['første mismatch', 'anden mismatch'] })
-    );
   });
 
   it('finder blokerende invarianter, fejl, advarsler og outputbeskeder', () => {

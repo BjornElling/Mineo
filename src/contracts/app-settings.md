@@ -2,7 +2,7 @@
 
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
-**Senest verificeret mod kode:** 2026-11-11
+**Senest verificeret mod kode:** 2026-11-27
 
 ## Formål
 Mineo har enkelte **programindstillinger**, som er **device-lokale** (bundet til brugerens computer/browser), og som **ikke** er en del af sagen.
@@ -58,7 +58,7 @@ Valgene ændres ved brugerens aktive handling, også i andre åbne faner i samme
   - Evaluering, revisions-fingerprint og dokumentcapture læser garanteret samme værdi og kan ikke drive fra hinanden.
   - En indstilling uden for `SOURCE_SETTINGS_KEYS` kan ikke længere nå evalueringen. Det er ikke kosmetik: en sådan læsning ville indføre en source-afhængighed, der IKKE gør et optaget `EvaluationSourceToken` stale, så en download godkendt under den gamle regel kunne overleve et regelskift – tavst.
   - `createInputEvaluation` tager derfor **ingen** `settings`-parameter. En settingsafhængig feltissue hører i en descriptor-/consumer-validator, hvis kilde er det projekterede snapshot, ikke i en fri typeparameter på inputkernen.
-  - Kode, der legitimt har brug for hele `AppSettings` (ny-sags-seeds som `createDefaultLoenindkomstAnsaettelsesforhold`, DEV-inspektionens tomheds-prædikat), ligger uden for evalueringens sti og beholder den brede type.
+  - Kode, der legitimt har brug for hele `AppSettings` (ny-sags-seeds som `createDefaultLoenindkomstAnsaettelsesforhold`), ligger uden for evalueringens sti og beholder den brede type.
   - Kode, der legitimt har brug for hele `AppSettings`, må aldrig aflevere den til et af de fire snapshots som struktur-supersæt. Mærkerne udelukker det, så den strukturelle indsnævring ikke kan omgå grænsen.
 - **Beregnings-/regel-toggles** må som hovedregel ikke ændre beregning, validering, gating eller audit for en eksisterende sag som skjult device-lokal tilstand. Slutretningen er schema-valideret sagsdata eller eksplicit brugerobserverbar runtime-beslutning.
   - **Dokumenteret undtagelse (udviklergodkendt 2026-06-19):** De to "Beregningsteknisk"-valg på Indstillinger-siden – `allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden` og `allowReguleringMedUdloebMedMaaneder` – er bevidst device-lokale. De ændrer ikke de producerede tal, men kun validerings-*severity* for overenskomst-/reguleringsdækning (udløb før TAF-periodens slutning vises som `warning` i stedet for `error`; manglende dækning på reguleringsdatoen eller TAF-start er altid blokerende, og en udløbsperiode under grænsen accepteres). Konsekvens: samme `.eo`-sag kan validere forskelligt på to maskiner. Dette er accepteret, fordi valgene udtrykker den enkelte sagsbehandlers faste arbejdsmetode (ikke et sags-faktum), og fordi de ikke ændrer beregningsresultatet. **Re-evaluering:** flyt til schema-valideret sagsdata (`.eo`) hvis (a) der opstår behov for at to brugere skal se ens validering på samme sag, eller (b) et af valgene nogensinde kommer til at ændre de producerede tal frem for kun severity. Eneste produktions-callsite: `buildEoIndkomstRows` i `src/domain/eoRowEvaluation/eoRowIndkomstRows.ts`.

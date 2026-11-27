@@ -7,7 +7,6 @@ import { useAppSettings } from '../../../contexts/useAppSettings';
 import { useInputEvaluation } from '../../../inputCore/react';
 import { EO_TAB_KEYS, type EoTabKey } from '../../../config/eoTabKeys';
 import { buildErstatningsopgoerelseReaderProjection } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseReaderProjection';
-import { selectBlockingLoenindkomstEntityIds } from '../../../domain/erstatningsopgoerelse/eoInputIssues';
 import { kanIndkomstBeregningenSkjules } from '../../../domain/erstatningsopgoerelse/indkomstBeregningSkjulning';
 import { projectEoRowPolicy, projectSourceSettings } from '../../../settings/sourceSettings';
 import { EO_OFFENTLIGE_YDELSER_TAB_LABEL } from '../../../domain/erstatningsopgoerelse/eoLabels';
@@ -40,17 +39,9 @@ const DEFAULT_TAB: EoTabKey = EO_TAB_KEYS.EO_OPLYSNINGER;
 
 export function useErstatningsopgoerelseViewModel() {
   const { settings } = useAppSettings();
-  const showInspektionTab = settings.showEOInspektionMenu;
-
-  const allowedTabs = React.useMemo(() => {
-    const tabs: EoTabKey[] = [...MAIN_TAB_KEYS];
-    if (showInspektionTab) tabs.push(EO_TAB_KEYS.INSPEKTION, EO_TAB_KEYS.KONTROLTABEL);
-    return tabs;
-  }, [showInspektionTab]);
-
-  const { activeTab, setActiveTab, isAllowedTab } = usePersistedActiveTab<EoTabKey>({
+  const { activeTab, setActiveTab } = usePersistedActiveTab<EoTabKey>({
     pageId: 'erstatningsopgoerelse',
-    allowedTabs,
+    allowedTabs: MAIN_TAB_KEYS,
     defaultTab: DEFAULT_TAB,
   });
 
@@ -59,19 +50,11 @@ export function useErstatningsopgoerelseViewModel() {
     { [EO_TAB_KEYS.EO_OPLYSNINGER]: true } as Record<EoTabKey, boolean>
   );
 
-  /** `false` når en kontrolfane er aktiv: hovedfane-striben har da intet valgt element. */
-  const mainTabValue: EoTabKey | false = MAIN_TAB_KEYS.includes(activeTab) ? activeTab : false;
-
   const midlertidigtEetInsertSource = useMidlertidigtEetInsertSource();
   const evaluation = useInputEvaluation();
   const projection = React.useMemo(
     () => buildErstatningsopgoerelseReaderProjection(evaluation.reader, { midlertidigtEetInsertSource }),
     [evaluation, midlertidigtEetInsertSource]
-  );
-
-  const manuelReguleringInputErrors = React.useMemo(
-    () => selectBlockingLoenindkomstEntityIds(projection.eoErrors),
-    [projection.eoErrors]
   );
 
   // «Skjul beregning efter første opgørelse» skjuler kun et gyldigt grundlag. Gyldigheden læser «Fejl og
@@ -86,13 +69,6 @@ export function useErstatningsopgoerelseViewModel() {
     setActiveTab(EO_TAB_KEYS.EO_OPLYSNINGER);
     scrollToSectionWithRetry('taf');
   }, [scrollToSectionWithRetry, setActiveTab]);
-
-  React.useEffect(() => {
-    // Hvis kontrolfanerne slås fra mens en af dem aktuelt er aktiv, falder vi deterministisk tilbage.
-    if (!isAllowedTab(activeTab)) {
-      setActiveTab(DEFAULT_TAB);
-    }
-  }, [activeTab, isAllowedTab, setActiveTab]);
 
   React.useEffect(() => {
     setVisitedTabs((prev) => {
@@ -124,9 +100,7 @@ export function useErstatningsopgoerelseViewModel() {
   return {
     activeTab,
     setActiveTab,
-    mainTabValue,
     tabItems: EO_MAIN_TAB_ITEMS,
-    showInspektionTab,
     isTabMounted,
     projection,
     eoValues: projection.eoValues,
@@ -134,7 +108,6 @@ export function useErstatningsopgoerelseViewModel() {
     eoSnapshot: projection.snapshot,
     midlertidigtEetToggleWarning,
     midlertidigtEetSkiftGiverFradrag: projection.midlertidigtEetSkiftGiverFradrag,
-    manuelReguleringInputErrors,
     indkomstBeregningKanSkjules,
     handleNavigateToTabtArbejdsfortjeneste,
   };

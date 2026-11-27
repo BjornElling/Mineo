@@ -308,7 +308,7 @@ describe('midlertidigt EET transient injection', () => {
 
     expect(snapshot.data).not.toBeNull();
     expect(midlertidigtEetEntry?.amountOre).toBeGreaterThan(0);
-    expect(snapshot.inspektionSnapshot?.eoValues.offentligeYdelserRows.some((row) => row.ydelsestype === 'midlertidigt_eet')).toBe(true);
+    expect(snapshot.data?.tafCalculationInput.values.offentligeYdelserRows.some((row) => row.ydelsestype === 'midlertidigt_eet')).toBe(true);
     expect(snapshot.input.erstatningsopgoerelse?.offentligeYdelserRows).toEqual([]);
 
     // Grafen skal se samme transiente indkomst som fradraget, selv om de gemte rækker er tomme.
@@ -329,7 +329,7 @@ describe('midlertidigt EET transient injection', () => {
         perioder: group.perioder,
         rows: group.rows.map(({ id: _id, ...row }) => row),
       })),
-      importedRows: snapshot.inspektionSnapshot?.eoValues.offentligeYdelserRows.filter(
+      importedRows: snapshot.data?.tafCalculationInput.values.offentligeYdelserRows.filter(
         (row) => row.ydelsestype === 'midlertidigt_eet'
       ).map(({ id: _id, ...row }) => row),
       tafEntry: midlertidigtEetEntry,
@@ -384,7 +384,7 @@ describe('midlertidigt EET transient injection', () => {
         skadedato: stamdata.skadedato,
       },
     });
-    const importedRows = snapshot.inspektionSnapshot?.eoValues.offentligeYdelserRows.filter(
+    const importedRows = snapshot.data?.tafCalculationInput.values.offentligeYdelserRows.filter(
       (row) => row.ydelsestype === 'midlertidigt_eet'
     ) ?? [];
 
@@ -411,7 +411,7 @@ describe('midlertidigt EET transient injection', () => {
         skadedato: stamdata.skadedato,
       },
     });
-    const importedRows = snapshot.inspektionSnapshot?.eoValues.offentligeYdelserRows.filter(
+    const importedRows = snapshot.data?.tafCalculationInput.values.offentligeYdelserRows.filter(
       (row) => row.ydelsestype === 'midlertidigt_eet'
     ) ?? [];
 
@@ -697,7 +697,7 @@ describe('midlertidigt EET transient injection', () => {
 
     expect(snapshot.data).not.toBeNull();
     expect(snapshot.data?.engines.tafNetto.tafIndtaegter?.entries.some((entry) => entry.label === 'Midlertidigt EET')).toBe(false);
-    expect(snapshot.inspektionSnapshot?.eoValues.offentligeYdelserRows.some((row) => row.ydelsestype === 'midlertidigt_eet')).toBe(false);
+    expect(snapshot.data?.tafCalculationInput.values.offentligeYdelserRows.some((row) => row.ydelsestype === 'midlertidigt_eet')).toBe(false);
     expect(snapshot.input.erstatningsopgoerelse?.offentligeYdelserRows).toEqual([]);
   });
 

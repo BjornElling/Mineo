@@ -545,7 +545,7 @@ export const readStamdataValues = (reader: InputReader): StamdataValues => ({
 
 // ── Fejl-map-rekonstruktion ─────────────────────────────────────────────────────────
 export type ErstatningsopgoerelseReaderProjection = Readonly<{
-  /** Det ENE snapshot (uændret beregning). Driver Beregning/Inspektion/Kontroltabel + download-gaten. */
+  /** Det fælles snapshot til Beregning, CSV og dokumentgaten. */
   snapshot: EoSnapshot;
   /** De reader-rekonstruerede EO-værdier (skjulte røde felter = tomværdi). Til fane-visning + gate-input. */
   eoValues: ErstatningsopgoerelseValues;
@@ -848,8 +848,6 @@ export const buildErstatningsopgoerelseReaderProjection = (
       revision,
       stamdataValues,
       eoValues,
-      stamdataErrors,
-      eoErrors,
       dependencyProjection,
       ...(midlertidigtEetImportContext === undefined ? {} : { midlertidigtEetImportContext }),
       ...(tafEfterKapitaliseringAdvarsler.length === 0
@@ -880,7 +878,6 @@ export const buildErstatningsopgoerelseReaderProjection = (
         revision,
         error,
         context: 'erstatningsopgoerelseReaderProjection',
-        inspektionSnapshotAvailable: false,
         input: { stamdata: stamdataValues, erstatningsopgoerelse: eoValues },
       }),
       eoValues,

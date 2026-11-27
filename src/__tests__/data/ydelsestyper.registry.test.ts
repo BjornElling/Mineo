@@ -64,16 +64,6 @@ describe('ydelsestyper registry', () => {
     expect(arbejdsdageKeys).toEqual(['feriepenge', 'sygedagpenge']);
   });
 
-  it('tabelLabel er kun sat for ydelsestyper med lange labels (ledighedsydelse, revalideringsydelse, uddannelseshjaelp)', () => {
-    expect(ydelsestyper.ledighedsydelse.tabelLabel).toBeDefined();
-    expect(ydelsestyper.revalideringsydelse.tabelLabel).toBeDefined();
-    expect(ydelsestyper.uddannelseshjaelp.tabelLabel).toBeDefined();
-    // Andre har ingen tabelLabel
-    expect(ydelsestyper.dagpenge.tabelLabel).toBeUndefined();
-    expect(ydelsestyper.efterloen.tabelLabel).toBeUndefined();
-    expect(ydelsestyper.sygedagpenge.tabelLabel).toBeUndefined();
-  });
-
   it('resolver både kanoniske nøgler og tidligere gemte labels til samme nøgle', () => {
     const facit = [
       ['dagpenge', 'Dagpenge'],

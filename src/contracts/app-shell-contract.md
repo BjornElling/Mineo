@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Tværgående kontrakt
 **Prioritet:** Selvstændig tværgående kontrakt for det øverste runtime-lag (app-entry, bootstrap, multi-app-isolation). Ligger *over* sidekomponent-laget: `page-component-contract.md §3.1` er underordnet denne kontrakt for alt der angår app-entry, device-gate-placering og shell-ansvar. Berører ikke beregnings-, form- eller persistence-*indhold* og overlapper derfor ikke de øvrige tværgående kontrakter – men den ejer den *namespace-isolation*, der holder to app-varianters persistence adskilt (jf. `persistence-contract.md`).
-**Senest verificeret mod kode:** 2026-11-11
+**Senest verificeret mod kode:** 2026-11-27
 
 ## 1. Scope
 
@@ -147,9 +147,7 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
     **Gutter og indrykning.** De fire `Container`-gutters er ens hele vejen rundt
     (`calc(24px * var(--mineo-content-scale, 1))`); de ligger uden for zoom-roden og ganges derfor
     med skalaen i CSS. Den lodrette luft er med i regnestykket: en fast luft foroven ville stå
-    dobbelt så høj som luften i siderne ved mindste skala, og Kontroltabellens klæbende tabelhoved
-    kompenserer for præcis denne værdi inde fra zoom-roden – kompensationen kan kun ramme, når de to
-    følger samme skala. Den indre `<main>`-indrykning er 50 px **uskaleret**, fordi `main` selv ER
+    dobbelt så høj som luften i siderne ved mindste skala. Den indre `<main>`-indrykning er 50 px **uskaleret**, fordi `main` selv ER
     zoom-roden. Skaleringen må ikke indføre reflow, skjule indhold eller ændre
     input-/persistence-state ved resize.
 
@@ -160,34 +158,6 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
     `CONTENT_BOX_WIDTH_PX` spejler `--content-box-max-width` i `src/styles/layout.css` og er
     testhåndhævet. Menubredden er værste tilfælde: en sammenfoldet eller højdeskaleret menu giver kun
     ekstra luft.
-
-    **Kontrolfanernes udhæng er den ene bevidste undtagelse fra pladsregnskabet.**
-    Erstatningsopgørelses to kontrolfaner (`SideTab`) roteres 90° og rager deres egen højde – 48 px,
-    `SIDE_TAB_OVERHANG_PX` – ud til højre for deres `left`, som ER indholdsboksens kant. De 48 px
-    indgår **ikke** i `scaledShellWidthPx`, og det er et valg, ikke en forglemmelse: fanerne er en
-    valgfri kontrolflade (Indstillinger → «Vis kontrolfaner»), og hele arbejdsfladen må ikke skaleres
-    ned for at gøre plads til dem. Konsekvensen er accepteret: er der plads i højregutteren, står
-    fanerne der; er der ikke, går de **tavst** ud over arbejdsfladens synlige højrekant og bliver
-    klippet væk. En delvist synlig eller helt skjult kontrolfane er det rigtige svar – en mindre
-    brødtekst på hele fladen er det ikke.
-
-    Klipningen er ikke overladt til held. `SideTabRail` er skinnen, fanerne hænger i: den måler
-    arbejdsfladens synlige højrekant (scrollportens `clientWidth`, uden den lodrette scrollbar) og
-    klipper vandret dér med `overflow-x: clip` – `overflow-y: visible`, fordi den roterede fane rager
-    nedad og ikke må skæres over på tværs. Uden klipningen ville udhænget give `Container` vandret
-    rul, for en absolut placeret efterkommer tæller med i scrollportens scrollområde, også når den er
-    roteret. Bredden **måles** frem for at regnes ud, fordi kanten afhænger af sidemenuens aktuelle
-    bredde, gutteren, skalaen og browserens faktiske scrollbarbredde på én gang; et gæt for højt er
-    netop den scrollbar, skinnen skal forhindre. Skinnen er aldrig smallere end indholdsboksen, så
-    under den dækkede minimumsbredde – hvor indholdet selv overflyder og den vandrette
-    `Container`-scroll er fallbacken – lægger fanerne ikke en eneste pixel oveni.
-
-    **Kontrolfanerne bærer de vandrette faners typografi.** Begge fanefamilier henter hele deres
-    signatur fra den fælles `.tab-item`-regel i `src/styles/typography.css` – skrift, farve (også i
-    mørkt tema), vægt, spatiering og hover/aktiv-tilstand – og den blå streg er `.side-tab::after`:
-    samme 2 px malede kasse som `MuiTabs-indicator`, placeret på fanens bund, som efter rotationen
-    vender ind mod indholdsboksen. `SideTab`s `sx` må derfor kun bære geometri; en typografi- eller
-    `border`-værdi dér vinder over klassen og lader familierne drifte fra hinanden igen.
 
     Den dækkede smalle grænse er en **CSS-viewport** på mindst 1181×620 px ved 100 % browserzoom,
     ikke en fysisk skærmopløsning: en 1920×1200-skærm ved 150 % zoom giver 1280 CSS-px og er
@@ -265,8 +235,7 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
 - `src/__tests__/components/system/PageNotFound.test.tsx` (404-siden oplyser, at sagen er uændret, og peger på menuen; adressen står i tilgængelighedsnavnet, ikke i brødteksten. Dertil de to strukturelle garantier fra §2.2: catch-all'en ligger inde i shell-routen, rutetræet findes kun inde i den auth-gatede `App`, og device-gatens tidlige `return` ligger før `renderApp`).
 - `e2e/shell-shortcuts-and-not-found.spec.ts` (den fulde rejse i en rigtig browser: 404-siden beholder sidemenuen og sagens indhold, en ukendt adresse rammer login-siden, og shellens globale genveje respekterer overlayet – herunder at browserens egen tekstfortrydelse virker i et åbent felt, hvad jsdom pr. konstruktion ikke kan måle).
 - `src/__tests__/utils/uiScale.test.ts` (policygrænser, hysterese, menuens skala som minimum af de to, ikonaksen, bootstrap/runtime-paritet og DOM-måling).
-- `e2e/minimum-viewport-shell.spec.ts` og `e2e/content-scale.spec.ts` (menuens minimumsgeometri og loft mod arbejdsfladens skala, ens gutter hele vejen rundt, popup-lagets skala, kontrolfanernes udhæng uden for indholdsboksen uden vandret rul, deres signatur mod de vandrette faners i begge temaer, den ubeskårne arbejdsflade ved 1280 CSS-px og resize-state).
-- `src/__tests__/components/layout/SideTabRail.test.tsx` (skinnens klipning: vandret alene, målt kant, upåvirket af vandret rul, aldrig smallere end indholdsboksen).
+- `e2e/minimum-viewport-shell.spec.ts` og `e2e/content-scale.spec.ts` (menuens minimumsgeometri og loft mod arbejdsfladens skala, ens gutter hele vejen rundt, popup-lagets skala, den ubeskårne arbejdsflade ved 1280 CSS-px og resize-state).
 - `src/__tests__/quality/contentBoxWidthSingleSource.test.ts` (indholdsboksens bredde i CSS og skaleringens pladsregnskab i TypeScript kan ikke falde ud af sync).
 
 ## 5. Kendte Undtagelser

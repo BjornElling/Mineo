@@ -1,7 +1,16 @@
 import React from 'react';
 import { buildTafRanges } from '../../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
+import { buildErstatningsopgoerelseReaderProjection } from '../../../../domain/erstatningsopgoerelse/erstatningsopgoerelseReaderProjection';
+import { buildMidlertidigtEetInsertSource } from '../../../../domain/erhvervsevnetab/eetImportPort';
+import { renderEoDagsgrundlagCsv } from '../../../../domain/erstatningsopgoerelse/snapshot/eoDagsgrundlagCsv';
+import { resolveSagsFilnavn } from '../../../../document/documentFileName';
+import { useDocumentInputAccess } from '../../../../inputCore/react';
+import { sourceTokensEqual } from '../../../../inputCore/evaluationSource';
+import { downloadBlob } from '../../../../utils/fileHelpers';
+import { asError } from '../../../../utils/typeGuards';
 import { useNavigate } from 'react-router-dom';
 import { setActiveTabForPage } from '../../../../hooks/usePersistedActiveTab';
+import type { EoTabKey } from '../../../../config/eoTabKeys';
 import { APP_ROUTES } from '../../../../config/pageNavigation';
 import { collectAllEoRows } from '../../../../domain/eoRowEvaluation/eoRowAggregator';
 import type { EoNavigableIssueRow, EoRowWithNavigation } from '../../../../domain/eoRowEvaluation/eoRowAggregator';
@@ -67,7 +76,7 @@ import {
   eoTafPeriodeTilField,
 } from '../../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
 
-export type TabKey = 'eo_oplysninger' | 'loenindkomst' | 'offentlige_ydelser' | 'beregning' | 'inspektion' | 'kontroltabel';
+export type TabKey = EoTabKey;
 
 export interface EOberegningTabProps {
   activeTab: TabKey;
@@ -106,7 +115,6 @@ type EoRowsMemoResult = Readonly<{
 
 
 const DEVTOOLS_REPORTABLE_INVARIANT_IDS = new Set([
-  'control:sammentaelling_mismatch',
   'taf_per_year:afrunding_over_100',
 ]);
 
@@ -189,40 +197,6 @@ const buildInvariantDiagnostics = (
     };
   }
 
-  if (invariant.id === 'control:sammentaelling_mismatch') {
-    const mismatchRows = snapshot.inspektionSnapshot?.sammentaellingRows
-      .filter((row) => (invariant.evidence ?? []).some((message) => message.startsWith(`${row.label}:`)))
-      .map((row) => ({
-        key: row.key,
-        label: row.label,
-        beregnetDisplay: row.control.beregnetDisplay,
-        tabelDisplay: row.control.tabelDisplay,
-        beregnetValue: row.control.beregnetValue,
-        tabelValue: row.control.tabelValue,
-        loseFeriedage: row.control.loseFeriedage,
-        oevrigeFravaersdage: row.control.oevrigeFravaersdage,
-      })) ?? [];
-
-    return {
-      ...baseContext,
-      inspektionControlMismatch: {
-        mismatchCount: invariant.evidence?.length ?? 0,
-        mismatches: invariant.evidence ?? [],
-        matchedRows: mismatchRows,
-        allSammentaellingRowCount: snapshot.inspektionSnapshot?.sammentaellingRows.length ?? 0,
-      },
-      tafContext: {
-        harTafPerioder: snapshot.data.engines.tafNetto.harTafPerioder,
-        tafBeregningsenhed: snapshot.data.engines.tafNetto.tafBeregningsenhed,
-        canonicalTafPerioder: snapshot.data.canonicalOutput.periodiseringer.tafPerioder,
-      },
-      snapshotTotals: {
-        tabtArbejdsfortjenesteOre: snapshot.data.totals.tabtArbejdsfortjenesteOre,
-        tabtArbejdsfortjenesteFoerForligOre: snapshot.data.totals.tabtArbejdsfortjenesteFoerForligOre,
-      },
-    };
-  }
-
   return baseContext;
 };
 
@@ -282,7 +256,7 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
         rowPolicy,
         beregningView?.canonicalOutput,
         // pdfModel SKAL med, så download-gaten ser de samme resultat-afhængige SFGG-fejlrækker
-        // som DEV-kontrolfanerne (jf. collectAllEoRows-doc). Uden den var gaten fail-open for dem.
+        // med det beregnede reference- og dagssatsgrundlag.
         eoSnapshot?.data?.pdfModel
       ),
       'EOberegningTab.collectAllEoRows',
@@ -484,12 +458,6 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
       rows.push(issue);
     };
 
-    // Linket til Kontroltabel tilbydes kun, når fanen vises. Den er slået fra som standard, og et klik ville da
-    // intet gøre – en blindgyde under en fejl, brugeren ikke selv kan forklare.
-    const kontroltabelAction: Pick<SystemIssueRow, 'actionLabel' | 'onAction'> = settings.showEOInspektionMenu
-      ? { actionLabel: 'Kontroltabel', onAction: () => setActiveTab('kontroltabel') }
-      : {};
-
     if (eoSnapshot?.status === 'fail_closed') {
       switch (eoSnapshot.failClosedReason) {
         case 'runtime_exception':
@@ -517,7 +485,6 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
       pushIssue({
         id: 'eo-row-aggregation-failed',
         message: eoRowAggregationErrorMessage,
-        ...kontroltabelAction,
       });
     }
 
@@ -533,7 +500,6 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
         pushIssue({
           id: invariant.id,
           message: invariant.message,
-          ...(invariant.id === 'control:sammentaelling_mismatch' ? kontroltabelAction : {}),
         });
       });
 
@@ -571,7 +537,6 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
     return rows;
   }, [
     authoritativeBlockingInvariants,
-    settings.showEOInspektionMenu,
     eoPdfBlockingInvariants,
     eoSnapshot,
     eoRowAggregationErrorMessage,
@@ -798,6 +763,39 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
   const handleDownloadTafFordeltPdf = React.useCallback(async () => { await tafFordeltDownload.download(undefined); }, [tafFordeltDownload]);
   const handleDownloadTafOpreguleretPdf = React.useCallback(async () => { await tafOpreguleretDownload.download(undefined); }, [tafOpreguleretDownload]);
   const handleDownloadTafKravGrafPdf = React.useCallback(async () => { await tafKravGrafDownload.download(undefined); }, [tafKravGrafDownload]);
+  const dagsgrundlag = isActive ? eoSnapshot.dagsgrundlag : undefined;
+  const csvInput = useDocumentInputAccess();
+  const handleDownloadDagsgrundlag = React.useCallback(async () => {
+    if (!dagsgrundlag) return;
+    try {
+      const preparation = await csvInput.criticalActions.prepare('download');
+      if (preparation.status !== 'committed') return;
+      const evaluation = csvInput.captureEvaluationSource();
+      const token = evaluation.reader.sourceToken;
+      if (!sourceTokensEqual(preparation.token, token)) return;
+      const fresh = sourceTokensEqual(projection.sourceToken, token) ? projection
+        : buildErstatningsopgoerelseReaderProjection(evaluation.reader, {
+          midlertidigtEetInsertSource: buildMidlertidigtEetInsertSource(evaluation),
+        });
+      const basis = fresh.snapshot.dagsgrundlag;
+      if (!basis) return;
+      const csv = renderEoDagsgrundlagCsv(basis);
+      if (!sourceTokensEqual(token, csvInput.readCurrentSourceToken())) return;
+      downloadBlob(
+        new Blob([csv], { type: 'text/csv;charset=utf-8' }),
+        resolveSagsFilnavn('Dagsgrundlag', 'csv', fresh.stamdataValues.journalnr),
+      );
+    } catch (error) {
+      reportSystemIssue({
+        code: 'eo:dagsgrundlag_download_failed',
+        area: 'eo',
+        context: 'useEoBeregningViewModel',
+        userMessage: 'Dagsgrundlaget kunne ikke hentes',
+        revision: projection.snapshot.revision,
+        error: asError(error),
+      });
+    }
+  }, [csvInput, dagsgrundlag, projection]);
 
   const formatSummaryText = React.useCallback((row: (typeof errors)[number]): string => {
     const issueSummaryText = row.summaryText ?? resolveEoIssueSummaryText(row);
@@ -835,6 +833,9 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
     handleDownloadTafFordeltPdf,
     handleDownloadTafOpreguleretPdf,
     handleDownloadTafKravGrafPdf,
+    canDownloadDagsgrundlag: dagsgrundlag !== undefined,
+    dagsgrundlagCoverage: dagsgrundlag?.coverage,
+    handleDownloadDagsgrundlag,
 
     // Navigation + bilag
     handleNavigate,

@@ -2,7 +2,7 @@
 
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
-**Senest verificeret mod kode:** 2026-11-17
+**Senest verificeret mod kode:** 2026-11-27
 
 Kontrakten skelner mellem forventelige input-/domæneissues og systemtekniske runtimefejl. Afledelige issues er rene
 projektioner af input og domæneregler; de er ikke en skrivbar runtime-store.
@@ -87,7 +87,7 @@ Der findes ingen central skrivbar feltfejl-bus: `src/types/fieldErrors`, `useFor
 sandhedskilde.
 
 Bemærk at **navnet** `fieldErrors` ikke er forbudt. Det lever videre som et almindeligt feltnavn i
-domænesnapshots (`EetSnapshot.fieldErrors`, `EOInspektionSnapshot.fieldErrors`), hvor det betegner en ren
+domænesnapshots (`EetSnapshot.fieldErrors`), hvor det betegner en ren
 issueprojektion – ikke en skrivbar kanal. Navnet står derfor bevidst uden for `legacy/forbidden-identifier`s
 forbudsliste; der findes ingen allowlist-mekanik at undtage det fra, og forbuddet rammer de konkrete
 legacy-symboler (`useFormFieldErrorReporter`, `onFieldError`, `collectPresentFieldErrors`), ikke feltnavnet.
@@ -334,7 +334,6 @@ Tilladte placeringer:
 Forbudte placeringer:
 
 - normale input-, beregnings- og resultatvisninger,
-- EOInspektion/EOKontrolTabel,
 - normale validerings- eller downloadblokeringer,
 - download-fejldialoger.
 
@@ -361,7 +360,7 @@ Dokumentgeneratorfejl er systemfejl: ingen fil downloades, ingen normal valideri
 ikke en `BugReportButton` i downloadflowet. Alle forhold, som kan forklares som input-/domæneissues, skal allerede have
 disabled knappen og stoppet preflight.
 
-## 9. EO-specifik kontrolvisning
+## 9. Fejl og advarsler på Beregning
 
 EO's række-evalueringsmotor og issue-katalog er de domænenære kilder til fejl/advarsler på Beregning-fanen. De må ikke
 redefinere den tværgående dokumentgate.
@@ -373,21 +372,15 @@ Regler:
 3. Parent-child-suppression følger en deterministisk dependency-graf, ikke beskedordlyd.
 4. Fokusfelt i perioder kommer fra strukturelt hint, ikke heuristik over dansk tekst.
 5. Manglende datoer er forventelige inputissues, ikke runtimefejl.
-6. EOInspektion og EOKontrolTabel kan fortsat dannes fra sikre snapshotdata; de må ikke lave fallback-enginekald for at
-   udfylde output efter en blokeret autoritativ beregning.
-7. Når `inspektionSnapshot` er `null`, vises en tom-/fejltilstand uden beregningsindhold.
-8. Når `Varige mén-afgørelse`, `Midlertidigt EET-afgørelse` eller `Endeligt EET-afgørelse` er `Ja`, er en helt
+6. Dagsgrundlag ved delvis beregning følger `eo-snapshot-contract.md` §6.2.
+7. Når `Varige mén-afgørelse`, `Midlertidigt EET-afgørelse` eller `Endeligt EET-afgørelse` er `Ja`, er en helt
    manglende nødvendig afgørelses-/virkningsdato en gul, ikke-blokerende komplethedsadvarsel i "Fejl og advarsler".
    Den efterlader datofelterne uden rød markering og må ikke blokere dokumenter. En faktisk `FieldIssue` på et af
    de samme datofelter har altid forrang som rød fejl; den må aldrig maskeres som en manglende-dato-advarsel.
 
-EO-kontroltabeller bruger etablerede tabeltyper; `StandardDisplayTable` er canonical for rene visningstabeller og har
-centralt styret samlet bredde på 100 %.
-
 `fail_closed` med `schema_guard` eller `invariant_guard` vises som en neutral blokerende række uden
 `BugReportButton`. `runtime_exception` rapporteres gennem systemissue-flowet og må højst give samme neutrale inline
-række. De to kendte interne EO-invarianter `control:sammentaelling_mismatch` og
-`taf_per_year:afrunding_over_100` må både vises som systemfejlrækker i EOBeregningTab og rapporteres til
+række. Den interne invariante fejl `taf_per_year:afrunding_over_100` må både vises som systemfejlrække i EOBeregningTab og rapporteres til
 devtools-monitoren; knappen til fejlrapportering findes fortsat kun i `DevtoolsIssueNotice`.
 
 ## 10. Tidsstempler og tidszone

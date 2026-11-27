@@ -80,7 +80,7 @@ erhvervssygdom er anmeldelsesdatoen, og teksterne siger «Skaden er anmeldt før
 Afskæringen (anvendelsen) og afgørelsens dato (oplysningen) er to funktioner: `resolveMidlertidigEetDato` svarer
 på «er der truffet en midlertidig afgørelse, og hvornår?» uden 2011-grænsen og uden klagen, og
 `resolveMidlertidigEetDatoHvisAktiv` lægger 2011-grænsen oven på. Alle afskæringer – rød-celle-valideringen,
-motorens clamping og kontroltabellens «TAF-ophør skyldes» – henter de aktive datoer fra `resolveTafCutoffDates`;
+motorens clamping og dagsgrundlagets afskæringsmarkør – henter de aktive datoer fra `resolveTafCutoffDates`;
 en verserende EET-klage ophæver de to EET-afskæringer, aldrig differencekravets.
 
 Overlappende TAF-perioder merges til sammenhængende intervaller inden beregning for at undgå dobbeltoptælling. Mergede grupper bærer det første kilderækkes ID som repræsentativt ID.

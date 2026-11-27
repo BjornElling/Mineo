@@ -1,7 +1,5 @@
 /// <reference types="vitest/globals" />
 
-import { DEFAULT_APP_SETTINGS } from '../../../settings/appSettingsSchema';
-import { DEFAULT_EO_ROW_POLICY } from '../../../settings/sourceSettings';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import {
   createDefaultLoenindkomstAnsaettelsesforhold,
@@ -9,8 +7,6 @@ import {
 } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import { eoSnapshotToEoDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToEoDocument';
-import { eoSnapshotToInspektionView } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToInspektionView';
-import { buildEOInspektionPageViewModel } from '../../../domain/eoInspektion/eoInspektionPageViewModel';
 import type { FieldIssue } from '../../../inputCore/inputIssue';
 import type { EoDependencyProjection } from '../../../domain/erstatningsopgoerelse/snapshot/eoDependencyProjection';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
@@ -54,7 +50,7 @@ const withSvieSmerteIssue = (issue: FieldIssue): EoDependencyProjection => ({
 });
 
 describe('uafhængigt håndfacit gennem EO-snapshot', () => {
-  it('fører en simpel gyldig sag uændret til kontrolvisning og EO-dokument', () => {
+  it('fører en simpel gyldig sag uændret til dagsgrundlag og EO-dokument', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.vedroererPeriodeFra = iso('2024-01-01');
     eoValues.vedroererPeriodeTil = iso('2024-01-31');
@@ -94,20 +90,7 @@ describe('uafhængigt håndfacit gennem EO-snapshot', () => {
       amountOre: 120000,
     }]);
 
-    const view = eoSnapshotToInspektionView({
-      snapshot,
-      rowPolicy: DEFAULT_EO_ROW_POLICY,
-      loenindkomstManuelReguleringInputErrors: {},
-    });
-    expect(view.kind).toBe('ready');
-    if (view.kind !== 'ready') return;
-    expect(view.inspektionSnapshot.model.tableData.dates).toHaveLength(31);
-    expect(view.inspektionSnapshot.sammentaelling.taf.beregnetValue).toBeNull();
-
-    const page = buildEOInspektionPageViewModel(view, DEFAULT_APP_SETTINGS);
-    expect(page.showSvieSmerteSection).toBe(false);
-    expect(page.showTabtArbejdsfortjenesteSections).toBe(false);
-    expect(page.employmentSections).toHaveLength(0);
+    expect(snapshot.dagsgrundlag?.dates).toHaveLength(31);
   });
 
   it('bevarer en arbejdsdagsbaseret weekendydelse gennem fald-tilbage-fordelingen', () => {
@@ -168,31 +151,18 @@ describe('uafhængigt håndfacit gennem EO-snapshot', () => {
     const document = eoSnapshotToEoDocument(snapshot);
     expect(document.kind).toBe('ok');
 
-    const view = eoSnapshotToInspektionView({
-      snapshot,
-      rowPolicy: DEFAULT_EO_ROW_POLICY,
-      loenindkomstManuelReguleringInputErrors: {},
-    });
-    expect(view.kind).toBe('ready');
-    if (view.kind !== 'ready') return;
-    expect(view.inspektionSnapshot.model.tableData.dates).toHaveLength(31);
-    expect(view.inspektionSnapshot.model.tableData.dates[0]).toBe(iso('2024-07-01'));
-    expect(view.inspektionSnapshot.model.tableData.dates[30]).toBe(iso('2024-07-31'));
-    expect(view.inspektionSnapshot.model.tableData.isWorkdayByIndex[0]).toBe(true);
-    expect(view.inspektionSnapshot.model.tableData.isWorkdayByIndex[4]).toBe(true);
-    expect(view.inspektionSnapshot.model.tableData.isWorkdayByIndex[5]).toBe(false);
-    expect(view.inspektionSnapshot.model.tableData.isWorkdayByIndex[6]).toBe(false);
-    expect(view.inspektionSnapshot.model.tableData.isWorkdayByIndex[30]).toBe(true);
-
-    const page = buildEOInspektionPageViewModel(view, DEFAULT_APP_SETTINGS);
-    expect(page.showTabtArbejdsfortjenesteSections).toBe(true);
+    const basis = snapshot.dagsgrundlag;
+    expect(basis?.dates).toHaveLength(31);
+    expect(basis?.workdays.has(iso('2024-07-06'))).toBe(false);
+    expect(basis?.columns.find(({ header }) => header === 'Sygedagpenge')?.values).toEqual(new Map([
+      [iso('2024-07-06'), '1.000,00'], [iso('2024-07-07'), '1.000,00'],
+    ]));
   });
 
   it('bevarer den gyldige TAF-periodisering ved uafhængig S/S-fejl og anvender clamp', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.vedroererPeriodeFra = iso('2024-01-01');
-    eoValues.vedroererPeriodeTil = iso('2024-01-31');
-    eoValues.differencekravDato = iso('2024-01-04');
+    eoValues.vedroererPeriodeTil = iso('2024-01-03');
     eoValues.kravPaaSvieSmerteGodtgoerelse = 'Ja';
     eoValues.tidligereSsMax = 'Nej';
     eoValues.varigeMenAfgorelse = 'Ja';
@@ -241,7 +211,7 @@ describe('uafhængigt håndfacit gennem EO-snapshot', () => {
       fra: iso('2024-01-01'),
       til: iso('2024-01-03'),
     }]);
-    expect(snapshot.inspektionSnapshot?.model.tableData.dates.slice(0, 3)).toEqual([
+    expect(snapshot.dagsgrundlag?.dates.slice(0, 3)).toEqual([
       iso('2024-01-01'),
       iso('2024-01-02'),
       iso('2024-01-03'),
@@ -250,16 +220,7 @@ describe('uafhængigt håndfacit gennem EO-snapshot', () => {
     const document = eoSnapshotToEoDocument(snapshot);
     expect(document.kind).toBe('blocked');
 
-    const view = eoSnapshotToInspektionView({
-      snapshot,
-      rowPolicy: DEFAULT_EO_ROW_POLICY,
-      loenindkomstManuelReguleringInputErrors: {},
-    });
-    expect(view.kind).toBe('ready');
-    if (view.kind !== 'ready') return;
-    expect(view.canonicalOutput).toBeUndefined();
-    const page = buildEOInspektionPageViewModel(view, DEFAULT_APP_SETTINGS);
-    expect(page.showSvieSmerteSection).toBe(true);
-    expect(page.showTabtArbejdsfortjenesteSections).toBe(true);
+    expect(snapshot.dagsgrundlag?.coverage).toBe('tabt arbejdsfortjeneste');
+    expect(snapshot.dagsgrundlag?.svieSmertePeriods).toBeUndefined();
   });
 });

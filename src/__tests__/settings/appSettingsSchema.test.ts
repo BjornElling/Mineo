@@ -56,7 +56,6 @@ describe('DEFAULT_APP_SETTINGS', () => {
     expect(DEFAULT_APP_SETTINGS.themeMode).toBe('system');
     expect(typeof DEFAULT_APP_SETTINGS.defaultStartsideErStamdata).toBe('boolean');
     expect(typeof DEFAULT_APP_SETTINGS.showContentBoxReportButton).toBe('boolean');
-    expect(typeof DEFAULT_APP_SETTINGS.showEOInspektionMenu).toBe('boolean');
     expect(typeof DEFAULT_APP_SETTINGS.defaultFuldLoenUnderFerie).toBe('boolean');
     expect(typeof DEFAULT_APP_SETTINGS.defaultLoenPaaHelligdage).toBe('string');
     expect(DEFAULT_APP_SETTINGS.defaultSvieSmerteDelvisSygemeldingSats).toBe('halv');

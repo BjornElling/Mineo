@@ -12,9 +12,6 @@ vi.mock('../../../utils/systemIssueReporter', () => ({
 }));
 
 // Vi mocker KUN buildErstatningsopgoerelsePdfModelFromComputed til at kaste. Den kaldes i
-// computeEoSnapshot's try-blok EFTER inspektionSnapshot allerede er bygget – derved rammer vi præcist
-// den sti hvor en delvist bygget inspektionSnapshot eksisterer, når runtime-exception fail-close indtræffer.
-// Alle øvrige exports (bl.a. buildEoPdfPresentation, som kaldes før inspektionSnapshot) bevares uændret.
 vi.mock('../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel')>();
   return {
@@ -46,8 +43,7 @@ describe('computeEoSnapshot – runtime_exception fail-close', () => {
     reportSystemIssueMock.mockReset();
   });
 
-  it('nulstiller inspektionSnapshot i fail_closed-stien selv når den allerede var bygget (kontrakt §2.4)', () => {
-    // Kontroltilfælde: uden forceret fejl bygges snapshot normalt med inspektionSnapshot.
+  it('udelader dagsgrundlag ved en intern snapshotfejl', () => {
     pdfModelThrowFlag.shouldThrow = false;
     const control = computeEoSnapshot({
       revision: 'runtime-control',
@@ -55,9 +51,8 @@ describe('computeEoSnapshot – runtime_exception fail-close', () => {
       eoValues: buildValidEoValues(),
     });
     expect(control.status).not.toBe('fail_closed');
-    expect(control.inspektionSnapshot).not.toBeNull();
+    expect(control.dagsgrundlag).toBeDefined();
 
-    // Forceret runtime-exception EFTER inspektionSnapshot er bygget.
     pdfModelThrowFlag.shouldThrow = true;
     const snapshot = computeEoSnapshot({
       revision: 'runtime-throw',
@@ -68,16 +63,13 @@ describe('computeEoSnapshot – runtime_exception fail-close', () => {
     expect(snapshot.status).toBe('fail_closed');
     expect(snapshot.failClosedReason).toBe('runtime_exception');
     expect(snapshot.data).toBeNull();
-    // Kontrakt §2.4: inspektionSnapshot er null i fail_closed – også selvom den nåede at blive bygget.
-    expect(snapshot.inspektionSnapshot).toBeNull();
+    expect(snapshot.dagsgrundlag).toBeUndefined();
     expect(snapshot.invariants.some((invariant) => invariant.id === 'runtime_exception')).toBe(true);
     expect(reportSystemIssueMock).toHaveBeenCalledWith(
       expect.objectContaining({
         code: 'eo_snapshot:runtime_exception',
         context: 'eoSnapshot.computeEoSnapshot',
         revision: 'runtime-throw',
-        // Diagnostik registrerer at en inspektionSnapshot var bygget, selvom resultatet nulstiller den.
-        diagnostics: expect.objectContaining({ inspektionSnapshotAvailable: true }),
       })
     );
   });

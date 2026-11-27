@@ -238,8 +238,7 @@ export const REGULERINGSVAERDIER_PENSION_HEADER = 'AG-pension';
  * konkrete ydelse, den er (`feriepenge-begreber-contract.md` §2d): «Feriegodtg.» eller «Ferietill.» – den
  * generiske «Feriegodtg./-till.» kun, når tabellens rækker rummer begge ydelser.
  *
- * Højrejusteringen i UI og PDF matcher på overskriftsstrengen (`regulationTableColumns.ts`,
- * `reguleringSection.ts`), så de læser alle tre former herfra; en håndskrevet kopi ville miste justeringen, så
+ * Højrejusteringen i PDF og Word matcher på overskriftsstrengen, så rendererne læser alle tre former herfra; en håndskrevet kopi ville miste justeringen, så
  * snart en overskrift blev rettet.
  */
 export const REGULERINGSVAERDIER_FERIE_HEADERS = Object.freeze({

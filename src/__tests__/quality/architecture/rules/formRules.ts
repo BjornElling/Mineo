@@ -545,13 +545,11 @@ export const reguleringCanonicalForloebBoundary = forbidImports({
   liveTarget: {
     kind: 'precondition',
     probe: (entry) =>
-      entry.relativePath === 'src/domain/erstatningsopgoerelse/engines/reguleringsPresentation.ts'
-      || entry.relativePath === 'src/domain/eoInspektion/eoInspektionRegulationCore.ts',
-    rationale: 'begge de regulerede præsentations-/kontrolmoduler findes stadig',
+      entry.relativePath === 'src/domain/erstatningsopgoerelse/engines/reguleringsPresentation.ts',
+    rationale: 'reguleringspræsentationen findes',
   },
   appliesTo: (relativePath) =>
-    relativePath === 'src/domain/erstatningsopgoerelse/engines/reguleringsPresentation.ts'
-    || relativePath === 'src/domain/eoInspektion/eoInspektionRegulationCore.ts',
+    relativePath === 'src/domain/erstatningsopgoerelse/engines/reguleringsPresentation.ts',
   forbidden: (ref, fromRelativePath) => {
     if (fromRelativePath === 'src/domain/erstatningsopgoerelse/engines/reguleringsPresentation.ts' && !ref.typeOnly) {
       if (/\/(?:offentligLoenLookup|overenskomstReguleringShared|aslAarsloensmaksimum|reguleringFormRegistry)$/.test(ref.moduleSpecifier)) return true;
@@ -585,38 +583,14 @@ export const reguleringCanonicalForloebBoundary = forbidImports({
       code: "import { computeFormulaValue } from './reguleringFormulaUtils';",
     },
     {
-      relativePath: 'src/domain/eoInspektion/eoInspektionRegulationCore.ts',
-      code: "import { buildKrlIndexEntries } from '../erstatningsopgoerelse/engines/krlRegulering';",
-    },
-    {
       relativePath: 'src/domain/erstatningsopgoerelse/engines/reguleringsPresentation.ts',
       code: "import { statistiskLoenudvikling } from '../../../data/statistiskeRates';",
-    },
-    {
-      relativePath: 'src/domain/eoInspektion/eoInspektionRegulationCore.ts',
-      code: "import { klLoenaftalerRaekker } from '../../data/klLoenaftaler';",
-    },
-    {
-      relativePath: 'src/domain/eoInspektion/eoInspektionRegulationCore.ts',
-      code: "const rawRates = await import('../../data/statistiskeRates');",
     },
   ],
   cleanFixtures: [
     {
       relativePath: 'src/domain/erstatningsopgoerelse/engines/reguleringsPresentation.ts',
       code: "import { buildFormulaText, type FormulaComponents } from './reguleringFormulaUtils';",
-    },
-    {
-      relativePath: 'src/domain/eoInspektion/eoInspektionRegulationCore.ts',
-      code: "import type { ReguleringForloeb } from '../erstatningsopgoerelse/engines/reguleringForloeb';",
-    },
-    {
-      relativePath: 'src/domain/eoInspektion/eoInspektionRegulationCore.ts',
-      code: "import { getReguleringsDatoIntervalForStatistikModel } from '../../data/statistiskeRates';",
-    },
-    {
-      relativePath: 'src/domain/eoInspektion/eoInspektionRegulationCore.ts',
-      code: "import { getReguleringsDatoIntervalForKlLoenaftaler } from '../../data/klLoenaftaler';",
     },
   ],
 });
@@ -2624,10 +2598,6 @@ export const contextualFieldLabelSingleAuthorityRule = defineRule({
       code: "function navn(t: string) {\n  if (t === 'Erhvervssygdom') return 'Anmeldelsesdato';\n  return 'Skadedato';\n}",
     },
     // Og som et opslagsobjekt inde i en pilefunktion.
-    {
-      relativePath: 'src/domain/eoInspektion/eoInspektionRegulationCore.ts',
-      code: "const navn = (t: string) => ({ Erhvervssygdom: 'Anmeldelsesdato', Arbejdsulykke: 'Skadedato' })[t];",
-    },
     // En enkelt fast label på en fagside er også forkert: den skjuler konteksten fra den fælles descriptor.
     {
       relativePath: 'src/components/pages/x/XTab.tsx',

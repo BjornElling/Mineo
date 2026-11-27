@@ -61,7 +61,6 @@ const byggResultat = (
   if (!tabel || tabel.vaerdier.length === 0) {
     throw new Error('Loenudvikling kan ikke beregnes: KRL satstabel mangler');
   }
-  // Bevidst parity med eoInspektionRegulationCore:
   // KRL strategien modellerer kun selve KRL-indeksserien.
   // Store Bededag indgår derfor ikke som separat breakpoint i denne strategi.
 

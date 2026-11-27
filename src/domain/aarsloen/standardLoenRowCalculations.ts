@@ -178,6 +178,7 @@ export const calculateStandardLoenProjectedAmounts = (
     selectedDates?: readonly ISODateString[];
     rateSegments?: readonly StandardLoenRateSegment[];
     mode?: TillaegAngivesSom;
+    onDay?: (date: ISODateString, amounts: StandardLoenProjectedAmounts) => void;
   }>
 ): StandardLoenProjectedAmounts => {
   const interval = parseAarsloenRowInterval(row, options.loenperiode);
@@ -221,6 +222,13 @@ export const calculateStandardLoenProjectedAmounts = (
       resolveSatserForDate(iso, satser, rateSegments),
       mode
     );
+    options.onDay?.(iso, {
+      ...derived,
+      grundloen: dailyAmounts.loen,
+      tillaeg: dailyAmounts.loen2,
+      ikkePensionsgivende: dailyAmounts.ikkePensionsgivende,
+      atp: dailyAmounts.atp,
+    });
     grundloen += dailyAmounts.loen;
     tillaeg += dailyAmounts.loen2;
     ikkePensionsgivende += dailyAmounts.ikkePensionsgivende;

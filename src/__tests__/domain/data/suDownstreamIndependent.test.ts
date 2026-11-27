@@ -1,4 +1,5 @@
-import { buildEOInspektionModel } from '../../../domain/eoInspektion/eoInspektionKontrolModel';
+import { buildIncomeForRanges } from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
+import { collectIncomeDays } from '../../../domain/erstatningsopgoerelse/engines/eoIndkomstDagsgrundlag';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
@@ -24,36 +25,19 @@ const buildValues = (): ErstatningsopgoerelseValues => {
 
 describe('SU som EO-downstream-consumer', () => {
   it('fordeler SU på kalenderdage over månedsgrænse og weekend', () => {
-    const model = buildEOInspektionModel(buildValues(), { tafRanges: [] });
-    const amounts = model.columnRawValues.get('offentlig:su');
+    const { receiver, days } = collectIncomeDays();
+    const values = buildValues();
+    if (!values.vedroererPeriodeFra || !values.vedroererPeriodeTil) throw new Error('Testperioden mangler');
+    const income = buildIncomeForRanges(values, [{ fra: values.vedroererPeriodeFra, til: values.vedroererPeriodeTil }],
+      undefined, undefined, undefined, receiver);
+    const amounts = new Map(days.ydelse.get('su')?.map(({ date, amount }) => [date, amount]));
     const relevantDates = [
       iso('2024-05-30'),
       iso('2024-05-31'),
       iso('2024-06-01'),
       iso('2024-06-02'),
     ];
-    const relevantIndexes = relevantDates.map((date) => model.tableData.dates.indexOf(date));
-
-    expect(model.columns.find((column) => column.id === 'offentlig:su')?.header).toBe('SU');
-    expect(amounts).toBeDefined();
-    expect(relevantIndexes.every((index) => index >= 0)).toBe(true);
-    if (!amounts) return;
-
-    // 30. maj–2. juni er fire kalenderdage. 900 kr. + 300 kr. = 1.200 kr.,
-    // så det håndberegnede facit er 1.200 kr. / 4 = 300 kr. pr. dag.
-    expect(relevantIndexes.map((index) => amounts[index])).toEqual([300, 300, 300, 300]);
-    expect(relevantIndexes.map((index) => model.getCell(index, 'offentlig:su'))).toEqual([
-      '300,00',
-      '300,00',
-      '300,00',
-      '300,00',
-    ]);
-    expect(relevantIndexes.map((index) => model.tableData.isWorkdayByIndex[index])).toEqual([
-      true,
-      true,
-      false,
-      false,
-    ]);
-    expect(amounts.reduce((sum, value) => sum + value, 0)).toBe(1200);
+    expect(relevantDates.map((date) => amounts.get(date) ?? 0)).toEqual([300, 300, 300, 300]);
+    expect(income.benefits).toEqual([{ typeKey: 'su', label: 'SU', amount: 1200 }]);
   });
 });

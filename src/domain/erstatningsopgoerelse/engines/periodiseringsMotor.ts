@@ -288,8 +288,9 @@ export const buildOffentligYdelsePeriodiseringsGrundlag = (args: {
 export const countOffentligYdelseOverlapDage = (args: {
   range: IsoRange;
   grundlag: OffentligYdelsePeriodiseringsGrundlag;
+  onDay?: (date: ISODateString) => void;
 }): number => {
-  const { range, grundlag } = args;
+  const { range, grundlag, onDay } = args;
 
   let overlapDage = 0;
   const rangeFraDate = parseISODate(range.fra);
@@ -301,7 +302,7 @@ export const countOffentligYdelseOverlapDage = (args: {
   const overlapDaysInclusive = countInclusiveUtcDays(overlapStart, overlapEnd);
   if (!overlapDaysInclusive || overlapDaysInclusive <= 0) return 0;
 
-  if (grundlag.periodisering === 'kalenderdage') return overlapDaysInclusive;
+  if (grundlag.periodisering === 'kalenderdage' && !onDay) return overlapDaysInclusive;
 
   const fallbackAllocationDays = grundlag.fallbackAllocationDays;
   iterateDatesInclusive(overlapStart, overlapEnd, (date) => {
@@ -323,6 +324,7 @@ export const countOffentligYdelseOverlapDage = (args: {
       return;
     }
     overlapDage += 1;
+    onDay?.(iso);
   });
   return overlapDage;
 };
@@ -331,6 +333,7 @@ export const periodiserBeloebForOffentligYdelseMedGrundlag = (args: {
   totalBeloeb: number;
   range: IsoRange;
   grundlag: OffentligYdelsePeriodiseringsGrundlag;
+  onDay?: (date: ISODateString) => void;
 }): number => {
   const { totalBeloeb, grundlag } = args;
   const overlapDage = countOffentligYdelseOverlapDage(args);

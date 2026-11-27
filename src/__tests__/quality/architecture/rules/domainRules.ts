@@ -228,54 +228,6 @@ export const seriesCoverageEndpointsViaPrimitive = defineRule({
   ],
 });
 
-// --- Lag-grænse: domæne må ikke importere inspektions-/kontrollaget ----------
-
-const INSPEKTION_LAYER = 'src/domain/eoInspektion';
-
-const importPointsIntoInspektion = (moduleSpecifier: string, fromRelativePath: string): boolean => {
-  if (moduleSpecifier.startsWith('.')) {
-    const resolved = resolveRelativeImport(fromRelativePath, moduleSpecifier);
-    return resolved !== null && (resolved === INSPEKTION_LAYER || resolved.startsWith(`${INSPEKTION_LAYER}/`));
-  }
-  // Ikke-relative (alias/absolut/bart modul): match på segmentet, så en fremtidig path-alias også fanges.
-  return moduleSpecifier.includes('domain/eoInspektion');
-};
-
-export const inspektionLayerImport = forbidImports({
-  id: 'layer/inspektion-import-boundary',
-  description:
-    'Kun de to sanktionerede snapshot-bro-filer må importere src/domain/eoInspektion; den autoritative motor + kontrol-kerne skal være inspektionsfri (B9).',
-  liveTarget: {
-    kind: 'scoped',
-    roots: [INSPEKTION_LAYER, 'src/domain'],
-    rationale: 'både inspektionslaget (det beskyttede mål) og domænelaget (scopet) skal findes',
-  },
-  // Alle domæne-filer uden for selve inspektionslaget kontrolleres (dækker eoRowEvaluation, canonicalOutput, controlMismatch m.fl.).
-  appliesTo: (relativePath) =>
-    relativePath.startsWith('src/domain/') && !relativePath.startsWith(`${INSPEKTION_LAYER}/`),
-  allow: [
-    'src/domain/erstatningsopgoerelse/snapshot/eoSnapshot.ts',
-    'src/domain/erstatningsopgoerelse/snapshot/eoSnapshotToInspektionView.ts',
-  ],
-  forbidden: (ref, fromRelativePath) => importPointsIntoInspektion(ref.moduleSpecifier, fromRelativePath),
-  message: (ref) => `Import af inspektions-/kontrollaget (${ref.moduleSpecifier}) uden for de sanktionerede broer.`,
-  violatingFixtures: [
-    {
-      relativePath: 'src/domain/erstatningsopgoerelse/engines/foo.ts',
-      code: "import { buildEOInspektionSnapshot } from '../../eoInspektion/eoInspektionSnapshot';",
-    },
-    { relativePath: 'src/domain/x/y.ts', code: "import { x } from '@/domain/eoInspektion/eoInspektionSnapshot';" },
-    { relativePath: 'src/domain/x/y.ts', code: "import { x } from 'src/domain/eoInspektion/eoInspektionSnapshot';" },
-  ],
-  cleanFixtures: [
-    {
-      relativePath: 'src/domain/erstatningsopgoerelse/engines/foo.ts',
-      code: "import { collectAllEoRows } from '../../eoRowEvaluation/eoRowAggregator';",
-    },
-    { relativePath: 'src/domain/x/y.ts', code: "import { z } from '@mui/material';" },
-  ],
-});
-
 // --- EET-domæne: intet tværside-persisted-opslag ind i erhvervsevnetab -------
 
 // `domain/eet-cross-domain-persisted-lookup` er SLETTET.

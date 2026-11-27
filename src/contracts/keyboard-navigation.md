@@ -4,7 +4,7 @@
 **Type:** Tværgående kontrakt
 **Gælder for:** Hele Mineo applikationen
 **Målgrænser:** `Container`, fælles felt-editor og grid-navigation
-**Senest verificeret mod kode:** 2026-11-26
+**Senest verificeret mod kode:** 2026-11-27
 
 ---
 
@@ -49,15 +49,14 @@ info-ikonet (`InfoTooltipIcon`, et fokusérbart ikon, der ikke er en del af Cont
 `Slet alt` – ligger bevidst uden for Containerens ring; navigation mellem sider og filhandlinger sker med mus.
 Sidemenuen skal ikke ind i ringen.
 
-`PageTabs` og `SideTab` er den eksplicitte undtagelse: de er native tastaturkontroller og bærer
-`data-mineo-tab-navigation="true"`, men står stadig uden for Containerens indholds-inventar. På en
-fokuseret `PageTabs` kan MUI's piletaster flytte mellem fanerne, og Enter aktiverer den fokuserede
-fane. En fokuseret `SideTab` aktiveres med Enter eller mellemrum.
+`PageTabs` bærer `data-mineo-tab-navigation="true"` og står uden for Containerens indholds-inventar.
+Når fokus er på en fane, flytter piletasterne fokus mellem fanerne, og Enter aktiverer den
+fokuserede fane.
 
 Når fokus først er inde i en sides eller en aktiv fanes indhold, består Containerens inventar kun af
 indholdets synlige fokusmål. Tab, Shift+Tab, Enter og piletaster cirkulerer derfor inden for dette
 indhold; fra sidste mål fortsættes ved første og omvendt. Ingen af disse taster må føre fokus til en
-`PageTabs`- eller `SideTab`-kontrol. Navigationskontrollerne kan kun introduceres ved, at brugeren
+`PageTabs`-kontrol. Navigationskontrollerne kan kun introduceres ved, at brugeren
 allerede har sat fokus på dem gennem browserens almindelige fokusflow eller en anden eksplicit
 navigation.
 

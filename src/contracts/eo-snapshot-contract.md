@@ -24,7 +24,7 @@ parallelle beregninger i UI, kontrol og dokumentlag følger `snapshot-contract.m
 
 Alle visninger er projektioner af snapshot:
 - `eoSnapshotToBeregningView`
-- `eoSnapshotToInspektionView`
+- `eoDagsgrundlagCsv`
 - `eoSnapshotToEoDocument`
 - `eoSnapshotToTafPerYearDocument`
 - `eoSnapshotToTafPerYearOpreguleretDocument` (projektion for beregningsformen "TAF opreguleret til beregningsår"; forwarder både per-år-resultatet og det opregulerede resultat uden ny domæneberegning)
@@ -48,7 +48,7 @@ arbejdsgiverbetalt sygeløn, men før feriesubtraktion til SFGG-segmentering.
 - Alle reguleringsformer emitterer et schema-valideret reguleringsbevis sammen med hvert anvendt segment:
   referencegrundlag, periodegrundlag, præcis faktor, anvendt procent efter formens afrunding og relevante
   formelkomponenter. KL-lønaftaler bevarer trinvis afrunding på lønnen og periodens egen procent.
-- Reguleringsværdier, beregnet regulering, kontrolvisning, PDF og Word formatterer motorens grundlag og
+- Reguleringsværdier, beregnet regulering, CSV, PDF og Word formatterer motorens grundlag og
   resultat. De må ikke vælge alternative referencesatser, genopbygge lønpakker eller beregne et nyt indeks.
   En sammensat lønpakke dateres tidligst ved den seneste ikrafttræden af dens komponenter, fx 1. januar
   2024 når Store Bededagstillægget indgår sammen med en grundløn fra 2023. Den må ikke vise tillægget som
@@ -116,7 +116,7 @@ Stille clamping sker **kun** mod EO-periodens grænser:
 - Svie/smerte til-dato `> vedroererPeriodeTil` → clampes til `vedroererPeriodeTil`
 
 Disse clampings giver **ingen fejlindikation** i felt, EOberegningTab eller snapshot-invariants.
-Snapshot og EOInspektion bruger de clampede værdier som effektivt beregningsinput uden at ændre de afsluttede
+Snapshottet bruger de clampede værdier som effektivt beregningsinput uden at ændre de afsluttede
 canonical værdier. Ligger alle TAF-perioder uden for EO-perioden, giver «Fejl og advarsler» den gule linje
 «Der er indtastet TAF-perioder, men ingen af perioderne ligger inden for EO-perioden. TAF beregnes derfor til
 0 kr.»; er der slet ingen TAF-periode i EO-perioden, «Der er ikke angivet nogen TAF-periode i EO-perioden».
@@ -247,7 +247,7 @@ invarianter** for rækkefølgen; pipeline-doc'en må aldrig modsige dem:
    fejl, medmindre en kontrakt udtrykkeligt kræver afvigende merge-semantik.
 
 5. **Ethvert svie/smerte-overlap afvises** – også overlap mellem perioder med samme tilstand.
-   Validator og `svieSmerteEngine` afviser ethvert overlap, og tabel-/kontrollaget markerer det
+   Validator og `svieSmerteEngine` afviser ethvert overlap, og feltvalideringen markerer det
    synligt før gem. Der findes ingen "samme tilstand er tilladt"-undtagelse.
 
 5a. **Alle overlap er ugyldige, og indtastede perioder omfortolkes ikke** (udviklerens afgørelse).
@@ -285,27 +285,10 @@ invarianter** for rækkefølgen; pipeline-doc'en må aldrig modsige dem:
 Clamping sker pre-snapshot i `computeEoSnapshot`. Engines arbejder **altid** på clampede
 værdier – også når der vises fejl for fejlgivende bounds (§2.2).
 
-`inspektionSnapshot` bygges eksplicit med de clampede ranges efter `buildTafRanges` er kaldt i
-`computeEoSnapshot`, så EOInspektion aldrig viser TAF-dage der ikke indgik i beregningen.
-
-I validerings-fejl-stien (autoritative totaler/PDF'er bygges ikke) bygges `inspektionSnapshot`
-stadig med de **sektions-uafhængige** engine-data der kan beregnes sikkert: svie/smerte-engine, når
-ingen af dens egne afhængigheder er røde (forligsafhængige felter neutraliseres efter §3.3), samt clampede
-TAF-ranges for de rækker der stadig kan parses. Det giver EOInspektion samme clamping-billede for gyldige
-rækker, uden at vise dagtal der ikke indgik i en autoritativ beregning. Er alle rækker ugyldige eller clampes
-bort, er `[]` den forventede fail-closed kontrol-basis. I `fail_closed`-stien (uventet runtime-exception) er
-`inspektionSnapshot` derimod `null`.
-Kontrollaget må ikke lave nye fallback-enginekald for sektions-**afhængige** delresultater
-(TAF-totaler, løn-afledte beløb). Når autoritativt engine-output mangler, skal kontrollaget vise
-tom/ikke-beregnet tilstand i stedet for semi-autoritative beløb eller dagtal.
-
-**Reguleringsforløbet er sektions-afhængigt og fail-closes derfor i validerings-fejl-stien**
-(udviklerens afgørelse): det viste reguleringsforløb er udelukkende
-den kanoniske serie fra det autoritative `pdfModel` (ingen re-derivation), som netop ikke bygges,
-når autoritativ beregning er blokeret. EOInspektion viser derfor reguleringsafsnittet som
-placeholders (ingen indeks-/værditabeller), indtil valideringsfejlen er løst. Der må IKKE
-genindføres en separat fejl-tilstands-serie for regulering; det ville kunne vise en tabel, der
-ikke svarer til nogen autoritativ beregning.
+Beregning og dagsgrundlag læser de samme afkortede perioder fra snapshottet. Ved valideringsfejl
+bærer `readyBranches` de uafhængige resultater, der stadig kan vises. S/S-resultatet sættes kun,
+når grenens egne afhængigheder er gyldige. Efter-forligsdata i grenen følger §3.3.
+CSV-filens afgrænsning er beskrevet i §6.2.
 
 ---
 
@@ -330,13 +313,13 @@ Bruges til:
 er strukturelle feltissues og bliver derfor også snapshot-invariants for de consumers, der læser feltet.
 De må gerne gemmes som schema-gyldigt canonical input, men må ikke fodre en autoritativ motor eller et
 afhængigt dokument. Snapshottes autoritative `data` er derfor `null` i den blokerede gren; uafhængige
-inspektionsgrene må fortsat eksponere de data, der ikke læser det fejlramte felt. Der beregnes ikke stiltiende
+beregningsgrene må fortsat eksponere de data, der ikke læser det fejlramte felt. Der beregnes ikke stiltiende
 videre på en clampet værdi.
 
 ### 3.2 `blocksOutputs`
 
 Projektions-targets (`EoProjectionTarget` i `eoSnapshotInvariants.ts`) er:
-`'beregning' | 'inspektion' | 'eo_pdf' | 'taf_per_year_pdf' | 'taf_per_year_opreguleret_pdf'`.
+`'beregning' | 'eo_pdf' | 'taf_per_year_pdf' | 'taf_per_year_opreguleret_pdf'`.
 Det opregulerede target dækker beregningsformen "TAF opreguleret til beregningsår", der bygger
 oven på per-år-resultatet.
 
@@ -396,13 +379,9 @@ de summerer eller sammenstiller flere grene. De bygges derfor kun, når INGEN gr
 ukendt led er ukendt, og et dokument med et manglende afsnit er ikke autoritativt. `data` er `null` i den
 situation, og det autoritative output har ingen halv-tilstand.
 
-**De gyldige grene eksponeres gennem `readyBranches`, ikke kun `inspektionSnapshot`.** Snapshottet bærer på den
-blokerede sti de grene, der stadig kunne beregnes sikkert (`svieSmerte`, `tafPerioder`; `undefined` =
-"blokeret af sin egen røde afhængighed"). `eoSnapshotToBeregningView` falder tilbage til `tafPerioder`, så
-Beregning-fanen fortsat viser den GYLDIGE TAF-periodisering, når et svie/smerte-felt er rødt (udviklerens
-afgørelse). Fanen læser kun snapshottet og ser ikke `inspektionSnapshot`, så et krav om, at den delvise visning
-"lever i inspektionSnapshot", ville i praksis fjerne gyldige data fra brugeren.
-`canonicalOutput` har bevidst **intet** fald-tilbage: det ER det krydsgående aggregat.
+**De gyldige grene eksponeres gennem `readyBranches`.** `eoSnapshotToBeregningView` læser
+`tafPerioder` fra den gyldige TAF-gren, også når en fejl i svie/smerte spærrer den samlede
+opgørelse. `canonicalOutput` kræver hele beregningen.
 
 Fail-closed-backstoppet er aggregatnoden `blockedDependencies.aggregate`: ENHVER rød feltfejl gør aggregatet
 ikke-autoritativt – også en, ingen gren genkender. En ukendt fejl må hverken forsvinde lydløst ud af gatingen
@@ -437,12 +416,12 @@ Snapshot-status sættes deterministisk:
 | Status | Betingelse |
 |---|---|
 | `fail_closed` | System-/schema-/runtime-tilstand hvor snapshot-build ikke må levere autoritativ beregning. `data: null`, `failClosedReason` skal være sat, og PDF/kontrol må ikke bruge totals. |
-| `error` med `data: null` | Forventelig bruger-/validatorblokering før autoritativ beregning, herunder `blocksAuthoritativeComputation`. Kontrollaget må kun bruge sikre delprojektioner. |
+| `error` med `data: null` | Forventelig bruger-/validatorblokering før autoritativ beregning, herunder `blocksAuthoritativeComputation`. Beregning og CSV kan vise sikre delprojektioner. |
 | `error` med `data` | Output-specifikke fejl der ikke stopper beregningen, men blokerer relevante outputs (fx kontroluoverensstemmelse, TAF-per-år-afstemningsfejl over 100 øre). Bounds-violations (§2.2) sætter ikke snapshot til `error`; de er inputissues, som dokumentdefinitionen aggregerer. |
 | `warning` | Ingen errors, men mindst én warning-invariant er brudt |
 | `ok` | Ingen brudte invariants |
 
-Projektioner må ikke gætte på statusnavn alene. De skal også respektere `data`, `inspektionSnapshot` og `failClosedReason`. Ved `fail_closed` er totals og mellemregninger utilgængelige og må ikke vises som gyldige.
+Projektioner må ikke gætte på statusnavn alene. De skal også respektere `data`, `readyBranches` og `failClosedReason`. Ved `fail_closed` er totals og mellemregninger utilgængelige og må ikke vises som gyldige.
 
 ---
 
@@ -453,162 +432,44 @@ Friskhedsreglerne i `snapshot-contract.md` §10 gælder. EO-snapshottet bygges a
 
 - Et stale snapshot må ikke bruges til at konstatere kontroluoverensstemmelse eller anden blokering, der
   forudsætter et friskt snapshot – ellers kan systemet blokere på forældede mellemresultater.
-- Ved visning af Beregning, EOInspektion og EOKontrolTabel skal et stale snapshot erstattes af en ny
+- Ved visning af Beregning skal et stale snapshot erstattes af en ny
   snapshot-build før normal visning fortsætter.
 
 ---
 
-## 6. EOInspektion og EOKontrolTabel – altid-kan-dannes garanti
+## 6. Bevarelseslove og dagsgrundlag
 
-**Besluttet afvikling (ikke gennemført).** Udvikleren har besluttet, at begge kontrolfaner afvikles helt. De er
-ikke en uafhængig kontrol: EO-kontrol viser motorens egne tal og validering, og sammentællingen fanger kun
-rørføringsfejl. Sikkerheden varetages i stedet af (1) bevarelseslove som snapshot-invarianter – det eksisterende
-indeksforholds-check i `eoCanonicalOutput.ts` bevares, og SFGG-total = summen pr. ansættelsesforhold tilføjes; (2) en
-særskilt CSV-download af dagsgrundlaget på Beregning med et kort navn, hvor CSV indgår, bygget som ren
-snapshotprojektion og sikret af en test, der kræver, at kolonnesummerne er lig opgørelsens tal (afklar restøre ved
-summering, og om CSV må hentes ved fejl i en anden gren); (3) egenskabstests i runtime-fuzzen (ombytning af
-uafhængige rækker, input uden for alle perioder). Derefter fjernes `control:sammentaelling_mismatch`, fanerne,
-`inspektionSnapshot`, target `'inspektion'`, linket «Kontroltabel» og værnet `inspektionLayerIsolation.test.ts`; `showEOInspektionMenu`
-udgår og ignoreres stille i gamle indstillinger, og en bruger med en kontrolfane som sidst valgte fane lander på en
-gyldig fane. Beløbsregressionerne for negative rækker og weekendydelse-testen skal overleve. Der indgår ingen
-facitsager og ingen uafhængig referenceberegning. Når afviklingen er gennemført, omskrives §6–§6.3. Indtil da
-beskriver resten af §6 fanerne, som de er; fanernes egne skønhedsfejl (fx markøren ved to afskæringer samme dag)
-rettes ikke.
+### 6.1 Snapshot-invarianter
 
-Kontrolfanerne «EO-kontrol» og «Kontroltabel» vises kun, når indstillingen «Vis kontrolfaner på
-Erstatningsopgørelse-side» (`showEOInspektionMenu`, standard fra) er slået til. Slås den fra, mens en kontrolfane
-er aktiv, skifter visningen til «EO oplysninger» (`e2e/kontrolfaner-toggle-browsergren.spec.ts`). Linket
-«Kontroltabel» i «Fejl og advarsler» tilbydes kun, når fanerne vises.
+`eoCanonicalOutput.ts` afstemmer hvert lønudviklingssegments indeksforhold, anvendte regulering og
+segmentbeløb med motorens reguleringsbevis, inklusive KL med nulbasis. Sygeferiegodtgørelsens total
+skal være summen i øre pr. ansættelsesforhold. Det samlede krav skal være summen af delkravene.
+En inkonsistent beregning stopper med en systemfejl.
 
-EOInspektion og EOKontrolTabel **kan altid dannes** fra snapshot-data.
+Runtime-fuzzen sammenligner gyldige beregninger efter ombytning af uafhængige lønrækker og efter
+tilføjelse af en ydelse uden for beregnings- og erstatningsperioderne. Den summerer også de beløb,
+der faktisk står i CSV-filen, og sammenholder dem med opgørelsens indtægtsfradrag pr. kilde.
 
-**Manglende datoer er forventelig adfærd:** Manglende fra- eller til-datoer på
-TAF/svie-smerte-rækker betyder blot, at brugeren endnu ikke har udfyldt dem. Det er
-ikke en systemfejl. EOInspektion viser de clampede værdier korrekt. Ingen `BugReportButton`
-vises i EOInspektion eller EOKontrolTabel.
+### 6.2 CSV på Beregning
 
-Validator og snapshot-invariants klassificerer manglende datoer som fejl – det sker
-i EOberegningTab, ikke i EOInspektion-visningen.
+- «Download dagsgrundlag som CSV-udtræk» henter `{journalnr} - Dagsgrundlag.csv` efter sagens
+  filnavnsregel. Filen læser den afsluttede revisions snapshot. Dansk Excel kan læse filens
+  semikolon, decimaltegn og UTF-8 med BOM.
+- Dage, regulering og indtægter kommer fra beregningens perioder, reguleringssegmenter og
+  dagsfordeling. Et ansættelsesforholds kolonner har dets entydige navn som præfiks.
+  Beregningsgrundlagets indtægter har egne kolonner, så de kan summeres hver for sig.
+- En særskilt «Afrunding»-linje indeholder forskellen mellem de viste dagsbeløb og hver
+  kolonnetotal. For TAF-fradraget svarer totalen til opgørelsens beløb, også ved midlertidigt EET,
+  hvis fradrag afrundes pr. periode. Fx vises 100 kr. over tre dage som tre gange 33,33 kr. og
+  0,01 kr. på afrundingslinjen.
+- Beregning angiver, hvilke dele filen dækker. Hvis en fejl i svie/smerte spærrer opgørelsen,
+  kan brugeren stadig hente et gyldigt TAF-grundlag. En blokeret grens oplysninger udelades.
+  Når der ikke er et gyldigt dagsgrundlag, er downloadknappen deaktiveret.
 
-Hvis `inspektionSnapshot` er `null` (ved `fail_closed` før engines kørte), vises en passende
-tom-/fejltilstand uden at forsøge at rendere beregningsindhold.
+### 6.3 Browserindstillinger
 
-For reguleringsformer med en selvstændig kildeserie skal EOInspektion læse motorens
-`ReguleringForloeb` fra snapshotets lønudviklingsmodel. Kontrol- og dokumentlag må ikke genindlæse
-statistik-, KRL-, KL-lønaftale- eller manuel-procentsatsserier fra rå data. Kontrollaget må og skal
-fortsat genberegne selve indeksforholdet ud fra serien som et uafhængigt aritmetisk krydstjek.
-
-### 6.1 Sammentællingskontrollens to sider deler inputgate (normativ)
-
-En sammentællingsrække sammenligner en BEREGNET værdi med en TABEL-aflæst værdi. De to sider skal
-hvile på **samme** krav til inputtet. Kan den ene side ikke dannes, fordi inputtet ikke er et gyldigt,
-færdigt grundlag, må den anden side heller ikke danne et tal.
-
-Reglen er ikke kosmetisk. `control:sammentaelling_mismatch` er klassificeret `source: 'system'` og
-routes til `reportSystemIssue`, så den åbner notitsen «Teknisk fejl registreret». Et «beregnet=-,
-tabel=263» er ikke to opgørelser, der er uenige – det er én opgørelse, der mangler – og at melde det
-som systemfejl sender brugeren efter en kodefejl i stedet for efter sin egen indtastning.
-
-Reglen er STRUKTUREL, ikke en konvention: `SammentaellingControl` er nominal, og
-`buildSammentaellingControl` er dens eneste konstruktør. Den beregnede side erklæres som enten
-`vaerdi` eller `grundlag-mangler`, og ved `grundlag-mangler` tømmer konstruktøren BEGGE sider. En
-håndskrevet objektliteral er en compile-fejl.
-
-Tre indgange til asymmetrien er målt af
-`src/__tests__/domain/eoInspektion/eoInspektionSammentaellingInputGate.test.ts`:
-
-1. **Overlap.** En beregningsperiode, der deler en dag med en TAF-periode, overlapper i den lukkede
-   intervalalgebra. Overlappet blokerer kun TAF-grenen; beregningsperioden kan stadig læses, så begge sider af
-   dens række danner et tal (fx `22` / `22`), mens den røde TAF-gren viser `-` / `-`. Fejlen meldes alene som den
-   røde række «Der er overlap mellem beregningsperioden (…) og en TAF-periode (…)», som blokerer downloaden.
-2. **Uafsluttet påkrævet felt.** «Øvrigt fravær uden løn» sat til Ja, mens antalsfeltet endnu er tomt.
-   Begge sider melder `grundlag-mangler`.
-3. **Gemt label i stedet for nøgle.** En `ydelsestype` kan i en tidligere gemt `.eo`-fil bære den viste
-   label («Sygedagpenge») frem for nøglen.
-
-Den sidste peger på en generalisering af reglen: **de to sider skal også forstå de samme data ens.**
-Enhver normalisering af en gemt værdi (label→nøgle, versalisering, alias) skal ligge ét sted, som
-begge sider bruger – ellers kan de se forskellige ydelser og melde en uoverensstemmelse, der kun er en
-opslagsforskel. En ydelsestype gemt som label forstås derfor som nøglen alle steder – celle, dagkolonner,
-dubletkontrol, sortering, bilag og kontrol – gennem `resolveYdelsestype` i `data/ydelsestyper`; filens værdi
-ændres først, når brugeren vælger igen.
-
-Fradrag i tabelsiden skal afspejle motorens normalisering og placering af dagene. Løse
-feriedage tælles gennem `buildTafFerieFravaerSummary`, så et negativt antal ikke øger
-dagstallet, og et for stort antal i én TAF-periode ikke trækkes fra en anden periode.
-Øvrige fraværsdage normaliseres med `toNonNegativeInt` som i den eksisterende dagmotor.
-Kontrollen må fortsat melde faktiske afvigelser mellem to dannede opgørelser.
-
-**En rød kontekstdato bevarer de afledte visninger**, også i tidligere gemte filer: satsreferencen følger
-beregningsperiodens røde slutdato, en fraværsrække med rød dato beholder sine «Feriedage», og en TAF-række med rød
-slutdato beholder sine TAF-arbejdsdage, mens Kontroltabellens sammentælling viser `-` / `-` for den røde gren.
-Download er spærret af den røde dato. Dækket af `e2e/erstatningsopgoerelse-tidligere-filer.spec.ts`; satsreferencen af
-`ansaettelsesforholdSatserOgDatoer.test.ts`.
-
-Regressionerne dækkes af `eoInspektionDayInputParity.test.ts` og
-`eoInspektionIncomeInputParity.test.ts`. Runtime-fuzzingen kontrollerer desuden samtlige
-sammentællingsrækker gennem readeren, også når andre inputfejl blokerer opgørelsen.
-`eoInspektionRejectedInputParity.test.ts` afslutter indtastninger gennem feltmotoren og
-kontrollerer eksplicit tal/bindestreg-pariteten ved rejected tekst og røde canonical felter.
-
-### 6.2 Kontroltabellen er en selvstændig kontrolberegning (normativ)
-
-Kontroltabellens formål er at være en **særskilt, parallel opgørelse** af skadelidtes krav: en dag-for-dag-tabel
-med sammentælling, som holdes op mod den tekniske beregning bag erstatningsopgørelsen. De to skal stemme
-nøjagtigt; en uoverensstemmelse er altid et ægte fund (§6.1), aldrig en visningsforskel (udviklerens afgørelse).
-
-Heraf følger:
-
-1. **Samme regler, egen anvendelse.** Tabellen anvender selv de regler, der afgrænser kravet – den overtager ikke
-   blot motorens resultat. Reglerne hentes fra samme kilde som motoren og valideringen, så de ikke kan drive fra
-   hinanden, men tabellen håndhæver dem uafhængigt. Slipper en dag igennem motoren i strid med en regel, tæller
-   tabellen den ikke, og sammentællingen melder det.
-2. **TAF's afskæring ved EET.** TAF ophører fra og med (afskæringsdagen er ikke en TAF-dag) den tidligste af
-   afskæringsdatoerne i §2.2: differencekravets dato, den endelige EET-dato og – **kun for skader (ved
-   erhvervssygdom: anmeldelser) før 16-06-2011** (`TAF_MIDLERTIDIG_EET_SKAERINGSDATO`) – den midlertidige
-   EET-dato. Fra den dato fortsætter TAF uanset en midlertidig EET-afgørelse og afgrænses af det endelige EET.
-   Under en verserende klage over EET afslutter ingen EET-dato TAF.
-
-   Kilden er `resolveTafCutoffDates` (motorens clamping, valideringens feltfejl og EO-kontrollens rækker).
-   Kontroltabellen anvender den i TAF-dagskolonnen (`buildTafDayStatusValues`), markerer afskæringsdagen med
-   kildens navn («Midlertidigt EET», «Endeligt EET», «Differencekrav») og viser under perioderne, hvilke datoer der
-   afslutter TAF – og hvilke EET-datoer der IKKE gør, med grunden (skade fra 16-06-2011, verserende klage).
-   EO-kontrols «TAF-ophør skyldes» nævner samme grund som dokumentet (`vaelgTafOphoersgrund`), også når to
-   afskæringer falder på samme dag.
-3. **Synligt grundlag.** Det, sammentællingen tæller, står i tabellen: TAF-dagskolonnen vises, når der er TAF-krav,
-   også uden et ansættelsesforhold. Rækken «TAF-perioder» viser første og sidste dato.
-4. **Ménafskæringen af svie/smerte** hentes ligeledes fra motorens opslag (`resolveSvieSmerteCutoffDate`) og
-   anvendes af tabellen selv; den har ingen egen kopi af betingelsen om afgørelse og verserende klage.
-5. **Kontrolfanerne er et passivt kontrolmiddel** (udviklerens afgørelse). Forudsætningen for deres
-   eksistens er, at brugeren kun ser dem, når der er opstået en advarsel om en uoverensstemmelse. Deres opgave er
-   derfor at beregne forholdene effektivt og efter princippet om **dobbelte beregninger, der sammenholdes**
-   (sammentællingen, §6.1). Beskrivende tekst på fanerne må alene have til formål at tydeliggøre en fejl, som
-   brugeren i forvejen er advaret om – fanerne må ikke selv rejse fejl, advarsler eller selvtjek, som ikke allerede
-   står i «Fejl og advarsler».
-
-Dækket af `eoInspektionTafAfskaering.test.ts` (inkl. tabellens egen afgrænsning af uafgrænsede TAF-perioder),
-`eoInspektionKontrolModelMenStopIndependent.test.ts` (ménafskæringen mod motorens opslag) og
-`e2e/kontroltabel-browseradfaerd.spec.ts`.
-
-### 6.3 Kontrolfanernes visning
-
-- Afsnittene hedder som sektionerne på «EO oplysninger»; afsnit, der gengiver en anden side eller fane
-  (Stamdata, Lønindkomst, Offentlige ydelser, Sygeferiegodtgørelse), hedder som den.
-- Statusværdier skrives «Ja» eller «Ingen», aldrig det interne «ok»; en ok-række med værdien `-` får intet flueben.
-- Sammentællingens tomme side vises som `-` uden mærke. «Tom» har én definition (`erSammentaellingVaerdiTom` i
-  `control/eoControlMismatch.ts`), som både sammenligningen og visningen læser. Grupper uden rækker udelades.
-- Uden TAF-krav har Kontroltabellen hverken ansættelsesforholdskolonner eller TAF-dagskolonne.
-- Kun en hel, ordnet erstatningsperiode (fra og til udfyldt, fra ≤ til) afgrænser dagtabellen og CSV-filen;
-  sagens øvrige perioder udvider tabellen til hele måneder.
-- Uden perioder står forklaringen over downloadknappen. Er beregningen stoppet, står der «Kontroltabellen kan ikke
-  vises, fordi beregningen er stoppet» hhv. «EO-kontrol kan ikke vises, fordi beregningen er stoppet» og
-  «Se «Fejl og advarsler» under Beregning.».
-- «Ugedag» og «Dato» står fast ved vandret rul.
-- Knappen «Download tabel (CSV-format)» giver filen `{journalnr} - Kontroltabel.csv` med kolonnenavnene
-  «<ansættelsesforhold> – <kolonne>».
-- Ansættelsesforhold navngives overalt – kontrolfaner, CSV, dokumenter, bilag og graf – med
-  `resolveAnsaettelsesforholdNavn`: ved ens navne, eller et navn der rammer et andet korts standardnavn, bruges
-  Lønindkomsts kortoverskrift; et unavngivet kort hedder «Ansættelsesforhold N».
+Ældre browserindstillinger for kontrolfanerne ignoreres. En tidligere valgt kontrolfane falder
+tilbage til «EO oplysninger». Begge kompatibilitetsregler gælder browserens indstillinger.
 
 ---
 
@@ -638,7 +499,7 @@ note i dokumentet (udviklerens afgørelse): det er normalt, at selskabet har bet
    ikke-blokerende linje «Der er ikke rejst krav under nogen af de tre emner – opgørelsen vil vise 0 kr.» og kan
    hentes: en bevidst nulopgørelse er et legitimt produkt (`eoRowOverviewRows.ts`).
 4. EO-fladerne viser ingen beregnede beløb, kun hvilke ydelser der indgår og for hvilken periode. Beregning og
-   resultat står i dokumentet og på EO-kontrol (udviklerens afgørelse).
+   resultat står i dokumentet.
 
 ---
 
@@ -768,7 +629,7 @@ EET-issues eller EET-importprojektion skal vurderes mod begge kontrakter.
 - Når togglen er `'Ja'`, bygges en effektiv `offentligeYdelserRows` ved at:
   1. Filtrere eksisterende `midlertidigt_eet`-rækker væk fra den originale canonical inputprojektion – defensiv håndhævelse af §13's *Single source of truth*-invariant, så en importeret række aldrig kan optræde både canonical og virtuelt.
   2. Tilføje de virtuelle rækker, som den canonical EO-adapter bygger fra import-contextens grupper.
-- Engines, inspektions-snapshot, presentation-model og PDF-model bygges på den effektive værdi.
+- Engines, dagsgrundlag, presentation-model og PDF-model bygges på den effektive værdi.
 - Snapshotets audit-projektion indeholder altid det oprindelige afsluttede canonical input (uden virtuelle rækker), så
   save/load round-trip og UI-visning er upåvirkede. Audit-projektionen er ikke en rå consumer-bypass.
 - **Præmis: løbende EET indtil kapitalisering.** Et indtastet erhvervsevnetab lægges til grund som
@@ -801,12 +662,9 @@ EET-issues eller EET-importprojektion skal vurderes mod begge kontrakter.
   erstatningsperioden"-linje og årsfordelingen (`buildTafPerYearBuildOutcome` i `tafPerYearDerived.ts`) får
   beløbet gennem `buildTafIndtaegterBeregning`, så det fradragne beløb er identisk med
   "Midlertidigt EET"-bilagets sammentælling bit for bit.
-- De virtuelle rækker (`buildEoValuesWithTransientMidlertidigtEet`) bevares og fødes fortsat RÅT
-  (urundet) til EO-inspektionens sammentælling/kontroltabel og til beregningsperiode-projektionen
-  (`buildOffentligeYdelserUdviklingModel`). Disse rå stier er bevidst uafhængige af den kanoniske
-  fradragsrunding: sammentællingen verificerer periodiseringen (rå = rå), og
-  beregningsperiode-projektionen er en anden størrelse (hypotetisk fremskrevet indkomst lagt TIL
-  TAF, ikke et fradrag). De må ikke kanoniseres til bilagssummen.
+- De virtuelle rækker (`buildEoValuesWithTransientMidlertidigtEet`) leverer de urundede dagsandele
+  til eksporten og grundlaget til `buildOffentligeYdelserUdviklingModel`. CSV-filens
+  afrundingslinje afstemmer indtægtsfradraget mod opgørelsen.
 
 **PDF-bilag:**
 - Ydelsen, bilaget og bilagsvalget hedder «Midlertidigt EET» (med t) overalt; «Midlertidig EET-afgørelse» bøjes
@@ -895,7 +753,7 @@ EET-issues eller EET-importprojektion skal vurderes mod begge kontrakter.
 ## 14. Neutralisering af irrelevante (skjulte) input
 
 Efter den transiente EET-injection (§13) neutraliseres irrelevante input i `effectiveEoValues`
-via `neutralizeIrrelevantEoInputs` (`helpers/eoInputRelevance.ts`), før engines, inspektions-snapshot,
+via `neutralizeIrrelevantEoInputs` (`helpers/eoInputRelevance.ts`), før engines, dagsgrundlag,
 presentation-model og PDF-model bygges. Afsnittet er normativt.
 
 **Princip:** Et felt eller en række er *relevant*, hvis den er synlig i UI'en, fordi den

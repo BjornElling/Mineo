@@ -1,4 +1,5 @@
-import { buildEOInspektionModel } from '../../../domain/eoInspektion/eoInspektionKontrolModel';
+import { buildIncomeForRanges } from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
+import { collectIncomeDays } from '../../../domain/erstatningsopgoerelse/engines/eoIndkomstDagsgrundlag';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
@@ -24,8 +25,12 @@ const buildValues = (): ErstatningsopgoerelseValues => {
 
 describe('sygedagpenge som downstream-consumer', () => {
   it('fordeler beløbet på hverdage efter helligdagsfradraget', () => {
-    const model = buildEOInspektionModel(buildValues(), { tafRanges: [] });
-    const amounts = model.columnRawValues.get('offentlig:sygedagpenge');
+    const { receiver, days } = collectIncomeDays();
+    const values = buildValues();
+    if (!values.vedroererPeriodeFra || !values.vedroererPeriodeTil) throw new Error('Testperioden mangler');
+    const income = buildIncomeForRanges(values, [{ fra: values.vedroererPeriodeFra, til: values.vedroererPeriodeTil }],
+      undefined, undefined, undefined, receiver);
+    const amounts = new Map(days.ydelse.get('sygedagpenge')?.map(({ date, amount }) => [date, amount]));
     const relevantDates = [
       iso('2024-12-23'),
       iso('2024-12-24'),
@@ -33,23 +38,7 @@ describe('sygedagpenge som downstream-consumer', () => {
       iso('2024-12-26'),
       iso('2024-12-27'),
     ];
-    const relevantIndexes = relevantDates.map((date) => model.tableData.dates.indexOf(date));
-
-    expect(amounts).toBeDefined();
-    expect(relevantIndexes.every((index) => index >= 0)).toBe(true);
-    if (!amounts) return;
-
-    // 23.–27. december 2024 har tre periodiseringsdage: 25. og 26. december er helligdage.
-    // 3.000 kr. / 3 hverdage = 1.000 kr. pr. dag; helligdagene skal stå tomme.
-    expect(relevantIndexes.map((index) => amounts[index])).toEqual([1000, 1000, 0, 0, 1000]);
-    expect(relevantIndexes.map((index) => model.getCell(index, 'offentlig:sygedagpenge'))).toEqual([
-      '1.000,00',
-      '1.000,00',
-      '',
-      '',
-      '1.000,00',
-    ]);
-    expect(model.tableData.isSognehelligdagByIndex[relevantIndexes[2]]).toBe(true);
-    expect(model.tableData.isSognehelligdagByIndex[relevantIndexes[3]]).toBe(true);
+    expect(relevantDates.map((date) => amounts.get(date) ?? 0)).toEqual([1000, 1000, 0, 0, 1000]);
+    expect(income.benefits.map((entry) => [entry.typeKey, entry.amount])).toEqual([['sygedagpenge', 3000]]);
   });
 });

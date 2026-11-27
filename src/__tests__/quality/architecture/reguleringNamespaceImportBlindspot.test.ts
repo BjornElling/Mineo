@@ -4,8 +4,8 @@ import { makeSyntheticEntry } from './sourceGraph';
 describe('ARCH-002 – reguleringsgrænsens namespace-import modprøve', () => {
   it('afviser reguleringsserie hentet gennem namespace-import', () => {
     const entry = makeSyntheticEntry(
-      'src/domain/eoInspektion/eoInspektionRegulationCore.ts',
-      "import * as serier from '../../data/statistiskeRates';",
+      'src/domain/erstatningsopgoerelse/engines/reguleringsPresentation.ts',
+      "import * as serier from '../../../data/statistiskeRates';",
     );
 
     const findings = reguleringCanonicalForloebBoundary.evaluate([entry]);

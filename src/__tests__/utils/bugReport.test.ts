@@ -125,7 +125,7 @@ describe('bugReport', () => {
           systemIssue: {
             schemaVersion: 1,
             kind: 'system_issue',
-            code: 'control:sammentaelling_mismatch',
+            code: 'taf_per_year:afrunding_over_100',
             area: 'eo',
             severity: 'error',
             context: 'EOberegningTab',
@@ -143,7 +143,7 @@ describe('bugReport', () => {
     const report = await generateBugReport(5);
 
     expect(report).toContain('=== Systemfejl payloads ===');
-    expect(report).toContain('control:sammentaelling_mismatch');
+    expect(report).toContain('taf_per_year:afrunding_over_100');
     expect(report).toContain('Ansættelsesforhold: beregnet=100, tabel=90');
   });
 
@@ -258,7 +258,6 @@ describe('bugReport', () => {
   });
 
   it('rapporterer aktive testflag én gang og ignorerer tomme flagværdier', async () => {
-    vi.stubEnv('VITE_FORCE_SAMMENTAELLING_MISMATCH', 'ja');
     vi.stubEnv('VITE_ENABLE_TEST_INJECTIONS', 'on');
     vi.stubEnv('VITE_ENABLE_DEBUG_TEST_FLAGS', '1');
     vi.stubEnv('VITE_ACTIVE_TEST_FLAGS', 'ekstra-flag, VITE_ENABLE_TEST_INJECTIONS, ,ekstra-flag');
@@ -272,7 +271,7 @@ describe('bugReport', () => {
     const report = await generateBugReport(0);
 
     expect(report).toContain(
-      'Aktive test-injektioner/feature flags: VITE_FORCE_SAMMENTAELLING_MISMATCH, VITE_ENABLE_TEST_INJECTIONS, VITE_ENABLE_DEBUG_TEST_FLAGS, ekstra-flag',
+      'Aktive test-injektioner/feature flags: VITE_ENABLE_TEST_INJECTIONS, VITE_ENABLE_DEBUG_TEST_FLAGS, ekstra-flag',
     );
   });
 

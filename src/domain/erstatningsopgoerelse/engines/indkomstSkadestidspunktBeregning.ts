@@ -4,7 +4,11 @@ import { isISODateString, type ISODateString } from '../../../types/branded';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
 import { formatAsAmount, isSingularCount } from '../../../utils/formatUtils';
 import { parsePercentPointString } from '../../../utils/numberParsing';
-import { calculateStandardLoenDerivedFromAmounts } from '../../aarsloen/standardLoenRowCalculations';
+import {
+  calculateStandardLoenDerivedFromAmounts,
+  type StandardLoenProjectedAmounts,
+  type StandardLoenSatserInput,
+} from '../../aarsloen/standardLoenRowCalculations';
 import { buildIncomeForRanges, ansaettelsesforholdNavne, resolveAnsaettelsesforholdNavn, type IncomeEmployerAmount, type IncomePeriodResult } from '../helpers/indtaegtPerioder';
 import { buildLoenindkomstRateSegments, resolveAutoStoreBededagPct } from '../helpers/loenindkomstSatser';
 import { calculateTafAntalMaanederPraecis, calculateTafArbejdsdageBreakdown } from '../engines/tafCalculations';
@@ -94,16 +98,23 @@ export const resolveBeregningsperiodeEmployerAtReguleringsdato = (
     })[0];
     return satssegment?.satser ?? baseSatser;
   })();
-  const recalculatedBreakdown = calculateStandardLoenDerivedFromAmounts(
+  return { satser, breakdown: recalculateBeregningsperiodeBreakdown(entry.breakdown, satser, mode) };
+};
+
+const recalculateBeregningsperiodeBreakdown = (
+  breakdown: IncomeEmployerAmount['breakdown'],
+  satser: StandardLoenSatserInput,
+  mode: LoenindkomstAnsaettelsesforhold['tillaegAngivesSom'],
+) => calculateStandardLoenDerivedFromAmounts(
     {
-      loen: entry.breakdown.loenPlusLoen2,
+      loen: breakdown.loenPlusLoen2,
       loen2: 0,
-      ikkePensionsgivende: entry.breakdown.loenPlusLoen2PlusIkkePensLoen - entry.breakdown.loenPlusLoen2,
-      atp: entry.breakdown.atp,
+      ikkePensionsgivende: breakdown.loenPlusLoen2PlusIkkePensLoen - breakdown.loenPlusLoen2,
+      atp: breakdown.atp,
       // I Beløb-tilstand er tillæggene de allerede periodiserede, indtastede beløb;
       // de genberegnes ikke fra satser (mode='beloeb' læser disse, ikke satserne).
-      fpFvShSoBeloeb: entry.breakdown.fpFvShSo,
-      pensionBeloeb: entry.breakdown.pension,
+      fpFvShSoBeloeb: breakdown.fpFvShSo,
+      pensionBeloeb: breakdown.pension,
     },
     {
       feriePct: satser.feriePct,
@@ -113,9 +124,7 @@ export const resolveBeregningsperiodeEmployerAtReguleringsdato = (
       pensionPct: satser.pensionPct,
     },
     mode
-  );
-  return { satser, breakdown: recalculatedBreakdown };
-};
+);
 
 export const buildIndkomstSkadestidspunkt = (
   values: TafCalculationValues,
@@ -123,6 +132,7 @@ export const buildIndkomstSkadestidspunkt = (
   tafBeregningsenhed: TafBeregningsenhed,
   options?: Readonly<{
     incomeForBeregningsperiode?: IncomePeriodResult | null;
+    projectIncomeDays?: (id: string, project: (amounts: StandardLoenProjectedAmounts) => StandardLoenProjectedAmounts) => void;
   }>
 ): IndkomstSkadestidspunktModel | null => {
   const beregnesUdFra = values.beregnesUdFra;
@@ -175,6 +185,11 @@ export const buildIndkomstSkadestidspunkt = (
         const { satser, breakdown: recalculatedBreakdown } =
           resolveBeregningsperiodeEmployerAtReguleringsdato(values, af, entry, skadedato);
         const mode = af.tillaegAngivesSom;
+        // Dagsgrundlaget skal bruge samme reguleringsdato og satser som det samlede arbejdssted.
+        options?.projectIncomeDays?.(entry.id, (amounts) => ({
+          ...amounts,
+          ...recalculateBeregningsperiodeBreakdown(amounts, satser, mode),
+        }));
         const feriePct = parsePctPoint(satser.feriePct);
         const fritvalgPct = parsePctPoint(satser.fritvalgPct);
         const shSoPct = parsePctPoint(satser.shSoPct);

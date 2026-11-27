@@ -10,10 +10,9 @@ import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitia
 import type { EetImportContext } from '../../../domain/erhvervsevnetab/eetImportPort';
 import { toISODateString } from '../../../types/branded';
 
-const { tafOutcomeMock, opreguleretOutcomeMock, controlMismatchMock } = vi.hoisted(() => ({
+const { tafOutcomeMock, opreguleretOutcomeMock } = vi.hoisted(() => ({
   tafOutcomeMock: vi.fn(),
   opreguleretOutcomeMock: vi.fn(),
-  controlMismatchMock: vi.fn(),
 }));
 
 vi.mock('../../../domain/erstatningsopgoerelse/engines/tafPerYearDerived', async (importOriginal) => {
@@ -29,14 +28,6 @@ vi.mock('../../../domain/erstatningsopgoerelse/engines/tafPerYearOpreguleretDeri
   return {
     ...actual,
     buildTafPerYearOpreguleretBuildOutcome: opreguleretOutcomeMock,
-  };
-});
-
-vi.mock('../../../domain/erstatningsopgoerelse/control/eoControlMismatch', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../../domain/erstatningsopgoerelse/control/eoControlMismatch')>();
-  return {
-    ...actual,
-    collectSammentaellingControlMismatchMessages: controlMismatchMock,
   };
 });
 
@@ -90,9 +81,7 @@ describe('computeEoSnapshot – direkte invariantbrancher', () => {
   beforeEach(() => {
     tafOutcomeMock.mockReset();
     opreguleretOutcomeMock.mockReset();
-    controlMismatchMock.mockReset();
     opreguleretOutcomeMock.mockReturnValue({ kind: 'not_applicable' } satisfies TafPerYearOpreguleretBuildOutcome);
-    controlMismatchMock.mockReturnValue([]);
   });
 
   it('samler schema-issues fra stamdata, når begge inputparser fejler', () => {
@@ -192,9 +181,8 @@ describe('computeEoSnapshot – direkte invariantbrancher', () => {
     }));
   });
 
-  it('udleder TAF-utilgængelighed og kontrol-mismatch fra den byggede kontrolsnapshot', () => {
+  it('udleder TAF-utilgængelighed fra motorens resultat', () => {
     tafOutcomeMock.mockReturnValue({ kind: 'not_applicable', reason: 'missing_loenudvikling' } satisfies TafPerYearBuildOutcome);
-    controlMismatchMock.mockReturnValue(['TAF: beregnet afviger fra tabel']);
 
     const snapshot = computeEoSnapshot({
       revision: 'taf-branches-unavailable-mismatch',
@@ -204,10 +192,6 @@ describe('computeEoSnapshot – direkte invariantbrancher', () => {
 
     expect(snapshot.invariants).toContainEqual(expect.objectContaining({
       id: 'taf_per_year:missing_loenudvikling',
-    }));
-    expect(snapshot.invariants).toContainEqual(expect.objectContaining({
-      id: 'control:sammentaelling_mismatch',
-      evidence: ['TAF: beregnet afviger fra tabel'],
     }));
   });
 

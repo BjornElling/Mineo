@@ -262,8 +262,7 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
         // zoom-roden og ganges derfor med skalaen i CSS – det er netop de to vandrette afstande,
         // pladsregnskabet i `CONTENT_UI_SCALE_POLICY` afsætter. Den lodrette luft skaleres med,
         // fordi en fast luft foroven ville stå dobbelt så høj som luften i siderne ved mindste
-        // skala; Kontroltabellens klæbende tabelhoved kompenserer desuden for præcis denne
-        // værdi inde fra zoom-roden og kan kun ramme, når de to følger samme skala.
+        // skala.
         scrollSx={{ padding: CONTENT_GUTTER_CSS }}
         // MUI fortolker numeriske padding-værdier som spacing-trin. Pixel-enheden er nødvendig,
         // ellers bliver indrykningen ganget med otte. Værdien er uskaleret: `main` ER zoom-roden.

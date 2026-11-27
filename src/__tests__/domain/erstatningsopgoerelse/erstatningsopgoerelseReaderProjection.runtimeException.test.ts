@@ -84,7 +84,7 @@ describe('buildErstatningsopgoerelseReaderProjection – undtagelse før snapsho
     expect(projection.snapshot.status).toBe('fail_closed');
     expect(projection.snapshot.failClosedReason).toBe('runtime_exception');
     expect(projection.snapshot.data).toBeNull();
-    expect(projection.snapshot.inspektionSnapshot).toBeNull();
+    expect(projection.snapshot.dagsgrundlag).toBeUndefined();
     expect(projection.eoValues.eoNummer).toBe('EO-1');
     expect(projection.eoValues.tafBeregningsperiodeFra).toBe('2023-01-01');
     expect(projection.eoValues.forligAnsvarsgradProcent).toBeUndefined();

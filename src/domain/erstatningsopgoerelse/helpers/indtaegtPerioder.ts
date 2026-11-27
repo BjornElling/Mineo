@@ -190,7 +190,7 @@ export const resolveTafBoundaryDatesInSkadetPeriode = (
  * hele kroner (øvrige benefits/manuelle rækker: 2 decimaler).
  *
  * VIGTIGT: Denne funktion runder den urundede TOTALSUM én gang og bruges kun på de RÅ stier
- * (EO-inspektionens sammentælling/kontroltabel og beregningsperiode-projektionen). Det
+ * (dagsgrundlaget og beregningsperiode-projektionen). Det
  * AUTORITATIVE midlertidigt EET-FRADRAG bruger IKKE denne funktion – det hentes fra den
  * kanoniske, pr.-periode-afrundede bilagskilde via
  * `sumMidlertidigtEetBeregnetEetKronerForTafRanges`, så fradraget matcher "Midlertidig EET"-
@@ -231,7 +231,7 @@ const parseOffentligInterval = (row: OffentligeYdelserRow): DateInterval | null 
   };
 };
 
-// Opslaget bor i `data/ydelsestyper`, så EO-kontroltabellen forstår en gemt label præcis som
+// Opslaget bor i `data/ydelsestyper`, så dagsgrundlaget bruger samme ydelsestype som
 // indtægtssiden gør. Lå de hver sit sted, kunne de to sider af sammentællingen se forskellige
 // ydelser – se resolverens egen kommentar.
 
@@ -439,6 +439,11 @@ export type IncomeRowRangeShares = Readonly<{
   ydelseRows: readonly YdelseRowRangeShare[];
 }>;
 
+export type IncomeDayReceiver = Readonly<{
+  loen: (employmentId: string, date: ISODateString, amounts: StandardLoenProjectedAmounts) => void;
+  ydelse: (typeKey: string, date: ISODateString, amount: number) => void;
+}>;
+
 /**
  * Hver løn- og ydelsesrækkes andel i perioderne – rækkerne bag `buildIncomeForRanges`' summer.
  *
@@ -465,7 +470,8 @@ const buildIncomeRowSharesForMergedRanges = (
   values: TafCalculationValues,
   ranges: readonly IsoRange[],
   context: IncomeCalculationContext | null | undefined,
-  skadedato: ISODateString | undefined
+  skadedato: ISODateString | undefined,
+  onDay?: IncomeDayReceiver
 ): IncomeRowRangeShares => {
   const beregningsenhed = computeTafBeregningsenhed(values);
   const ansaettelser = values.loenindkomstAnsaettelsesforhold ?? [];
@@ -548,6 +554,7 @@ const buildIncomeRowSharesForMergedRanges = (
         allocationDates: allocation.dates,
         selectedDates,
         mode: af.tillaegAngivesSom,
+        onDay: onDay && ((date, amounts) => onDay.loen(af.id, date, amounts)),
         rateSegments: fra && til
           ? buildLoenindkomstRateSegments({
             ansaettelsesforhold: af,
@@ -612,6 +619,7 @@ const buildIncomeRowSharesForMergedRanges = (
         totalBeloeb: amount,
         range,
         grundlag: periodiseringsGrundlag,
+        onDay: onDay && ((date) => onDay.ydelse(resolvedType.key, date, amount / periodiseringsGrundlag.periodiseringsDage)),
       });
     }, 0);
     if (!Number.isFinite(periodiseretAmount) || isEffectivelyZero(periodiseretAmount)) continue;
@@ -639,9 +647,10 @@ export const buildIncomeForRanges = (
   rawRanges: readonly IsoRange[],
   context?: IncomeCalculationContext | null,
   skadedato?: ISODateString,
-  negativeSourceHandling: IncomeNegativeSourceHandling = 'separate'
+  negativeSourceHandling: IncomeNegativeSourceHandling = 'separate',
+  onDay?: IncomeDayReceiver
 ): IncomePeriodResult => {
-  const { employers, benefits } = buildIncomeForRangesDetailed(values, rawRanges, context, skadedato, negativeSourceHandling);
+  const { employers, benefits } = buildIncomeForRangesDetailed(values, rawRanges, context, skadedato, negativeSourceHandling, onDay);
   return { employers, benefits };
 };
 
@@ -662,7 +671,8 @@ export const buildIncomeForRangesDetailed = (
   rawRanges: readonly IsoRange[],
   context?: IncomeCalculationContext | null,
   skadedato?: ISODateString,
-  negativeSourceHandling: IncomeNegativeSourceHandling = 'separate'
+  negativeSourceHandling: IncomeNegativeSourceHandling = 'separate',
+  onDay?: IncomeDayReceiver
 ): IncomePeriodResultDetailed => {
   const ranges = mergeIsoDateRanges(rawRanges, { mergeAdjacent: true });
   if (ranges.length === 0) return { employers: [], benefits: [], negativeSources: [] };
@@ -680,7 +690,7 @@ export const buildIncomeForRangesDetailed = (
     return { employers: [], benefits: [], negativeSources: [] };
   }
   const ansaettelser = values.loenindkomstAnsaettelsesforhold ?? [];
-  const shares = buildIncomeRowSharesForMergedRanges(values, ranges, context, skadedato);
+  const shares = buildIncomeRowSharesForMergedRanges(values, ranges, context, skadedato, onDay);
   const employers: IncomeEmployerAmount[] = [];
   const negativeSources: IncomeNegativeSource[] = [];
 
@@ -701,9 +711,7 @@ export const buildIncomeForRangesDetailed = (
         continue;
       }
       // En negativ række (en tilbagebetaling, en efterregulering) regnes med og modregnes i ansættelsesforholdets
-      // øvrige løn. Springes den over (`samletContrib <= 0`), mens kontroltabellen tæller den med, standser
-      // opgørelsen med «kontroluoverensstemmelser». En række på 0 kr.
-      // bidrager med 0 og er uændret.
+      // øvrige løn. Et filter på positive rækkebeløb ville fjerne efterreguleringen fra opgørelsen.
       breakdown.loenPlusLoen2 += projected.loenPlusLoen2;
       breakdown.loenPlusLoen2PlusIkkePensLoen += projected.loenPlusLoen2PlusIkkePensLoen;
       breakdown.fpFvShSo += projected.fpFvShSo;

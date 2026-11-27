@@ -57,52 +57,16 @@ test.describe('Erstatningsopgørelse – runtime-matrix på tværs af faner', ()
     await expect(beregningPanel).not.toContainText('Ingen indkomst i beregningsperioden');
     await page.screenshot({ path: testInfo.outputPath('delvis-eo-beregning.png') });
 
-    await openPage(page, 'Indstillinger');
-    const showControlTabs = page.getByRole('checkbox', {
-      name: 'Vis kontrolfaner på Erstatningsopgørelse-side',
-    });
-    if (!(await showControlTabs.isChecked())) await showControlTabs.click();
-
-    await openPage(page, 'Erstatningsopgørelse');
-    await page.getByRole('button', { name: 'EO-kontrol', exact: true }).click();
-    await expect(visiblePanel(page).getByText('Stamdata', { exact: true }).first()).toBeVisible();
-
-    await page.getByRole('button', { name: 'Kontroltabel', exact: true }).click();
-    await expect(visiblePanel(page).getByText('Kontroltabel', { exact: true }).first()).toBeVisible();
-
-    // Afvigende input skal give feltfejl, aldrig uenighed mellem kontrollens to kolonner.
-    // Hvert besøg genopbygger kontrollen fra den senest afsluttede revision.
     await page.getByRole('tab', { name: 'EO oplysninger', exact: true }).click();
     await page.getByRole('checkbox', { name: 'Øvrigt fravær uden løn', exact: true }).check();
-    for (const raw of ['367', '']) {
-      await page.getByRole('tab', { name: 'EO oplysninger', exact: true }).click();
-      const absence = page.locator("input[name='oevrigeFravaersdage']");
-      await setFieldValueAndSettle(absence, raw);
-      if (raw !== '') await expect(absence).toHaveAttribute('aria-invalid', 'true');
-      await page.getByRole('button', { name: 'Kontroltabel', exact: true }).click();
-      const summary = visiblePanel(page).locator('.content-box').filter({ hasText: 'Sammentælling' });
-      await expect(summary).toBeVisible();
-      const basisRows = summary.locator('table').first().locator('tbody tr');
-      await expect(basisRows).toHaveCount(4);
-      for (const row of await basisRows.all()) {
-        const beregnet = await row.getByRole('cell').nth(1).innerText();
-        await expect(row.getByRole('cell').nth(2)).toHaveText(beregnet);
-        const mark = row.getByRole('cell').last().locator('svg');
-        // En række uden tal har intet mærke; en række med tal er grøn – aldrig rød.
-        if (beregnet.trim() === '-') await expect(mark).toHaveCount(0);
-        else await expect(mark).toHaveCSS('color', 'rgb(16, 185, 129)');
-      }
-    }
-    await page.getByRole('tab', { name: 'EO oplysninger', exact: true }).click();
+    const absence = page.locator("input[name='oevrigeFravaersdage']");
+    await setFieldValueAndSettle(absence, '367');
+    await expect(absence).toHaveAttribute('aria-invalid', 'true');
     const invalidDate = page.locator("input[name='tafBeregningsperiodeFra']");
     await setDate(invalidDate, '31-02-2023');
     await expect(invalidDate).toHaveAttribute('aria-invalid', 'true');
-    await page.getByRole('button', { name: 'Kontroltabel', exact: true }).click();
-    const invalidRangeControl = visiblePanel(page).getByRole('row').filter({ hasText: 'Arbejdsdage i beregningsperiode' });
-    await expect(invalidRangeControl.getByRole('cell').nth(1)).toHaveText('-');
-    await expect(invalidRangeControl.getByRole('cell').nth(2)).toHaveText('-');
-    await invalidRangeControl.scrollIntoViewIfNeeded();
-    await page.screenshot({ path: testInfo.outputPath('kontroltabel-manglende-fravaer.png') });
+    await page.getByRole('tab', { name: 'Beregning', exact: true }).click();
+    await expect(beregningPanel.getByRole('button', { name: 'Der er intet gyldigt dagsgrundlag at hente' })).toBeDisabled();
 
     expect(runtimeErrors).toEqual([]);
     expect(runtimeSignals).toEqual([]);

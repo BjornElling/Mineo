@@ -1,4 +1,5 @@
-import { buildEOInspektionModel } from '../../../domain/eoInspektion/eoInspektionKontrolModel';
+import { buildIncomeForRanges } from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
+import { collectIncomeDays } from '../../../domain/erstatningsopgoerelse/engines/eoIndkomstDagsgrundlag';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
@@ -34,31 +35,19 @@ const buildValues = (): ErstatningsopgoerelseValues => {
 
 describe('flere SU-rækker i samme EO-kolonne', () => {
   it('bevarer to ikke-overlappende rækkepartitioner med hver sin kalenderdagssats', () => {
-    const model = buildEOInspektionModel(buildValues(), { tafRanges: [] });
-    const amounts = model.columnRawValues.get('offentlig:su');
+    const { receiver, days } = collectIncomeDays();
+    const values = buildValues();
+    if (!values.vedroererPeriodeFra || !values.vedroererPeriodeTil) throw new Error('Testperioden mangler');
+    const income = buildIncomeForRanges(values, [{ fra: values.vedroererPeriodeFra, til: values.vedroererPeriodeTil }],
+      undefined, undefined, undefined, receiver);
+    const amounts = new Map(days.ydelse.get('su')?.map(({ date, amount }) => [date, amount]));
     const relevantDates = [
       iso('2024-02-28'),
       iso('2024-02-29'),
       iso('2024-03-01'),
       iso('2024-03-02'),
     ];
-    const relevantIndexes = relevantDates.map((date) => model.tableData.dates.indexOf(date));
-
-    expect(model.columns.find((column) => column.id === 'offentlig:su')?.header).toBe('SU');
-    expect(amounts).toBeDefined();
-    expect(relevantIndexes.every((index) => index >= 0)).toBe(true);
-    if (!amounts) return;
-
-    // Første række giver 600 kr. / 2 kalenderdage = 300 kr. pr. dag.
-    // Anden række giver 900 kr. / 2 kalenderdage = 450 kr. pr. dag.
-    // Skuddagen skal forblive i første partition, og rækkeskiftet skal bevares i fælleskolonnen.
-    expect(relevantIndexes.map((index) => amounts[index])).toEqual([300, 300, 450, 450]);
-    expect(relevantIndexes.map((index) => model.getCell(index, 'offentlig:su'))).toEqual([
-      '300,00',
-      '300,00',
-      '450,00',
-      '450,00',
-    ]);
-    expect(amounts.reduce((sum, value) => sum + value, 0)).toBe(1500);
+    expect(relevantDates.map((date) => amounts.get(date) ?? 0)).toEqual([300, 300, 450, 450]);
+    expect(income.benefits).toEqual([{ typeKey: 'su', label: 'SU', amount: 1500 }]);
   });
 });

@@ -140,9 +140,7 @@ const TAF_OPHOERSGRUND_PRIORITET: Readonly<Record<TafCutoffKilde, number>> = {
  * TAF-ophørsgrunden blandt de afskæringer, der faktisk bringer TAF til ophør: den tidligste dato, og ved
  * samme dato den højest rangerende kilde. `undefined`, når der ingen kandidat er.
  *
- * Ét sted, fordi dokumentets statuslinje («Differencekravet bringer retten …») og EO-kontrollens
- * «TAF-ophør skyldes» skal nævne samme grund. Afgør de hver for sig en uafgjort dato, kan endelig EET og
- * differencekrav på samme dato give to forskellige ophørsgrunde.
+ * Samme ophørsgrund bruges til dokumentets statuslinje, fejl og dagsgrundlag.
  */
 export const vaelgTafOphoersgrund = <K extends Readonly<{ kilde: TafCutoffKilde; referenceDato: ISODateString }>>(
   kandidater: readonly K[]

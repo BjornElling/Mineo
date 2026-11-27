@@ -55,7 +55,7 @@ export const resolveSvieSmerteTidligereTotalOverMaxWarning = (
  * beløb æder hele rammen – og de er samme tilstand.
  *
  * Ét prædikat, som både dokumentet («Maksimum for svie- og smertegodtgørelse er nået i tidligere
- * erstatningsopgørelse.») og EO-kontrollens «Svie/smerte-ophør skyldes» læser, så de ikke kan give to
+ * erstatningsopgørelse.») og rækkens «Svie/smerte-ophør skyldes» læser, så de ikke kan give to
  * forskellige grunde for samme indtastning.
  */
 export const erSvieSmerteMaksimumOpbrugt = (

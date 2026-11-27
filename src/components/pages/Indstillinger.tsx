@@ -430,16 +430,6 @@ const Indstillinger = React.memo(() => {
           )}
         </LabeledControlRow>
 
-        <LabeledControlRow label="Vis kontrolfaner på Erstatningsopgørelse-side">
-          {({ labelledBy, controlId }) => (
-            <StyledToggleSwitch
-              id={controlId}
-              labelledBy={labelledBy}
-              checked={settings.showEOInspektionMenu}
-              onCommit={(e: CommitEvent<boolean>) => updateSettings({ showEOInspektionMenu: e.target.value })}
-            />
-          )}
-        </LabeledControlRow>
 
         {/* Kun i udviklingsmiljøet: denne indstilling vises kun i udviklingsmiljøet (import.meta.env.DEV).
             Den forbrugende adfærd er ligeledes DEV-gated (font-style-farver i AppSettingsContext),

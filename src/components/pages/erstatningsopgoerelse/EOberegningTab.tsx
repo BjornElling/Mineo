@@ -70,6 +70,9 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
     handleDownloadTafFordeltPdf,
     handleDownloadTafOpreguleretPdf,
     handleDownloadTafKravGrafPdf,
+    canDownloadDagsgrundlag,
+    dagsgrundlagCoverage,
+    handleDownloadDagsgrundlag,
     handleNavigate,
     bilagAvailability,
     svieSmerteSummaryLabel,
@@ -453,6 +456,20 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
               disabled={!canDownloadSnapshotTafKravGrafPdf}
               onClick={handleDownloadTafKravGrafPdf}
               disabledReason={tafKravGrafPdfDisabledReason ?? undefined}
+            />
+          </Box>
+        </Box>
+        <Box className="row--label-right-hover">
+          <Typography className="row--text">
+            Dagsgrundlag (CSV)
+            {dagsgrundlagCoverage && ` – ${dagsgrundlagCoverage}`}
+          </Typography>
+          <Box className="row--label-right-hover__content">
+            <DocumentDownloadButton
+              disabled={!canDownloadDagsgrundlag}
+              onClick={handleDownloadDagsgrundlag}
+              label="Download dagsgrundlag som CSV-udtræk"
+              disabledReason="Der er intet gyldigt dagsgrundlag at hente"
             />
           </Box>
         </Box>

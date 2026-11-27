@@ -1,4 +1,5 @@
-import { buildEOInspektionModel } from '../../../domain/eoInspektion/eoInspektionKontrolModel';
+import { buildIncomeForRanges } from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
+import { collectIncomeDays } from '../../../domain/erstatningsopgoerelse/engines/eoIndkomstDagsgrundlag';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
@@ -34,8 +35,10 @@ const buildValues = (): ErstatningsopgoerelseValues => {
 
 describe('flere dagpengerrækker i samme EO-kolonne', () => {
   it('summerer to ikke-overlappende rækkepartitioner med hver sin dagssats', () => {
-    const model = buildEOInspektionModel(buildValues(), { tafRanges: [] });
-    const amounts = model.columnRawValues.get('offentlig:dagpenge');
+    const { receiver, days } = collectIncomeDays();
+    const income = buildIncomeForRanges(buildValues(), [{ fra: iso('2024-05-30'), til: iso('2024-06-03') }],
+      undefined, undefined, undefined, receiver);
+    const amounts = new Map(days.ydelse.get('dagpenge')?.map(({ date, amount }) => [date, amount]));
     const relevantDates = [
       iso('2024-05-30'),
       iso('2024-05-31'),
@@ -43,31 +46,7 @@ describe('flere dagpengerrækker i samme EO-kolonne', () => {
       iso('2024-06-02'),
       iso('2024-06-03'),
     ];
-    const relevantIndexes = relevantDates.map((date) => model.tableData.dates.indexOf(date));
-
-    expect(model.columns.find((column) => column.id === 'offentlig:dagpenge')?.header).toBe('Dagpenge');
-    expect(amounts).toBeDefined();
-    expect(relevantIndexes).toEqual([29, 30, 31, 32, 33]);
-    if (!amounts) return;
-
-    // Første række giver 500 kr. / 2 dage = 250 kr. pr. dag.
-    // Anden række giver 900 kr. / 3 dage = 300 kr. pr. dag.
-    // Den samlede kontrolkolonne skal derfor bevare rækkernes skift i dagssats.
-    expect(relevantIndexes.map((index) => amounts[index])).toEqual([250, 250, 300, 300, 300]);
-    expect(relevantIndexes.map((index) => model.getCell(index, 'offentlig:dagpenge'))).toEqual([
-      '250,00',
-      '250,00',
-      '300,00',
-      '300,00',
-      '300,00',
-    ]);
-    expect(relevantIndexes.map((index) => model.tableData.isWorkdayByIndex[index])).toEqual([
-      true,
-      true,
-      false,
-      false,
-      true,
-    ]);
-    expect(amounts.reduce((sum, value) => sum + value, 0)).toBe(1400);
+    expect(relevantDates.map((date) => amounts.get(date) ?? 0)).toEqual([250, 250, 300, 300, 300]);
+    expect(income.benefits).toEqual([{ typeKey: 'dagpenge', label: 'Dagpenge', amount: 1400 }]);
   });
 });

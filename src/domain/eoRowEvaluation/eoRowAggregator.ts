@@ -4,11 +4,8 @@
  * Samler alle status-rækker fra builder-registret, tilføjer navigation-metadata, anvender
  * relevans-filtrering (`isRowRelevantForEoValues`) + dependency-suppression, og grupperer efter
  * status (error/warning). Dens `error`-rækker DRIVER produktions-PDF-download-gaten i
- * `useEoBeregningViewModel` – dette er derfor trust-kritisk produktions-validering, ikke "bare kontrol".
+ * `useEoBeregningViewModel`.
  *
- * Derfor bor modulet i `src/domain/eoRowEvaluation/` (autoritativt, kontrol-frit), ikke i
- * `src/domain/eoInspektion/`. DEV-kontrolsiden er nedstrøms: den konsumerer de samme row-buildere til visning,
- * men kan aldrig flytte gaten via display-formattering (jf. `inspektionLayerIsolation.test.ts`).
  */
 
 import type { EoIssueFocusTarget, EoRowModel } from './eoRowTypes';
@@ -243,11 +240,7 @@ const isRowRelevantForEoValues = (
     return false;
   }
   if (values.kravPaaTabtArbejdsfortjeneste !== 'Ja') {
-    // NOTE:
-    // loenindkomst.* filtreres sammen med TAF, da lønindkomst
-    // udelukkende anvendes til Tabt Arbejdsfortjeneste.
-    // Hvis lønindkomst senere bliver et selvstændigt domæne,
-    // skal denne filtrering og EOInspektion UI genovervejes.
+    // Lønindkomst og sygeferiegodtgørelse indgår kun i TAF.
     if (row.id.startsWith('taf.')) return false;
     if (row.id.startsWith('sfgg.')) return false;
     // Lønindkomst-sektionen er kun relevant når TAF beregnes.
@@ -284,18 +277,14 @@ const isRowRelevantForEoValues = (
 /**
  * Samler alle EO-rækker fra registry og tilføjer navigation
  *
- * Bruger samme builder-registry som EO-kontrol-siden for rå EO-rækker.
- * EO-kontrol-siden og Beregning-fanen har stadig forskellig post-processing.
- *
- * @param stamdataValues - Stamdata-værdier fra FormPersistence
+ * @param stamdataValues - Stamdata-værdier fra reader-projektionen
  * @param stamdataErrors - Stamdata field-fejl pr. kilde
- * @param erstatningsopgoerelseValues - Erstatningsopgørelse-værdier fra FormPersistence
+ * @param erstatningsopgoerelseValues - Erstatningsopgørelse-værdier fra reader-projektionen
  * @param erstatningsopgoerelseErrors - Erstatningsopgørelse field-fejl pr. kilde
  * @param canonicalOutputOverride - Autoritative totaler fra snapshot (canonical)
  * @param pdfModelOverride - Præsentationsmodellen fra snapshot. SKAL gives, så de SFGG-rækker
  *   der afhænger af det beregnede resultat (fx `sfgg.dagssats.*`/`sfgg.referencesats.*`-fejl) også
- *   evalueres af download-gaten. Uden den var gaten blind for de samme fejl, DEV-kontrolfanen viste
- *   som blokerende – en fail-open-asymmetri (jf. eoSnapshotToInspektionView, der altid sætter pdfModel).
+ *   evalueres af download-gaten.
  * @returns Grupperet efter status (errors, warnings)
  */
 export const collectAllEoRows = (

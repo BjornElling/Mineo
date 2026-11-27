@@ -1,4 +1,5 @@
-import { buildEOInspektionModel } from '../../../domain/eoInspektion/eoInspektionKontrolModel';
+import { buildIncomeForRanges } from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
+import { collectIncomeDays } from '../../../domain/erstatningsopgoerelse/engines/eoIndkomstDagsgrundlag';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
@@ -26,33 +27,20 @@ const buildValues = (): ErstatningsopgoerelseValues => {
 };
 
 describe('førtidspension som EO-downstream-consumer', () => {
-  it('fordeler kalenderdagsydelsen over årsskifte og nytårsdag med kontrolsum', () => {
-    const model = buildEOInspektionModel(buildValues(), { tafRanges: [] });
-    const amounts = model.columnRawValues.get('offentlig:foertidspension');
+  it('fordeler kalenderdagsydelsen over årsskifte og nytårsdag', () => {
+    const { receiver, days } = collectIncomeDays();
+    const values = buildValues();
+    if (!values.vedroererPeriodeFra || !values.vedroererPeriodeTil) throw new Error('Testperioden mangler');
+    const income = buildIncomeForRanges(values, [{ fra: values.vedroererPeriodeFra, til: values.vedroererPeriodeTil }],
+      undefined, undefined, undefined, receiver);
+    const amounts = new Map(days.ydelse.get('foertidspension')?.map(({ date, amount }) => [date, amount]));
     const relevantDates = [
       iso('2024-12-30'),
       iso('2024-12-31'),
       iso('2025-01-01'),
       iso('2025-01-02'),
     ];
-    const relevantIndexes = relevantDates.map((date) => model.tableData.dates.indexOf(date));
-
-    expect(model.columns.find((column) => column.id === 'offentlig:foertidspension')?.header)
-      .toBe('Førtidspension');
-    expect(amounts).toBeDefined();
-    expect(relevantIndexes.every((index) => index >= 0)).toBe(true);
-    if (!amounts) return;
-
-    // Førtidspension er kalenderdagsbaseret: 3.200 kr. / 4 kalenderdage = 800 kr. pr. dag.
-    // Nytårsdag er en helligdag, men skal stadig have samme beløb som de øvrige kalenderdage.
-    expect(relevantIndexes.map((index) => amounts[index])).toEqual([800, 800, 800, 800]);
-    expect(relevantIndexes.map((index) => model.getCell(index, 'offentlig:foertidspension'))).toEqual([
-      '800,00',
-      '800,00',
-      '800,00',
-      '800,00',
-    ]);
-    expect(model.tableData.isSognehelligdagByIndex[relevantIndexes[2]]).toBe(true);
-    expect(amounts.reduce((sum, value) => sum + value, 0)).toBe(3200);
+    expect(relevantDates.map((date) => amounts.get(date) ?? 0)).toEqual([800, 800, 800, 800]);
+    expect(income.benefits).toEqual([{ typeKey: 'foertidspension', label: 'Førtidspension', amount: 3200 }]);
   });
 });

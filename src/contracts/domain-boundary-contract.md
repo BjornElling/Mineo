@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Tværgående kontrakt
 **Prioritet:** Tværgående; constrainer `page-component-contract.md`.
-**Senest verificeret mod kode:** 2026-11-11
+**Senest verificeret mod kode:** 2026-11-27
 
 Dette dokument fastlægger bindende grænser mellem persisted sektioner, sideejerskab og tværdomæne-afhængigheder.
 
@@ -160,7 +160,7 @@ Tværside-afhængigheder må kun etableres ved kontraktændring i denne fil.
 ## 8. EO-felter for midlertidigt/endeligt EET
 
 1. Felterne i `EOOplysningerTab` for midlertidigt/endeligt EET er aktive felter i EO-domænet.
-2. `EOInspektion` og EO-PDF må bruge disse felter via EO-data (`erstatningsopgoerelse`), fordi de er en del af EO-opgørelsen.
+2. EO-PDF må bruge disse felter via EO-data (`erstatningsopgoerelse`), fordi de er en del af EO-opgørelsen.
 3. Disse EO-felter må aldrig kobles til persisted data fra siden `Erhvervsevnetab`.
 4. Navnelighed mellem felter og sidenavn giver ingen implicit datakontrakt.
 

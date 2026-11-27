@@ -79,7 +79,6 @@ const EXPECTED_ARCHITECTURE_RULE_IDS: readonly string[] = [
   'input/standard-loen-column-labels-single-source',
   'input/transient-cannot-write-case-data',
   'input/write-boundary',
-  'layer/inspektion-import-boundary',
   'layer/minprocesrente-standalone-import-boundary',
   'layout/attention-blink-applied-by-helper',
   'layout/focus-traversal-owned-by-container-navigation',

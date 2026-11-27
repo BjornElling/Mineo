@@ -125,8 +125,6 @@ const kravKr = (result: ReturnType<typeof project>): number | undefined => {
   const ore = result.projection.snapshot.data?.canonicalOutput.totals.tabtArbejdsfortjenesteOre;
   return ore === undefined ? undefined : Number(ore) / 100;
 };
-const invariantIds = (result: ReturnType<typeof project>): readonly string[] =>
-  (result.projection.snapshot.invariants ?? []).map((invariant) => invariant.id);
 const raekke = (id: string, maaned: number, aar: number, loen: number) => ({
   ...loenRaekker()[0]!,
   id,
@@ -196,7 +194,6 @@ describe('en negativ række regnes med og modregnes', () => {
       })],
     }));
 
-    expect(invariantIds(result)).not.toContain('control:sammentaelling_mismatch');
     expect(result.projection.snapshot.status).toBe('ok');
     // (360.000 − 2.000) × 1,125
     expect(kravKr(result)).toBe(402750);
@@ -213,7 +210,6 @@ describe('en negativ række regnes med og modregnes', () => {
       })],
     }));
 
-    expect(invariantIds(result)).not.toContain('control:sammentaelling_mismatch');
     expect(result.projection.snapshot.status).toBe('ok');
     // Fradraget er (10.000 − 3.000) × 1,125 = 7.875 kr.
     expect(udenFradrag! - kravKr(result)!).toBeCloseTo(7875, 2);
@@ -230,7 +226,6 @@ describe('en negativ række regnes med og modregnes', () => {
     expect(result.errorLinjer.some((linje) =>
       linje.startsWith('Lønnen fra Firma B er samlet negativ i beregningsperioden (-2.250,00 kr.)'))).toBe(true);
     expect(result.projection.snapshot.failClosedReason).not.toBe('runtime_exception');
-    expect(invariantIds(result)).not.toContain('control:sammentaelling_mismatch');
   });
 
   it('modregner en negativ ydelsesrække i ydelsestypens øvrige beløb', () => {
@@ -241,7 +236,6 @@ describe('en negativ række regnes med og modregnes', () => {
       ],
     }));
 
-    expect(invariantIds(result)).not.toContain('control:sammentaelling_mismatch');
     expect(result.projection.snapshot.status).toBe('ok');
     expect(result.warningLinjer.some((linje) => linje.includes('er negativ (-1.000,00 kr.)'))).toBe(true);
   });

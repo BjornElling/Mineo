@@ -14,7 +14,6 @@ import {
   crossDomainDescriptorPort,
   engineCallOwnedByProjectionRule,
   failOpenDisplayLookupImport,
-  inspektionLayerImport,
   moneyOreTypeAssertion,
   pageSectionAccessBoundary,
   seriesCoverageEndpointsViaPrimitive,
@@ -114,7 +113,6 @@ export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   // Domæne- og laggrænser
   failOpenDisplayLookupImport,
   aslAarsloensmaksimumRawSubscript,
-  inspektionLayerImport,
   moneyOreTypeAssertion,
   pageSectionAccessBoundary,
   crossDomainDescriptorPort,

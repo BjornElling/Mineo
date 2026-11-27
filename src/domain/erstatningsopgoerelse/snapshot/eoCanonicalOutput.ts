@@ -98,11 +98,19 @@ const eoCanonicalOutputSchema = z.object({
     oevrigeKravFoerForligOre: moneyOreSchema,
     oevrigeKravOre: moneyOreSchema,
     samletTotalOre: moneyOreSchema,
-  }).strict(),
+  }).strict().superRefine((totals, ctx) => {
+    const expected = sumMoneyOre([totals.svieSmerteOre, totals.tabtArbejdsfortjenesteOre, totals.oevrigeKravOre]);
+    if (totals.samletTotalOre !== expected) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['samletTotalOre'],
+        message: 'Det samlede krav skal svare til summen af delkravene',
+      });
+    }
+  }),
   svieSmerte: z.object({
     maxApplied: z.boolean(),
-    // Ophørsgrundens to maksimum-tilstande, så EO-kontrollen læser samme udfald som dokumentet.
-    // Påvirker ingen beløb.
+    // Maksimumstilstandene bruges ved forklaring af svie/smerte-ophør.
     maksimumOpbrugtFoerPerioden: z.boolean(),
     maksimumNaaet: z.boolean(),
   }).strict(),
@@ -219,6 +227,10 @@ export const buildEoCanonicalOutputFromComputed = (args: Readonly<{
   tafNetto: TafNettoBeregningResult;
   totals: EoComputedTotals;
 }>): EoCanonicalOutput => {
+  const sfgg = args.tafNetto.sygeferiegodtgoerelse;
+  if (sfgg.totalOre !== sumMoneyOre(sfgg.perAnsaettelsesforhold.map((entry) => entry.totalOre))) {
+    throw new Error('Sygeferiegodtgørelsens total skal svare til summen pr. ansættelsesforhold');
+  }
   const loenudviklingSegmenter = (args.tafNetto.loenudvikling?.beregnedeSegmenter ?? []).map(toCanonicalSegment);
   const perAnsaettelse = (args.tafNetto.loenudvikling?.perAnsaettelse ?? []).map((entry) => ({
     ansaettelsesforholdId: entry.ansaettelsesforholdId,
@@ -245,7 +257,7 @@ export const buildEoCanonicalOutputFromComputed = (args: Readonly<{
       offentligeYdelserUdviklingOre: calculableMoneyToNullable(args.tafNetto.offentligeYdelserUdvikling?.total),
       tafIndtaegterOre: calculableMoneyToNullable(args.tafNetto.tafIndtaegter?.total),
       tidligereModtagetTafOre: calculableMoneyToNullable(args.tafNetto.tidligereModtagetTaf),
-      sygeferiegodtgoerelseOre: args.tafNetto.sygeferiegodtgoerelse.totalOre,
+      sygeferiegodtgoerelseOre: sfgg.totalOre,
     },
     periodiseringer: {
       tafPerioder: args.tafRanges,

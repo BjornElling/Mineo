@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md` og relevante domænekontrakter.  
-**Senest verificeret mod kode:** 2026-11-11
+**Senest verificeret mod kode:** 2026-11-27
 
 Dette dokument fastlægger den bindende taksonomi for periodisering, dagtælling og fradragsregler i Mineo.
 
@@ -110,7 +110,7 @@ Bindende regel:
    feriedage i alle andre sammenhænge, og nævneren i "løn før skaden" (arbejdsdage/måneder)
    forøges ikke. Resultatet er, at per-dag-satsen kan stige, mens dagtallet er uændret.
 3. Reglen anvendes **ensartet** overalt hvor indkomst periodiseres for samme semantik: beregnings-
-   grundlaget, TAF-indtægter, sygeferiegodtgørelsens referenceløn og EO-inspektionens kontroltabel
+   grundlaget, TAF-indtægter, sygeferiegodtgørelsens referenceløn og EO-dagsgrundlaget
    skal alle fange beløbet på samme fald-tilbage-dage (så "vist = beregnet"-invarianten holder).
 4. Situationen er ikke en fejl. Den udløser derfor **ingen** blokerende fejl og spærrer ikke for
    download – kun en ikke-blokerende advarsel.

@@ -20,7 +20,7 @@ import {
   TIL_DATO_IKKE_ANGIVET_MESSAGE,
 } from '../validation/tafRowRules';
 
-export type EoProjectionTarget = 'beregning' | 'inspektion' | 'eo_pdf' | 'taf_per_year_pdf' | 'taf_per_year_opreguleret_pdf';
+export type EoProjectionTarget = 'beregning' | 'eo_pdf' | 'taf_per_year_pdf' | 'taf_per_year_opreguleret_pdf';
 
 /**
  * source klassificerer invariantens oprindelse:
@@ -39,7 +39,7 @@ export type EoInvariant = Readonly<{
   blocksOutputs?: ReadonlyArray<EoProjectionTarget>;
 }>;
 
-const VALIDATION_BLOCKED_OUTPUTS: readonly EoProjectionTarget[] = ['beregning', 'inspektion', 'eo_pdf', 'taf_per_year_pdf', 'taf_per_year_opreguleret_pdf'];
+const VALIDATION_BLOCKED_OUTPUTS: readonly EoProjectionTarget[] = ['beregning', 'eo_pdf', 'taf_per_year_pdf', 'taf_per_year_opreguleret_pdf'];
 
 const buildValidationInvariantId = (error: ValidationError, index: number): string => {
   const path = error.path ?? `${index}`;
@@ -272,18 +272,6 @@ export const buildTafPerYearUnavailableInvariant = (reason: 'missing_loenudvikli
   blocksAuthoritativeComputation: false,
   blocksOutputs: ['taf_per_year_pdf', 'taf_per_year_opreguleret_pdf'],
 });
-
-export const buildControlMismatchInvariant = (messages: readonly string[]): EoInvariant => ({
-  id: 'control:sammentaelling_mismatch',
-  passed: false,
-  severity: 'error',
-  source: 'system',
-  message: 'Der er konstateret kontroluoverensstemmelser i EO-beregningen.',
-  evidence: messages,
-  blocksAuthoritativeComputation: false,
-  blocksOutputs: ['eo_pdf', 'taf_per_year_pdf', 'taf_per_year_opreguleret_pdf'],
-});
-
 
 export const hasAuthoritativeBlockingInvariant = (invariants: readonly EoInvariant[]): boolean =>
   invariants.some((invariant) => !invariant.passed && invariant.severity === 'error' && invariant.blocksAuthoritativeComputation);

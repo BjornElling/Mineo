@@ -1,4 +1,5 @@
-import { buildEOInspektionModel } from '../../../domain/eoInspektion/eoInspektionKontrolModel';
+import { buildIncomeForRanges } from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
+import { collectIncomeDays } from '../../../domain/erstatningsopgoerelse/engines/eoIndkomstDagsgrundlag';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import type { ErstatningsopgoerelseValues, OffentligeYdelserRow } from '../../../schemas/formSchemas';
@@ -27,25 +28,15 @@ const buildValues = (): ErstatningsopgoerelseValues => {
 };
 
 describe('flextilskud som EO-downstream-consumer', () => {
-  it('fordeler kalenderdagsydelsen på en ren weekend med kontrolsum', () => {
-    const model = buildEOInspektionModel(buildValues(), { tafRanges: [] });
-    const amounts = model.columnRawValues.get('offentlig:flextilskud');
+  it('fordeler kalenderdagsydelsen på en ren weekend', () => {
+    const { receiver, days } = collectIncomeDays();
+    const values = buildValues();
+    if (!values.vedroererPeriodeFra || !values.vedroererPeriodeTil) throw new Error('Testperioden mangler');
+    const income = buildIncomeForRanges(values, [{ fra: values.vedroererPeriodeFra, til: values.vedroererPeriodeTil }],
+      undefined, undefined, undefined, receiver);
+    const amounts = new Map(days.ydelse.get('flextilskud')?.map(({ date, amount }) => [date, amount]));
     const relevantDates = [iso('2024-07-06'), iso('2024-07-07')];
-    const relevantIndexes = relevantDates.map((date) => model.tableData.dates.indexOf(date));
-
-    expect(model.columns.find((column) => column.id === 'offentlig:flextilskud')?.header).toBe('Flextilskud');
-    expect(amounts).toBeDefined();
-    expect(relevantIndexes.every((index) => index >= 0)).toBe(true);
-    if (!amounts) return;
-
-    // Flextilskud er kalenderdagsbaseret: (700 kr. + 200 kr.) / 2 kalenderdage = 450 kr. pr. dag.
-    // Weekenddagene skal derfor begge have beløb, selv om ingen af dem er arbejdsdage.
-    expect(relevantIndexes.map((index) => amounts[index])).toEqual([450, 450]);
-    expect(relevantIndexes.map((index) => model.getCell(index, 'offentlig:flextilskud'))).toEqual([
-      '450,00',
-      '450,00',
-    ]);
-    expect(relevantIndexes.map((index) => model.tableData.isWorkdayByIndex[index])).toEqual([false, false]);
-    expect(amounts.reduce((sum, value) => sum + value, 0)).toBe(900);
+    expect(relevantDates.map((date) => amounts.get(date) ?? 0)).toEqual([450, 450]);
+    expect(income.benefits).toEqual([{ typeKey: 'flextilskud', label: 'Flextilskud', amount: 900 }]);
   });
 });

@@ -6,7 +6,6 @@ import { MemoryRouter } from 'react-router-dom';
 import Erstatningsopgoerelse from '../../../../../components/pages/Erstatningsopgoerelse';
 import { AppSettingsProvider } from '../../../../../contexts/AppSettingsContext';
 import { RoutePathnameProvider } from '../../../../../contexts/RoutePathnameProvider';
-import { LOCAL_STORAGE_KEY, writeLocalStorage } from '../../../../../settings/appSettingsStorage';
 import {
   ProductionInputRuntimeProvider,
   createProductionInputRuntimeBinding,
@@ -22,7 +21,7 @@ import { toISODateString } from '../../../../../types/branded';
 import { generateEoCase, type EoCaseMode } from '../../../../domain/erstatningsopgoerelse/helpers/eoRuntimeInputArbitrary';
 
 /**
- * Hele Erstatningsopgørelse-siden – alle fire hovedfaner og begge kontrolfaner – monteres på sager, der før
+ * Hele Erstatningsopgørelse-siden – alle fire faner – monteres på sager, der før
  * væltede siden, og på genererede sager. Domænekæden har sin egen, langt bredere fuzzing
  * (`helpers/eoRuntimeFuzzShard.ts` i domænetestene); her måles det, kun en rendering kan afsløre: komponenter og viewmodels.
  */
@@ -48,7 +47,6 @@ class CaptureBoundary extends React.Component<{ captured: Captured; children: Re
 const catalog = getProductionInputCatalog();
 
 const TABS = ['EO oplysninger', 'Lønindkomst', 'Offentlige ydelser', 'Beregning'] as const;
-const SIDE_TABS = ['EO-kontrol', 'Kontroltabel'] as const;
 
 export const renderAllTabs = async (
   stamdata: StamdataValues,
@@ -84,12 +82,6 @@ export const renderAllTabs = async (
       if (captured.errors.length > 0) break;
       await act(async () => {
         fireEvent.click(screen.getByRole('tab', { name: tab }));
-      });
-    }
-    for (const tab of SIDE_TABS) {
-      if (captured.errors.length > 0) break;
-      await act(async () => {
-        fireEvent.click(screen.getByText(tab));
       });
     }
   } finally {
@@ -149,7 +141,6 @@ export const ukendtOrganisationIFilteret = (loenmodtager = 'Nedlagt forbund', ar
 export const prepareSmokeEnvironment = (): void => {
   beforeEach(() => {
     sessionStorage.clear();
-    writeLocalStorage(LOCAL_STORAGE_KEY, JSON.stringify({ showEOInspektionMenu: true }));
   });
 };
 

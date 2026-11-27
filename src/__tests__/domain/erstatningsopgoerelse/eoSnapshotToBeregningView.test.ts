@@ -1,7 +1,7 @@
 import { moneyOre } from '../../../domain/money/money';
 
 import { eoSnapshotToBeregningView } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToBeregningView';
-import { buildControlMismatchInvariant, buildTafPerYearAfrundingInvariant } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotInvariants';
+import { buildTafPerYearAfrundingInvariant } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotInvariants';
 
 describe('eoSnapshotToBeregningView', () => {
   it('filtrerer autoritative blokeringer deterministisk og bevarer snapshot-invarianter', () => {
@@ -16,9 +16,8 @@ describe('eoSnapshotToBeregningView', () => {
           source: 'validation' as const,
           message: 'Autoritativ fejl',
           blocksAuthoritativeComputation: true,
-          blocksOutputs: ['beregning', 'inspektion', 'eo_pdf', 'taf_per_year_pdf'],
+          blocksOutputs: ['beregning', 'eo_pdf', 'taf_per_year_pdf'],
         },
-        buildControlMismatchInvariant(['Mismatch']),
         buildTafPerYearAfrundingInvariant({
           afrundingOre: moneyOre(125),
           sumYearTafOre: moneyOre(1000),
@@ -26,7 +25,6 @@ describe('eoSnapshotToBeregningView', () => {
         }),
       ],
       data: null,
-      inspektionSnapshot: null,
       input: {
         stamdata: null,
         erstatningsopgoerelse: null,
@@ -39,15 +37,12 @@ describe('eoSnapshotToBeregningView', () => {
     expect(view.authoritativeBlockingInvariants.map((invariant) => invariant.id)).toEqual(['validation:block']);
   });
 
-  // Fanen læser KUN snapshottet – den ser aldrig `inspektionSnapshot`. Fald-tilbaget
-  // til `readyBranches` er derfor det, der lader en gyldig gren nå fanen ved en fejl i en anden. Grænserne for fald-tilbaget:
   describe('fald-tilbage til readyBranches', () => {
     const baseSnapshot = {
       revision: 'rev-1',
       status: 'error',
       invariants: [],
       data: null,
-      inspektionSnapshot: null,
       input: { stamdata: null, erstatningsopgoerelse: null },
     } as const;
 

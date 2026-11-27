@@ -127,7 +127,6 @@ export const appSettingsSchema = z
     themeMode: themeModeEnum,
     defaultStartsideErStamdata: z.boolean(),
     showContentBoxReportButton: z.boolean(),
-    showEOInspektionMenu: z.boolean(),
     fontStyleColorDebug: z.boolean(),
     erstatningsopgoerelseAfsluttesMed: z.enum(APP_SETTINGS_AFSLUTTES_MED_OPTIONS),
     // Standardværdier for nye ansættelsesforhold
@@ -167,7 +166,6 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   themeMode: 'system',
   defaultStartsideErStamdata: false,
   showContentBoxReportButton: false,
-  showEOInspektionMenu: false,
   fontStyleColorDebug: false,
   erstatningsopgoerelseAfsluttesMed: 'Bekræftet godkendt',
   // Standardværdier for nye ansættelsesforhold

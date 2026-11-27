@@ -1,4 +1,5 @@
-import { buildEOInspektionModel } from '../../../domain/eoInspektion/eoInspektionKontrolModel';
+import { buildIncomeForRanges } from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
+import { collectIncomeDays } from '../../../domain/erstatningsopgoerelse/engines/eoIndkomstDagsgrundlag';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
@@ -23,29 +24,15 @@ const buildValues = (): ErstatningsopgoerelseValues => {
 };
 
 describe('pension som EO-downstream-consumer', () => {
-  it('fordeler pension på kalenderdage omkring en weekend med intakt kontrolsum', () => {
-    const model = buildEOInspektionModel(buildValues(), { tafRanges: [] });
-    const amounts = model.columnRawValues.get('offentlig:pension');
+  it('fordeler pension på kalenderdage omkring en weekend', () => {
+    const { receiver, days } = collectIncomeDays();
+    const values = buildValues();
+    if (!values.vedroererPeriodeFra || !values.vedroererPeriodeTil) throw new Error('Testperioden mangler');
+    const income = buildIncomeForRanges(values, [{ fra: values.vedroererPeriodeFra, til: values.vedroererPeriodeTil }],
+      undefined, undefined, undefined, receiver);
+    const amounts = new Map(days.ydelse.get('pension')?.map(({ date, amount }) => [date, amount]));
     const relevantDates = [iso('2024-05-18'), iso('2024-05-19'), iso('2024-05-20')];
-    const relevantIndexes = relevantDates.map((date) => model.tableData.dates.indexOf(date));
-
-    expect(model.columns.find((column) => column.id === 'offentlig:pension')?.header).toBe('Pension');
-    expect(amounts).toBeDefined();
-    expect(relevantIndexes.every((index) => index >= 0)).toBe(true);
-    if (!amounts) return;
-
-    // 18.–20. maj 2024 er tre kalenderdage. 900 kr. + 300 kr. = 1.200 kr.,
-    // så det håndberegnede facit er 1.200 kr. / 3 = 400 kr. pr. dag.
-    expect(relevantIndexes.map((index) => amounts[index])).toEqual([400, 400, 400]);
-    expect(relevantIndexes.map((index) => model.getCell(index, 'offentlig:pension'))).toEqual([
-      '400,00',
-      '400,00',
-      '400,00',
-    ]);
-    expect(relevantIndexes.slice(0, 2).map((index) => model.tableData.isWorkdayByIndex[index])).toEqual([
-      false,
-      false,
-    ]);
-    expect(amounts.reduce((sum, value) => sum + value, 0)).toBe(1200);
+    expect(relevantDates.map((date) => amounts.get(date) ?? 0)).toEqual([400, 400, 400]);
+    expect(income.benefits).toEqual([{ typeKey: 'pension', label: 'Pension', amount: 1200 }]);
   });
 });

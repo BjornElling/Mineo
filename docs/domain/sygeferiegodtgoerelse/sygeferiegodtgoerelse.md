@@ -492,7 +492,6 @@ Hvis brugeren vælger `Ingen`:
 #### 9.1. Tabelvisning
 
 SFGG-beregningen skal kunne vises:
-- nederst på EO-kontrol
 - som særskilt side i erstatningsopgørelse-PDF'en, hvis brugeren har valgt bilaget på EOBeregningTab
 
 Tabellen skal have kolonnerne:
@@ -513,7 +512,7 @@ Der skal være en `I alt`-række, når tabellen indeholder mere end én datalinj
 De efterfølgende fradrag hører til nettoopgørelsen efter tabellen og må ikke indbygges i tabellens `Samlet`.
 
 Ved skader før `1. januar 2015` dokumenteres 4-månedersgrænsen med en forklaringslinje (jf. §9.2)
-og – i EO-kontrol – med rækkerne "Varighedsbegrænset" og "Ophør af 4-måneders begrænsning". Der vises
+i opgørelsens bilag. Der vises
 ikke en særskilt tabel over de perioder, der tælles op mod de 4 måneder; forklaringslinjen med den
 konkrete ophørsdato er tilstrækkelig.
 
@@ -570,8 +569,6 @@ reguleringsdatoen (afklaringslog 8a, 2026-10-13). Slutter referenceperioden mere
 reguleringsdatoen, får til-datoen gul ring, og «Fejl og advarsler» viser den gule linje «Referenceperioden slutter
 mere end 12 måneder før reguleringsdatoen (dd-mm-åååå) – satsen er regnet med lønnen på reguleringsdatoen uden
 regulering» (BB-324).
-
-Ved valg af `Ingen` skal EO-kontrol stadig vise én linje med den valgte værdi og ikke yderligere SFGG-indhold.
 
 ---
 
@@ -673,7 +670,7 @@ Der er implementeret beregning for:
 - bortfald under arbejdsgiverbetalt sygeløn
 - seksmånedersadvarsel
 
-#### 4a. Reguleringstabeller i EO-kontrol og EO-PDF
+#### 4a. Reguleringstabeller i EO-PDF
 
 Den øverste reguleringstabel følger nu samme grundstruktur som den generelle reguleringstabel i EO:
 - tabellen viser de reelle reguleringsdatoer for de viste værdier
@@ -698,7 +695,6 @@ Der er også runtime-assert for fuld policy-dækning af overenskomsterne.
 #### 6. Kontrol og PDF
 
 SFGG er koblet på:
-- EO-kontrol
 - EO's nettoflow
 - PDF-generatoren
 - bilagsvalg på EOBeregningTab
@@ -735,7 +731,7 @@ formuleringerne er bevidst holdt fleksible.
 
 Seksmånedersadvarslen beregnes af `findSfggSixMonthWarningEmploymentIds` og vises to steder fra samme
 kilde: inline på Lønindkomst-fanen under SFGG-feltet (via snapshottet) og som en advarselsrække i
-EO-kontrol. Begge læser den samme beregnede liste og samme tekst (`buildSfggSeksMaanederBesked`), så de ikke
+«Fejl og advarsler» på Beregning. Begge læser den samme beregnede liste og samme tekst (`buildSfggSeksMaanederBesked`), så de ikke
 kan drive fra hinanden.
 
 ---

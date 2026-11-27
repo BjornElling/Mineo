@@ -50,7 +50,7 @@ describe('computeEoSnapshot – undtagelse i valideringsfejl-grenen', () => {
     expect(snapshot.status).toBe('fail_closed');
     expect(snapshot.failClosedReason).toBe('runtime_exception');
     expect(snapshot.data).toBeNull();
-    expect(snapshot.inspektionSnapshot).toBeNull();
+    expect(snapshot.dagsgrundlag).toBeUndefined();
     expect(reportSystemIssueMock).toHaveBeenCalledWith(expect.objectContaining({
       code: 'eo_snapshot:runtime_exception',
       context: 'eoSnapshot.computeEoSnapshot',

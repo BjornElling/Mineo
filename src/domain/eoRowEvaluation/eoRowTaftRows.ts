@@ -62,7 +62,7 @@ const resolveFolkepensionsdato = (
   return getFolkepensionsdato(fodselsdato, controlDate);
 };
 
-/** EO-kontrollens navn for hver afskæringskilde i «TAF-ophør skyldes». */
+/** Rækkens navn for hver afskæringskilde i «TAF-ophør skyldes». */
 const TAF_OPHOER_LABEL: Readonly<Record<TafCutoffKilde, string>> = {
   differencekrav: 'Differencekrav opgjort',
   endeligEet: 'Endelig EET-afgørelse',

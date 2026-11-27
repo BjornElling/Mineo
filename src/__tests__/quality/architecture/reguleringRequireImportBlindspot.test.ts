@@ -4,8 +4,8 @@ import { makeSyntheticEntry } from './sourceGraph';
 describe('ARCH-002 – reguleringsgrænsens CommonJS-importmodprøve', () => {
   it('afviser reguleringsserie hentet gennem require', () => {
     const entry = makeSyntheticEntry(
-      'src/domain/eoInspektion/eoInspektionRegulationCore.ts',
-      "const serier = require('../../../data/klLoenaftaler');",
+      'src/domain/erstatningsopgoerelse/engines/reguleringsPresentation.ts',
+      "const serier = require('../../../../data/klLoenaftaler');",
     );
 
     const findings = reguleringCanonicalForloebBoundary.evaluate([entry]);

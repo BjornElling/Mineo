@@ -124,7 +124,6 @@ tilstedeværelsen af `segment.reguleretLoenOre`. Øvrige modeller er uændrede.
 | `src/document/generators/eo/sections/opgoerelseSection.ts` | KL-lønaftaler-indkomstlinje (reguleret løn, ingen faktor) |
 | `src/document/generators/tafFordelt/tafFordeltPaaAarDocument.ts` | KL-lønaftaler-indkomstlinje |
 | `src/document/generators/tafFordelt/tafOpreguleretPaaAarDocument.ts` | KL-lønaftaler-indkomstlinje |
-| `src/domain/eoInspektion/eoInspektionRegulationViewModel.ts` | KL-lønaftaler-variant af Beregnet regulering-tabel |
 | `src/document/generators/klLoenaftaler/klLoenaftalerDocument.ts` | Download-dokument (kompakt 2-kolonne) |
 
 ---

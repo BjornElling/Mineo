@@ -53,7 +53,7 @@ forstå implementeringen, ikke som selvstændig kilde til sandhed.
    `vedroererPeriodeFra`. Til-dato `> vedroererPeriodeTil` clampes til `vedroererPeriodeTil`.
    Ingen fejlindikation. Sker EFTER fejlgivende clamping.
 
-7. De resulterende ranges lægges til grund for beregning i EO-kontrol, Kontroltabel og
+7. De resulterende ranges lægges til grund for beregning på Beregning, i CSV-filen og i
    EOBeregning. Dokumenter er blokeret, hvis deres dependencies rammes af fejlissues fra trin 1 eller 2.
 
 Bemærk om projektioner: EO-domænet kan have flere tekniske TAF-forbrugere, fx en
@@ -89,7 +89,7 @@ beregningsgrundlag, pre-merge placering af løse feriedage og ingen parallelle f
    `vedroererPeriodeFra`. Til-dato `> vedroererPeriodeTil` clampes til `vedroererPeriodeTil`.
    Ingen fejlindikation. Sker EFTER fejlgivende clamping.
 
-6. De resulterende ranges lægges til grund for beregning i EO-kontrol, Kontroltabel og
+6. De resulterende ranges lægges til grund for beregning på Beregning, i CSV-filen og i
    EOBeregning. Dokumenter er blokeret, hvis deres dependencies rammes af fejlissues fra trin 1 eller 2.
 
 De domænespecifikke constraint-resolvers (`SvieSmerteConstraintBounds`,

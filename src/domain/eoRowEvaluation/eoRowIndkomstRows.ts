@@ -862,8 +862,7 @@ export const buildEoIndkomstRows = (
       return {} as ReguleringsRange;
     })();
 
-    // Kontrolrækkerne nedenfor er kontroltabellens. Et problem, de finder, meldes i «Fejl og advarsler» af det felt,
-    // brugeren skal ændre – reguleringsgrundlagets dækning på «Lønudvikling beregnes ud fra» (eller den særlige
+    // «Fejl og advarsler» peger på det felt, brugeren skal ændre – dækningen på «Lønudvikling beregnes ud fra» (eller den særlige
     // fra-dato) og en manglende dato ved sit eget felt. Rækkerne afhænger derfor af de linjer og står kun selv i
     // boksen, hvis ingen af dem gør – da med en sætning i brugerens sprog, ikke rækkens interne navn.
     const kildeNavn = resolveReguleringskildeNavn(ansaettelsesforhold);

@@ -57,7 +57,6 @@ test.describe('Tilgængelige navne på interaktive kontroller', () => {
       'Bilagsnumre i erstatningsopgørelser',
       'Tillad regulering, når tabellen udløber før TAF-periodens slutning',
       'Vis knap til at rapportere fejl og forbedringsønsker på indholdsbokse',
-      'Vis kontrolfaner på Erstatningsopgørelse-side',
     ]) {
       await expect(page.getByRole('checkbox', { name })).toBeVisible();
     }

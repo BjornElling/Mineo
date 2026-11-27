@@ -1,4 +1,5 @@
-import { buildEOInspektionModel } from '../../../domain/eoInspektion/eoInspektionKontrolModel';
+import { buildIncomeForRanges } from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
+import { collectIncomeDays } from '../../../domain/erstatningsopgoerelse/engines/eoIndkomstDagsgrundlag';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
@@ -24,32 +25,19 @@ const buildValues = (): ErstatningsopgoerelseValues => {
 
 describe('revalideringsydelse som EO-downstream-consumer', () => {
   it('fordeler samlet ydelse på alle kalenderdage inkl. skuddag og weekend', () => {
-    const model = buildEOInspektionModel(buildValues(), { tafRanges: [] });
-    const amounts = model.columnRawValues.get('offentlig:revalideringsydelse');
+    const { receiver, days } = collectIncomeDays();
+    const values = buildValues();
+    if (!values.vedroererPeriodeFra || !values.vedroererPeriodeTil) throw new Error('Testperioden mangler');
+    const income = buildIncomeForRanges(values, [{ fra: values.vedroererPeriodeFra, til: values.vedroererPeriodeTil }],
+      undefined, undefined, undefined, receiver);
+    const amounts = new Map(days.ydelse.get('revalideringsydelse')?.map(({ date, amount }) => [date, amount]));
     const relevantDates = [
       iso('2024-02-28'),
       iso('2024-02-29'),
       iso('2024-03-01'),
       iso('2024-03-02'),
     ];
-    const relevantIndexes = relevantDates.map((date) => model.tableData.dates.indexOf(date));
-    const column = model.columns.find((candidate) => candidate.id === 'offentlig:revalideringsydelse');
-
-    expect(column?.header).toBe('Revaliderings-\nydelse');
-    expect(amounts).toBeDefined();
-    expect(relevantIndexes).toEqual([27, 28, 29, 30]);
-    if (!amounts) return;
-
-    // Revalideringsydelse er kalenderdagsbaseret: (1.600 kr. + 400 kr.) / 4 kalenderdage = 500 kr. pr. dag.
-    // Skuddagen og lørdagen skal derfor have samme beløb som de øvrige dage.
-    expect(relevantIndexes.map((index) => amounts[index])).toEqual([500, 500, 500, 500]);
-    expect(relevantIndexes.map((index) => model.getCell(index, 'offentlig:revalideringsydelse'))).toEqual([
-      '500,00',
-      '500,00',
-      '500,00',
-      '500,00',
-    ]);
-    expect(model.tableData.isWorkdayByIndex[relevantIndexes[3]]).toBe(false);
-    expect(amounts.reduce((sum, value) => sum + value, 0)).toBe(2000);
+    expect(relevantDates.map((date) => amounts.get(date) ?? 0)).toEqual([500, 500, 500, 500]);
+    expect(income.benefits).toEqual([{ typeKey: 'revalideringsydelse', label: 'Revalideringsydelse', amount: 2000 }]);
   });
 });

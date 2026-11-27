@@ -1,5 +1,5 @@
 /**
- * Typer for EO-række-evaluering og den nedstrøms EOInspektion-visning.
+ * Typer for EO-rækkeevaluering.
  */
 
 import type { ISODateString } from '../../types/branded';
@@ -89,10 +89,9 @@ export type OverlapResult = {
 /**
  * Svie/smerte niveau
  */
-export type SvieSmerte = 'Ingen' | 'Delvis' | 'Fuld';
 
 /**
- * EO row model - bruges af både download-gaten og EOInspektion.
+ * EO row model - bruges af både dokumentgaten og Beregning.
  *
  * VIGTIGT: id skal være semantisk stabil (tied to field identity, ikke label eller array order).
  * Dette sikrer React key stability og gør række-output auditérbart.
@@ -236,28 +235,4 @@ export type EoRowModel = {
   focusFieldHint?: EoIssueFieldHint;
   group?: EoRowGroup;
   dependsOn?: ReadonlyArray<DependencySpec>;
-};
-
-/**
- * Række-dag – én dag i række-tidslinjen
- *
- * ANSVAR:
- * - Tidslinje-basis (dato, ugedag, weekend)
- * - Søgnehelligdage
- * - Arbejdsdag-klassifikation
- * - TAF-periode markering
- * - Svie/smerte-status
- *
- * IKKE i scope endnu:
- * - Løn-komponenter (kommer i senere fase)
- * - Offentlige ydelser (kommer i senere fase)
- */
-export type RowDay = {
-  readonly iso: ISODateString;
-  readonly weekday: 0 | 1 | 2 | 3 | 4 | 5 | 6; // 0=søndag, 1=mandag, ..., 6=lørdag
-  readonly isWeekend: boolean;
-  readonly isSognehelligdag: boolean;
-  readonly isArbejdsdag: boolean;
-  readonly tafFlags: ReadonlySet<string>; // Set af TAF-periode-IDs
-  readonly svieSmerte: SvieSmerte;
 };

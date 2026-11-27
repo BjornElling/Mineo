@@ -9,8 +9,6 @@ export const EO_TAB_KEYS = {
   LOENINDKOMST: 'loenindkomst',
   OFFENTLIGE_YDELSER: 'offentlige_ydelser',
   BEREGNING: 'beregning',
-  INSPEKTION: 'inspektion',
-  KONTROLTABEL: 'kontroltabel',
 } as const;
 
 export type EoTabKey = (typeof EO_TAB_KEYS)[keyof typeof EO_TAB_KEYS];

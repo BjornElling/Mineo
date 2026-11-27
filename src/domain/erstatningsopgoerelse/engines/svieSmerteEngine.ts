@@ -62,7 +62,7 @@ export type SvieSmerteEngineOutput = Readonly<{
   /**
    * Kravet i denne periode NÅR maksimum: råbeløbet er mindst den resterende plads (målt i hele øre).
    * Adskilt fra `maxApplied`, som kun er sand, når kravet skæres ned – ved præcis lighed skæres intet,
-   * men loftet er nået alligevel, og det er det, EO-kontrollens ophørsgrund skal sige.
+   * men loftet er nået alligevel, og det er det, ophørsgrunden skal sige.
    * Påvirker ingen beløb.
    */
   maksimumNaaet: boolean;

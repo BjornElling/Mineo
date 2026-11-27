@@ -123,7 +123,7 @@ export const buildSvieSmerteModel = (
     statusLinjer.push(verserendeKlageMen === 'Ja' ? `${tekst} Afgørelsen er påklaget.` : tekst);
   }
 
-  // Samme udsagn som EO-kontrollens «Ménafgørelse», ud fra motorens afklippede perioder.
+  // Ophørsgrunden følger motorens afkortede perioder.
   const senesteSvieSmerteDag = engine.constrainedPeriods.reduce<ISODateString | undefined>(
     (seneste, p) => (!seneste || p.til > seneste ? p.til : seneste),
     undefined
@@ -369,7 +369,7 @@ export const buildTabtArbejdsfortjenesteModel = (
     midlertidigEetErTafRelevant && harTafDagenFoer(midlertidigEetReferenceDato);
   const differencekravBringTilOphoer = harTafDagenFoer(differencekravReferenceDato);
 
-  // Valget mellem kandidaterne deles med EO-kontrollens «TAF-ophør skyldes».
+  // Valget mellem kandidaterne deles med markøren i dagsgrundlaget.
   const ophoersgrundKandidater: Array<Readonly<{ kilde: TafCutoffKilde; referenceDato: ISODateString }>> = [];
   if (differencekravBringTilOphoer && differencekravReferenceDato) {
     ophoersgrundKandidater.push({ kilde: 'differencekrav', referenceDato: differencekravReferenceDato });

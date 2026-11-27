@@ -1,4 +1,5 @@
-import { buildEOInspektionModel } from '../../../domain/eoInspektion/eoInspektionKontrolModel';
+import { buildIncomeForRanges } from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
+import { collectIncomeDays } from '../../../domain/erstatningsopgoerelse/engines/eoIndkomstDagsgrundlag';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
@@ -24,8 +25,10 @@ const buildValues = (): ErstatningsopgoerelseValues => {
 
 describe('feriepenge som EO-downstream-consumer', () => {
   it('fordeler feriepenge på arbejdsdage og springer weekend og helligdage over', () => {
-    const model = buildEOInspektionModel(buildValues(), { tafRanges: [] });
-    const amounts = model.columnRawValues.get('offentlig:feriepenge');
+    const { receiver, days } = collectIncomeDays();
+    const income = buildIncomeForRanges(buildValues(), [{ fra: iso('2024-03-27'), til: iso('2024-04-02') }],
+      undefined, undefined, undefined, receiver);
+    const amounts = new Map(days.ydelse.get('feriepenge')?.map(({ date, amount }) => [date, amount]));
     const relevantDates = [
       iso('2024-03-27'),
       iso('2024-03-28'),
@@ -35,43 +38,7 @@ describe('feriepenge som EO-downstream-consumer', () => {
       iso('2024-04-01'),
       iso('2024-04-02'),
     ];
-    const relevantIndexes = relevantDates.map((date) => model.tableData.dates.indexOf(date));
-
-    expect(model.columns.find((column) => column.id === 'offentlig:feriepenge')?.header).toBe('Feriepenge');
-    expect(amounts).toBeDefined();
-    expect(relevantIndexes.every((index) => index >= 0)).toBe(true);
-    if (!amounts) return;
-
-    // 27. marts og 2. april er de eneste arbejdsdage i intervallet. 600 kr. + 200 kr. = 800 kr.,
-    // så det håndberegnede facit er 800 kr. / 2 arbejdsdage = 400 kr. pr. dag.
-    expect(relevantIndexes.map((index) => amounts[index])).toEqual([400, 0, 0, 0, 0, 0, 400]);
-    expect(relevantIndexes.map((index) => model.getCell(index, 'offentlig:feriepenge'))).toEqual([
-      '400,00',
-      '',
-      '',
-      '',
-      '',
-      '',
-      '400,00',
-    ]);
-    expect(relevantIndexes.map((index) => model.tableData.isWorkdayByIndex[index])).toEqual([
-      true,
-      true,
-      true,
-      false,
-      false,
-      true,
-      true,
-    ]);
-    expect(relevantIndexes.map((index) => model.tableData.isSognehelligdagByIndex[index])).toEqual([
-      false,
-      true,
-      true,
-      false,
-      false,
-      true,
-      false,
-    ]);
-    expect(amounts.reduce((sum, value) => sum + value, 0)).toBe(800);
+    expect(relevantDates.map((date) => amounts.get(date) ?? 0)).toEqual([400, 0, 0, 0, 0, 0, 400]);
+    expect(income.benefits).toEqual([{ typeKey: 'feriepenge', label: 'Feriepenge', amount: 800 }]);
   });
 });

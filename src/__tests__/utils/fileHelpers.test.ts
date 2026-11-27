@@ -24,7 +24,6 @@ const baseSettings: AppSettings = {
   themeMode: 'light',
   defaultStartsideErStamdata: false,
   showContentBoxReportButton: false,
-  showEOInspektionMenu: false,
   fontStyleColorDebug: false,
   erstatningsopgoerelseAfsluttesMed: 'Bekræftet godkendt',
   defaultFuldLoenUnderFerie: true,

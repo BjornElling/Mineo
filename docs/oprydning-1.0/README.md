@@ -139,7 +139,7 @@ Instruks: `kontrakt-regler.md`. Én agent pr. gruppe, højst to ad gangen.
 - [ ] Commit.
 
 ### Efter oprydningen (ikke en del af 1.0-oprydningen)
-- Afvikling af kontrolfanerne efter EOS §6 «Besluttet afvikling».
+- [x] Kontrolfanerne afviklet. Beregning har CSV-download af dagsgrundlaget. Se `eo-snapshot-contract.md` §6.
 
 ### Arbejdsstykke 6 – Topniveau, skills og sletning
 - [ ] `AGENTS.md`, `CLAUDE.md`, `README.md`, `src/__tests__/AGENTS.md`: efterprøv og rens for historik

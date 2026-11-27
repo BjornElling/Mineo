@@ -4,7 +4,7 @@ import InfoTooltipIcon from '../common/InfoTooltipIcon';
 import { getStandardLoenTableHeaders, STANDARD_LOEN_COL3_LABEL } from '../../domain/aarsloen/standardLoenTableColumns';
 
 // Overskrifternes React-form bor her og ikke i domænemodulet med kolonnenavnene: navnene læses også af
-// dokumenterne og kontroltabellen, som ikke må trække en UI-komponent med sig.
+// dokumenterne og CSV-filen, som ikke må trække en UI-komponent med sig.
 
 // Tankestregen er en-dash med mellemrum omkring (bevidst valg), ikke en bindestreg.
 const LOEN_2_TOOLTIP_TEXT = 'Opdelingen af løn er rent visuel – værdierne lægges sammen i beregningen';

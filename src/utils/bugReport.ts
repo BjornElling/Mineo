@@ -79,10 +79,6 @@ const parseBooleanFlag = (value: unknown): boolean => {
 const getActiveTestInjectionsAndFeatureFlags = (): readonly string[] => {
   const flags: string[] = [];
 
-  if (parseBooleanFlag(import.meta.env.VITE_FORCE_SAMMENTAELLING_MISMATCH)) {
-    flags.push('VITE_FORCE_SAMMENTAELLING_MISMATCH');
-  }
-
   if (parseBooleanFlag(import.meta.env.VITE_ENABLE_TEST_INJECTIONS)) {
     flags.push('VITE_ENABLE_TEST_INJECTIONS');
   }

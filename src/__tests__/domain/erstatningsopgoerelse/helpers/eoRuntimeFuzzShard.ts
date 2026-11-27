@@ -23,6 +23,7 @@ const shardSeeds = (shard: number): readonly number[] => {
 
 const fuzz = (mode: EoCaseMode, shard: number): readonly string[] => {
   eoRuntimeStats.status = {};
+  eoRuntimeStats.checks = { reordered: 0, outside: 0, csv: 0 };
   const failures: Failure[] = [];
   for (const seed of shardSeeds(shard)) {
     failures.push(...runEoPage(generateEoCase(seed, mode)));
@@ -44,6 +45,9 @@ export const defineFuzzShard = (mode: EoCaseMode, shard: number): void => {
     if (mode === 'sammenhaengende') {
       // Den sammenhængende generator skal faktisk nå gyldige beregninger, ellers fuzzer den kun fejlgrene.
       expect((eoRuntimeStats.status.ok ?? 0) + (eoRuntimeStats.status.warning ?? 0)).toBeGreaterThan(0);
+      if (CASES >= 150) {
+        for (const count of Object.values(eoRuntimeStats.checks)) expect(count).toBeGreaterThan(0);
+      }
     }
   }, 600_000);
 };

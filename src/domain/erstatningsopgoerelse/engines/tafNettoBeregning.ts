@@ -35,6 +35,7 @@ import {
 } from '../../money/money';
 import { asCalculable } from '../shared/eoTypes';
 import { buildTafIndtaegterBeregning } from './tafIndtaegterBeregning';
+import { collectIncomeDays, type EoIndkomstDagsgrundlag } from './eoIndkomstDagsgrundlag';
 import type { MidlertidigtEetAfgoerelseGroup } from '../helpers/midlertidigtEetInsertRows';
 
 const notCalculable = <T>(reason: string): Calculable<T> => ({ status: 'not_calculable', reason });
@@ -61,11 +62,8 @@ export const buildSfggReguleringOpslagMap = (
 };
 
 const buildTafIndtaegterModel = (
-  values: TafCalculationValues,
-  ranges: readonly IsoRange[],
-  midlertidigtEetGroups: readonly MidlertidigtEetAfgoerelseGroup[]
+  result: ReturnType<typeof buildTafIndtaegterBeregning>
 ): TafIndtaegterModel => {
-  const result = buildTafIndtaegterBeregning(values, ranges, { midlertidigtEetGroups });
   return {
     entries: result.entries.map(({ label, amountOre }) => ({ label, amountOre })),
     forbeholdYdelsestyper: result.forbeholdYdelsestyper,
@@ -100,6 +98,7 @@ export type TafNettoBeregningResult = Readonly<{
   tafIndtaegter: TafIndtaegterModel | null;
   tidligereModtagetTaf: Calculable<MoneyOre>;
   sygeferiegodtgoerelse: SygeferiegodtgoerelseResult;
+  indkomstDagsgrundlag?: EoIndkomstDagsgrundlag;
   /**
    * TAF før fradrag af `tidligereModtagetTaf`.
    * Fradraget foretages downstream i `buildEoComputedTotals` og `buildTafPerYearBuildOutcome`.
@@ -114,6 +113,7 @@ export const computeTafNettoBeregning = (
   options: Readonly<{
     tafRanges: readonly IsoRange[];
     midlertidigtEetGroups?: readonly MidlertidigtEetAfgoerelseGroup[];
+    medDagsgrundlag?: boolean;
   }>
 ): TafNettoBeregningResult => {
   const tafRanges = options.tafRanges;
@@ -124,14 +124,16 @@ export const computeTafNettoBeregning = (
   const beregningsperiodeRange = values.beregnesUdFra === 'Beregningsperiode'
     ? buildBeregningsperiodeRange(values)
     : undefined;
+  const refDays = options.medDagsgrundlag && beregningsperiodeRange ? collectIncomeDays() : undefined;
   const incomeForBeregningsperiode: IncomePeriodResult | null =
     harTafPerioder && beregningsperiodeRange
-      ? buildIncomeForRanges(values, [beregningsperiodeRange], undefined, undefined)
+      ? buildIncomeForRanges(values, [beregningsperiodeRange], undefined, undefined, undefined, refDays?.receiver)
       : null;
 
   const indkomstSkadestidspunkt = harTafPerioder
     ? buildIndkomstSkadestidspunkt(values, stamdataValues, tafBeregningsenhed, {
       incomeForBeregningsperiode,
+      projectIncomeDays: refDays?.projectLoen,
     })
     : null;
   const loenudviklingBeregning = harTafPerioder
@@ -161,7 +163,11 @@ export const computeTafNettoBeregning = (
         reguleringsBaseIso: offentligeYdelserReguleringsBaseIso,
       })
       : null;
-  const tafIndtaegter = harTafPerioder ? buildTafIndtaegterModel(values, tafRanges, midlertidigtEetGroups) : null;
+  const tafDays = options.medDagsgrundlag && harTafPerioder ? collectIncomeDays() : undefined;
+  const tafIndtaegterResult = harTafPerioder
+    ? buildTafIndtaegterBeregning(values, tafRanges, { midlertidigtEetGroups, onDay: tafDays?.receiver })
+    : null;
+  const tafIndtaegter = tafIndtaegterResult ? buildTafIndtaegterModel(tafIndtaegterResult) : null;
   const sygeferiegodtgoerelse = harTafPerioder
     ? computeSygeferiegodtgoerelse({
       values,
@@ -239,6 +245,12 @@ export const computeTafNettoBeregning = (
     tafIndtaegter,
     tidligereModtagetTaf,
     sygeferiegodtgoerelse,
+    indkomstDagsgrundlag: options.medDagsgrundlag ? {
+      beregningsperiode: refDays && incomeForBeregningsperiode && beregningsperiodeRange
+        ? { range: beregningsperiodeRange, income: incomeForBeregningsperiode, days: refDays.days }
+        : undefined,
+      taf: tafDays && tafIndtaegterResult ? { entries: tafIndtaegterResult.entries, days: tafDays.days } : undefined,
+    } : undefined,
     tabtArbejdsfortjenesteOre,
   };
 };

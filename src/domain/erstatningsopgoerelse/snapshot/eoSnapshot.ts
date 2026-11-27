@@ -2,11 +2,6 @@ import { getToday } from '../../../config/dateRanges';
 import { erstatningsopgoerelseSchema, stamdataSchema, type ErstatningsopgoerelseValues, type StamdataValues } from '../../../schemas/formSchemas';
 import type { ISODateString } from '../../../types/branded';
 import { erstatningsopgoerelseValidator } from '../../../validators/erstatningsopgoerelseValidator';
-import {
-  buildEOInspektionSnapshot,
-  type EOInspektionBlockedBranches,
-  type EOInspektionSnapshot,
-} from '../../eoInspektion/eoInspektionSnapshot';
 import { parseForligsgrad } from '../engines/forligsgrad';
 import type { MidlertidigtEetAfgoerelseGroup } from '../helpers/midlertidigtEetInsertRows';
 import type { EetImportContext } from '../../erhvervsevnetab/eetImportPort';
@@ -37,7 +32,6 @@ import { buildTafRanges } from '../helpers/indtaegtPerioder';
 import { reportSystemIssue } from '../../../utils/systemIssueReporter';
 import { asError } from '../../../utils/typeGuards';
 import {
-  buildControlMismatchInvariant,
   buildMidlertidigtEetSourceInvariants,
   buildTafPerYearAfrundingInvariant,
   buildTafPerYearOpreguleretManglendeReguleringssatsInvariant,
@@ -51,13 +45,9 @@ import {
   type EoInvariant,
 } from './eoSnapshotInvariants';
 import type { IsoRange } from '../validation/tafPeriodConstraints';
-import { collectSammentaellingControlMismatchMessages } from '../control/eoControlMismatch';
+import { buildEoDagsgrundlag, type EoDagsgrundlag } from './eoDagsgrundlagCsv';
 import { resolveStamdataDateOrder } from '../../stamdata/stamdataDateOrder';
-import { EMPTY_FIELD_ISSUE_SET, type FieldIssue, type FieldIssueSet } from '../../../inputCore/inputIssue';
-import { eoTafBeregningsperiodeFraField, eoTafBeregningsperiodeTilField } from '../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
-import { serializeFieldAddress } from '../../../inputCore/fieldAddress';
-import { validateIsoRange } from '../../../utils/isoDateHelpers';
-import type { EOInspektionBeregningsperiodeProjection } from '../../eoInspektion/eoInspektionKontrolModel';
+import { type FieldIssue } from '../../../inputCore/inputIssue';
 import { isPeriodOverlapIssue } from '../periodOverlapIssues';
 import {
   EMPTY_EO_DEPENDENCY_PROJECTION,
@@ -103,21 +93,8 @@ export type EoSnapshotComputedData = Readonly<{
   pdfModel: EoModel;
 }>;
 
-/**
- * En uafhængig grens resultat på den blokerede sti: `undefined` betyder "grenen er blokeret af sin EGEN
- * røde afhængighed" – ikke "ingen data". Bevidst ikke en diskrimineret union: `undefined` er allerede den
- * entydige "ikke beregnet"-repræsentation gennem hele EO-snapshottet (jf. `svieSmerteEngine` i
- * `inspektionSnapshot`), og en parallel wrapper-form ville give to måder at udtrykke det samme.
- */
+/** Resultater for de beregningsgrene, hvis egne afhængigheder er gyldige. */
 export type EoReadyBranches = Readonly<{
-  /**
-   * S/S-motorens output, når S/S-grenens egne felter er grønne.
-   *
-   * Samme værdi føres OGSÅ ind i `inspektionSnapshot`, som Kontrol-fanen bygger sin visning af – men den
-   * eksponerer den kun gennem sin færdigbyggede model, ikke som et læsbart engine-output. Feltet her er
-   * derfor den ENE typede adgang til "kunne S/S beregnes trods den blokerede sti?", og det er den, gate-
-   * invarianttestene måler S2's før/efter-forlig-adskillelse på.
-   */
   svieSmerte: SvieSmerteEngineOutput | undefined;
   /** TAF-periodiseringen, når TAF-grenens egne felter er grønne. Læses af `eoSnapshotToBeregningView`. */
   tafPerioder: readonly IsoRange[] | undefined;
@@ -141,15 +118,14 @@ export type EoSnapshot = Readonly<{
    *
    * Findes KUN på den blokerede sti; på den grønne sti er `data` autoritativ og bærer alt. Formålet er
    * den bevidste regel, at et rødt svie/smerte-felt ikke må fjerne den GYLDIGE TAF-periodisering fra
-   * Beregning-fanen. `data` er `null` her, og `inspektionSnapshot` ser Beregning-fanen ikke, så uden dette
-   * felt kunne de gyldige grene slet ikke nå frem.
+   * Beregning-fanen. `data` er `null` her,.
    *
    * ⚠️ Grenene er IKKE autoritative: de indgår ikke i nogen sum, intet `canonicalOutput` og ingen PDF.
    * Det krydsgående aggregat forbliver alt-eller-intet (`data: null`), fordi en samlet total eller et
    * fuldt dokument ikke kan være autoritativt uden alle led.
    */
   readyBranches?: EoReadyBranches;
-  inspektionSnapshot: EOInspektionSnapshot | null;
+  dagsgrundlag?: EoDagsgrundlag;
   input: Readonly<{
     stamdata: StamdataValues | null;
     erstatningsopgoerelse: ErstatningsopgoerelseValues | null;
@@ -157,8 +133,6 @@ export type EoSnapshot = Readonly<{
   failClosedReason?: 'schema_guard' | 'invariant_guard' | 'runtime_exception';
 }>;
 
-const EMPTY_STAMDATA_ERRORS = EMPTY_FIELD_ISSUE_SET;
-const EMPTY_EO_ERRORS = EMPTY_FIELD_ISSUE_SET;
 export type EoSnapshotWithData = Readonly<Omit<EoSnapshot, 'data' | 'input'>> & Readonly<{
   data: EoSnapshotComputedData;
   input: Readonly<{
@@ -192,38 +166,10 @@ const buildCanonicalOutput = (args: Readonly<{
   });
 };
 
-const buildInspektionSnapshotForComputed = (args: Readonly<{
-  revision: string;
-  stamdata: StamdataValues;
-  eoValues: ErstatningsopgoerelseValues;
-  stamdataErrors: FieldIssueSet;
-  eoErrors: FieldIssueSet;
-  tafRanges?: readonly IsoRange[];
-  beregningsperiodeProjection?: EOInspektionBeregningsperiodeProjection;
-  svieSmerteEngine?: SvieSmerteEngineOutput;
-  blockedBranches?: EOInspektionBlockedBranches;
-  canonicalOutput?: EoCanonicalOutput;
-  sfggResult?: TafNettoBeregningResult['sygeferiegodtgoerelse'];
-}>): EOInspektionSnapshot => {
-  return buildEOInspektionSnapshot({
-    revision: args.revision,
-    stamdataValues: args.stamdata,
-    eoValues: args.eoValues,
-    stamdataErrors: args.stamdataErrors,
-    eoErrors: args.eoErrors,
-    tafRanges: args.tafRanges,
-    beregningsperiodeProjection: args.beregningsperiodeProjection,
-    svieSmerteEngine: args.svieSmerteEngine,
-    blockedBranches: args.blockedBranches,
-    canonicalOutput: args.canonicalOutput,
-    sfggResult: args.sfggResult,
-  });
-};
-
 /**
- * TAF-perioder med røde datofelter må ikke udvide kontroltabellen. Kun overlapissues bevarer rækken:
+ * TAF-perioder med røde datofelter må ikke udvide den viste periodisering. Kun overlapissues bevarer rækken:
  * datoerne er læsbare, og den samlede periodisering kan vise deres forenede interval. Bounds, cutoff og
- * datoorden gør derimod rækken ugyldig som inspektionsgrundlag.
+ * datoorden gør derimod rækken ugyldig som beregningsgrundlag.
  */
 const getTafRowsWithUnsafeDateIssues = (issues: readonly FieldIssue[]): ReadonlySet<string> => {
   const rowIds = new Set<string>();
@@ -242,7 +188,7 @@ const getTafRowsWithUnsafeDateIssues = (issues: readonly FieldIssue[]): Readonly
   return rowIds;
 };
 
-const buildSafeTafRangesForInspektion = (
+const buildSafeTafRangesForBeregningsvisning = (
   values: TafCalculationValues,
   skadedatoISO: ISODateString | undefined,
   issues: readonly FieldIssue[]
@@ -253,26 +199,6 @@ const buildSafeTafRangesForInspektion = (
     tafPerioder: (values.tafPerioder ?? []).filter((row) => !invalidRowIds.has(row.id)),
   };
   return buildTafRanges(safeValues, { skadedatoISO });
-};
-
-const BEREGNINGS_PERIODE_FIELD_ADDRESSES = new Set([
-  serializeFieldAddress(eoTafBeregningsperiodeFraField.bind().address),
-  serializeFieldAddress(eoTafBeregningsperiodeTilField.bind().address),
-]);
-
-/** Deler den sikre periode mellem tabel og sammentælling; issues bruges kun til at afgøre sikkerheden her. */
-const buildBeregningsperiodeProjectionForInspektion = (
-  values: Pick<TafCalculationValues, 'beregnesUdFra' | 'tafBeregningsperiodeFra' | 'tafBeregningsperiodeTil'>,
-  issues: readonly FieldIssue[],
-): EOInspektionBeregningsperiodeProjection => {
-  const relevantIssues = issues.filter((issue) =>
-    BEREGNINGS_PERIODE_FIELD_ADDRESSES.has(serializeFieldAddress(issue.field.address))
-  );
-  const unsafeDateIssues = relevantIssues.filter((issue) => !isPeriodOverlapIssue(issue));
-  const range = values.beregnesUdFra === 'Beregningsperiode' && unsafeDateIssues.length === 0
-    ? validateIsoRange(values.tafBeregningsperiodeFra, values.tafBeregningsperiodeTil)
-    : undefined;
-  return Object.freeze({ range });
 };
 
 /**
@@ -320,7 +246,6 @@ export const buildEoRuntimeExceptionSnapshot = (args: Readonly<{
   revision: string;
   error: unknown;
   context: string;
-  inspektionSnapshotAvailable: boolean;
   input: EoSnapshot['input'];
 }>): EoSnapshot => {
   const normalizedError = asError(args.error);
@@ -333,8 +258,6 @@ export const buildEoRuntimeExceptionSnapshot = (args: Readonly<{
     error: normalizedError,
     diagnostics: {
       errorName: normalizedError.name,
-      // Selve snapshot-resultatet sætter inspektionSnapshot til null i fail_closed-stien (se nedenfor).
-      inspektionSnapshotAvailable: args.inspektionSnapshotAvailable,
     },
   });
   return {
@@ -348,15 +271,9 @@ export const buildEoRuntimeExceptionSnapshot = (args: Readonly<{
       message: 'EO-beregningen kan ikke gennemføres på grund af en intern beregningsfejl.',
       evidence: [normalizedError.message],
       blocksAuthoritativeComputation: true,
-      blocksOutputs: ['beregning', 'inspektion', 'eo_pdf', 'taf_per_year_pdf', 'taf_per_year_opreguleret_pdf'] as const,
+      blocksOutputs: ['beregning', 'eo_pdf', 'taf_per_year_pdf', 'taf_per_year_opreguleret_pdf'] as const,
     }],
     data: null,
-    // Kontrakt eo-snapshot-contract.md §2.4: i fail_closed-stien (uventet runtime-exception)
-    // er inspektionSnapshot null. En delvist bygget kontrol-snapshot fra en kørsel der efterfølgende
-    // kastede, må ikke eksponeres som et gyldigt beregningsgrundlag – også selvom
-    // eoSnapshotToInspektionView allerede router fail_closed til en blokeret tilstand uafhængigt af
-    // inspektionSnapshot. Fail-closed = ingen semi-autoritativ kontrolvisning.
-    inspektionSnapshot: null,
     input: args.input,
     failClosedReason: 'runtime_exception',
   };
@@ -367,8 +284,6 @@ export const computeEoSnapshot = (args: Readonly<{
   stamdataValues: unknown;
   eoValues: unknown;
   dagsDatoISO?: ISODateString;
-  stamdataErrors?: FieldIssueSet;
-  eoErrors?: FieldIssueSet;
   /** Issues opsamlet af de konkrete typed inputprojektioner for hver beregningsgren. */
   dependencyProjection?: EoDependencyProjection;
   /**
@@ -393,8 +308,6 @@ export const computeEoSnapshot = (args: Readonly<{
   eetAfgoerelseDatoIssues?: readonly EetIssue[];
 }>): EoSnapshot => {
   const dagsDatoISO = args.dagsDatoISO ?? getToday();
-  const stamdataErrors = args.stamdataErrors ?? EMPTY_STAMDATA_ERRORS;
-  const eoErrors = args.eoErrors ?? EMPTY_EO_ERRORS;
   const dependencyProjection = args.dependencyProjection ?? EMPTY_EO_DEPENDENCY_PROJECTION;
   const blockedDependencies = resolveEoBlockedDependencies(dependencyProjection);
   const parsedStamdata = stamdataSchema.safeParse(args.stamdataValues);
@@ -415,10 +328,9 @@ export const computeEoSnapshot = (args: Readonly<{
         source: 'system' as const,
         message,
         blocksAuthoritativeComputation: true,
-        blocksOutputs: ['beregning', 'inspektion', 'eo_pdf', 'taf_per_year_pdf', 'taf_per_year_opreguleret_pdf'] as const,
+        blocksOutputs: ['beregning', 'eo_pdf', 'taf_per_year_pdf', 'taf_per_year_opreguleret_pdf'] as const,
       })),
       data: null,
-      inspektionSnapshot: null,
       input: {
         stamdata: parsedStamdata.success ? parsedStamdata.data : null,
         erstatningsopgoerelse: parsedEo.success ? parsedEo.data : null,
@@ -427,13 +339,6 @@ export const computeEoSnapshot = (args: Readonly<{
     };
   }
 
-  // inspektionSnapshot deklareres her så catch-blokken har adgang til den,
-  // selv hvis en fejl opstår efter at den er bygget inde i try-blokken.
-  let inspektionSnapshot: EOInspektionSnapshot | null = null;
-
-  // Hele afledningen efter schema-gaten står i try-blokken – også valideringen og valideringsfejl-grenens
-  // kontrolberegning (S/S-motor, TAF-ranges, kontrol-snapshot). Den gren kørte tidligere uden for blokken, så en
-  // undtagelse dér væltede hele siden i stedet for at ende som den kontrollerede `runtime_exception`-tilstand.
   try {
     // Transient EET-injection: når togglen er 'Ja', erstattes offentligeYdelserRows med en
     // effektiv version, hvor manuelle midlertidigt_eet-rækker er filtreret væk og virtuelle
@@ -502,10 +407,6 @@ export const computeEoSnapshot = (args: Readonly<{
         tidligereModtagetTaf: undefined,
       };
     const projectedTafStamdata = dependencyProjection.tafInput?.stamdata ?? parsedStamdata.data;
-    const beregningsperiodeProjectionForInspektion = buildBeregningsperiodeProjectionForInspektion(
-      projectedTafValues,
-      dependencyProjection.tafIssues,
-    );
     const projectedOevrigeKravValues = dependencyProjection.oevrigeKravInput ?? effectiveEoValues;
 
     // Her stod tidligere en `invariant_guard` for `eoAngivetLoenLoenudvikling.loenPaaHelligdage === undefined`
@@ -547,58 +448,41 @@ export const computeEoSnapshot = (args: Readonly<{
       // kun 11 top-level feltnavne, så en rød RÆKKECELLE ville hverken blokere beregningen eller sin egen gren.
       ...buildStructuralFieldIssueInvariants(dependencyProjection.aggregateIssues),
     ];
+    const computeTaf = (tafRanges: readonly IsoRange[]) => computeTafNettoBeregning(
+      projectedTafValues,
+      { ...parsedStamdata.data, ...projectedTafStamdata },
+      { tafRanges, midlertidigtEetGroups, medDagsgrundlag: true },
+    );
     if (hasAuthoritativeBlockingInvariant(validationInvariants)) {
-      // Validerings-fejl-sti: autoritative totaler/PDF'er må ikke bygges.
-      // Kontrol-snapshotten må dog stadig vise sektions-uafhængige engine-data, når de kan beregnes sikkert.
-      // Vi beregner derfor svie/smerte-engine separat her, fordi den ikke afhænger af løn/TAF-validering.
-      // TAF-ranges bygges fra de rækker der stadig kan parses, så kontrollaget kan vise den samme clamping
-      // for gyldige rækker selv om andre TAF-rækker blokerer den autoritative beregning. Hvis alle
-      // rækker er ugyldige eller clampes bort, er [] den forventede fail-closed kontrol-basis.
-      //
-      // BEVIDST UDELADT: reguleringsforløbet vises IKKE i denne
-      // fejl-tilstand. Det viste reguleringsforløb er udelukkende den kanoniske serie fra det
-      // autoritative pdfModel (ingen re-derivation) – som netop ikke bygges her. Kontrolfanen fail-closer
-      // derfor reguleringsafsnittet til placeholders, indtil valideringsfejlen er løst. Dette er valgt
-      // frem for at genindføre en separat serie-beregning (der ville kunne vise en tabel, som ikke svarer
-      // til nogen autoritativ beregning). Genindfør IKKE et fejl-tilstands-forløb uden en ny beslutning.
-      // ⚠️ En motor må IKKE køre, hvis en af DENS EGNE afhængigheder er rød. Readeren maskerer en rød
-      // værdi til `undefined`, så et ugatet kald her ville vise fx et "Beregnet svie/smerte"-beløb regnet som om
-      // "tidligere udbetalt" var 0 – et falsk tal, der bevidst skal vises som `-`.
-      //
-      // Gaten er dependency-specifik: en rød TAF-afhængighed rører ikke
-      // S/S-visningen, og en rød S/S-afhængighed rører ikke TAF-ranges. Kun grenens egne felter gater grenen.
-      // Autoriteten er de STRUKTURELLE feltissues, ikke `eoErrors`-mappet: sidstnævnte kender kun 11
-      // top-level feltnavne, så en rød rækkecelle ville være usynlig her.
-      // Forligsgraden skalerer S/S-satserne (`svieSmerteEngine.ts:234-254`), så en rød forligsprocent er en
-      // reel S/S-afhængighed. Den blokerer dog KUN efter-forlig-resultatet: det er en bevidst regel, at
-      // før-forlig-resultater består.
-      const svieSmerteForInspektion = blockedDependencies.svieSmerte
+      const svieSmerteForBeregningsvisning = blockedDependencies.svieSmerte
         ? undefined
         : withForligGate(
           computeSvieSmerteEngine(projectedSvieSmerteInput),
           blockedDependencies.forlig
         );
-      // Kontrolvisningen må vise perioder fra TAF-rækker med læsbare datoer, men aldrig falde tilbage til en
-      // rød datos canonical værdi. Overlap er stadig læsbare perioder og samles af samme range-helper; den
-      // røde fejl blokerer fortsat TAF-beregningen gennem dependency-gaten.
-      const tafRangesForInspektion = buildSafeTafRangesForInspektion(
+      const tafRangesForBeregningsvisning = buildSafeTafRangesForBeregningsvisning(
         projectedTafValues,
         projectedTafStamdata.skadedato,
         dependencyProjection.tafIssues,
       );
-      const inspektionSnapshotForValidationError = buildInspektionSnapshotForComputed({
-        revision: args.revision,
-        stamdata: parsedStamdata.data,
-        eoValues: effectiveEoValues,
-        stamdataErrors,
-        eoErrors,
-        tafRanges: tafRangesForInspektion,
-        beregningsperiodeProjection: beregningsperiodeProjectionForInspektion,
-        svieSmerteEngine: svieSmerteForInspektion,
-        blockedBranches: {
-          svieSmerte: blockedDependencies.svieSmerte,
-          taf: blockedDependencies.taf,
-        },
+      // Kun fejl med et kendt uafhængigt tilhørsforhold må give en delvis CSV-eksport.
+      // Også valideringsfejl uden et rødt felt kan spærre TAF, fx en negativ samlet indtægtskilde.
+      const blocking = validationInvariants.filter((invariant) => invariant.blocksAuthoritativeComputation);
+      const safeTaf = !blockedDependencies.taf && blocking.every(
+        (invariant) => /^(?:eo\.)?(?:svieSmerte|oevrigeKrav)/.test(invariant.evidence?.[0] ?? ''),
+      );
+      const safeSvieSmerte = !blockedDependencies.svieSmerte && blocking.every(
+        (invariant) => /^(?:eo\.)?(?:taf|loenindkomst|offentligeYdelser|sfgg|oevrigeKrav)/.test(
+          invariant.evidence?.[0] ?? '',
+        ),
+      );
+      const dagsgrundlag = buildEoDagsgrundlag({
+        values: projectedTafValues,
+        skadedato: projectedTafStamdata.skadedato,
+        tafRanges: safeTaf ? tafRangesForBeregningsvisning : [],
+        tafNetto: safeTaf && tafRangesForBeregningsvisning.length ? computeTaf(tafRangesForBeregningsvisning) : undefined,
+        svieSmertePeriods: safeSvieSmerte ? svieSmerteForBeregningsvisning?.constrainedPeriods : undefined,
+        partial: true,
       });
       return {
         revision: args.revision,
@@ -606,18 +490,13 @@ export const computeEoSnapshot = (args: Readonly<{
         invariants: validationInvariants,
         // Det AUTORITATIVE aggregat (samlet total + canonicalOutput + pdfModel) forbliver `null`: en sum eller
         // et fuldt dokument kan ikke være autoritativt, når bare ét led er blokeret.
-        // De uafhængige grene, der STADIG kan beregnes, eksponeres gennem `inspektionSnapshot` ovenfor – det er
-        // dér, en rød S/S-afhængighed ikke fjerner den gyldige TAF-visning.
         data: null,
         blockedDependencies,
-        // Samme regel gælder HER, ikke kun i `inspektionSnapshot`: Beregning-fanen læser
-        // udelukkende snapshottet og skal fortsat kunne vise den gyldige TAF-periodisering, når et
-        // svie/smerte-felt er rødt.
         readyBranches: Object.freeze({
-          svieSmerte: svieSmerteForInspektion,
-          tafPerioder: blockedDependencies.taf ? undefined : tafRangesForInspektion,
+          svieSmerte: svieSmerteForBeregningsvisning,
+          tafPerioder: blockedDependencies.taf ? undefined : tafRangesForBeregningsvisning,
         }),
-        inspektionSnapshot: inspektionSnapshotForValidationError,
+        dagsgrundlag,
         input: {
           stamdata: parsedStamdata.data,
           erstatningsopgoerelse: parsedEo.data,
@@ -629,13 +508,7 @@ export const computeEoSnapshot = (args: Readonly<{
     const forlig = parseForligsgrad(projectedForligInput);
     const forligFactor = forlig?.factor ?? null;
     const svieSmerte = computeSvieSmerteEngine(projectedSvieSmerteInput);
-    const tafNetto = computeTafNettoBeregning(projectedTafValues, {
-      ...parsedStamdata.data,
-      ...projectedTafStamdata,
-    }, {
-      tafRanges,
-      midlertidigtEetGroups,
-    });
+    const tafNetto = computeTaf(tafRanges);
     const oevrigeKrav = buildOevrigeKravModel(projectedOevrigeKravValues);
     const totals = buildEoComputedTotals({
       svieSmerte,
@@ -664,18 +537,6 @@ export const computeEoSnapshot = (args: Readonly<{
       tafNetto,
       totals,
     });
-    inspektionSnapshot = buildInspektionSnapshotForComputed({
-      revision: args.revision,
-      stamdata: parsedStamdata.data,
-      eoValues: effectiveEoValues,
-      stamdataErrors,
-      eoErrors,
-      tafRanges,
-      beregningsperiodeProjection: beregningsperiodeProjectionForInspektion,
-      svieSmerteEngine: svieSmerte,
-      canonicalOutput,
-      sfggResult: tafNetto.sygeferiegodtgoerelse,
-    });
     const invariants: EoInvariant[] = [...validationInvariants];
 
     if (tafPerYearOutcome.kind === 'error' && tafPerYearOutcome.reason === 'afrunding_over_100') {
@@ -690,16 +551,6 @@ export const computeEoSnapshot = (args: Readonly<{
     }
     if (tafPerYearOpreguleretOutcome.kind === 'error' && tafPerYearOpreguleretOutcome.reason === 'manglende_reguleringssats') {
       invariants.push(buildTafPerYearOpreguleretManglendeReguleringssatsInvariant(tafPerYearOpreguleretOutcome.manglendeAar));
-    }
-
-    // Denne invariant er bevidst udledt af kontroltabellens sammentælling-model.
-    // Den krydstjekker autoritative engine-outputs mod den committede EO-kontrol-tabel-projektion,
-    // så den afhænger af kontrol-infrastruktur efter design frem for at være et rent engine-til-engine-check.
-    // Invariant: inspektionSnapshot er altid non-null her, da den sættes tidligt i try-blokken inden engine-kald.
-    if (!inspektionSnapshot) throw new Error('inspektionSnapshot mangler ved kontrol-mismatch-check – invariant brudt');
-    const controlMismatchMessages = collectSammentaellingControlMismatchMessages(inspektionSnapshot.sammentaellingRows);
-    if (controlMismatchMessages.length > 0) {
-      invariants.push(buildControlMismatchInvariant(controlMismatchMessages));
     }
 
     const forligForPdf = forlig
@@ -755,7 +606,13 @@ export const computeEoSnapshot = (args: Readonly<{
       // Ingen gren er blokeret her: vi nåede kun hertil, fordi ingen invariant blokerede den autoritative
       // beregning. Feltet sættes eksplicit, så consumers ser samme form på begge veje.
       blockedDependencies,
-      inspektionSnapshot,
+      dagsgrundlag: buildEoDagsgrundlag({
+        values: projectedTafValues,
+        skadedato: projectedTafStamdata.skadedato,
+        tafRanges,
+        tafNetto,
+        svieSmertePeriods: svieSmerte.constrainedPeriods,
+      }),
       input: {
         stamdata: parsedStamdata.data,
         erstatningsopgoerelse: parsedEo.data,
@@ -766,8 +623,6 @@ export const computeEoSnapshot = (args: Readonly<{
       revision: args.revision,
       error,
       context: 'eoSnapshot.computeEoSnapshot',
-      // Diagnostisk: var en (delvist bygget) kontrol-snapshot tilgængelig, da exception ramte?
-      inspektionSnapshotAvailable: inspektionSnapshot !== null,
       input: {
         stamdata: parsedStamdata.data,
         erstatningsopgoerelse: parsedEo.data,

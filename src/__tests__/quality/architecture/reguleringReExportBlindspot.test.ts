@@ -4,8 +4,8 @@ import { makeSyntheticEntry } from './sourceGraph';
 describe('ARCH-002 – reguleringsgrænsens re-export-modprøve', () => {
   it('afviser wildcard-re-export af reguleringsserie', () => {
     const entry = makeSyntheticEntry(
-      'src/domain/eoInspektion/eoInspektionRegulationCore.ts',
-      "export * from '../../data/klLoenaftaler';",
+      'src/domain/erstatningsopgoerelse/engines/reguleringsPresentation.ts',
+      "export * from '../../../data/klLoenaftaler';",
     );
 
     const findings = reguleringCanonicalForloebBoundary.evaluate([entry]);

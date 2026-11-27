@@ -4,7 +4,7 @@ import * as svieSmerteEngine from '../../../domain/erstatningsopgoerelse/engines
 import * as tafNettoBeregning from '../../../domain/erstatningsopgoerelse/engines/tafNettoBeregning';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
-import { EMPTY_FIELD_ISSUE_SET, type FieldIssue, type FieldIssueSet } from '../../../inputCore/inputIssue';
+import { type FieldIssue } from '../../../inputCore/inputIssue';
 import type { FieldAddress } from '../../../inputCore/fieldAddress';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { toISODateString } from '../../../types/branded';
@@ -137,11 +137,10 @@ describe('EO: motorerne kaldes ikke, når en rød reader-feltfejl blokerer', () 
     tafNettoSpy.mockRestore();
   });
 
-  const compute = (eoFieldIssues: readonly FieldIssue[] = [], eoErrors: FieldIssueSet = EMPTY_FIELD_ISSUE_SET) => computeEoSnapshot({
+  const compute = (eoFieldIssues: readonly FieldIssue[] = []) => computeEoSnapshot({
     revision: 'r1',
     stamdataValues: STAMDATA_INITIAL_VALUES,
     eoValues: createComputableEoValues(),
-    eoErrors,
     dependencyProjection: dependencyProjectionForIssues(eoFieldIssues),
   });
 
@@ -221,7 +220,6 @@ describe('EO: motorerne kaldes ikke, når en rød reader-feltfejl blokerer', () 
     // Download-gate-invarianten: EO blokeres aldrig uden en synlig fejl.
     const snapshot = compute([redField('forligAnsvarsgradProcent', 'bounds')]);
 
-    expect(snapshot.inspektionSnapshot).not.toBeNull();
     expect(snapshot.status).toBe('error');
   });
 
@@ -313,7 +311,6 @@ describe('EO: afhængighedsopdelingen er specifik pr. gren', () => {
     expect(snapshot.blockedDependencies?.svieSmerte).toBe(false);
     // Den modsatte retning: S/S-motoren kører, fordi dens egne felter er grønne, OG dens output bevares.
     expect(svieSmerteSpy).toHaveBeenCalled();
-    // S/S-grenens output bæres gennem `inspektionSnapshot` (Kontrol-fanens kilde), ikke gennem
     // `readyBranches` – dér ligger kun de grene, en consumer faktisk læser.
     expect(snapshot.readyBranches?.svieSmerte).toBeDefined();
   });
@@ -408,7 +405,6 @@ describe('EO: afhængighedsopdelingen er specifik pr. gren', () => {
     const snapshot = compute([redField('svieSmerteSatserAar')]);
 
     expect(snapshot.data).toBeNull();
-    expect(snapshot.inspektionSnapshot).not.toBeNull();
     expect(snapshot.status).toBe('error');
   });
 });

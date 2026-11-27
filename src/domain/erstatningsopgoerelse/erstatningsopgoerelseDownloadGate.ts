@@ -30,7 +30,7 @@ import { selectBlockingLoenindkomstEntityIds } from './eoInputIssues';
 //  - de autoritativt-blokerende invarianter fra snapshottet (`getAuthoritativeBlockingInvariants`),
 //  - den første blokerende række-/EET-fejlbesked + hasBlockingRows fra `collectAllEoRows`, fodret med reader-
 //    projektionens rekonstruerede værdier og error-maps (inkl. `${afId}:loenindkomst`-aggregatet → suffix-gaten).
-// Dermed blokerer gaten på PRÆCIS de samme rækker som DEV-kontrolfanen og den nuværende view-model, uden at læse
+// Dermed blokerer gaten på PRÆCIS de samme rækker som Beregning, uden at læse
 // nogen rå sektion eller monteret felt.
 
 /** De fire selvstændige EO-dokumenter. */

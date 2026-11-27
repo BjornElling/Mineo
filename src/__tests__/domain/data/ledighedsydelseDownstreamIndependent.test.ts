@@ -1,4 +1,5 @@
-import { buildEOInspektionModel } from '../../../domain/eoInspektion/eoInspektionKontrolModel';
+import { buildIncomeForRanges } from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
+import { collectIncomeDays } from '../../../domain/erstatningsopgoerelse/engines/eoIndkomstDagsgrundlag';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
@@ -23,34 +24,20 @@ const buildValues = (): ErstatningsopgoerelseValues => {
 };
 
 describe('ledighedsydelseDownstreamIndependent', () => {
-  it('fører ledighedsydelse fra registret gennem EO-inspektionens kalenderdagsconsumer', () => {
-    const model = buildEOInspektionModel(buildValues(), { tafRanges: [] });
-    const amounts = model.columnRawValues.get('offentlig:ledighedsydelse');
+  it('fører ledighedsydelse fra registret gennem beregningens kalenderdagsconsumer', () => {
+    const { receiver, days } = collectIncomeDays();
+    const values = buildValues();
+    if (!values.vedroererPeriodeFra || !values.vedroererPeriodeTil) throw new Error('Testperioden mangler');
+    const income = buildIncomeForRanges(values, [{ fra: values.vedroererPeriodeFra, til: values.vedroererPeriodeTil }],
+      undefined, undefined, undefined, receiver);
+    const amounts = new Map(days.ydelse.get('ledighedsydelse')?.map(({ date, amount }) => [date, amount]));
     const relevantDates = [
       iso('2024-01-05'),
       iso('2024-01-06'),
       iso('2024-01-07'),
       iso('2024-01-08'),
     ];
-    const relevantIndexes = relevantDates.map((date) => model.tableData.dates.indexOf(date));
-    const column = model.columns.find((candidate) => candidate.id === 'offentlig:ledighedsydelse');
-
-    expect(column?.header).toBe('Ledigheds-\nydelse');
-    expect(amounts).toBeDefined();
-    expect(relevantIndexes).toEqual([4, 5, 6, 7]);
-    if (!amounts) return;
-
-    // Ledighedsydelse er kalenderdagsbaseret: 1.200 kr. / 4 kalenderdage = 300 kr. pr. dag.
-    // Weekenddagene skal derfor have samme beløb som fredag og mandag.
-    expect(relevantIndexes.map((index) => amounts[index])).toEqual([300, 300, 300, 300]);
-    expect(relevantIndexes.map((index) => model.getCell(index, 'offentlig:ledighedsydelse'))).toEqual([
-      '300,00',
-      '300,00',
-      '300,00',
-      '300,00',
-    ]);
-    expect(model.tableData.isWorkdayByIndex[relevantIndexes[1]]).toBe(false);
-    expect(model.tableData.isWorkdayByIndex[relevantIndexes[2]]).toBe(false);
-    expect(amounts.reduce((sum, value) => sum + value, 0)).toBe(1200);
+    expect(relevantDates.map((date) => amounts.get(date) ?? 0)).toEqual([300, 300, 300, 300]);
+    expect(income.benefits).toEqual([{ typeKey: 'ledighedsydelse', label: 'Ledighedsydelse', amount: 1200 }]);
   });
 });

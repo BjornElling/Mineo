@@ -47,14 +47,13 @@ export type EoRowBuilderEntry = {
 /**
  * Centraliseret registry af alle EO row-buildere
  *
- * SINGLE SOURCE OF TRUTH - både download-gaten og EOInspektion skal hente herfra.
+ * Fælles registry for Beregning og dokumentgaten.
  * Builders er rækkeprojektioner og skal foretrække canonical output frem for
  * at genkalde tunge motorer. Se docs/architecture/eo-row-evaluation-architecture.md.
  *
- * Rækkefølge: Samme som i original EOInspektion.tsx for konsistens i visning.
  *
  * VIGTIGT: Nye builders skal registreres her og gennemgå den fulde række-evaluerings-
- * tjekliste i docs/architecture/eo-row-evaluation-architecture.md §14.
+ * tjekliste i docs/architecture/eo-row-evaluation-architecture.md §4.
  */
 export const EO_ROW_BUILDERS: readonly EoRowBuilderEntry[] = [
   {
@@ -235,23 +234,6 @@ export const executeEoRowBuilderEntries = (
   ctx: EoRowEvaluationContext
 ): EoRowModel[] => {
   return entries.flatMap((entry) => executeEoRowBuilderEntry(entry, ctx));
-};
-
-/**
- * Udfører builders og returnerer rows grupperet pr. section
- *
- * Bruges af EO-kontrol-siden, som har brug for sektioneret output
- * men stadig skal dele samme exception-isolation som download-gaten.
- */
-export const executeEoRowBuilderEntriesBySection = (
-  entries: ReadonlyArray<EoRowBuilderEntry>,
-  ctx: EoRowEvaluationContext
-): ReadonlyMap<SectionId, readonly EoRowModel[]> => {
-  const map = new Map<SectionId, readonly EoRowModel[]>();
-  entries.forEach((entry) => {
-    map.set(entry.section, executeEoRowBuilderEntry(entry, ctx));
-  });
-  return map;
 };
 
 /**

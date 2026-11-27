@@ -39,37 +39,20 @@ export const resolveAppSettings = (raw: unknown): AppSettings => {
 export const parseStoredSettings = (raw: unknown): AppSettings => {
   if (!isRecord(raw)) return createDefaultAppSettings();
 
-  // Ét-vejs migration af omdøbte nøgler før merge/parse. `appSettingsSchema` er `.strict()`,
-  // så en gammel nøgle ellers ville blive strippet og brugerens valg tabt.
-  // `showEODebugMenu` blev omdøbt til `showEOInspektionMenu` (sproglig oprydning: fanerne er
-  // kontrolfaner, ikke fejlsøgning). Bevar en tidligere gemt boolean-værdi.
-  const migrated: Record<string, unknown> = { ...raw };
-  if (!('showEOInspektionMenu' in migrated) && typeof migrated.showEODebugMenu === 'boolean') {
-    migrated.showEOInspektionMenu = migrated.showEODebugMenu;
-  }
-  delete migrated.showEODebugMenu;
-  // Schema-evolution: den fjernede DEV-indstilling droppes, så en gemt ældre værdi ikke fejler
-  // `.strict()`-parsingen. Indstillingen har ingen brugeradfærd at bevare.
-  delete migrated.showStamdataTestTab;
-
   const defaults = createDefaultAppSettings();
   const sanitized: Record<string, unknown> = { ...defaults };
 
-  // En enkelt fremmed eller korrupt nøgle må ikke nulstille de øvrige, gyldige indstillinger.
-  // Hvert kendt top-level felt valideres derfor mod sin egen Zod-schema-grænse, før hele det
-  // sanitiserede objekt slutvalideres samlet. Ukendte felter ignoreres fremad-tolerant.
+  // Ukendte lagrede nøgler ignoreres. En korrupt værdi må ikke nulstille andre indstillinger.
   for (const key of Object.keys(appSettingsSchema.shape) as (keyof AppSettings)[]) {
-    if (key === 'brevhovedIndstillinger' || !(key in migrated)) continue;
-    const parsedField = appSettingsSchema.shape[key].safeParse(migrated[key]);
-    if (parsedField.success) {
-      sanitized[key] = parsedField.data;
-    }
+    if (key === 'brevhovedIndstillinger' || !(key in raw)) continue;
+    const parsedField = appSettingsSchema.shape[key].safeParse(raw[key]);
+    if (parsedField.success) sanitized[key] = parsedField.data;
   }
 
   const sanitizedBrevhoved: Record<string, unknown> = {
     ...defaults.brevhovedIndstillinger,
   };
-  const rawBrevhoved = migrated.brevhovedIndstillinger;
+  const rawBrevhoved = raw.brevhovedIndstillinger;
   if (isRecord(rawBrevhoved)) {
     for (const key of Object.keys(appSettingsSchema.shape.brevhovedIndstillinger.shape) as (
       keyof AppSettings['brevhovedIndstillinger']

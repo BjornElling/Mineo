@@ -69,6 +69,27 @@ const buildCanonicalArgs = () => {
 };
 
 describe('eoCanonicalOutput – direkte invariantgrene', () => {
+  it('afviser en samlet opgørelse, hvis totalen afviger fra delkravene', () => {
+    const { args } = buildCanonicalArgs();
+    expect(() => buildEoCanonicalOutputFromComputed({
+      ...args,
+      totals: { ...args.totals, samletTotalOre: moneyOre(args.totals.samletTotalOre + 1) },
+    })).toThrow(/Det samlede krav skal svare til summen af delkravene/);
+  });
+
+  it('afviser en sygeferiegodtgørelse, hvis totalen afviger fra delbeløbene', () => {
+    const { args } = buildCanonicalArgs();
+    const sfgg = args.tafNetto.sygeferiegodtgoerelse;
+    expect(buildEoCanonicalOutputFromComputed(args).taf.sygeferiegodtgoerelseOre).toBe(0);
+    expect(() => buildEoCanonicalOutputFromComputed({
+      ...args,
+      tafNetto: {
+        ...args.tafNetto,
+        sygeferiegodtgoerelse: { ...sfgg, totalOre: moneyOre(1) },
+      },
+    })).toThrow(/Sygeferiegodtgørelsens total skal svare til summen pr\. ansættelsesforhold/);
+  });
+
   it('validerer KL-nulbasis med nulbeløb og afviser inkonsistente nulsegmenter', () => {
     const { args } = buildCanonicalArgs();
     const output = buildEoCanonicalOutputFromComputed(args);

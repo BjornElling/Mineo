@@ -182,30 +182,6 @@ const buildLegacyInspectionCase = (scenario: LegacyInspectionScenario) => {
   };
 };
 
-const openControlTable = async (page: Page): Promise<void> => {
-  await openPage(page, 'Indstillinger');
-  const showControlTabs = page.getByRole('checkbox', {
-    name: 'Vis kontrolfaner på Erstatningsopgørelse-side',
-  });
-  if (!(await showControlTabs.isChecked())) await showControlTabs.click();
-
-  await openPage(page, 'Erstatningsopgørelse');
-  await page.getByRole('button', { name: 'EO-kontrol', exact: true }).click();
-  await page.getByRole('button', { name: 'Kontroltabel', exact: true }).click();
-  await expect(page.getByText('Sammentælling', { exact: true })).toBeVisible();
-};
-
-const sammentaellingRows = (page: Page) => page.locator('.content-box')
-  .filter({ hasText: 'Sammentælling' })
-  .locator('table').first().locator('tbody tr');
-
-const scrollControlTableToBottom = async (page: Page): Promise<void> => {
-  await page.locator('[data-mineo-scroll-container="true"]').evaluate((container) => {
-    container.scrollTop = container.scrollHeight;
-    container.dispatchEvent(new Event('scroll', { bubbles: true }));
-  });
-};
-
 const fejlBoks = (page: Page) =>
   page.locator('.content-box').filter({ hasText: 'Fejl og advarsler' });
 
@@ -596,7 +572,7 @@ test.describe('Erstatningsopgørelse – tidligere gemte filer', () => {
     expect(externalRequests).toEqual([]);
   });
 
-  test('en ældre fil bevarer fraværets Feriedage og EO-kontrollens markeringer ved rød slutdato', async ({
+  test('en ældre fil bevarer fraværets Feriedage ved rød slutdato', async ({
     page,
     runtimeErrors,
     runtimeSignals,
@@ -630,29 +606,14 @@ test.describe('Erstatningsopgørelse – tidligere gemte filer', () => {
     await expect(hentKnap(page)).toBeDisabled();
     await expect(page.getByText('Teknisk fejl registreret', { exact: true })).toHaveCount(0);
 
-    await openControlTable(page);
-    const beregningsperiodeRow = sammentaellingRows(page).filter({ hasText: 'Arbejdsdage i beregningsperiode' });
-    await expect(beregningsperiodeRow.locator('td').first()).toContainText('2 feriedage');
-
-    await scrollControlTableToBottom(page);
-    const dailyTable = page.locator('table').filter({
-      has: page.locator('th[data-mineo-column-id="base:date"]'),
-    });
-    for (const { display } of octoberWeekdays) {
-      const dayRow = dailyTable.locator('tbody tr').filter({ hasText: display });
-      await expect(dayRow.locator('td[data-mineo-column-id="base:ferie_day"]')).toHaveText('x');
-    }
-
-    await page.getByRole('tab', { name: 'Beregning', exact: true }).click();
-    await expect(page.getByText('Teknisk fejl registreret', { exact: true })).toHaveCount(0);
-    await expect(hentKnap(page)).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Der er intet gyldigt dagsgrundlag at hente' })).toBeDisabled();
 
     expect(runtimeErrors).toEqual([]);
     expect(runtimeSignals).toEqual([]);
     expect(externalRequests).toEqual([]);
   });
 
-  test('en ældre fil bevarer TAF-rækkens 2 dage, men skjuler den røde rækkes kontrolsammenligning', async ({
+  test('en ældre fil bevarer TAF-rækkens 2 dage, og spærrer CSV for den røde TAF-gren', async ({
     page,
     runtimeErrors,
     runtimeSignals,
@@ -677,26 +638,14 @@ test.describe('Erstatningsopgørelse – tidligere gemte filer', () => {
     await expect(hentKnap(page)).toBeDisabled();
     await expect(page.getByText('Teknisk fejl registreret', { exact: true })).toHaveCount(0);
 
-    await openControlTable(page);
-    const tafSummaryRow = sammentaellingRows(page).filter({ hasText: 'Arbejdsdage i TAF-periode' });
-    await expect(tafSummaryRow.locator('td').nth(1)).toHaveText('-');
-    await expect(tafSummaryRow.locator('td').nth(2)).toHaveText('-');
-
-    const intervalTable = page.locator('.content-box').filter({ hasText: 'Kontroltabel' }).locator('table').first();
-    const tafIntervalRow = intervalTable.locator('tbody tr').filter({ hasText: 'TAF-perioder' });
-    await expect(tafIntervalRow.locator('td').nth(1)).toHaveText('-');
-    await expect(tafIntervalRow.locator('td').nth(2)).toHaveText('-');
-
-    await page.getByRole('tab', { name: 'Beregning', exact: true }).click();
-    await expect(page.getByText('Teknisk fejl registreret', { exact: true })).toHaveCount(0);
-    await expect(hentKnap(page)).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Der er intet gyldigt dagsgrundlag at hente' })).toBeDisabled();
 
     expect(runtimeErrors).toEqual([]);
     expect(runtimeSignals).toEqual([]);
     expect(externalRequests).toEqual([]);
   });
 
-  test('en ældre fil viser 22/22 ved overlappende beregningsperiode uden falsk kontrolfejl', async ({
+  test('en ældre fil spærrer opgørelsen ved en overlappende beregningsperiode', async ({
     page,
     runtimeErrors,
     runtimeSignals,
@@ -719,18 +668,7 @@ test.describe('Erstatningsopgørelse – tidligere gemte filer', () => {
     await expect(hentKnap(page)).toBeDisabled();
     await expect(page.getByText('Teknisk fejl registreret', { exact: true })).toHaveCount(0);
 
-    await openControlTable(page);
-    const beregningsperiodeRow = sammentaellingRows(page).filter({ hasText: 'Arbejdsdage i beregningsperiode' });
-    await expect(beregningsperiodeRow.locator('td').nth(1)).toHaveText('22');
-    await expect(beregningsperiodeRow.locator('td').nth(2)).toHaveText('22');
-
-    const tafSummaryRow = sammentaellingRows(page).filter({ hasText: 'Arbejdsdage i TAF-periode' });
-    await expect(tafSummaryRow.locator('td').nth(1)).toHaveText('-');
-    await expect(tafSummaryRow.locator('td').nth(2)).toHaveText('-');
-
-    await page.getByRole('tab', { name: 'Beregning', exact: true }).click();
-    await expect(page.getByText('Teknisk fejl registreret', { exact: true })).toHaveCount(0);
-    await expect(hentKnap(page)).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Der er intet gyldigt dagsgrundlag at hente' })).toBeDisabled();
 
     expect(runtimeErrors).toEqual([]);
     expect(runtimeSignals).toEqual([]);

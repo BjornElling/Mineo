@@ -9,9 +9,6 @@ export type Periodisering = 'kalenderdage' | 'arbejdsdage';
 
 export interface YdelsestypeConfig {
   label: string;
-  // Alternativ visnings-label med linjeskift til smalle tabelkolonner (kontrol-/kontroltabellen).
-  // Falder tilbage til `label`, når den ikke er sat.
-  tabelLabel?: string;
   periodisering: Periodisering;
   periodiseringLabel: string;  // Vises i readonly-kolonne
 }
@@ -49,7 +46,6 @@ const ydelsestyperLiteral = {
   },
   ledighedsydelse: {
     label: 'Ledighedsydelse',
-    tabelLabel: 'Ledigheds-\nydelse',
     periodisering: 'kalenderdage',
     periodiseringLabel: 'Kalenderdage',
   },
@@ -70,7 +66,6 @@ const ydelsestyperLiteral = {
   },
   revalideringsydelse: {
     label: 'Revalideringsydelse',
-    tabelLabel: 'Revaliderings-\nydelse',
     periodisering: 'kalenderdage',
     periodiseringLabel: 'Kalenderdage',
   },
@@ -86,7 +81,6 @@ const ydelsestyperLiteral = {
   },
   uddannelseshjaelp: {
     label: 'Uddannelseshjælp',
-    tabelLabel: 'Uddannelses-\nhjælp',
     periodisering: 'kalenderdage',
     periodiseringLabel: 'Kalenderdage',
   },
@@ -111,10 +105,7 @@ export const ydelsestypeKeys = Object.keys(ydelsestyperLiteral) as YdelsestypeKe
  * Værdien i en `.eo`-fil er ikke altid nøglen. Tidligere gemte sager kan bære den viste LABEL
  * («Sygedagpenge» frem for `sygedagpenge`), og derfor har opslaget et label-fallback.
  *
- * **Alle lag skal slå op HER.** Slår ét lag direkte op i `ydelsestyper[raw]`, mens et andet normaliserer
- * label og versalisering, beregner indtægtssiden et beløb, som kontroltabellen ikke finder. Sammentællingen
- * melder da `control:sammentaelling_mismatch` – en falsk systemfejl, der blokerer EO-PDF'en uden en
- * forklarende besked.
+ * Alle forbrugere bruger dette opslag, så gemte labels og nøgler giver samme ydelse og periodisering.
  *
  * Opslaget er bevidst tolerant og ændrer ikke persisterede data: en gammel fil læses som før, den
  * bliver bare forstået ens af alle lag.

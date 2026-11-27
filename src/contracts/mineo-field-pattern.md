@@ -3,7 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Tværgående komponent-/adapterkontrakt  
 **Prioritet:** Supplement til `form-contract.md`; ejer feltdescriptors, codecs, felt-editor og surface-adaptere.
-**Senest verificeret mod kode:** 2026-11-26
+**Senest verificeret mod kode:** 2026-11-27
 
 Denne kontrakt fastlægger ét fælles feltmønster for formularfelter og tabelceller. Mønstret ER den
 implementerede arkitektur; der findes ingen parallel inputmodel ved siden af den – se §10 og
@@ -50,7 +50,7 @@ der henviser til feltet, så skærm, skærmlæser og «Fejl og advarsler» siger
 **Undtagelse (udviklerens afgørelse): toggles, hvis synlige tekst er et helt spørgsmål.** På EO oplysninger står
 fem Ja/Nej-toggles med en sætning som tekst, fx «Truffet afgørelse om varige mén på 5 % eller derover». Deres
 descriptor bærer et kort navn («Varige mén-afgørelse», «Midlertidigt EET-afgørelse», «Endeligt EET-afgørelse»,
-«Verserende klage (mén)», «Verserende klage (EET)»), som Inspektion og fejltekster bruger. Det tilgængelige navn kommer fra skærmteksten
+«Verserende klage (mén)», «Verserende klage (EET)»), som fejltekster bruger. Det tilgængelige navn kommer fra skærmteksten
 gennem `labelledBy`, så skærmlæseren siger det samme som skærmen. Ret ikke de korte navne til sætningerne.
 
 ### Lag B – fælles felt-editor
