@@ -9,6 +9,7 @@ assertSupportedNode();
 const defaultBaseURL = 'http://127.0.0.1:4173';
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? defaultBaseURL;
 const useExternalWebServer = process.env.PLAYWRIGHT_SKIP_WEBSERVER === '1';
+const useVerifiedArtifact = process.env.PLAYWRIGHT_USE_VERIFIED_ARTIFACT === '1';
 const allowServiceWorkers = process.env.PLAYWRIGHT_ALLOW_SERVICE_WORKERS === '1';
 const runFullMatrix = process.env.PLAYWRIGHT_FULL_MATRIX === '1';
 
@@ -54,7 +55,7 @@ const ENGINE_SPECIFIC_SPECS = [
 
 /**
  * Disse specs kræver E2E-buildets test-only introspektionsbro. Produktionsartefaktet må ikke
- * indeholde broen, så de holdes ude af den eksterne artefaktmatrix og køres fortsat i den lokale
+ * indeholde broen, så de holdes ude af artefaktmatrixen og køres fortsat i den lokale
  * E2E-buildbane, hvor de hører hjemme.
  */
 const TEST_BUILD_ONLY_SPECS = [
@@ -70,7 +71,7 @@ const buildProject = (
   use: { ...engine.use, viewport },
   testIgnore: [
     ...ENGINE_SPECIFIC_SPECS,
-    ...(useExternalWebServer ? TEST_BUILD_ONLY_SPECS : []),
+    ...(useExternalWebServer || useVerifiedArtifact ? TEST_BUILD_ONLY_SPECS : []),
   ],
   // Playwright matcher `grep` mod testens fulde titel inklusive dens tags.
   ...(laneTag === undefined ? {} : { grep: new RegExp(`${laneTag}\\b`) }),
@@ -152,7 +153,8 @@ const scaleTimeout = (baseMs: number): number => Math.round(baseMs * machineProf
 // samtidige første besøg i samme route derfor få et kortvarigt mislykket modul-svar. E2E-suiten
 // skal dokumentere browseradfærd, ikke Vites transform-cacheløb, og kører derfor mod ét immutabelt
 // build-preview. Service workers er stadig som udgangspunkt blokeret i browserkonteksten nedenfor.
-const webServerCommand = 'npm run generate:build-info && npx vite build --config vite.mineo.config.ts --mode e2e && node scripts/verify-build-artifacts.mjs mineo dist/mineo --allow-automation-bridge && npx vite build --config vite.minprocesrente.config.ts --base /minprocesrente/ && node scripts/ensure-build-index.mjs dist/minprocesrente minprocesrente.html && node scripts/cleanup-minprocesrente-public.mjs dist/minprocesrente && node scripts/verify-build-artifacts.mjs minprocesrente dist/minprocesrente && node scripts/serve-e2e-builds.mjs --port 4173';
+const buildServerCommand = 'node scripts/serve-e2e-builds.mjs --port 4173';
+const webServerCommand = `npm run generate:build-info && npx vite build --config vite.mineo.config.ts --mode e2e && node scripts/verify-build-artifacts.mjs mineo dist/mineo --allow-automation-bridge && npx vite build --config vite.minprocesrente.config.ts --base /minprocesrente/ && node scripts/ensure-build-index.mjs dist/minprocesrente minprocesrente.html && node scripts/cleanup-minprocesrente-public.mjs dist/minprocesrente && node scripts/verify-build-artifacts.mjs minprocesrente dist/minprocesrente && ${buildServerCommand}`;
 
 export default defineConfig({
   testDir: './e2e',
@@ -205,9 +207,9 @@ export default defineConfig({
   webServer: useExternalWebServer
     ? undefined
     : {
-      // Begge app-varianter bygges først og serveres derefter fra hver sin immutable rod. Den
-      // almindelige suite blokerer service workers, mens PWA-scenarierne eksplicit tillader dem.
-      command: webServerCommand,
+      // CI serverer de færdige builds direkte, så et nyt build aldrig erstatter det artefakt,
+      // der skal udrulles. Playwright venter på serveren og lukker den efter testen.
+      command: useVerifiedArtifact ? buildServerCommand : webServerCommand,
       url: baseURL,
       // Audit- og E2E-resultater må komme fra den build/server, som testen selv starter.
       // En eksisterende proces må kun genbruges eksplicit, ellers kan en gammel server skjule

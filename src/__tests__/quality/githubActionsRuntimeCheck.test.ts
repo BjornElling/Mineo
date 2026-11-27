@@ -99,21 +99,27 @@ describe('check-github-actions-runtime', () => {
 
   it('kobler build-, E2E- og deploy-job til samme dist-artefakt', () => {
     const workflow = readFileSync(join(repoRoot, '.github', 'workflows', 'ci.yml'), 'utf8');
+    const playwrightConfig = readFileSync(join(repoRoot, 'playwright.config.ts'), 'utf8');
     const buildJob = getWorkflowJob(workflow, 'build', 'verify');
     const verifyJob = getWorkflowJob(workflow, 'verify', 'e2e');
     const e2eJob = getWorkflowJob(workflow, 'e2e', 'deploy');
     const deployJob = getWorkflowJob(workflow, 'deploy');
+    const artifactInput = "artifact-ids: ${{ needs.build.outputs.artifact-id || '0' }}";
 
     // Et statisk værn er passende her: CI-kontrakten skal være synlig i workflow-filen, og
     // ellers kan en separat test-build igen blive forvekslet med det artefakt, der deployes.
     expect(buildJob).toContain('run: npm run build:all');
-    expect(buildJob).toContain('uses: actions/upload-artifact@v7');
-    expect(buildJob).toContain('name: dist');
-    expect(buildJob).toContain('path: dist/');
+    expect(buildJob).toContain('artifact-id: ${{ steps.artifact.outputs.artifact-id }}');
+    const artifactUpload = buildJob.slice(buildJob.indexOf('- name: Upload verified build artifacts'));
+    expect(artifactUpload).toContain('id: artifact');
+    expect(artifactUpload).toContain('uses: actions/upload-artifact@v7');
+    expect(artifactUpload).toContain('name: dist-attempt-${{ github.run_attempt }}');
+    expect(artifactUpload).toContain('path: dist/');
     expect(buildJob).toContain('e2e/production-artifact-smoke.spec.ts');
     // Artefaktet uploades først, når smoke-testen har startet det.
-    expect(buildJob.indexOf('uses: actions/upload-artifact@v7'))
+    expect(buildJob.indexOf('- name: Upload verified build artifacts'))
       .toBeGreaterThan(buildJob.indexOf('e2e/production-artifact-smoke.spec.ts'));
+    expect(buildJob).toContain("PLAYWRIGHT_USE_VERIFIED_ARTIFACT: '1'");
 
     // Release-gaten kører fortsat, men dens eget build er ikke det, der udrulles.
     expect(verifyJob).toContain('run: npm run verify:release:core');
@@ -121,20 +127,23 @@ describe('check-github-actions-runtime', () => {
 
     expect(e2eJob).toContain('needs: build');
     expect(e2eJob).toContain('uses: actions/download-artifact@v8');
-    expect(e2eJob).toContain('name: dist');
+    expect(e2eJob).toContain(artifactInput);
     expect(e2eJob).toContain('path: dist/');
-    expect(e2eJob).toContain('node scripts/serve-e2e-builds.mjs');
+    expect(e2eJob).toContain("PLAYWRIGHT_USE_VERIFIED_ARTIFACT: '1'");
     expect(e2eJob).not.toContain('npm run build');
+    expect(playwrightConfig).toContain('node scripts/serve-e2e-builds.mjs');
+    expect(playwrightConfig).toContain('command: useVerifiedArtifact ? buildServerCommand : webServerCommand');
 
     expect(deployJob).toContain('needs: [build, verify, e2e]');
     // En igangværende udrulning afbrydes aldrig, og en ældre commit overskriver aldrig en nyere.
     expect(deployJob).toContain('cancel-in-progress: false');
-    expect(deployJob).toContain('git ls-remote origin refs/heads/main');
+    expect(deployJob).toContain('queue: max');
+    expect(deployJob).toContain('git ls-remote --exit-code origin refs/heads/main');
     expect(deployJob).toContain(
       "if: github.event_name == 'push' && github.ref == 'refs/heads/main'"
     );
     expect(deployJob).toContain('uses: actions/download-artifact@v8');
-    expect(deployJob).toContain('name: dist');
+    expect(deployJob).toContain(artifactInput);
     expect(deployJob).toContain('path: dist/');
     expect(deployJob).toContain('node scripts/deploy-cloudflare.mjs wrangler.mineo.json');
     expect(deployJob).toContain('node scripts/deploy-cloudflare.mjs wrangler.minprocesrente.json');

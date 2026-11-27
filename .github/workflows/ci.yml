@@ -8,6 +8,9 @@ on:
   push:
     branches: [ main ]
 
+permissions:
+  contents: read
+
 # **Jobgrafen.** `build` laver det ene artefakt, som E2E-matrixen tester, og som `deploy` udruller.
 # `verify` kører hele release-gaten (typer, lint, værn, coverage-suiten) parallelt med det – den
 # behøver ikke vente på artefaktet, og E2E behøver ikke vente på den. Deploy kræver alle tre.
@@ -21,6 +24,8 @@ jobs:
   build:
     name: Build verified artifact
     runs-on: ubuntu-26.04
+    outputs:
+      artifact-id: ${{ steps.artifact.outputs.artifact-id }}
     concurrency:
       group: build-${{ github.ref }}
       cancel-in-progress: true
@@ -31,6 +36,7 @@ jobs:
         with:
           # Build-info (version, commit) udledes af git-historikken.
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Setup Node from .nvmrc
         uses: actions/setup-node@v7
@@ -56,52 +62,29 @@ jobs:
         run: node scripts/install-playwright.mjs chromium
 
       - name: Smoke-test verified Mineo artifact
-        shell: bash
+        id: smoke
         env:
-          PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
-          PLAYWRIGHT_SKIP_WEBSERVER: '1'
-        run: |
-          set -euo pipefail
-          preview_pid=''
-          cleanup() {
-            if [[ -n "$preview_pid" ]] && kill -0 "$preview_pid" 2>/dev/null; then
-              kill "$preview_pid" 2>/dev/null || true
-              wait "$preview_pid" 2>/dev/null || true
-            fi
-          }
-          trap cleanup EXIT
+          PLAYWRIGHT_USE_VERIFIED_ARTIFACT: '1'
+        run: npm run test:e2e -- e2e/production-artifact-smoke.spec.ts --project=chrome-desktop
 
-          npx vite preview --config vite.mineo.config.ts --host 127.0.0.1 --port 4173 --strictPort > /tmp/mineo-preview.log 2>&1 &
-          preview_pid=$!
-          preview_ready=''
-          for attempt in {1..30}; do
-            if ! kill -0 "$preview_pid" 2>/dev/null; then
-              cat /tmp/mineo-preview.log
-              exit 1
-            fi
-            if curl --fail --silent --show-error --connect-timeout 1 --max-time 2 http://127.0.0.1:4173/index.html > /dev/null; then
-              preview_ready=1
-              break
-            fi
-            sleep 1
-          done
-          if [[ -z "$preview_ready" ]]; then
-            cat /tmp/mineo-preview.log
-            exit 1
-          fi
-          if ! npm run test:e2e -- e2e/production-artifact-smoke.spec.ts --project=chrome-desktop; then
-            cat /tmp/mineo-preview.log
-            exit 1
-          fi
+      - name: Upload failed smoke-test report
+        if: failure() && steps.smoke.outcome == 'failure'
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-smoke-attempt-${{ github.run_attempt }}
+          path: playwright-report/
+          retention-days: 7
 
       # Først efter smoke-testen: et artefakt, der ikke kan starte, skal hverken testes videre eller
       # kunne udrulles.
       - name: Upload verified build artifacts
+        id: artifact
         uses: actions/upload-artifact@v7
         with:
-          name: dist
+          # Et genkørt build får sit eget artefakt. Afhængige jobs bruger det konkrete upload-ID.
+          name: dist-attempt-${{ github.run_attempt }}
           path: dist/
-          retention-days: 1
+          retention-days: 7
           if-no-files-found: error
 
   verify:
@@ -116,6 +99,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Setup Node from .nvmrc
         uses: actions/setup-node@v7
@@ -189,6 +173,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Setup Node from .nvmrc
         uses: actions/setup-node@v7
@@ -209,7 +195,8 @@ jobs:
       - name: Download verified build artifacts
         uses: actions/download-artifact@v8
         with:
-          name: dist
+          # Et tomt output må ikke få actionen til at hente alle kørselsartefakter.
+          artifact-ids: ${{ needs.build.outputs.artifact-id || '0' }}
           path: dist/
 
       # Chrome-/Edge-channel leveres af runner-imaget; Chromium-installationen er den
@@ -219,56 +206,37 @@ jobs:
         run: node scripts/install-playwright.mjs ${{ matrix.browser }}
 
       - name: Run browser project against verified artifact
+        id: browser-tests
         shell: bash
         env:
-          PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
-          PLAYWRIGHT_SKIP_WEBSERVER: '1'
+          PLAYWRIGHT_USE_VERIFIED_ARTIFACT: '1'
+          PLAYWRIGHT_PROJECT: ${{ matrix.project }}
           PLAYWRIGHT_SHARD: ${{ matrix.shard }}
         run: |
-          set -euo pipefail
-          preview_pid=''
-          cleanup() {
-            if [[ -n "$preview_pid" ]] && kill -0 "$preview_pid" 2>/dev/null; then
-              kill "$preview_pid" 2>/dev/null || true
-              wait "$preview_pid" 2>/dev/null || true
-            fi
-          }
-          trap cleanup EXIT
-
-          node scripts/serve-e2e-builds.mjs --port 4173 > /tmp/mineo-e2e-preview.log 2>&1 &
-          preview_pid=$!
-          preview_ready=''
-          for attempt in {1..30}; do
-            if ! kill -0 "$preview_pid" 2>/dev/null; then
-              cat /tmp/mineo-e2e-preview.log
-              exit 1
-            fi
-            if curl --fail --silent --show-error --connect-timeout 1 --max-time 2 http://127.0.0.1:4173/index.html > /dev/null; then
-              preview_ready=1
-              break
-            fi
-            sleep 1
-          done
-          if [[ -z "$preview_ready" ]]; then
-            cat /tmp/mineo-e2e-preview.log
-            exit 1
-          fi
-          shard_args=()
+          args=("--project=$PLAYWRIGHT_PROJECT")
           if [[ -n "$PLAYWRIGHT_SHARD" ]]; then
-            shard_args=("--shard=$PLAYWRIGHT_SHARD")
+            args+=("--shard=$PLAYWRIGHT_SHARD")
           fi
-          npx playwright test --project=${{ matrix.project }} "${shard_args[@]}"
+          npx playwright test "${args[@]}"
+
+      - name: Upload failed browser-test report
+        if: failure() && steps.browser-tests.outcome == 'failure'
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-${{ matrix.project }}-job-${{ strategy.job-index }}-attempt-${{ github.run_attempt }}
+          path: playwright-report/
+          retention-days: 7
 
   deploy:
     needs: [build, verify, e2e]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-26.04
-    # Én udrulning ad gangen, og en igangværende afbrydes aldrig (en halv udrulning kan efterlade
-    # Mineo og MinProcesrente på hver sin version). En nyere kørsel venter; står flere og venter,
-    # erstatter GitHub den ældre ventende med den nyeste.
+    # Én udrulning ad gangen. En langsommere, ældre kørsel kan nå frem efter den nyeste.
+    # Behold begge i køen, så den ældre ikke fortrænger den nyeste, før main er kontrolleret.
     concurrency:
       group: deploy-production
       cancel-in-progress: false
+      queue: max
 
     steps:
       # Checkout for wrangler-konfigurationerne og deploy-scriptet; der bygges IKKE på ny.
@@ -283,9 +251,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          remote_head="$(git ls-remote origin refs/heads/main | cut -f1)"
+          remote_head="$(git ls-remote --exit-code origin refs/heads/main | cut -f1)"
           if [[ "$remote_head" != "$GITHUB_SHA" ]]; then
-            echo "::notice title=Deploy sprunget over::main peger nu på ${remote_head:0:8}; den nyere kørsel udruller."
+            echo "::notice title=Deploy sprunget over::main peger nu på ${remote_head:0:8}."
             echo "current=false" >> "$GITHUB_OUTPUT"
           else
             echo "current=true" >> "$GITHUB_OUTPUT"
@@ -316,7 +284,7 @@ jobs:
         if: steps.head.outputs.current == 'true'
         uses: actions/download-artifact@v8
         with:
-          name: dist
+          artifact-ids: ${{ needs.build.outputs.artifact-id || '0' }}
           path: dist/
 
       # `deploy-cloudflare.mjs` gentager kun ved forbigående fejl fra Cloudflares API (5xx, timeouts);
